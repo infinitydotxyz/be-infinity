@@ -1,6 +1,5 @@
 import { sleep } from 'utils';
-import { firestore } from 'container';
-import { error } from '@infinityxyz/lib/utils';
+import { FirebaseService } from './firebase.service';
 
 const MAX_SIZE = 500;
 
@@ -12,7 +11,7 @@ interface Batch {
 export default class FirestoreBatchHandler {
   private currentBatch: Batch;
 
-  constructor() {
+  constructor(private firebaseService: FirebaseService) {
     this.currentBatch = this.newBatch();
   }
 
@@ -27,7 +26,7 @@ export default class FirestoreBatchHandler {
   ): void {
     if (this.currentBatch.size >= MAX_SIZE) {
       this.flush().catch((err) => {
-        error(err);
+        console.error(err);
         throw err;
       });
     }
@@ -50,7 +49,7 @@ export default class FirestoreBatchHandler {
         } catch (err: any) {
           // Logger.error('Failed to commit batch', err);
           if (attempt > maxAttempts) {
-            error(`Failed to commit batch`);
+            console.error(`Failed to commit batch`);
             throw err;
           }
           await sleep(1000); // Firebase has a limit of 1 write per doc per second
@@ -61,7 +60,7 @@ export default class FirestoreBatchHandler {
 
   private newBatch(): Batch {
     return {
-      batch: firestore.db.batch(),
+      batch: this.firebaseService.firestore.batch(),
       size: 0
     };
   }

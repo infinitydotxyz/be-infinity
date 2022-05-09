@@ -16,10 +16,9 @@ import {
   getCreatorFeeManagerAddress,
   getFeeTreasuryAddress,
   getInfinityLink,
-  trimLowerCase,
+  trimLowerCase
 } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
-import FirestoreBatchHandler from '../databases/FirestoreBatchHandler';
 import { BigNumber, ethers } from 'ethers';
 import { getProvider } from '../utils/ethers';
 import { FirebaseService } from '../firebase/firebase.service';
@@ -44,6 +43,7 @@ import { CursorService } from '../pagination/cursor.service';
 import { SignedOBOrderArrayDto } from './dto/signed-ob-order-array.dto';
 import { UserOrderItemsQueryDto } from './dto/user-order-items-query.dto';
 import { BadQueryError } from 'common/errors/bad-query.error';
+import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
 
 // todo: remove this with the below commented code
 // export interface ExpiredCacheItem {
@@ -69,7 +69,7 @@ export default class OrdersService {
 
   public async createOrder(maker: ParsedUserId, orders: SignedOBOrderDto[]): Promise<void> {
     try {
-      const fsBatchHandler = new FirestoreBatchHandler();
+      const fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
       const ordersCollectionRef = this.firebaseService.firestore.collection(firestoreConstants.ORDERS_COLL);
       const metadata = await this.getOrderMetadata(orders);
       const makerProfile = await this.userService.getProfile(maker);
