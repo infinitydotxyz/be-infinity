@@ -59,11 +59,11 @@ export class NftsService {
 
   async isSupported(nfts: NftDto[]) {
     const { getCollection } = await this.collectionsService.getCollectionsByAddress(
-      nfts.map((nft) => ({ address: nft.address, chainId: nft.chainId }))
+      nfts.map((nft) => ({ address: nft.collectionAddress, chainId: nft.chainId }))
     );
 
     const externalNfts: ExternalNftDto[] = nfts.map((nft) => {
-      const collection = getCollection({ address: nft.address, chainId: nft.chainId });
+      const collection = getCollection({ address: nft.collectionAddress, chainId: nft.chainId });
       const isSupported = collection?.state?.create?.step === CreationFlow.Complete;
       const externalNft: ExternalNftDto = {
         ...nft,
@@ -97,7 +97,7 @@ export class NftsService {
       const nft = snapshot.data() as NftDto | undefined;
 
       if (nft) {
-        nft.address = nfts[index].address;
+        nft.collectionAddress = nfts[index].address;
       }
 
       return nft;
