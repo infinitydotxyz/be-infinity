@@ -29,8 +29,8 @@ export const auth = {
   message: 'x-auth-message'
 };
 
-export const API_BASE = 'http://localhost:9090';
-export const SITE_BASE = 'http://localhost:3000';
+export const API_BASE = 'https://sv-dev.nftcompany.com';
+export const SITE_BASE = 'https://dev.nftcompany.com';
 
 export const SALE_FEES_TO_PURCHASE_FEES_RATIO = 5;
 
@@ -47,7 +47,7 @@ export const DEFAULT_PRICE_SORT_DIRECTION = OrderDirection.Descending;
 export const INFINITY_EMAIL = 'hi@infinity.xyz';
 export const FB_STORAGE_BUCKET = 'nftc-dev.appspot.com';
 export const FIREBASE_SERVICE_ACCOUNT = 'nftc-dev-firebase-creds.json';
-export const ORIGIN = /http:\/\/localhost:\d+/;
+export const ORIGIN = 'https://dev.nftcompany.com';
 export const INFINITY_URL = 'https://infinity.xyz/';
 
 export const ONE_HOUR = 3_600_000; // In ms
