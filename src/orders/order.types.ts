@@ -4,8 +4,8 @@ import { Token } from '@infinityxyz/lib/types/core/Token';
 export type OrderMetadata = {
   [chainId: string]: {
     [collection: string]: {
-      collection: Collection;
-      nfts: { [tokenId: string]: Token };
+      collection: Partial<Collection> | undefined;
+      nfts: { [tokenId: string]: Partial<Token> | undefined };
     };
   };
 };

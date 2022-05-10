@@ -117,13 +117,13 @@ export default class OrdersService {
             for (const token of nft.tokens) {
               const orderItemMetadata = metadata[order.chainId as ChainId][nft.collection];
               const tokenData = orderItemMetadata.nfts[token.tokenId];
-              const collection = orderItemMetadata.collection;
+              const collection = orderItemMetadata.collection ?? {};
               const orderItemTokenMetadata: OrderItemTokenMetadata = {
                 tokenId: token.tokenId,
                 numTokens: token.numTokens, // default for both ERC721 and ERC1155
-                tokenImage: tokenData.image.url ?? '',
-                tokenName: tokenData.metadata.name ?? '',
-                tokenSlug: tokenData.slug ?? ''
+                tokenImage: tokenData?.image?.url ?? '',
+                tokenName: tokenData?.metadata?.name ?? '',
+                tokenSlug: tokenData?.slug ?? ''
               };
 
               const orderItemData = await this.getFirestoreOrderItemFromSignedOBOrder(
