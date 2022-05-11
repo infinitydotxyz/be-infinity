@@ -367,6 +367,8 @@ export default class OrdersService {
             collectionAddress: orderItemData.collectionAddress,
             collectionName: orderItemData.collectionName,
             collectionImage: orderItemData.collectionImage,
+            collectionSlug: orderItemData?.collectionSlug,
+            hasBlueCheck: orderItemData?.hasBlueCheck,
             tokens: [token]
           };
         }
@@ -375,6 +377,8 @@ export default class OrdersService {
           collectionAddress: orderItemData.collectionAddress,
           collectionImage: orderItemData.collectionImage,
           collectionName: orderItemData.collectionName,
+          collectionSlug: orderItemData?.collectionSlug,
+          hasBlueCheck: orderItemData?.hasBlueCheck,
           tokens: [token]
         };
         obOrderItemMap[orderItemData.id] = { [orderItemData.collectionAddress]: obOrderItem };
