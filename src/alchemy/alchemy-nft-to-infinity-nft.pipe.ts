@@ -39,6 +39,7 @@ export class AlchemyNftToInfinityNft
 
       return {
         ...nftDto,
+        hasBlueCheck: nftDto?.hasBlueCheck ?? false,
         collectionAddress: alchemyNft.contract.address,
         chainId: chainId,
         slug: nftDto?.slug ?? '',

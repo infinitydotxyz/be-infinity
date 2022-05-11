@@ -23,6 +23,11 @@ export class NftDto {
   collectionName?: string;
 
   @ApiProperty({
+    description: 'Whether the collection is verified'
+  })
+  hasBlueCheck?: boolean;
+
+  @ApiProperty({
     description: 'Chain id that the collection is on'
   })
   chainId: ChainId;
