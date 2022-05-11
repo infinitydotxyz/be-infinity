@@ -10,7 +10,17 @@ export class NftDto {
   @ApiProperty({
     description: 'Collection address'
   })
-  collectionAddress: string;
+  collectionAddress?: string;
+
+  @ApiProperty({
+    description: 'Collection slug'
+  })
+  collectionSlug?: string;
+
+  @ApiProperty({
+    description: 'Collection name'
+  })
+  collectionName?: string;
 
   @ApiProperty({
     description: 'Chain id that the collection is on'

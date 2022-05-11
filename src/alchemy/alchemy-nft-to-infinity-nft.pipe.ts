@@ -38,6 +38,7 @@ export class AlchemyNftToInfinityNft
       }
 
       return {
+        ...nftDto,
         collectionAddress: alchemyNft.contract.address,
         chainId: chainId,
         slug: nftDto?.slug ?? '',
