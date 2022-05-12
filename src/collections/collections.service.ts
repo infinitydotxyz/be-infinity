@@ -1,4 +1,4 @@
-import { Collection, CollectionMetadata, CreationFlow } from '@infinityxyz/lib/types/core';
+import { ChainId, Collection, CollectionMetadata, CreationFlow } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, getCollectionDocId, getEndCode, getSearchFriendlyString } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { FirebaseService } from 'firebase/firebase.service';
@@ -162,7 +162,7 @@ export default class CollectionsService {
     return result;
   }
 
-  async getCollectionsByAddress(collections: { address: string; chainId: string }[]) {
+  async getCollectionsByAddress(collections: { address: string; chainId: ChainId }[]) {
     const docIds = [
       ...new Set(
         collections.map((collection) => {
