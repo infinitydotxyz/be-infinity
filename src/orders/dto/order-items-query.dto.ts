@@ -62,6 +62,7 @@ export class OrderItemsQueryDto implements Omit<GetOrderItemsQuery, 'chainId'> {
   })
   @IsOptional()
   @IsNumber()
+  @Transform(parseIntTransformer({ optional: true }))
   numItems?: number;
 
   @ApiPropertyOptional({
