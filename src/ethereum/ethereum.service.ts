@@ -13,9 +13,11 @@ export class EthereumService {
   constructor(private configService: ConfigService<EnvironmentVariables>) {
     const mainnetUrl = this.configService.get('alchemyJsonRpcEthMainnet');
     const polygonUrl = this.configService.get('alchemyJsonRpcPolygonMainnet');
+    const goerliUrl = this.configService.get('alchemyJsonRpcEthGoerli');
     const providerUrlByChainId = {
       [ChainId.Mainnet]: mainnetUrl,
-      [ChainId.Polygon]: polygonUrl
+      [ChainId.Polygon]: polygonUrl,
+      [ChainId.Goerli]: goerliUrl
     };
 
     for (const chainId of Object.values(ChainId)) {

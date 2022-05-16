@@ -11,10 +11,17 @@ export class AlchemyService {
   private readonly client: AxiosInstance;
   private readonly apiKey: string;
 
+  /**
+   *
+   */
   private getBaseUrl(chainId: ChainId, path: string) {
     switch (chainId) {
       case ChainId.Mainnet:
         return new URL(normalize(`https://eth-mainnet.alchemyapi.io/v2/${this.apiKey}/${path}`));
+      case ChainId.Goerli:
+        return new URL(normalize(`https://eth-goerli.alchemyapi.io/v2/${this.apiKey}/${path}`));
+      case ChainId.Polygon:
+        return new URL(normalize(`https://polygon-mainnet.g.alchemyapi.io/v2/${this.apiKey}/${path}`));
 
       default:
         throw new Error(`Unsupported chainId: ${chainId}`);

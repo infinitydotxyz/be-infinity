@@ -4,4 +4,5 @@ export interface EnvironmentVariables {
   mnemonicApiKey: string;
   alchemyJsonRpcEthMainnet: string;
   alchemyJsonRpcPolygonMainnet: string;
+  alchemyJsonRpcEthGoerli: string;
 }
