@@ -1,7 +1,7 @@
 /**
  * username constraints
  */
-export const MIN_USERNAME_CHARS = 5;
+export const MIN_USERNAME_CHARS = 3;
 export const MAX_USERNAME_CHARS = 14;
 export const usernameChars = '[a-zA-Z0-9_]';
 export const usernameCharRegex = new RegExp(`[^${usernameChars}]`, 'g');
