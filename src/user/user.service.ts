@@ -28,6 +28,7 @@ import { UserNftsOrderType, UserNftsQueryDto } from './dto/user-nfts-query.dto';
 import { UserProfileDto } from './dto/user-profile.dto';
 import { ParsedUserId } from './parser/parsed-user-id';
 import { BadQueryError } from 'common/errors/bad-query.error';
+import { NftCollectionDto } from 'collections/nfts/dto/nft-collection.dto';
 
 export type UserActivity = NftSaleEvent | NftListingEvent | NftOfferEvent;
 
@@ -184,6 +185,40 @@ export class UserService {
     return {};
   }
 
+  async getUserNftCollections(user: ParsedUserId) {
+    const collRef = user.ref.collection(firestoreConstants.USER_NFT_COLLECTION_COLL);
+
+    const snap = await collRef.get();
+    const nftCollections: NftCollectionDto[] = snap.docs.map((doc) => {
+      const docData = doc.data() as NftCollectionDto;
+      return docData;
+    });
+    return nftCollections;
+  }
+
+  async saveUserNftCollections(userAddress: string, nfts: NftDto[]): Promise<void> {
+    const userRef = this.firebaseService.firestore
+      .collection(firestoreConstants.USERS_COLL)
+      .doc(userAddress)
+      .collection(firestoreConstants.USER_NFT_COLLECTION_COLL);
+
+    const batch = this.firebaseService.firestore.batch();
+    for (const nft of nfts) {
+      const { chainId, collectionAddress, collectionName, collectionSlug, hasBlueCheck } = nft;
+      if (chainId && collectionAddress && collectionName && collectionSlug) {
+        const docRef = userRef.doc(`${chainId}:${collectionAddress}`); // Only store one tweet per author
+        batch.set(docRef, {
+          chainId,
+          collectionAddress,
+          collectionName,
+          collectionSlug,
+          hasBlueCheck
+        });
+      }
+    }
+    await batch.commit();
+  }
+
   async getUserNftsWithOrders(user: ParsedUserId, nftsQuery: UserNftsQueryDto): Promise<NftArrayDto> {
     let query: FirebaseFirestore.Query<NftDto> = this.firebaseService.firestore.collectionGroup(
       firestoreConstants.COLLECTION_NFTS_COLL
@@ -259,7 +294,7 @@ export class UserService {
     const chainId = ChainId.Mainnet;
     type Cursor = { pageKey?: string; startAtToken?: string };
     const cursor = this.paginationService.decodeCursorToObject<Cursor>(query.cursor);
-    const getPage = async (
+    const _fetchNfts = async (
       pageKey: string,
       startAtToken?: string
     ): Promise<{ pageKey: string; nfts: NftDto[]; hasNextPage: boolean }> => {
@@ -295,7 +330,7 @@ export class UserService {
     while (nfts.length < limit && alchemyHasNextPage) {
       pageKey = nextPageKey;
       const startAtToken = pageNumber === 0 && cursor.startAtToken ? cursor.startAtToken : undefined;
-      const response = await getPage(pageKey, startAtToken);
+      const response = await _fetchNfts(pageKey, startAtToken);
       nfts = [...nfts, ...response.nfts];
       alchemyHasNextPage = response.hasNextPage;
       nextPageKey = response.pageKey;
@@ -311,6 +346,7 @@ export class UserService {
       pageKey: continueFromCurrentPage ? pageKey : nextPageKey,
       startAtToken: nftToStartAt
     });
+    await this.saveUserNftCollections(user.userAddress, nfts);
 
     return {
       data: nftsToReturn,
