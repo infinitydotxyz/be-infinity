@@ -206,7 +206,7 @@ export class UserService {
     for (const nft of nfts) {
       const { chainId, collectionAddress, collectionName, collectionSlug, hasBlueCheck } = nft;
       if (chainId && collectionAddress && collectionName && collectionSlug) {
-        const docRef = userRef.doc(`${chainId}:${collectionAddress}`); // Only store one tweet per author
+        const docRef = userRef.doc(`${chainId}:${collectionAddress}`);
         batch.set(docRef, {
           chainId,
           collectionAddress,
