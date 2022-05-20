@@ -82,6 +82,8 @@ import { UserCollectionPermissions } from './dto/user-collection-permissions';
 import { UserActivityArrayDto } from './dto/user-activity-array.dto';
 import { ExternalNftArrayDto } from 'collections/nfts/dto/external-nft-array.dto';
 import { NftsService } from 'collections/nfts/nfts.service';
+import { NftCollectionArrayDto } from 'collections/nfts/dto/nft-collection-array.dto';
+import { NftCollectionDto } from 'collections/nfts/dto/nft-collection.dto';
 
 @Controller('user')
 export class UserController {
@@ -206,6 +208,26 @@ export class UserController {
     return {
       ...nfts,
       data: externalNfts
+    };
+  }
+
+  @Get('/:userId/nftCollections')
+  @ApiOperation({
+    description: "Get a user's NFT collections.",
+    tags: [ApiTag.User, ApiTag.Nft]
+  })
+  @ApiParamUserId('userId')
+  @ApiOkResponse({ description: ResponseDescription.Success, type: NftCollectionArrayDto })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  @UseInterceptors(new CacheControlInterceptor())
+  async getUserNftCollections(
+    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId
+  ): Promise<{ data: NftCollectionDto[] }> {
+    const nftCollections = await this.userService.getUserNftCollections(user);
+
+    return {
+      data: nftCollections
     };
   }
 
