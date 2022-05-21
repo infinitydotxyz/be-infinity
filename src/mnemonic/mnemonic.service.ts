@@ -144,9 +144,7 @@ export class MnemonicService {
   }
 
   async getNumTokens(collectionAddress: string): Promise<MnemonicNumTokensResponseBody | undefined> {
-    const url = new URL(
-      `https://canary-ethereum.rest.mnemonichq.com/contracts/v1beta1/supply/${collectionAddress}`
-    );
+    const url = new URL(`https://canary-ethereum.rest.mnemonichq.com/contracts/v1beta1/supply/${collectionAddress}`);
     url.searchParams.append('duration', 'DURATION_1_DAY');
     url.searchParams.append('groupByPeriod', 'GROUP_BY_PERIOD_1_DAY');
     try {

@@ -62,7 +62,11 @@ export class AlchemyService {
     }
   }
 
-  async getNft(chainId: ChainId, collectionAddress: string, tokenId: string): Promise<AlchemyNftWithMetadata | undefined> {
+  async getNft(
+    chainId: ChainId,
+    collectionAddress: string,
+    tokenId: string
+  ): Promise<AlchemyNftWithMetadata | undefined> {
     const url = this.getBaseUrl(chainId, '/getNFTMetadata');
     try {
       const response = await this.client.get(url.toString(), {

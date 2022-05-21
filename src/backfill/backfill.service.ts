@@ -71,7 +71,7 @@ export class BackfillService {
           console.error('error backfilling collection', chainId, collectionAddress, err);
         });
 
-        return baseCollection;
+      return baseCollection;
     } catch (err) {
       console.error('error backfilling collection', chainId, collectionAddress, err);
     }
