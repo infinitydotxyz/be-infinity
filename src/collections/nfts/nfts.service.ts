@@ -1,4 +1,4 @@
-import { ChainId, CreationFlow } from '@infinityxyz/lib/types/core';
+import { ChainId } from '@infinityxyz/lib/types/core';
 import { FeedEventType, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
 import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
@@ -13,29 +13,33 @@ import { NftArrayDto } from './dto/nft-array.dto';
 import { NftsOrderBy, NftsQueryDto, OrderType } from './dto/nfts-query.dto';
 import { ActivityType, activityTypeToEventType } from './nft-activity.types';
 import { CursorService } from 'pagination/cursor.service';
-import { getERC721Owner } from 'services/ethereum/checkOwnershipChange';
 import { ExternalNftDto } from './dto/external-nft.dto';
+import { EthereumService } from 'ethereum/ethereum.service';
+import { BackfillService } from 'backfill/backfill.service';
 
 @Injectable()
 export class NftsService {
   constructor(
     private firebaseService: FirebaseService,
     private collectionsService: CollectionsService,
-    private paginationService: CursorService
+    private paginationService: CursorService,
+    private ethereumService: EthereumService,
+    private backfillService: BackfillService
   ) {}
 
   async getNft(nftQuery: NftQueryDto): Promise<NftDto | undefined> {
     const collection = await this.collectionsService.getCollectionByAddress(nftQuery);
 
     if (collection) {
-      const collectionDocId = getCollectionDocId({
-        collectionAddress: collection.address,
-        chainId: collection.chainId
-      });
+      // todo: remove this commented code when not needed anymore
+      // const collectionDocId = getCollectionDocId({
+      //   collectionAddress: collection.address,
+      //   chainId: collection.chainId
+      // });
 
-      if (collection?.state?.create?.step !== CreationFlow.Complete || !collectionDocId) {
-        return undefined;
-      }
+      // if (collection?.state?.create?.step !== CreationFlow.Complete || !collectionDocId) {
+      //   return undefined;
+      // }
 
       const nfts = await this.getNfts([
         { address: collection.address, chainId: collection.chainId as ChainId, tokenId: nftQuery.tokenId }
@@ -43,28 +47,41 @@ export class NftsService {
 
       const nft = nfts?.[0];
 
-      // TODO: Adi, or Joe, this was added, along with the owner field in the dto.  change if wrong
       if (nft) {
-        const owner = await getERC721Owner(nftQuery.address, nftQuery.tokenId, nftQuery.chainId);
+        const owner = await this.ethereumService.getErc721Owner({
+          address: nftQuery.address,
+          tokenId: nftQuery.tokenId,
+          chainId: nftQuery.chainId
+        });
         if (owner) {
           nft.owner = owner;
-
-          // save this back to firebase?
         }
       }
-
       return nft;
+    } else {
+      // async backfill
+      this.backfillService.backfillCollection(nftQuery.chainId, nftQuery.address);
     }
   }
 
-  async isSupported(nfts: NftDto[]) {
-    const { getCollection } = await this.collectionsService.getCollectionsByAddress(
-      nfts.map((nft) => ({ address: nft.collectionAddress ?? '', chainId: nft.chainId }))
-    );
+  // todo: should this be removed since we are backfilling now?
+  isSupported(nfts: NftDto[]) {
+    // const { getCollection } = await this.collectionsService.getCollectionsByAddress(
+    //   nfts.map((nft) => ({ address: nft.collectionAddress ?? '', chainId: nft.chainId }))
+    // );
+
+    // const externalNfts: ExternalNftDto[] = nfts.map((nft) => {
+    //   const collection = getCollection({ address: nft.collectionAddress ?? '', chainId: nft.chainId });
+    //   const isSupported = collection?.state?.create?.step === CreationFlow.Complete;
+    //   const externalNft: ExternalNftDto = {
+    //     ...nft,
+    //     isSupported
+    //   };
+    //   return externalNft;
+    // });
 
     const externalNfts: ExternalNftDto[] = nfts.map((nft) => {
-      const collection = getCollection({ address: nft.collectionAddress ?? '', chainId: nft.chainId });
-      const isSupported = collection?.state?.create?.step === CreationFlow.Complete;
+      const isSupported = true;
       const externalNft: ExternalNftDto = {
         ...nft,
         isSupported
@@ -75,7 +92,7 @@ export class NftsService {
     return externalNfts;
   }
 
-  async getNfts(nfts: { address: string; chainId: ChainId; tokenId: string }[]) {
+  async getNfts(nfts: { address: string; chainId: ChainId; tokenId: string }[]): Promise<(NftDto | undefined)[]> {
     const refs = nfts.map((item) => {
       const collectionDocId = getCollectionDocId({
         collectionAddress: item.address,
@@ -89,20 +106,17 @@ export class NftsService {
     });
 
     if (refs.length === 0) {
-      return [];
+      return this.backfillService.backfillOrFetchNfts(nfts);
     }
     const snapshots = await this.firebaseService.firestore.getAll(...refs);
 
     const nftDtos = snapshots.map((snapshot, index) => {
       const nft = snapshot.data() as NftDto | undefined;
-
       if (nft) {
         nft.collectionAddress = nfts[index].address;
       }
-
       return nft;
     });
-
     return nftDtos;
   }
 

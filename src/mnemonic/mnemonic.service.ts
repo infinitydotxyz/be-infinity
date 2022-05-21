@@ -4,7 +4,15 @@ import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
 import { plainToClass } from 'class-transformer';
 import { getSortDirection } from './mnemonic.constants';
-import { MnemonicTokenType, TopOwnersResponseBody, UserNftsResponseBody } from './mnemonic.types';
+import {
+  MnemonicContractDetails,
+  MnemonicTokenMetadata,
+  MnemonicTokenType,
+  MnemonicNumOwnersResponseBody,
+  TopOwnersResponseBody,
+  UserNftsResponseBody,
+  MnemonicNumTokensResponseBody
+} from './mnemonic.types';
 
 @Injectable()
 export class MnemonicService {
@@ -46,7 +54,7 @@ export class MnemonicService {
       if (response.status === 200) {
         return plainToClass(TopOwnersResponseBody, response.data);
       }
-      throw new Error(`Unexpected response status: ${response.status}`);
+      throw new Error(`Unexpected mnemonic response status: ${response.status}`);
     } catch (err) {
       console.error(err);
       return null;
@@ -78,10 +86,78 @@ export class MnemonicService {
       if (response.status === 200) {
         return plainToClass(UserNftsResponseBody, response.data);
       }
-      throw new Error(`Unexpected response status: ${response.status}`);
+      throw new Error(`Unexpected mnemonic response status: ${response.status}`);
     } catch (err) {
       console.error(err);
       return null;
+    }
+  }
+
+  async getNft(collectionAddress: string, tokenId: string): Promise<MnemonicTokenMetadata | undefined> {
+    const url = new URL(
+      `https://canary-ethereum.rest.mnemonichq.com/tokens/v1beta1/token/${collectionAddress}/${tokenId}/metadata`
+    );
+    try {
+      const response = await this.client.get(url.toString());
+      if (response.status === 200) {
+        return plainToClass(MnemonicTokenMetadata, response.data);
+      }
+      throw new Error(`Unexpected mnemonic response status: ${response.status}`);
+    } catch (err) {
+      console.error(err);
+      return undefined;
+    }
+  }
+
+  async getContract(collectionAddress: string): Promise<MnemonicContractDetails | undefined> {
+    const url = new URL(
+      `https://canary-ethereum.rest.mnemonichq.com/contracts/v1beta1/by_address/${collectionAddress}`
+    );
+    try {
+      const response = await this.client.get(url.toString());
+      if (response.status === 200) {
+        return plainToClass(MnemonicContractDetails, response.data);
+      }
+      throw new Error(`Unexpected mnemonic response status: ${response.status}`);
+    } catch (err) {
+      console.error(err);
+      return undefined;
+    }
+  }
+
+  async getNumOwners(collectionAddress: string): Promise<MnemonicNumOwnersResponseBody | undefined> {
+    const url = new URL(
+      `https://canary-ethereum.rest.mnemonichq.com/contracts/v1beta1/owners_count/${collectionAddress}`
+    );
+    url.searchParams.append('duration', 'DURATION_1_DAY');
+    url.searchParams.append('groupByPeriod', 'GROUP_BY_PERIOD_1_DAY');
+    try {
+      const response = await this.client.get(url.toString());
+      if (response.status === 200) {
+        return plainToClass(MnemonicNumOwnersResponseBody, response.data);
+      }
+      throw new Error(`Unexpected mnemonic response status: ${response.status}`);
+    } catch (err) {
+      console.error(err);
+      return undefined;
+    }
+  }
+
+  async getNumTokens(collectionAddress: string): Promise<MnemonicNumTokensResponseBody | undefined> {
+    const url = new URL(
+      `https://canary-ethereum.rest.mnemonichq.com/contracts/v1beta1/supply/${collectionAddress}`
+    );
+    url.searchParams.append('duration', 'DURATION_1_DAY');
+    url.searchParams.append('groupByPeriod', 'GROUP_BY_PERIOD_1_DAY');
+    try {
+      const response = await this.client.get(url.toString());
+      if (response.status === 200) {
+        return plainToClass(MnemonicNumTokensResponseBody, response.data);
+      }
+      throw new Error(`Unexpected mnemonic response status: ${response.status}`);
+    } catch (err) {
+      console.error(err);
+      return undefined;
     }
   }
 }

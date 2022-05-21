@@ -24,6 +24,7 @@ import { calcPercentChange } from '../utils';
 import { CollectionStatsArrayResponseDto } from './dto/collection-stats-array.dto';
 import { CollectionStatsDto } from './dto/collection-stats.dto';
 import { CursorService } from 'pagination/cursor.service';
+import { BackfillService } from 'backfill/backfill.service';
 
 @Injectable()
 export class StatsService {
@@ -44,7 +45,8 @@ export class StatsService {
     private twitterService: TwitterService,
     private firebaseService: FirebaseService,
     private votesService: VotesService,
-    private paginationService: CursorService
+    private paginationService: CursorService,
+    private backfillService: BackfillService
   ) {}
 
   async getCollectionRankings(queryOptions: RankingsRequestDto): Promise<CollectionStatsArrayResponseDto> {
@@ -248,7 +250,10 @@ export class StatsService {
     const collectionPromise = ref.get();
 
     const [collectionResult, votesResult] = await Promise.allSettled([collectionPromise, votesPromise]);
-    const collectionData = collectionResult.status === 'fulfilled' ? collectionResult.value.data() : {};
+    let collectionData = collectionResult.status === 'fulfilled' ? collectionResult.value.data() : {};
+    if (!collectionData) {
+      collectionData = await this.backfillService.backfillCollection(collection.chainId, collection.address);
+    }
     const votes = votesResult.status === 'fulfilled' ? votesResult.value : { votesFor: NaN, votesAgainst: NaN };
 
     const name = collectionData?.metadata?.name ?? 'Unknown';

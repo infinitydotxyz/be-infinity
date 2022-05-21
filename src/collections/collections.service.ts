@@ -9,6 +9,7 @@ import { TopOwnersQueryDto } from './dto/top-owners-query.dto';
 import { TopOwnerDto } from './dto/top-owner.dto';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { CursorService } from 'pagination/cursor.service';
+import { BackfillService } from 'backfill/backfill.service';
 
 interface CollectionQueryOptions {
   /**
@@ -24,12 +25,13 @@ export default class CollectionsService {
   constructor(
     private firebaseService: FirebaseService,
     private mnemonicService: MnemonicService,
-    private paginationService: CursorService
+    private paginationService: CursorService,
+    private backfillService: BackfillService
   ) {}
 
   private get defaultCollectionQueryOptions(): CollectionQueryOptions {
     return {
-      limitToCompleteCollections: true
+      limitToCompleteCollections: false
     };
   }
 
@@ -154,7 +156,11 @@ export default class CollectionsService {
       .doc(docId)
       .get();
 
-    const result = collectionSnapshot.data() as Collection | undefined;
+    let result = collectionSnapshot.data() as Collection | undefined;
+    if (!result) {
+      result = await this.backfillService.backfillCollection(collection.chainId as ChainId, collection.address);
+    }
+
     if (queryOptions.limitToCompleteCollections && result?.state?.create?.step !== CreationFlow.Complete) {
       return undefined;
     }

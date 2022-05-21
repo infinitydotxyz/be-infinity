@@ -9,12 +9,39 @@ const getEnvironmentVariable = (name: string, required = true) => {
   return variable;
 };
 
+const getMultipleEnvVariables = (prefix: string, minLength = 1): (string | undefined)[] => {
+  const variables = [];
+  let i = 0;
+
+  for (;;) {
+    try {
+      const apiKey = getEnvironmentVariable(`${prefix}${i}`);
+      variables.push(apiKey);
+      i += 1;
+    } catch (err) {
+      break;
+    }
+  }
+
+  if (variables.length < minLength) {
+    throw new Error(
+      `Env Variable: ${prefix} failed to get min number of keys. Found: ${variables.length} Expected: at least ${minLength}`
+    );
+  }
+
+  return variables;
+};
+
+export const OPENSEA_API_KEYS = (() => {
+  const apiKeys = getMultipleEnvVariables('OPENSEA_API_KEY');
+  return apiKeys;
+})();
+
 export const TEST_ROOT = getEnvironmentVariable('firestoreTestRoot', false) ?? 'testRoot';
 export const COVALENT_API_KEY = getEnvironmentVariable('covalentKey');
 export const UNMARSHALL_API_KEY = getEnvironmentVariable('unmarshalKey');
 export const ALCHEMY_JSON_RPC_ETH_MAINNET = getEnvironmentVariable('alchemyJsonRpcEthMainnet');
 export const ALCHEMY_JSON_RPC_POLYGON_MAINNET = getEnvironmentVariable('alchemyJsonRpcPolygonMainnet');
-export const OPENSEA_API_KEY = getEnvironmentVariable('openseaKey');
 export const TWITTER_BEARER_TOKEN = getEnvironmentVariable('twitterBearerToken');
 export const ETHERSCAN_API_KEY = getEnvironmentVariable('etherscanApiKey');
 export const ICY_TOOLS_API_KEY = getEnvironmentVariable('icyToolsApiKey');

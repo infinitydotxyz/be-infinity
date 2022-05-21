@@ -203,7 +203,7 @@ export class UserController {
       nfts = await this.userService.getNfts(user, filters);
     }
 
-    const externalNfts = await this.nftsService.isSupported(nfts.data);
+    const externalNfts = this.nftsService.isSupported(nfts.data);
 
     return {
       ...nfts,
