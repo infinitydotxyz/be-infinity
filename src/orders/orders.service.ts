@@ -659,9 +659,17 @@ export default class OrdersService {
     const orderBy = options.orderBy ?? OrderMatchesOrderBy.Timestamp;
     const orderDirection = options.orderDirection ?? OrderDirection.Descending;
 
-    let query = orderMatchItemsRef
-      .where('usersInvolved', 'array-contains', user.userAddress)
-      .orderBy(orderBy, orderDirection);
+    let query = orderMatchItemsRef.where('usersInvolved', 'array-contains', user.userAddress);
+
+    if (options.collectionAddress) {
+      query = query.where('collectionAddress', '==', options.collectionAddress);
+    }
+
+    if (options.tokenId) {
+      query = query.where('tokenId', '==', options.tokenId);
+    }
+
+    query = query.orderBy(orderBy, orderDirection);
 
     if (cursor && cursor[orderBy] != null) {
       query = query.startAfter(cursor[orderBy]);
