@@ -4,6 +4,7 @@ import {
   CreationFlow,
   FirestoreOrder,
   FirestoreOrderItem,
+  FirestoreOrderMatch,
   InfinityLinkType,
   OBOrderItem,
   OBOrderStatus,
@@ -650,55 +651,126 @@ export default class OrdersService {
   }
 
   public async getOrderMatches(user: ParsedUserId, options: OrderMatchesQueryDto) {
-    const orderMatchItemsRef = this.firebaseService.firestore.collectionGroup(
-      firestoreConstants.ORDER_MATCH_ITEMS_SUB_COLL
-    );
-
-    type Cursor = Record<OrderMatchesOrderBy, number>;
+    const orderMatchesRef = this.firebaseService.firestore.collection(firestoreConstants.ORDER_MATCHES_COLL);
+    type QueryKey = 'listings' | 'offers';
+    type OrderTypeCursor = Record<OrderMatchesOrderBy, number>;
+    type Cursor = Record<QueryKey, OrderTypeCursor>;
     const cursor = this.cursorService.decodeCursorToObject<Cursor>(options.cursor);
+
     const orderBy = options.orderBy ?? OrderMatchesOrderBy.Timestamp;
     const orderDirection = options.orderDirection ?? OrderDirection.Descending;
 
-    let query = orderMatchItemsRef.where('usersInvolved', 'array-contains', user.userAddress);
+    const listingsQuery = orderMatchesRef.where('listerAddress', '==', user.userAddress);
+    const offersQuery = orderMatchesRef.where('offererAddress', '==', user.userAddress);
+    const queries: Record<QueryKey, FirebaseFirestore.Query> = { listings: listingsQuery, offers: offersQuery };
 
-    if (options.collectionAddress) {
-      query = query.where('collectionAddress', '==', options.collectionAddress);
+    const filterByToken = (query: FirebaseFirestore.Query, collectionAddress: string, tokenId: string) => {
+      const id = `${collectionAddress}:${tokenId}`;
+      return query.where('tokens', 'array-contains', id);
+    };
+
+    const filterByCollection = (query: FirebaseFirestore.Query, collectionAddress: string) => {
+      return query.where('collectionAddresses', 'array-contains', collectionAddress);
+    };
+
+    if (options.collectionAddress && options.tokenId) {
+      queries.listings = filterByToken(queries.listings, options.collectionAddress, options.tokenId);
+      queries.offers = filterByToken(queries.offers, options.collectionAddress, options.tokenId);
+    } else if (options.collectionAddress) {
+      queries.listings = filterByCollection(queries.listings, options.collectionAddress);
+      queries.offers = filterByCollection(queries.offers, options.collectionAddress);
     }
 
-    if (options.tokenId) {
-      query = query.where('tokenId', '==', options.tokenId);
+    for (const key of Object.keys(queries) as QueryKey[]) {
+      queries[key] = queries[key].orderBy(orderBy, orderDirection);
+      if (cursor && cursor[key][orderBy] != null) {
+        queries[key] = queries[key].startAfter(cursor[key][orderBy]);
+      }
+      queries[key] = queries[key].limit(options.limit + 1);
     }
 
-    query = query.orderBy(orderBy, orderDirection);
+    const [listingsSnapshot, offersSnapshot] = await Promise.all([queries.listings.get(), queries.offers.get()]);
 
-    if (cursor && cursor[orderBy] != null) {
-      query = query.startAfter(cursor[orderBy]);
-    }
+    const listings = listingsSnapshot.docs.map((item) => item.data()) as FirestoreOrderMatch[];
+    const offers = offersSnapshot.docs.map((item) => item.data()) as FirestoreOrderMatch[];
 
-    query = query.limit(options.limit + 1); // +1 to check if there are more results
+    let merged = [...listings, ...offers];
+    const hasNextPage = merged.length > options.limit;
 
-    const userOrderMatchItemsSnapshot = await query.get();
+    merged = merged.slice(0, options.limit).sort((a, b) => {
+      return orderDirection === OrderDirection.Ascending ? a[orderBy] - b[orderBy] : b[orderBy] - a[orderBy];
+    });
 
-    const userOrderMatchItemsData = userOrderMatchItemsSnapshot.docs.map((doc) => doc.data());
+    const reversedResults = [...merged].reverse();
+    const lastListing = reversedResults.find((item) => item.listerAddress === user.userAddress);
+    const lastOffer = reversedResults.find((item) => item.offererAddress === user.userAddress);
 
-    const hasNextPage = userOrderMatchItemsData.length > options.limit;
-    if (hasNextPage) {
-      userOrderMatchItemsData.pop();
-    }
+    const getCursor = (match: FirestoreOrderMatch | undefined, prevCursor: OrderTypeCursor) => {
+      const cursor: OrderTypeCursor = prevCursor;
+      for (const orderByKey of Object.values(OrderMatchesOrderBy)) {
+        if (match && orderByKey in match) {
+          cursor[orderByKey] = match[orderByKey];
+        }
+      }
+      return cursor;
+    };
 
-    let updatedCursor: Partial<Cursor> = {};
-    for (const key of Object.values(OrderMatchesOrderBy)) {
-      const lastItem = userOrderMatchItemsData?.[userOrderMatchItemsData.length - 1];
-      updatedCursor = {
-        ...updatedCursor,
-        [key]: lastItem?.[key] ?? ''
-      };
-    }
+    const listingCursor = getCursor(lastListing, cursor.listings);
+    const offerCursor = getCursor(lastOffer, cursor.offers);
+
+    const updatedCursor: Cursor = {
+      listings: listingCursor,
+      offers: offerCursor
+    };
 
     return {
       hasNextPage,
       cursor: this.cursorService.encodeCursor(updatedCursor),
-      data: userOrderMatchItemsData
+      data: merged
     };
   }
+
+  // public async getOrderMatches(user: ParsedUserId, options: OrderMatchesQueryDto) {
+  //   const orderMatchItemsRef = this.firebaseService.firestore.collectionGroup(
+  //     firestoreConstants.ORDER_MATCH_ITEMS_SUB_COLL
+  //   );
+
+  //   type Cursor = Record<OrderMatchesOrderBy, number>;
+  //   const cursor = this.cursorService.decodeCursorToObject<Cursor>(options.cursor);
+  //   const orderBy = options.orderBy ?? OrderMatchesOrderBy.Timestamp;
+  //   const orderDirection = options.orderDirection ?? OrderDirection.Descending;
+
+  //   let query = orderMatchItemsRef.where('usersInvolved', 'array-contains', user.userAddress);
+
+  //   query = query.orderBy(orderBy, orderDirection);
+  //   if (cursor && cursor[orderBy] != null) {
+  //     query = query.startAfter(cursor[orderBy]);
+  //   }
+
+  //   query = query.limit(options.limit + 1); // +1 to check if there are more results
+
+  //   const userOrderMatchItemsSnapshot = await query.get();
+
+  //   const userOrderMatchItemsData = userOrderMatchItemsSnapshot.docs.map((doc) => doc.data());
+
+  //   const hasNextPage = userOrderMatchItemsData.length > options.limit;
+  //   if (hasNextPage) {
+  //     userOrderMatchItemsData.pop();
+  //   }
+
+  //   let updatedCursor: Partial<Cursor> = {};
+  //   for (const key of Object.values(OrderMatchesOrderBy)) {
+  //     const lastItem = userOrderMatchItemsData?.[userOrderMatchItemsData.length - 1];
+  //     updatedCursor = {
+  //       ...updatedCursor,
+  //       [key]: lastItem?.[key] ?? ''
+  //     };
+  //   }
+
+  //   return {
+  //     hasNextPage,
+  //     cursor: this.cursorService.encodeCursor(updatedCursor),
+  //     data: userOrderMatchItemsData
+  //   };
+  // }
 }
