@@ -289,9 +289,10 @@ export class UserService {
 
   async getNfts(
     user: ParsedUserId,
-    query: Pick<UserNftsQueryDto, 'collectionAddresses' | 'cursor' | 'limit'>
+    query: Pick<UserNftsQueryDto, 'collectionAddresses' | 'cursor' | 'limit' | 'chainId'>
   ): Promise<NftArrayDto> {
-    const chainId = ChainId.Mainnet;
+    const chainId = query.chainId ?? ChainId.Mainnet;
+    console.log(chainId);
     type Cursor = { pageKey?: string; startAtToken?: string };
     const cursor = this.paginationService.decodeCursorToObject<Cursor>(query.cursor);
     const _fetchNfts = async (
@@ -300,7 +301,7 @@ export class UserService {
     ): Promise<{ pageKey: string; nfts: NftDto[]; hasNextPage: boolean }> => {
       const response = await this.alchemyService.getUserNfts(
         user.userAddress,
-        ChainId.Mainnet,
+        chainId,
         pageKey,
         query.collectionAddresses
       );
