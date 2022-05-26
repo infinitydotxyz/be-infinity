@@ -44,6 +44,7 @@ import { SignedOBOrderArrayDto } from './dto/signed-ob-order-array.dto';
 import { UserOrderItemsQueryDto } from './dto/user-order-items-query.dto';
 import { BadQueryError } from 'common/errors/bad-query.error';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
+import { OrderMatchesOrderBy, OrderMatchesQueryDto } from './dto/order-matches-query.dto';
 
 // todo: remove this with the below commented code
 // export interface ExpiredCacheItem {
@@ -646,5 +647,50 @@ export default class OrdersService {
         batch.create(newDoc, event);
       }
     }
+  }
+
+  public async getOrderMatches(user: ParsedUserId, options: OrderMatchesQueryDto) {
+    const orderMatchItemsRef = this.firebaseService.firestore.collectionGroup(
+      firestoreConstants.ORDER_MATCH_ITEMS_SUB_COLL
+    );
+
+    type Cursor = Record<OrderMatchesOrderBy, number>;
+    const cursor = this.cursorService.decodeCursorToObject<Cursor>(options.cursor);
+    const orderBy = options.orderBy ?? OrderMatchesOrderBy.Timestamp;
+    const orderDirection = options.orderDirection ?? OrderDirection.Descending;
+
+    let query = orderMatchItemsRef
+      .where('usersInvolved', 'array-contains', user.userAddress)
+      .orderBy(orderBy, orderDirection);
+
+    if (cursor && cursor[orderBy] != null) {
+      query = query.startAfter(cursor[orderBy]);
+    }
+
+    query = query.limit(options.limit + 1); // +1 to check if there are more results
+
+    const userOrderMatchItemsSnapshot = await query.get();
+
+    const userOrderMatchItemsData = userOrderMatchItemsSnapshot.docs.map((doc) => doc.data());
+
+    const hasNextPage = userOrderMatchItemsData.length > options.limit;
+    if (hasNextPage) {
+      userOrderMatchItemsData.pop();
+    }
+
+    let updatedCursor: Partial<Cursor> = {};
+    for (const key of Object.values(OrderMatchesOrderBy)) {
+      const lastItem = userOrderMatchItemsData?.[userOrderMatchItemsData.length - 1];
+      updatedCursor = {
+        ...updatedCursor,
+        [key]: lastItem?.[key] ?? ''
+      };
+    }
+
+    return {
+      hasNextPage,
+      cursor: this.cursorService.encodeCursor(updatedCursor),
+      data: userOrderMatchItemsData
+    };
   }
 }

@@ -18,6 +18,7 @@ import { SignedOBOrderDto } from './dto/signed-ob-order.dto';
 import { SignedOBOrderArrayDto } from './dto/signed-ob-order-array.dto';
 import OrdersService from './orders.service';
 import { UserOrderItemsQueryDto } from './dto/user-order-items-query.dto';
+import { OrderMatchesQueryDto } from './dto/order-matches-query.dto';
 
 @Controller('orders')
 export class OrdersController {
@@ -135,6 +136,15 @@ export class OrdersController {
   ): Promise<SignedOBOrderArrayDto> {
     const results = await this.ordersService.getSignedOBOrders(reqQuery, user);
     return results;
+  }
+
+  @Get(':userId/orderMatches')
+  public async getUserOrderMatches(
+    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
+    @Query() reqQuery: OrderMatchesQueryDto
+  ): Promise<any> {
+    const res = await this.ordersService.getOrderMatches(user, reqQuery);
+    return res;
   }
 
   // todo: uncomment
