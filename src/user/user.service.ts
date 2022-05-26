@@ -292,7 +292,6 @@ export class UserService {
     query: Pick<UserNftsQueryDto, 'collectionAddresses' | 'cursor' | 'limit' | 'chainId'>
   ): Promise<NftArrayDto> {
     const chainId = query.chainId ?? ChainId.Mainnet;
-    console.log(chainId);
     type Cursor = { pageKey?: string; startAtToken?: string };
     const cursor = this.paginationService.decodeCursorToObject<Cursor>(query.cursor);
     const _fetchNfts = async (
