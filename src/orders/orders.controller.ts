@@ -139,6 +139,14 @@ export class OrdersController {
   }
 
   @Get(':userId/orderMatches')
+  @ApiOperation({
+    description: 'Get order matches for a user',
+    tags: [ApiTag.Orders, ApiTag.User]
+  })
+  @UserAuth('userId')
+  @ApiOkResponse({ description: ResponseDescription.Success }) // TODO add type
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   public async getUserOrderMatches(
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
     @Query() reqQuery: OrderMatchesQueryDto
