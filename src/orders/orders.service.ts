@@ -683,7 +683,7 @@ export default class OrdersService {
 
     for (const key of Object.keys(queries) as QueryKey[]) {
       queries[key] = queries[key].orderBy(orderBy, orderDirection);
-      if (cursor && cursor[key][orderBy] != null) {
+      if (cursor && cursor?.[key]?.[orderBy] != null) {
         queries[key] = queries[key].startAfter(cursor[key][orderBy]);
       }
       queries[key] = queries[key].limit(options.limit + 1);
