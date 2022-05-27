@@ -653,7 +653,7 @@ export default class OrdersService {
   public async getOrderMatches(user: ParsedUserId, options: OrderMatchesQueryDto) {
     const orderMatchesRef = this.firebaseService.firestore.collection(firestoreConstants.ORDER_MATCHES_COLL);
     type QueryKey = 'listings' | 'offers';
-    type OrderTypeCursor = Record<OrderMatchesOrderBy, number>;
+    type OrderTypeCursor = Record<OrderMatchesOrderBy, number> & { id: string };
     type Cursor = Record<QueryKey, OrderTypeCursor>;
     const cursor = this.cursorService.decodeCursorToObject<Cursor>(options.cursor);
 
@@ -682,10 +682,12 @@ export default class OrdersService {
     }
 
     for (const key of Object.keys(queries) as QueryKey[]) {
-      queries[key] = queries[key].orderBy(orderBy, orderDirection);
+      queries[key] = queries[key].orderBy(orderBy, orderDirection).orderBy('id', 'asc');
       if (cursor && cursor?.[key]?.[orderBy] != null) {
-        queries[key] = queries[key].startAfter(cursor[key][orderBy]);
+        const startAfter = [cursor[key][orderBy], cursor[key].id];
+        queries[key] = queries[key].startAfter(...startAfter);
       }
+
       queries[key] = queries[key].limit(options.limit + 1);
     }
 
@@ -695,6 +697,15 @@ export default class OrdersService {
     const offers = offersSnapshot.docs.map((item) => item.data()) as FirestoreOrderMatch[];
 
     let merged = [...listings, ...offers];
+    const ids = new Set();
+    merged = merged.filter((item) => {
+      if (ids.has(item.id)) {
+        return false;
+      }
+      ids.add(item.id);
+      return true;
+    });
+
     const hasNextPage = merged.length > options.limit;
 
     merged = merged.slice(0, options.limit).sort((a, b) => {
@@ -706,11 +717,14 @@ export default class OrdersService {
     const lastOffer = reversedResults.find((item) => item.offererAddress === user.userAddress);
 
     const getCursor = (match: FirestoreOrderMatch | undefined, prevCursor: OrderTypeCursor) => {
-      const cursor: OrderTypeCursor = prevCursor;
+      const cursor: OrderTypeCursor = prevCursor ?? {};
       for (const orderByKey of Object.values(OrderMatchesOrderBy)) {
         if (match && orderByKey in match) {
           cursor[orderByKey] = match[orderByKey];
         }
+      }
+      if (match?.id) {
+        cursor.id = match?.id;
       }
       return cursor;
     };
@@ -729,48 +743,4 @@ export default class OrdersService {
       data: merged
     };
   }
-
-  // public async getOrderMatches(user: ParsedUserId, options: OrderMatchesQueryDto) {
-  //   const orderMatchItemsRef = this.firebaseService.firestore.collectionGroup(
-  //     firestoreConstants.ORDER_MATCH_ITEMS_SUB_COLL
-  //   );
-
-  //   type Cursor = Record<OrderMatchesOrderBy, number>;
-  //   const cursor = this.cursorService.decodeCursorToObject<Cursor>(options.cursor);
-  //   const orderBy = options.orderBy ?? OrderMatchesOrderBy.Timestamp;
-  //   const orderDirection = options.orderDirection ?? OrderDirection.Descending;
-
-  //   let query = orderMatchItemsRef.where('usersInvolved', 'array-contains', user.userAddress);
-
-  //   query = query.orderBy(orderBy, orderDirection);
-  //   if (cursor && cursor[orderBy] != null) {
-  //     query = query.startAfter(cursor[orderBy]);
-  //   }
-
-  //   query = query.limit(options.limit + 1); // +1 to check if there are more results
-
-  //   const userOrderMatchItemsSnapshot = await query.get();
-
-  //   const userOrderMatchItemsData = userOrderMatchItemsSnapshot.docs.map((doc) => doc.data());
-
-  //   const hasNextPage = userOrderMatchItemsData.length > options.limit;
-  //   if (hasNextPage) {
-  //     userOrderMatchItemsData.pop();
-  //   }
-
-  //   let updatedCursor: Partial<Cursor> = {};
-  //   for (const key of Object.values(OrderMatchesOrderBy)) {
-  //     const lastItem = userOrderMatchItemsData?.[userOrderMatchItemsData.length - 1];
-  //     updatedCursor = {
-  //       ...updatedCursor,
-  //       [key]: lastItem?.[key] ?? ''
-  //     };
-  //   }
-
-  //   return {
-  //     hasNextPage,
-  //     cursor: this.cursorService.encodeCursor(updatedCursor),
-  //     data: userOrderMatchItemsData
-  //   };
-  // }
 }
