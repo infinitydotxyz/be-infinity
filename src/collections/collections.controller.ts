@@ -26,7 +26,6 @@ import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { CacheControlInterceptor } from 'common/interceptors/cache-control.interceptor';
 import { ResponseDescription } from 'common/response-description';
 import { StatsService } from 'stats/stats.service';
-import { TweetArrayDto } from 'twitter/dto/tweet-array.dto';
 import { TwitterService } from 'twitter/twitter.service';
 import { CollectionVotesDto } from 'votes/dto/collection-votes.dto';
 import { VotesService } from 'votes/votes.service';
@@ -43,6 +42,7 @@ import {
   TopOwnersQueryDto,
   RankingQueryDto
 } from '@infinityxyz/lib/types/dto/collections';
+import { TweetArrayDto } from '@infinityxyz/lib/types/dto/twitter';
 
 @Controller('collections')
 export class CollectionsController {

@@ -13,20 +13,11 @@ import { BigNumber } from 'ethers/lib/ethers';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
 import { StatsService } from 'stats/stats.service';
-import { UserFollowingCollection } from 'user/dto/user-following-collection.dto';
-import { UserActivityArrayDto } from './dto/user-activity-array.dto';
-import { UserActivityQueryDto } from './dto/user-activity-query.dto';
-import { UserFollowingCollectionDeletePayload } from './dto/user-following-collection-delete-payload.dto';
-import { UserFollowingCollectionPostPayload } from './dto/user-following-collection-post-payload.dto';
-import { UserFollowingUserDeletePayload } from './dto/user-following-user-delete-payload.dto';
-import { UserFollowingUserPostPayload } from './dto/user-following-user-post-payload.dto';
-import { UserFollowingUser } from './dto/user-following-user.dto';
-import { UserNftsOrderType, UserNftsQueryDto } from './dto/user-nfts-query.dto';
-import { UserProfileDto } from './dto/user-profile.dto';
 import { ParsedUserId } from './parser/parsed-user-id';
 import { BadQueryError } from 'common/errors/bad-query.error';
 import { RankingQueryDto } from '@infinityxyz/lib/types/dto/collections';
 import { NftCollectionDto, NftDto, NftArrayDto } from '@infinityxyz/lib/types/dto/collections/nfts';
+import { UserFollowingCollection, UserFollowingCollectionPostPayload, UserFollowingCollectionDeletePayload, UserFollowingUser, UserFollowingUserPostPayload, UserFollowingUserDeletePayload, UserNftsQueryDto, UserNftsOrderType, UserProfileDto, UserActivityQueryDto, UserActivityArrayDto } from '@infinityxyz/lib/types/dto/user';
 
 export type UserActivity = NftSaleEvent | NftListingEvent | NftOfferEvent;
 

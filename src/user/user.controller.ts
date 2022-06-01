@@ -49,32 +49,14 @@ import { StorageService } from 'storage/storage.service';
 import { CollectionMetadata } from '@infinityxyz/lib/types/core';
 import { instanceToPlain } from 'class-transformer';
 import { StatsService } from 'stats/stats.service';
-import { UserFollowingCollectionsArrayDto } from 'user/dto/user-following-collections-array.dto';
-import { UserFollowingCollectionPostPayload } from './dto/user-following-collection-post-payload.dto';
-import { UserFollowingCollectionDeletePayload } from './dto/user-following-collection-delete-payload.dto';
-import { UserFollowingUsersArrayDto } from './dto/user-following-users-array.dto';
-import { UserFollowingUserPostPayload } from './dto/user-following-user-post-payload.dto';
-import { UserFollowingUserDeletePayload } from './dto/user-following-user-delete-payload.dto';
 import { InvalidUserError } from 'common/errors/invalid-user.error';
-import { ValidateUsernameResponseDto } from './dto/validate-username-response.dto';
-import { UserProfileDto } from './dto/user-profile.dto';
-import { PartialUpdateUserProfileDto } from './dto/update-user-profile.dto';
 import { ProfileService } from './profile/profile.service';
 import { InvalidProfileError } from './errors/invalid-profile.error';
 import { QueryUsername } from './profile/query-username.decorator';
 import { UsernameType } from './profile/profile.types';
 import { ErrorResponseDto } from 'common/dto/error-response.dto';
 import { UserAuth } from 'auth/user-auth.decorator';
-import {
-  DeleteUserProfileImagesDto,
-  UpdateUserProfileImagesDto,
-  UserProfileImagesDto
-} from './dto/update-user-profile-images.dto';
-import { UserNftsQueryDto } from './dto/user-nfts-query.dto';
-import { UserActivityQueryDto } from './dto/user-activity-query.dto';
 import { ParsedUserId } from './parser/parsed-user-id';
-import { UserCollectionPermissions } from './dto/user-collection-permissions';
-import { UserActivityArrayDto } from './dto/user-activity-array.dto';
 import { NftsService } from 'collections/nfts/nfts.service';
 import { CollectionStatsArrayResponseDto } from '@infinityxyz/lib/types/dto/stats';
 import { RankingQueryDto, UpdateCollectionDto } from '@infinityxyz/lib/types/dto/collections';
@@ -85,6 +67,24 @@ import {
   NftCollectionArrayDto,
   NftCollectionDto
 } from '@infinityxyz/lib/types/dto/collections/nfts';
+import {
+  DeleteUserProfileImagesDto,
+  PartialUpdateUserProfileDto,
+  UpdateUserProfileImagesDto,
+  UserActivityArrayDto,
+  UserActivityQueryDto,
+  UserCollectionPermissions,
+  UserFollowingCollectionDeletePayload,
+  UserFollowingCollectionPostPayload,
+  UserFollowingCollectionsArrayDto,
+  UserFollowingUserDeletePayload,
+  UserFollowingUserPostPayload,
+  UserFollowingUsersArrayDto,
+  UserNftsQueryDto,
+  UserProfileDto,
+  UserProfileImagesDto,
+  ValidateUsernameResponseDto
+} from '@infinityxyz/lib/types/dto/user';
 
 @Controller('user')
 export class UserController {

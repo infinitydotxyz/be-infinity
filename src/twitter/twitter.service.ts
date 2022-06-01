@@ -12,9 +12,8 @@ import { EnvironmentVariables } from 'types/environment-variables.interface';
 import { DEFAULT_ITEMS_PER_PAGE, firestoreConstants } from '@infinityxyz/lib/utils';
 import { VerifiedMentionTweet, VerifiedMentionIncludes, VerifiedMentionUser, TwitterEndpoint } from './twitter.types';
 import { PaginatedQuery } from 'common/dto/paginated-query.dto';
-import { TweetDto } from './dto/tweet.dto';
-import { TweetArrayDto } from './dto/tweet-array.dto';
 import { CursorService } from 'pagination/cursor.service';
+import { TweetArrayDto, TweetDto } from '@infinityxyz/lib/types/dto/twitter';
 
 /**
  * Access level is Elevated

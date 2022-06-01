@@ -1,4 +1,5 @@
 import { CreationFlow, OrderDirection } from '@infinityxyz/lib/types/core';
+import { UserDto } from '@infinityxyz/lib/types/dto/user';
 import { DEFAULT_ITEMS_PER_PAGE, firestoreConstants } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
@@ -6,7 +7,6 @@ import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { randomInt } from 'crypto';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
-import { UserDto } from 'user/dto/user.dto';
 import { CollectionVotesDto } from './dto/collection-votes.dto';
 import { UserCollectionVoteDto } from './dto/user-collection-vote.dto';
 import { UserCollectionVotesArrayDto } from './dto/user-collection-votes-array.dto';
