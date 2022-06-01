@@ -21,9 +21,8 @@ import { DiscordService } from '../discord/discord.service';
 import { FirebaseService } from '../firebase/firebase.service';
 import { TwitterService } from '../twitter/twitter.service';
 import { calcPercentChange } from '../utils';
-import { CollectionStatsArrayResponseDto } from './dto/collection-stats-array.dto';
-import { CollectionStatsDto } from './dto/collection-stats.dto';
 import { CursorService } from 'pagination/cursor.service';
+import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
 
 @Injectable()
 export class StatsService {

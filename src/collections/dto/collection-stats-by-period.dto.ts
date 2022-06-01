@@ -1,6 +1,6 @@
 import { StatsPeriod } from '@infinityxyz/lib/types/core';
+import { CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
 import { ApiProperty } from '@nestjs/swagger';
-import { CollectionStatsDto } from 'stats/dto/collection-stats.dto';
 
 export class CollectionStatsByPeriodDto {
   @ApiProperty({

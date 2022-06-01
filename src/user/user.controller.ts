@@ -32,7 +32,6 @@ import {
 } from '@nestjs/swagger';
 import { ApiTag } from 'common/api-tags';
 import { ResponseDescription } from 'common/response-description';
-import { CollectionStatsArrayResponseDto } from 'stats/dto/collection-stats-array.dto';
 import RankingsRequestDto from 'collections/dto/rankings-query.dto';
 import { CacheControlInterceptor } from 'common/interceptors/cache-control.interceptor';
 import { VotesService } from 'votes/votes.service';
@@ -84,6 +83,7 @@ import { ExternalNftArrayDto } from 'collections/nfts/dto/external-nft-array.dto
 import { NftsService } from 'collections/nfts/nfts.service';
 import { NftCollectionArrayDto } from 'collections/nfts/dto/nft-collection-array.dto';
 import { NftCollectionDto } from 'collections/nfts/dto/nft-collection.dto';
+import { CollectionStatsArrayResponseDto } from '@infinityxyz/lib/types/dto/stats';
 
 @Controller('user')
 export class UserController {

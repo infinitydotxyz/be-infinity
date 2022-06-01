@@ -1,4 +1,5 @@
 import { Collection } from '@infinityxyz/lib/types/core';
+import { CollectionStatsArrayResponseDto } from '@infinityxyz/lib/types/dto/stats';
 import {
   Controller,
   Get,
@@ -24,7 +25,6 @@ import { PaginatedQuery } from 'common/dto/paginated-query.dto';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { CacheControlInterceptor } from 'common/interceptors/cache-control.interceptor';
 import { ResponseDescription } from 'common/response-description';
-import { CollectionStatsArrayResponseDto } from 'stats/dto/collection-stats-array.dto';
 import { StatsService } from 'stats/stats.service';
 import { TweetArrayDto } from 'twitter/dto/tweet-array.dto';
 import { TwitterService } from 'twitter/twitter.service';
