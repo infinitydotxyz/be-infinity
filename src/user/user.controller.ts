@@ -63,7 +63,6 @@ import { ProfileService } from './profile/profile.service';
 import { InvalidProfileError } from './errors/invalid-profile.error';
 import { QueryUsername } from './profile/query-username.decorator';
 import { UsernameType } from './profile/profile.types';
-import { NftArrayDto } from 'collections/nfts/dto/nft-array.dto';
 import { ErrorResponseDto } from 'common/dto/error-response.dto';
 import { UserAuth } from 'auth/user-auth.decorator';
 import {
@@ -73,16 +72,19 @@ import {
 } from './dto/update-user-profile-images.dto';
 import { UserNftsQueryDto } from './dto/user-nfts-query.dto';
 import { UserActivityQueryDto } from './dto/user-activity-query.dto';
-import { NftActivityArrayDto } from 'collections/nfts/dto/nft-activity-array.dto';
 import { ParsedUserId } from './parser/parsed-user-id';
 import { UserCollectionPermissions } from './dto/user-collection-permissions';
 import { UserActivityArrayDto } from './dto/user-activity-array.dto';
-import { ExternalNftArrayDto } from 'collections/nfts/dto/external-nft-array.dto';
 import { NftsService } from 'collections/nfts/nfts.service';
-import { NftCollectionArrayDto } from 'collections/nfts/dto/nft-collection-array.dto';
-import { NftCollectionDto } from 'collections/nfts/dto/nft-collection.dto';
 import { CollectionStatsArrayResponseDto } from '@infinityxyz/lib/types/dto/stats';
 import { RankingQueryDto, UpdateCollectionDto } from '@infinityxyz/lib/types/dto/collections';
+import {
+  ExternalNftArrayDto,
+  NftActivityArrayDto,
+  NftArrayDto,
+  NftCollectionArrayDto,
+  NftCollectionDto
+} from '@infinityxyz/lib/types/dto/collections/nfts';
 
 @Controller('user')
 export class UserController {

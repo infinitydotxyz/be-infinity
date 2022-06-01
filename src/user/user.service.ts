@@ -6,8 +6,6 @@ import { CreationFlow, OrderDirection } from '@infinityxyz/lib/types/core';
 import { NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
 import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
 import { Injectable, Optional } from '@nestjs/common';
-import { NftArrayDto } from 'collections/nfts/dto/nft-array.dto';
-import { NftDto } from 'collections/nfts/dto/nft.dto';
 import { ActivityType, activityTypeToEventType } from 'collections/nfts/nft-activity.types';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { InvalidUserError } from 'common/errors/invalid-user.error';
@@ -27,8 +25,8 @@ import { UserNftsOrderType, UserNftsQueryDto } from './dto/user-nfts-query.dto';
 import { UserProfileDto } from './dto/user-profile.dto';
 import { ParsedUserId } from './parser/parsed-user-id';
 import { BadQueryError } from 'common/errors/bad-query.error';
-import { NftCollectionDto } from 'collections/nfts/dto/nft-collection.dto';
 import { RankingQueryDto } from '@infinityxyz/lib/types/dto/collections';
+import { NftCollectionDto, NftDto, NftArrayDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 
 export type UserActivity = NftSaleEvent | NftListingEvent | NftOfferEvent;
 

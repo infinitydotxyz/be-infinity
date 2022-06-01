@@ -1,8 +1,8 @@
 import { ChainId, OrderDirection } from '@infinityxyz/lib/types/core';
+import { PriceFilterDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { ApiProperty, ApiPropertyOptional, PickType } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsNumber, IsString, IsOptional, IsEthereumAddress, IsArray, ArrayMaxSize, IsEnum } from 'class-validator';
-import { PriceFilterDto } from 'collections/nfts/dto/price-filter.dto';
 import { IsSupportedChainId } from 'common/decorators/is-supported-chain-id.decorator';
 import { normalizeAddressArrayTransformer } from 'common/transformers/normalize-address.transformer';
 import { parseIntTransformer } from 'common/transformers/parse-int.transformer';
