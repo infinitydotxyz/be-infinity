@@ -17,7 +17,19 @@ import { ParsedUserId } from './parser/parsed-user-id';
 import { BadQueryError } from 'common/errors/bad-query.error';
 import { RankingQueryDto } from '@infinityxyz/lib/types/dto/collections';
 import { NftCollectionDto, NftDto, NftArrayDto } from '@infinityxyz/lib/types/dto/collections/nfts';
-import { UserFollowingCollection, UserFollowingCollectionPostPayload, UserFollowingCollectionDeletePayload, UserFollowingUser, UserFollowingUserPostPayload, UserFollowingUserDeletePayload, UserNftsQueryDto, UserNftsOrderType, UserProfileDto, UserActivityQueryDto, UserActivityArrayDto } from '@infinityxyz/lib/types/dto/user';
+import {
+  UserFollowingCollection,
+  UserFollowingCollectionPostPayload,
+  UserFollowingCollectionDeletePayload,
+  UserFollowingUser,
+  UserFollowingUserPostPayload,
+  UserFollowingUserDeletePayload,
+  UserNftsQueryDto,
+  UserNftsOrderType,
+  UserProfileDto,
+  UserActivityQueryDto,
+  UserActivityArrayDto
+} from '@infinityxyz/lib/types/dto/user';
 
 export type UserActivity = NftSaleEvent | NftListingEvent | NftOfferEvent;
 
