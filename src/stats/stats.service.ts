@@ -20,6 +20,7 @@ import { VotesService } from 'votes/votes.service';
 import { DiscordService } from '../discord/discord.service';
 import { FirebaseService } from '../firebase/firebase.service';
 import { TwitterService } from '../twitter/twitter.service';
+import { mnemonicByParam, MnemonicService } from 'mnemonic/mnemonic.service';
 import { calcPercentChange } from '../utils';
 import { CollectionStatsArrayResponseDto } from './dto/collection-stats-array.dto';
 import { CollectionStatsDto } from './dto/collection-stats.dto';
@@ -44,6 +45,7 @@ export class StatsService {
     private twitterService: TwitterService,
     private firebaseService: FirebaseService,
     private votesService: VotesService,
+    private mnemonicService: MnemonicService,
     private paginationService: CursorService
   ) {}
 
@@ -118,6 +120,64 @@ export class StatsService {
     );
 
     return statsByPeriod;
+  }
+
+  async getMenemonicCollectionStats(query: CollectionHistoricalStatsQueryDto) {
+    // console.log('collection', collection, query)
+    const byArr = ['by_sales_volume', 'by_avg_price'];
+    const promises = [];
+    for (const byParam of byArr) {
+      promises.push(
+        this.mnemonicService.getTopCollections(byParam as mnemonicByParam, query.period, {
+          limit: 30,
+          offset: 0
+        })
+      );
+    }
+    const values = await Promise.all(promises);
+    // .then(async (values) => {
+
+    // })
+    // .catch(function handleError(error) {
+    //   console.error(error);
+    // });
+    console.log('values', values); // example [response1, response2]
+
+    for (const value of values) {
+      const collections = value?.collections ?? [];
+      const batch = this.firebaseService.firestore.batch();
+
+      for (const coll of collections) {
+        // todo: remove this to save data for all contract addresses:
+        if (coll.contractAddress === '0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d') {
+          // console.log('coll', coll);
+          const collectionRef = await this.firebaseService.getCollectionRef({
+            chainId: ChainId.Mainnet,
+            address: coll.contractAddress
+          });
+          const docRef = collectionRef.collection('stats').doc(query.period);
+          if (coll.salesVolume) {
+            batch.set(
+              docRef,
+              {
+                salesVolume: coll.salesVolume
+              },
+              { merge: true }
+            );
+          } else if (coll.avgPrice) {
+            batch.set(
+              docRef,
+              {
+                avgPrice: coll.avgPrice
+              },
+              { merge: true }
+            );
+          }
+        }
+      }
+      await batch.commit();
+    }
+    return values[0];
   }
 
   async getCollectionHistoricalStats(
