@@ -1,4 +1,4 @@
-import { Collection } from '@infinityxyz/lib/types/core';
+import { ChainId, Collection } from '@infinityxyz/lib/types/core';
 import { CollectionStatsArrayResponseDto } from '@infinityxyz/lib/types/dto/stats';
 import {
   Controller,
@@ -80,6 +80,46 @@ export class CollectionsController {
     return res;
   }
 
+  @Get('stats')
+  @ApiOperation({
+    tags: [ApiTag.Collection, ApiTag.Stats],
+    description: 'Get stats for top collections.'
+  })
+  @ApiOkResponse({ description: ResponseDescription.Success, type: CollectionStatsArrayDto })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  @UseInterceptors(new CacheControlInterceptor())
+  async getCollectionStats(
+    @Query() query: CollectionHistoricalStatsQueryDto
+  ): Promise<CollectionStatsArrayDto> {
+    const result = await this.statsService.getMenemonicCollectionStats(query);
+    // console.log('result', result?.collections)
+    const collections = result?.collections ?? [];
+
+    const collectionsData = await Promise.all(
+      [...collections].map((item) => {
+        return this.collectionsService.getCollectionByAddress({
+          address: item.contractAddress,
+          chainId: ChainId.Mainnet
+        });
+      })
+    );
+    const data: Collection[] = [];
+    for (const coll of collectionsData) {
+      if (coll !== undefined) {
+        coll.attributes = {};
+        data.push(coll);
+      }
+    }
+
+    return {
+      data: data ?? [],
+      cursor: '',
+      hasNextPage: false
+    };
+  }
+
   @Get('/:id')
   @ApiOperation({
     tags: [ApiTag.Collection],
@@ -148,7 +188,7 @@ export class CollectionsController {
     @Query() query: CollectionHistoricalStatsQueryDto
   ): Promise<CollectionStatsArrayResponseDto> {
     const response = await this.statsService.getCollectionHistoricalStats(collection, query);
-
+    
     return response;
   }
 
