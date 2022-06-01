@@ -2,7 +2,7 @@ import { OrderItemSnippet } from '@infinityxyz/lib/types/core/Token';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsBoolean, IsOptional, IsString, ValidateNested } from 'class-validator';
-import { FirestoreOrderItemDto } from 'orders/dto/firestore-order-item.dto';
+import { FirestoreOrderItemDto } from '@infinityxyz/lib/types/dto/orders';
 
 export class OrderItemSnippetDto implements OrderItemSnippet {
   @ApiProperty({
