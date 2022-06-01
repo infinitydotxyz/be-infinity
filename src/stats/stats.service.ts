@@ -135,13 +135,7 @@ export class StatsService {
       );
     }
     const values = await Promise.all(promises);
-    // .then(async (values) => {
-
-    // })
-    // .catch(function handleError(error) {
-    //   console.error(error);
-    // });
-    console.log('values', values); // example [response1, response2]
+    // console.log('values', values); // example [response1, response2]
 
     for (const value of values) {
       const collections = value?.collections ?? [];
