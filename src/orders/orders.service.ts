@@ -22,8 +22,10 @@ import { BigNumber, ethers } from 'ethers';
 import { getProvider } from '../utils/ethers';
 import { FirebaseService } from '../firebase/firebase.service';
 import { getDocIdHash } from '../utils';
+import { SignedOBOrderDto } from './dto/signed-ob-order.dto';
 import { InfinityCreatorsFeeManagerABI } from '../abi/infinityCreatorsFeeManager';
 import { getOrderIdFromSignedOrder } from './orders.utils';
+import { ChainNFTsDto } from './dto/chain-nfts.dto';
 import { ParsedUserId } from '../user/parser/parsed-user-id';
 import { UserService } from '../user/user.service';
 import CollectionsService from '../collections/collections.service';
@@ -34,16 +36,12 @@ import { UserParserService } from '../user/parser/parser.service';
 import { FeedEventType, NftListingEvent, NftOfferEvent } from '@infinityxyz/lib/types/core/feed';
 import { EthereumService } from 'ethereum/ethereum.service';
 import { InvalidTokenError } from 'common/errors/invalid-token-error';
+import { OrderItemsOrderBy } from './dto/order-items-query.dto';
 import { CursorService } from '../pagination/cursor.service';
+import { SignedOBOrderArrayDto } from './dto/signed-ob-order-array.dto';
+import { UserOrderItemsQueryDto } from './dto/user-order-items-query.dto';
 import { BadQueryError } from 'common/errors/bad-query.error';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
-import { SignedOBOrderDto } from '@infinityxyz/lib/types/dto/orders/signed-ob-order.dto';
-import {
-  ChainNFTsDto,
-  OrderItemsOrderBy,
-  SignedOBOrderArrayDto,
-  UserOrderItemsQueryDto
-} from '@infinityxyz/lib/types/dto/orders';
 
 // todo: remove this with the below commented code
 // export interface ExpiredCacheItem {
