@@ -16,14 +16,13 @@ import { ErrorResponseDto } from 'common/dto/error-response.dto';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { InvalidTokenError } from 'common/errors/invalid-token-error';
 import { ResponseDescription } from 'common/response-description';
-import { FirebaseService } from 'firebase/firebase.service';
 import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 import OrdersService from './orders.service';
 
 @Controller('orders')
 export class OrdersController {
-  constructor(private ordersService: OrdersService, private firebaseService: FirebaseService) {}
+  constructor(private ordersService: OrdersService) {}
 
   @Post(':userId')
   @ApiOperation({
