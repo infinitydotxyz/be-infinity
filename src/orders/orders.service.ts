@@ -14,7 +14,6 @@ import {
 import {
   firestoreConstants,
   getCreatorFeeManagerAddress,
-  getFeeTreasuryAddress,
   getInfinityLink,
   trimLowerCase
 } from '@infinityxyz/lib/utils';
@@ -24,7 +23,6 @@ import { getProvider } from '../utils/ethers';
 import { FirebaseService } from '../firebase/firebase.service';
 import { getDocIdHash } from '../utils';
 import { SignedOBOrderDto } from './dto/signed-ob-order.dto';
-import { InfinityFeeTreasuryABI } from '../abi/infinityFeeTreasury';
 import { InfinityCreatorsFeeManagerABI } from '../abi/infinityCreatorsFeeManager';
 import { getOrderIdFromSignedOrder } from './orders.utils';
 import { ChainNFTsDto } from './dto/chain-nfts.dto';
@@ -548,21 +546,22 @@ export default class OrdersService {
       numTokens: token.numTokens,
       tokenImage: token.tokenImage ?? '',
       tokenName: token.tokenName ?? '',
-      tokenSlug: token.tokenSlug ?? ''
+      tokenSlug: token.tokenSlug ?? '',
+      complicationAddress: order.execParams.complicationAddress
     };
     return data;
   }
 
-  private async getCuratorFeeBps(chainId: string): Promise<number> {
+  private getCuratorFeeBps(chainId: string): Promise<number> {
     try {
       const provider = getProvider(chainId);
       if (provider == null) {
         throw new Error('Cannot get curator fee bps as provider is null');
       }
-      const feeTreasuryAddress = getFeeTreasuryAddress(chainId);
-      const contract = new ethers.Contract(feeTreasuryAddress, InfinityFeeTreasuryABI, provider);
-      const curatorFeeBps = await contract.CURATOR_FEE_BPS();
-      return curatorFeeBps;
+      // const contract = new ethers.Contract(feeTreasuryAddress, InfinityFeeTreasuryABI, provider);
+      // const curatorFeeBps = await contract.CURATOR_FEE_BPS();
+      // TODO is this still being used?
+      throw new Error('Not yet implemented');
     } catch (err) {
       console.error('Failed to get curator fee bps', err);
       throw err;
