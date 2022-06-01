@@ -1,4 +1,11 @@
 import { GetMinBpsQuery } from '@infinityxyz/lib/types/core';
+import {
+  OrderItemsQueryDto,
+  OrdersDto,
+  SignedOBOrderArrayDto,
+  SignedOBOrderDto,
+  UserOrderItemsQueryDto
+} from '@infinityxyz/lib/types/dto/orders';
 import { BadRequestException, Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { ParamUserId } from 'auth/param-user-id.decorator';
@@ -12,12 +19,7 @@ import { ResponseDescription } from 'common/response-description';
 import { FirebaseService } from 'firebase/firebase.service';
 import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
-import { OrderItemsQueryDto } from './dto/order-items-query.dto';
-import { OrdersDto } from './dto/orders.dto';
-import { SignedOBOrderDto } from './dto/signed-ob-order.dto';
-import { SignedOBOrderArrayDto } from './dto/signed-ob-order-array.dto';
 import OrdersService from './orders.service';
-import { UserOrderItemsQueryDto } from './dto/user-order-items-query.dto';
 
 @Controller('orders')
 export class OrdersController {
