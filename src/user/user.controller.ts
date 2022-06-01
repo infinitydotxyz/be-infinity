@@ -32,7 +32,6 @@ import {
 } from '@nestjs/swagger';
 import { ApiTag } from 'common/api-tags';
 import { ResponseDescription } from 'common/response-description';
-import RankingsRequestDto from 'collections/dto/rankings-query.dto';
 import { CacheControlInterceptor } from 'common/interceptors/cache-control.interceptor';
 import { VotesService } from 'votes/votes.service';
 import { UserCollectionVotesArrayDto } from 'votes/dto/user-collection-votes-array.dto';
@@ -43,7 +42,6 @@ import { UserCollectionVoteDto } from 'votes/dto/user-collection-vote.dto';
 import { UserCollectionVoteBodyDto } from 'votes/dto/user-collection-vote-body.dto';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { ParseCollectionIdPipe, ParsedCollectionId } from 'collections/collection-id.pipe';
-import { UpdateCollectionDto } from 'collections/dto/collection.dto';
 import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param-collection-id.decorator';
 import CollectionsService from 'collections/collections.service';
 import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express';
@@ -84,6 +82,7 @@ import { NftsService } from 'collections/nfts/nfts.service';
 import { NftCollectionArrayDto } from 'collections/nfts/dto/nft-collection-array.dto';
 import { NftCollectionDto } from 'collections/nfts/dto/nft-collection.dto';
 import { CollectionStatsArrayResponseDto } from '@infinityxyz/lib/types/dto/stats';
+import { RankingQueryDto, UpdateCollectionDto } from '@infinityxyz/lib/types/dto/collections';
 
 @Controller('user')
 export class UserController {
@@ -337,7 +336,7 @@ export class UserController {
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 3 }))
   async getWatchlist(
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
-    @Query() query: RankingsRequestDto
+    @Query() query: RankingQueryDto
   ): Promise<CollectionStatsArrayResponseDto> {
     const watchlist = await this.userService.getWatchlist(user, query);
 

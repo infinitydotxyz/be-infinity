@@ -17,7 +17,7 @@ import {
   ApiOkResponse,
   ApiOperation
 } from '@nestjs/swagger';
-import RankingsRequestDto from 'collections/dto/rankings-query.dto';
+
 import { ApiTag } from 'common/api-tags';
 import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param-collection-id.decorator';
 import { ErrorResponseDto } from 'common/dto/error-response.dto';
@@ -32,14 +32,17 @@ import { CollectionVotesDto } from 'votes/dto/collection-votes.dto';
 import { VotesService } from 'votes/votes.service';
 import { ParseCollectionIdPipe, ParsedCollectionId } from './collection-id.pipe';
 import CollectionsService from './collections.service';
-import { CollectionHistoricalStatsQueryDto } from './dto/collection-historical-stats-query.dto';
-import { CollectionSearchArrayDto } from './dto/collection-search-array.dto';
-import { CollectionSearchQueryDto } from './dto/collection-search-query.dto';
-import { CollectionStatsByPeriodDto } from './dto/collection-stats-by-period.dto';
-import { CollectionStatsQueryDto } from './dto/collection-stats-query.dto';
-import { CollectionDto } from './dto/collection.dto';
-import { TopOwnersArrayResponseDto } from './dto/top-owners-array.dto';
-import { TopOwnersQueryDto } from './dto/top-owners-query.dto';
+import {
+  CollectionDto,
+  CollectionHistoricalStatsQueryDto,
+  CollectionSearchArrayDto,
+  CollectionSearchQueryDto,
+  CollectionStatsByPeriodDto,
+  CollectionStatsQueryDto,
+  TopOwnersArrayResponseDto,
+  TopOwnersQueryDto,
+  RankingQueryDto
+} from '@infinityxyz/lib/types/dto/collections';
 
 @Controller('collections')
 export class CollectionsController {
@@ -72,7 +75,7 @@ export class CollectionsController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 3 }))
-  async getStats(@Query() query: RankingsRequestDto): Promise<CollectionStatsArrayResponseDto> {
+  async getStats(@Query() query: RankingQueryDto): Promise<CollectionStatsArrayResponseDto> {
     const res = await this.statsService.getCollectionRankings(query);
     return res;
   }

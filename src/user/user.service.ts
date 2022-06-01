@@ -6,7 +6,6 @@ import { CreationFlow, OrderDirection } from '@infinityxyz/lib/types/core';
 import { NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
 import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
 import { Injectable, Optional } from '@nestjs/common';
-import RankingsRequestDto from 'collections/dto/rankings-query.dto';
 import { NftArrayDto } from 'collections/nfts/dto/nft-array.dto';
 import { NftDto } from 'collections/nfts/dto/nft.dto';
 import { ActivityType, activityTypeToEventType } from 'collections/nfts/nft-activity.types';
@@ -29,6 +28,7 @@ import { UserProfileDto } from './dto/user-profile.dto';
 import { ParsedUserId } from './parser/parsed-user-id';
 import { BadQueryError } from 'common/errors/bad-query.error';
 import { NftCollectionDto } from 'collections/nfts/dto/nft-collection.dto';
+import { RankingQueryDto } from '@infinityxyz/lib/types/dto/collections';
 
 export type UserActivity = NftSaleEvent | NftListingEvent | NftOfferEvent;
 
@@ -42,7 +42,7 @@ export class UserService {
     @Optional() private statsService: StatsService
   ) {}
 
-  async getWatchlist(user: ParsedUserId, query: RankingsRequestDto) {
+  async getWatchlist(user: ParsedUserId, query: RankingQueryDto) {
     const collectionFollows = user.ref
       .collection(firestoreConstants.COLLECTION_FOLLOWS_COLL)
       .select('collectionAddress', 'collectionChainId');

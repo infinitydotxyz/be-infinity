@@ -13,9 +13,6 @@ import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { getStatsDocInfo } from 'utils/stats';
 import { Injectable } from '@nestjs/common';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
-import { CollectionHistoricalStatsQueryDto } from 'collections/dto/collection-historical-stats-query.dto';
-import { CollectionStatsByPeriodDto } from 'collections/dto/collection-stats-by-period.dto';
-import RankingsRequestDto from 'collections/dto/rankings-query.dto';
 import { VotesService } from 'votes/votes.service';
 import { DiscordService } from '../discord/discord.service';
 import { FirebaseService } from '../firebase/firebase.service';
@@ -23,6 +20,11 @@ import { TwitterService } from '../twitter/twitter.service';
 import { calcPercentChange } from '../utils';
 import { CursorService } from 'pagination/cursor.service';
 import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
+import {
+  CollectionHistoricalStatsQueryDto,
+  CollectionStatsByPeriodDto,
+  RankingQueryDto
+} from '@infinityxyz/lib/types/dto/collections';
 
 @Injectable()
 export class StatsService {
@@ -46,7 +48,7 @@ export class StatsService {
     private paginationService: CursorService
   ) {}
 
-  async getCollectionRankings(queryOptions: RankingsRequestDto): Promise<CollectionStatsArrayResponseDto> {
+  async getCollectionRankings(queryOptions: RankingQueryDto): Promise<CollectionStatsArrayResponseDto> {
     const { primary: primaryStatsCollectionName, secondary: secondaryStatsCollectionName } =
       this.getStatsCollectionNames(queryOptions.orderBy);
 
@@ -320,7 +322,7 @@ export class StatsService {
     return mergedStats;
   }
 
-  async getPrimaryStats(queryOptions: RankingsRequestDto, statsGroupName: string) {
+  async getPrimaryStats(queryOptions: RankingQueryDto, statsGroupName: string) {
     const date = queryOptions.date;
     const { timestamp } = getStatsDocInfo(date, queryOptions.period);
     const collectionGroup = this.firebaseService.firestore.collectionGroup(statsGroupName);
