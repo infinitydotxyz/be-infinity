@@ -27,7 +27,6 @@ import { CacheControlInterceptor } from 'common/interceptors/cache-control.inter
 import { ResponseDescription } from 'common/response-description';
 import { StatsService } from 'stats/stats.service';
 import { TwitterService } from 'twitter/twitter.service';
-import { CollectionVotesDto } from 'votes/dto/collection-votes.dto';
 import { VotesService } from 'votes/votes.service';
 import { ParseCollectionIdPipe, ParsedCollectionId } from './collection-id.pipe';
 import CollectionsService from './collections.service';
@@ -43,6 +42,7 @@ import {
   RankingQueryDto
 } from '@infinityxyz/lib/types/dto/collections';
 import { TweetArrayDto } from '@infinityxyz/lib/types/dto/twitter';
+import { CollectionVotesDto } from '@infinityxyz/lib/types/dto/votes';
 
 @Controller('collections')
 export class CollectionsController {

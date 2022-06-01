@@ -34,12 +34,8 @@ import { ApiTag } from 'common/api-tags';
 import { ResponseDescription } from 'common/response-description';
 import { CacheControlInterceptor } from 'common/interceptors/cache-control.interceptor';
 import { VotesService } from 'votes/votes.service';
-import { UserCollectionVotesArrayDto } from 'votes/dto/user-collection-votes-array.dto';
 import { ApiParamUserId, ParamUserId } from 'auth/param-user-id.decorator';
 import { ParseUserIdPipe } from './parser/parse-user-id.pipe';
-import { UserCollectionVotesQuery } from 'votes/dto/user-collection-votes-query.dto';
-import { UserCollectionVoteDto } from 'votes/dto/user-collection-vote.dto';
-import { UserCollectionVoteBodyDto } from 'votes/dto/user-collection-vote-body.dto';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { ParseCollectionIdPipe, ParsedCollectionId } from 'collections/collection-id.pipe';
 import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param-collection-id.decorator';
@@ -85,6 +81,12 @@ import {
   UserProfileImagesDto,
   ValidateUsernameResponseDto
 } from '@infinityxyz/lib/types/dto/user';
+import {
+  UserCollectionVotesArrayDto,
+  UserCollectionVotesQuery,
+  UserCollectionVoteBodyDto,
+  UserCollectionVoteDto
+} from '@infinityxyz/lib/types/dto/votes';
 
 @Controller('user')
 export class UserController {
