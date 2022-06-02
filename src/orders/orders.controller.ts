@@ -87,8 +87,11 @@ export class OrdersController {
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   public async fetchMinBps(@Query() query: GetMinBpsQuery): Promise<number> {
     const chainId = query.chainId ?? '1';
-    console.log('collections', query.collections);
-    const collections = query.collections ?? [];
+    // todo: use DTO instead o fthis hack
+    let collections = query.collections ?? [];
+    if (typeof collections === 'string') {
+      collections = [collections];
+    }
     const result = await this.ordersService.fetchMinBps(chainId, collections);
     return result;
   }

@@ -322,22 +322,23 @@ export default class OrdersService {
     return metadata;
   }
 
-  // todo: change this when fees change
   public async fetchMinBps(chainId: string, collections: string[]): Promise<number> {
-    let minBps = 10000;
     try {
-      const curatorFeeBps = await this.getCuratorFeeBps(chainId);
-      console.log(`Curator fee bps: ${curatorFeeBps}`);
+      const protocolFeeBps = this.getProtocolFeeBps();
+      let minBps = 10000 - protocolFeeBps;
+      let maxCreatorFeeBps = 0;
       for (const collection of collections) {
         const creatorFeeBps = await this.getCreatorFeeBps(chainId, collection);
         console.log(`Creator fee bps for ${collection}: ${creatorFeeBps}`);
-        const totalBps = curatorFeeBps + creatorFeeBps;
-        minBps = Math.min(minBps, totalBps);
+        maxCreatorFeeBps = Math.max(maxCreatorFeeBps, creatorFeeBps);
       }
+      minBps -= maxCreatorFeeBps;
+      console.log(minBps);
+      return minBps;
     } catch (e) {
       console.error('Failed to fetch min bps', e);
+      throw e;
     }
-    return minBps;
   }
 
   public async getOrders(
@@ -554,20 +555,9 @@ export default class OrdersService {
     return data;
   }
 
-  private getCuratorFeeBps(chainId: string): Promise<number> {
-    try {
-      const provider = getProvider(chainId);
-      if (provider == null) {
-        throw new Error('Cannot get curator fee bps as provider is null');
-      }
-      // const contract = new ethers.Contract(feeTreasuryAddress, InfinityFeeTreasuryABI, provider);
-      // const curatorFeeBps = await contract.CURATOR_FEE_BPS();
-      // TODO is this still being used?
-      throw new Error('Not yet implemented');
-    } catch (err) {
-      console.error('Failed to get curator fee bps', err);
-      throw err;
-    }
+  private getProtocolFeeBps(): number {
+    // todo: should ideally fetch from contract
+    return 250;
   }
 
   private async getCreatorFeeBps(chainId: string, collection: string): Promise<number> {
@@ -578,8 +568,8 @@ export default class OrdersService {
       }
       const creatorFeeManagerAddress = getCreatorFeeManagerAddress(chainId);
       const contract = new ethers.Contract(creatorFeeManagerAddress, InfinityCreatorsFeeManagerABI, provider);
-      const creatorFeeBps = await contract.getCreatorsFeeInfo(collection, 0, 0);
-      return creatorFeeBps;
+      const creatorFeeBps = await contract.getCreatorsFeeInfo(collection, 0);
+      return creatorFeeBps[2];
     } catch (err) {
       console.error('Failed to get creator fee bps', err);
       throw err;
