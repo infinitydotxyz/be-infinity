@@ -9,18 +9,19 @@ import { randomInt } from 'crypto';
 import { FirebaseService } from 'firebase/firebase.service';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 import { InvalidProfileError } from '../errors/invalid-profile.error';
-import { MAX_USERNAME_CHARS, MIN_USERNAME_CHARS, usernameCharRegex, usernameRegex } from './profile.constants';
+import {
+  isValidUsername,
+  MAX_USERNAME_CHARS,
+  MIN_USERNAME_CHARS,
+  usernameCharRegex
+} from '@infinityxyz/lib/decorators/is-username.decorator';
 
 @Injectable()
 export class ProfileService {
   constructor(private firebaseService: FirebaseService) {}
 
   static isValidUsername(value: string) {
-    if (typeof value !== 'string') {
-      return false;
-    }
-    const isValid = usernameRegex.test(value);
-    return isValid;
+    return isValidUsername(value);
   }
 
   async updateProfileImages(user: ParsedUserId, data: DeleteUserProfileImagesDto) {
