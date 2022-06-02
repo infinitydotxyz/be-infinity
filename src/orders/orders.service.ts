@@ -37,12 +37,12 @@ import { InvalidTokenError } from 'common/errors/invalid-token-error';
 import { CursorService } from '../pagination/cursor.service';
 import { BadQueryError } from 'common/errors/bad-query.error';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
-import { SignedOBOrderDto } from '@infinityxyz/lib/types/dto/orders/signed-ob-order.dto';
 import {
-  ChainNFTsDto,
-  OrderItemsOrderBy,
+  SignedOBOrderDto,
+  UserOrderItemsQueryDto,
   SignedOBOrderArrayDto,
-  UserOrderItemsQueryDto
+  OrderItemsOrderBy,
+  ChainNFTsDto
 } from '@infinityxyz/lib/types/dto/orders';
 
 // todo: remove this with the below commented code
