@@ -1,9 +1,9 @@
 import { GetMinBpsQuery } from '@infinityxyz/lib/types/core';
 import {
-  OrderItemsQueryDto,
   OrdersDto,
-  SignedOBOrderArrayDto,
   SignedOBOrderDto,
+  SignedOBOrderArrayDto,
+  OrderItemsQueryDto,
   UserOrderItemsQueryDto
 } from '@infinityxyz/lib/types/dto/orders';
 import { BadRequestException, Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
