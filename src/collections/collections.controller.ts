@@ -90,31 +90,45 @@ export class CollectionsController {
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor())
-  async getCollectionStats(
-    @Query() query: CollectionHistoricalStatsQueryDto
-  ): Promise<CollectionStatsArrayDto> {
+  async getCollectionStats(@Query() query: CollectionHistoricalStatsQueryDto): Promise<CollectionStatsArrayDto> {
     const result = await this.statsService.getMenemonicCollectionStats(query);
     // console.log('result', result?.collections)
     const collections = result?.collections ?? [];
 
-    const collectionsData = await Promise.all(
-      [...collections].map((item) => {
-        return this.collectionsService.getCollectionByAddress({
-          address: item.contractAddress,
-          chainId: ChainId.Mainnet
-        });
-      })
+    const { getCollection } = await this.collectionsService.getCollectionsByAddress(
+      collections.map((coll) => ({ address: coll?.contractAddress ?? '', chainId: ChainId.Mainnet }))
     );
-    const data: Collection[] = [];
-    for (const coll of collectionsData) {
-      if (coll !== undefined) {
-        coll.attributes = {};
-        data.push(coll);
+
+    const results: CollectionAndStats[] = [];
+    for (const coll of collections) {
+      const collectionData = getCollection({
+        address: coll.contractAddress,
+        chainId: ChainId.Mainnet
+      }) as CollectionAndStats;
+
+      if (collectionData?.metadata?.name) {
+        const newData: CollectionAndStats = {
+          ...collectionData,
+          attributes: {} // don't include attributess
+        };
+
+        newData.stats = newData.stats ? newData.stats : {};
+        newData.stats.daily = newData.stats.daily ? newData.stats.daily : {};
+        if (coll?.salesVolume) {
+          newData.stats.daily.salesVolume = coll?.salesVolume;
+        }
+        if (coll?.avgPrice) {
+          newData.stats.daily.avgPrice = coll?.avgPrice;
+        }
+        results.push(newData);
+      } else {
+        // can't get collection name (not indexed?)
+        // console.log('--- collectionData?.metadata?.name', collectionData?.metadata?.name)
       }
     }
 
     return {
-      data: data ?? [],
+      data: results,
       cursor: '',
       hasNextPage: false
     };
@@ -188,7 +202,7 @@ export class CollectionsController {
     @Query() query: CollectionHistoricalStatsQueryDto
   ): Promise<CollectionStatsArrayResponseDto> {
     const response = await this.statsService.getCollectionHistoricalStats(collection, query);
-    
+
     return response;
   }
 
