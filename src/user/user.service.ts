@@ -317,7 +317,7 @@ export class UserService {
 
       const nftsToTransform = nfts.map((item) => ({ alchemyNft: item, chainId }));
       const results = await this.alchemyNftToInfinityNft.transform(nftsToTransform);
-      const validNfts = results.filter((item) => !!item) as NftDto[];
+      const validNfts = results.filter((item) => !!item) as unknown as NftDto[];
 
       return { pageKey: nextPageKey, nfts: validNfts, hasNextPage: !!nextPageKey };
     };
