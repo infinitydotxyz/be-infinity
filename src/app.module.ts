@@ -21,6 +21,7 @@ import * as serviceAccount from './creds/nftc-dev-firebase-creds.json';
 import { FB_STORAGE_BUCKET } from './constants';
 import { AlchemyModule } from './alchemy/alchemy.module';
 import { EthereumModule } from './ethereum/ethereum.module';
+import { BackfillModule } from 'backfill/backfill.module';
 
 @Module({
   imports: [
@@ -43,7 +44,8 @@ import { EthereumModule } from './ethereum/ethereum.module';
     MnemonicModule,
     AuthModule,
     AlchemyModule,
-    EthereumModule
+    EthereumModule,
+    BackfillModule
   ],
   controllers: [AppController],
   providers: [AppService]

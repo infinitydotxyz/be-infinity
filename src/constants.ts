@@ -4,7 +4,7 @@ import 'dotenv/config';
 const getEnvironmentVariable = (name: string, required = true) => {
   const variable = process.env[name];
   if (required && !variable) {
-    // Throw new Error(`Missing environment variable ${name}`);
+    throw new Error(`Missing environment variable ${name}`);
   }
   return variable;
 };
@@ -28,7 +28,6 @@ const getMultipleEnvVariables = (prefix: string, minLength = 1): (string | undef
       `Env Variable: ${prefix} failed to get min number of keys. Found: ${variables.length} Expected: at least ${minLength}`
     );
   }
-
   return variables;
 };
 

@@ -1,6 +1,6 @@
 /* eslint-disable no-empty */
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { AlchemyNftToInfinityNft } from 'alchemy/alchemy-nft-to-infinity-nft.pipe';
+import { AlchemyNftToInfinityNft } from '../common/transformers/alchemy-nft-to-infinity-nft.pipe';
 import { AlchemyService } from 'alchemy/alchemy.service';
 import { CreationFlow, OrderDirection } from '@infinityxyz/lib/types/core';
 import { NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
@@ -30,18 +30,22 @@ import {
   UserActivityQueryDto,
   UserActivityArrayDto
 } from '@infinityxyz/lib/types/dto/user';
+import { NftsService } from '../collections/nfts/nfts.service';
 
 export type UserActivity = NftSaleEvent | NftListingEvent | NftOfferEvent;
 
 @Injectable()
 export class UserService {
+  private alchemyNftToInfinityNft: AlchemyNftToInfinityNft;
   constructor(
     private firebaseService: FirebaseService,
     private alchemyService: AlchemyService,
-    private alchemyNftToInfinityNft: AlchemyNftToInfinityNft,
     private paginationService: CursorService,
+    private nftsService: NftsService,
     @Optional() private statsService: StatsService
-  ) {}
+  ) {
+    this.alchemyNftToInfinityNft = new AlchemyNftToInfinityNft(nftsService);
+  }
 
   async getWatchlist(user: ParsedUserId, query: RankingQueryDto) {
     const collectionFollows = user.ref

@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common/decorators/core/injectable.decorator'
 import { PipeTransform } from '@nestjs/common/interfaces/features/pipe-transform.interface';
 import { NftDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { NftsService } from 'collections/nfts/nfts.service';
-import { OpenseaAsset } from './opensea.types';
+import { OpenseaAsset } from '../../opensea/opensea.types';
 
 @Injectable()
 export class OpenseaNftToInfinityNft
