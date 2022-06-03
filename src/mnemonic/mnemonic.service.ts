@@ -1,4 +1,4 @@
-import { OrderDirection, StatsPeriod } from '@infinityxyz/lib/types/core';
+import { CollectionPeriodStatsContent, OrderDirection, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
@@ -6,14 +6,8 @@ import { plainToClass } from 'class-transformer';
 import { getSortDirection } from './mnemonic.constants';
 import { MnemonicTokenType, TopOwnersResponseBody, UserNftsResponseBody } from './mnemonic.types';
 
-type TopCollectionsApiResponseItem = {
-  contractAddress: string;
-  avgPrice?: string;
-  salesVolume?: string;
-}
-
 type TopCollectionsApiResponse = {
-  collections: TopCollectionsApiResponseItem[];
+  collections: CollectionPeriodStatsContent[];
 }
 
 export type mnemonicByParam = 'by_sales_volume' | 'by_avg_price';

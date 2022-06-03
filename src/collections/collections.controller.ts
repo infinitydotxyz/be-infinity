@@ -103,7 +103,7 @@ export class CollectionsController {
     const results: Collection[] = [];
     for (const coll of collections) {
       const collectionData = getCollection({
-        address: coll.contractAddress,
+        address: coll.contractAddress ?? '',
         chainId: ChainId.Mainnet
       }) as Collection;
 
