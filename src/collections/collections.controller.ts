@@ -43,6 +43,7 @@ import {
 } from '@infinityxyz/lib/types/dto/collections';
 import { TweetArrayDto } from '@infinityxyz/lib/types/dto/twitter';
 import { CollectionVotesDto } from '@infinityxyz/lib/types/dto/votes';
+import { CollectionStatsArrayDto } from './dto/collection-stats-array.dto';
 
 @Controller('collections')
 export class CollectionsController {
@@ -99,15 +100,15 @@ export class CollectionsController {
       collections.map((coll) => ({ address: coll?.contractAddress ?? '', chainId: ChainId.Mainnet }))
     );
 
-    const results: CollectionAndStats[] = [];
+    const results: Collection[] = [];
     for (const coll of collections) {
       const collectionData = getCollection({
         address: coll.contractAddress,
         chainId: ChainId.Mainnet
-      }) as CollectionAndStats;
+      }) as Collection;
 
       if (collectionData?.metadata?.name) {
-        const newData: CollectionAndStats = {
+        const newData: Collection = {
           ...collectionData,
           attributes: {} // don't include attributess
         };
