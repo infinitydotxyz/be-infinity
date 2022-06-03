@@ -1,8 +1,8 @@
+import { usernameConstraints } from '@infinityxyz/lib/decorators/is-username.decorator';
 import { trimLowerCase } from '@infinityxyz/lib/utils/formatters';
 import { createParamDecorator } from '@nestjs/common/decorators/http/create-route-param-metadata.decorator';
 import { ExecutionContext } from '@nestjs/common/interfaces/features/execution-context.interface';
 import { Request } from 'express';
-import { usernameConstraints } from './profile.constants';
 import { ProfileService } from './profile.service';
 import { UsernameType } from './profile.types';
 

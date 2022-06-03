@@ -2,14 +2,12 @@ import { ChainId, Collection, CollectionMetadata, CreationFlow } from '@infinity
 import { firestoreConstants, getCollectionDocId, getEndCode, getSearchFriendlyString } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { FirebaseService } from 'firebase/firebase.service';
-import { CollectionSearchQueryDto } from './dto/collection-search-query.dto';
 import { ParsedCollectionId } from './collection-id.pipe';
 import { MnemonicService } from 'mnemonic/mnemonic.service';
-import { TopOwnersQueryDto } from './dto/top-owners-query.dto';
-import { TopOwnerDto } from './dto/top-owner.dto';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { CursorService } from 'pagination/cursor.service';
 import { BackfillService } from 'backfill/backfill.service';
+import { TopOwnersQueryDto, TopOwnerDto, CollectionSearchQueryDto } from '@infinityxyz/lib/types/dto/collections';
 
 interface CollectionQueryOptions {
   /**

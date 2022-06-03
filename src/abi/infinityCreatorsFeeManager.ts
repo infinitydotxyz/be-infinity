@@ -3,11 +3,6 @@ export const InfinityCreatorsFeeManagerABI = [
     inputs: [
       {
         internalType: 'address',
-        name: '_royaltyEngine',
-        type: 'address'
-      },
-      {
-        internalType: 'address',
         name: '_creatorsFeeRegistry',
         type: 'address'
       }
@@ -26,19 +21,6 @@ export const InfinityCreatorsFeeManagerABI = [
       }
     ],
     name: 'NewMaxBPS',
-    type: 'event'
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: false,
-        internalType: 'address',
-        name: 'newEngine',
-        type: 'address'
-      }
-    ],
-    name: 'NewRoyaltyEngine',
     type: 'event'
   },
   {
@@ -87,19 +69,6 @@ export const InfinityCreatorsFeeManagerABI = [
     type: 'function'
   },
   {
-    inputs: [],
-    name: 'PARTY_NAME',
-    outputs: [
-      {
-        internalType: 'enum FeeParty',
-        name: '',
-        type: 'uint8'
-      }
-    ],
-    stateMutability: 'view',
-    type: 'function'
-  },
-  {
     inputs: [
       {
         internalType: 'address',
@@ -110,11 +79,6 @@ export const InfinityCreatorsFeeManagerABI = [
         internalType: 'address',
         name: 'collection',
         type: 'address'
-      },
-      {
-        internalType: 'uint256',
-        name: 'tokenId',
-        type: 'uint256'
       },
       {
         internalType: 'uint256',
@@ -122,22 +86,17 @@ export const InfinityCreatorsFeeManagerABI = [
         type: 'uint256'
       }
     ],
-    name: 'calcFeesAndGetRecipients',
+    name: 'calcFeesAndGetRecipient',
     outputs: [
       {
-        internalType: 'enum FeeParty',
+        internalType: 'address',
         name: '',
-        type: 'uint8'
+        type: 'address'
       },
       {
-        internalType: 'address[]',
+        internalType: 'uint256',
         name: '',
-        type: 'address[]'
-      },
-      {
-        internalType: 'uint256[]',
-        name: '',
-        type: 'uint256[]'
+        type: 'uint256'
       }
     ],
     stateMutability: 'view',
@@ -149,11 +108,6 @@ export const InfinityCreatorsFeeManagerABI = [
         internalType: 'address',
         name: 'collection',
         type: 'address'
-      },
-      {
-        internalType: 'uint256',
-        name: 'tokenId',
-        type: 'uint256'
       },
       {
         internalType: 'uint256',
@@ -169,19 +123,19 @@ export const InfinityCreatorsFeeManagerABI = [
         type: 'address'
       },
       {
-        internalType: 'address[]',
+        internalType: 'address',
         name: '',
-        type: 'address[]'
+        type: 'address'
       },
       {
-        internalType: 'uint16[]',
+        internalType: 'uint16',
         name: '',
-        type: 'uint16[]'
+        type: 'uint16'
       },
       {
-        internalType: 'uint256[]',
+        internalType: 'uint256',
         name: '',
-        type: 'uint256[]'
+        type: 'uint256'
       }
     ],
     stateMutability: 'view',
@@ -208,19 +162,6 @@ export const InfinityCreatorsFeeManagerABI = [
     type: 'function'
   },
   {
-    inputs: [],
-    name: 'royaltyEngine',
-    outputs: [
-      {
-        internalType: 'contract IRoyaltyEngine',
-        name: '',
-        type: 'address'
-      }
-    ],
-    stateMutability: 'view',
-    type: 'function'
-  },
-  {
     inputs: [
       {
         internalType: 'uint16',
@@ -241,14 +182,14 @@ export const InfinityCreatorsFeeManagerABI = [
         type: 'address'
       },
       {
-        internalType: 'address[]',
-        name: 'feeDestinations',
-        type: 'address[]'
+        internalType: 'address',
+        name: 'feeDestination',
+        type: 'address'
       },
       {
-        internalType: 'uint16[]',
-        name: 'bpsSplits',
-        type: 'uint16[]'
+        internalType: 'uint16',
+        name: 'bps',
+        type: 'uint16'
       }
     ],
     name: 'setupCollectionForCreatorFeeShare',
@@ -265,19 +206,6 @@ export const InfinityCreatorsFeeManagerABI = [
       }
     ],
     name: 'transferOwnership',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function'
-  },
-  {
-    inputs: [
-      {
-        internalType: 'address',
-        name: '_royaltyEngine',
-        type: 'address'
-      }
-    ],
-    name: 'updateRoyaltyEngine',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function'

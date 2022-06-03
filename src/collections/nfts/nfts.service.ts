@@ -1,21 +1,25 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
+import { OrderType } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { FeedEventType, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
 import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
 import CollectionsService from 'collections/collections.service';
 import { FirebaseService } from 'firebase/firebase.service';
-import { NftActivityFiltersDto } from './dto/nft-activity-filters.dto';
-import { NftActivity } from './dto/nft-activity.dto';
-import { NftQueryDto } from './dto/nft-query.dto';
-import { NftDto } from './dto/nft.dto';
-import { NftArrayDto } from './dto/nft-array.dto';
-import { NftsOrderBy, NftsQueryDto, OrderType } from './dto/nfts-query.dto';
 import { ActivityType, activityTypeToEventType } from './nft-activity.types';
 import { CursorService } from 'pagination/cursor.service';
-import { ExternalNftDto } from './dto/external-nft.dto';
 import { EthereumService } from 'ethereum/ethereum.service';
 import { BackfillService } from 'backfill/backfill.service';
+import {
+  NftQueryDto,
+  NftDto,
+  ExternalNftDto,
+  NftsQueryDto,
+  NftArrayDto,
+  NftsOrderBy,
+  NftActivityFiltersDto,
+  NftActivity
+} from '@infinityxyz/lib/types/dto/collections/nfts';
 
 @Injectable()
 export class NftsService {
@@ -196,7 +200,7 @@ export class NftsService {
 
     const cursor: Cursor = {} as any;
     const lastItem = data[data.length - 1];
-    for (const key of Object.values(NftsOrderBy) as NftsOrderBy[]) {
+    for (const key of Object.values(NftsOrderBy)) {
       switch (key) {
         case NftsOrderBy.Price: {
           const startPrice = lastItem?.ordersSnippet?.[orderType]?.orderItem?.startPriceEth;

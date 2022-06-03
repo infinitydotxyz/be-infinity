@@ -32,19 +32,12 @@ import {
 } from '@nestjs/swagger';
 import { ApiTag } from 'common/api-tags';
 import { ResponseDescription } from 'common/response-description';
-import { CollectionStatsArrayResponseDto } from 'stats/dto/collection-stats-array.dto';
-import RankingsRequestDto from 'collections/dto/rankings-query.dto';
 import { CacheControlInterceptor } from 'common/interceptors/cache-control.interceptor';
 import { VotesService } from 'votes/votes.service';
-import { UserCollectionVotesArrayDto } from 'votes/dto/user-collection-votes-array.dto';
 import { ApiParamUserId, ParamUserId } from 'auth/param-user-id.decorator';
 import { ParseUserIdPipe } from './parser/parse-user-id.pipe';
-import { UserCollectionVotesQuery } from 'votes/dto/user-collection-votes-query.dto';
-import { UserCollectionVoteDto } from 'votes/dto/user-collection-vote.dto';
-import { UserCollectionVoteBodyDto } from 'votes/dto/user-collection-vote-body.dto';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { ParseCollectionIdPipe, ParsedCollectionId } from 'collections/collection-id.pipe';
-import { UpdateCollectionDto } from 'collections/dto/collection.dto';
 import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param-collection-id.decorator';
 import CollectionsService from 'collections/collections.service';
 import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express';
@@ -52,38 +45,48 @@ import { StorageService } from 'storage/storage.service';
 import { CollectionMetadata } from '@infinityxyz/lib/types/core';
 import { instanceToPlain } from 'class-transformer';
 import { StatsService } from 'stats/stats.service';
-import { UserFollowingCollectionsArrayDto } from 'user/dto/user-following-collections-array.dto';
-import { UserFollowingCollectionPostPayload } from './dto/user-following-collection-post-payload.dto';
-import { UserFollowingCollectionDeletePayload } from './dto/user-following-collection-delete-payload.dto';
-import { UserFollowingUsersArrayDto } from './dto/user-following-users-array.dto';
-import { UserFollowingUserPostPayload } from './dto/user-following-user-post-payload.dto';
-import { UserFollowingUserDeletePayload } from './dto/user-following-user-delete-payload.dto';
 import { InvalidUserError } from 'common/errors/invalid-user.error';
-import { ValidateUsernameResponseDto } from './dto/validate-username-response.dto';
-import { UserProfileDto } from './dto/user-profile.dto';
-import { PartialUpdateUserProfileDto } from './dto/update-user-profile.dto';
 import { ProfileService } from './profile/profile.service';
 import { InvalidProfileError } from './errors/invalid-profile.error';
 import { QueryUsername } from './profile/query-username.decorator';
 import { UsernameType } from './profile/profile.types';
-import { NftArrayDto } from 'collections/nfts/dto/nft-array.dto';
 import { ErrorResponseDto } from 'common/dto/error-response.dto';
 import { UserAuth } from 'auth/user-auth.decorator';
+import { ParsedUserId } from './parser/parsed-user-id';
+import { NftsService } from 'collections/nfts/nfts.service';
+import { CollectionStatsArrayResponseDto } from '@infinityxyz/lib/types/dto/stats';
+import { RankingQueryDto, UpdateCollectionDto } from '@infinityxyz/lib/types/dto/collections';
+import {
+  ExternalNftArrayDto,
+  NftActivityArrayDto,
+  NftArrayDto,
+  NftCollectionArrayDto,
+  NftCollectionDto
+} from '@infinityxyz/lib/types/dto/collections/nfts';
 import {
   DeleteUserProfileImagesDto,
+  PartialUpdateUserProfileDto,
   UpdateUserProfileImagesDto,
-  UserProfileImagesDto
-} from './dto/update-user-profile-images.dto';
-import { UserNftsQueryDto } from './dto/user-nfts-query.dto';
-import { UserActivityQueryDto } from './dto/user-activity-query.dto';
-import { NftActivityArrayDto } from 'collections/nfts/dto/nft-activity-array.dto';
-import { ParsedUserId } from './parser/parsed-user-id';
-import { UserCollectionPermissions } from './dto/user-collection-permissions';
-import { UserActivityArrayDto } from './dto/user-activity-array.dto';
-import { ExternalNftArrayDto } from 'collections/nfts/dto/external-nft-array.dto';
-import { NftsService } from 'collections/nfts/nfts.service';
-import { NftCollectionArrayDto } from 'collections/nfts/dto/nft-collection-array.dto';
-import { NftCollectionDto } from 'collections/nfts/dto/nft-collection.dto';
+  UserActivityArrayDto,
+  UserActivityQueryDto,
+  UserCollectionPermissions,
+  UserFollowingCollectionDeletePayload,
+  UserFollowingCollectionPostPayload,
+  UserFollowingCollectionsArrayDto,
+  UserFollowingUserDeletePayload,
+  UserFollowingUserPostPayload,
+  UserFollowingUsersArrayDto,
+  UserNftsQueryDto,
+  UserProfileDto,
+  UserProfileImagesDto,
+  ValidateUsernameResponseDto
+} from '@infinityxyz/lib/types/dto/user';
+import {
+  UserCollectionVotesArrayDto,
+  UserCollectionVotesQuery,
+  UserCollectionVoteBodyDto,
+  UserCollectionVoteDto
+} from '@infinityxyz/lib/types/dto/votes';
 
 @Controller('user')
 export class UserController {
@@ -337,7 +340,7 @@ export class UserController {
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 3 }))
   async getWatchlist(
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
-    @Query() query: RankingsRequestDto
+    @Query() query: RankingQueryDto
   ): Promise<CollectionStatsArrayResponseDto> {
     const watchlist = await this.userService.getWatchlist(user, query);
 

@@ -1,4 +1,11 @@
 import { GetMinBpsQuery } from '@infinityxyz/lib/types/core';
+import {
+  OrdersDto,
+  SignedOBOrderDto,
+  SignedOBOrderArrayDto,
+  OrderItemsQueryDto,
+  UserOrderItemsQueryDto
+} from '@infinityxyz/lib/types/dto/orders';
 import { BadRequestException, Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { ParamUserId } from 'auth/param-user-id.decorator';
@@ -9,19 +16,13 @@ import { ErrorResponseDto } from 'common/dto/error-response.dto';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { InvalidTokenError } from 'common/errors/invalid-token-error';
 import { ResponseDescription } from 'common/response-description';
-import { FirebaseService } from 'firebase/firebase.service';
 import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
-import { OrderItemsQueryDto } from './dto/order-items-query.dto';
-import { OrdersDto } from './dto/orders.dto';
-import { SignedOBOrderDto } from './dto/signed-ob-order.dto';
-import { SignedOBOrderArrayDto } from './dto/signed-ob-order-array.dto';
 import OrdersService from './orders.service';
-import { UserOrderItemsQueryDto } from './dto/user-order-items-query.dto';
 
 @Controller('orders')
 export class OrdersController {
-  constructor(private ordersService: OrdersService, private firebaseService: FirebaseService) {}
+  constructor(private ordersService: OrdersService) {}
 
   @Post(':userId')
   @ApiOperation({
@@ -86,8 +87,11 @@ export class OrdersController {
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   public async fetchMinBps(@Query() query: GetMinBpsQuery): Promise<number> {
     const chainId = query.chainId ?? '1';
-    console.log('collections', query.collections);
-    const collections = query.collections ?? [];
+    // todo: use DTO instead o fthis hack
+    let collections = query.collections ?? [];
+    if (typeof collections === 'string') {
+      collections = [collections];
+    }
     const result = await this.ordersService.fetchMinBps(chainId, collections);
     return result;
   }
