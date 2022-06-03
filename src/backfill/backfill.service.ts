@@ -3,7 +3,7 @@ import { firestoreConstants, getCollectionDocId, getSearchFriendlyString } from 
 import { Injectable } from '@nestjs/common';
 import { AlchemyService } from 'alchemy/alchemy.service';
 import { AlchemyNftWithMetadata } from 'alchemy/alchemy.types';
-import { NftDto } from 'collections/nfts/dto/nft.dto';
+import { NftDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { FirebaseService } from 'firebase/firebase.service';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
 import { MnemonicService } from 'mnemonic/mnemonic.service';

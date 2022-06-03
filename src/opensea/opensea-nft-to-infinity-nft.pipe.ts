@@ -2,7 +2,7 @@ import { TokenStandard } from '@infinityxyz/lib/types/core';
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
 import { Injectable } from '@nestjs/common/decorators/core/injectable.decorator';
 import { PipeTransform } from '@nestjs/common/interfaces/features/pipe-transform.interface';
-import { NftDto } from 'collections/nfts/dto/nft.dto';
+import { NftDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { NftsService } from 'collections/nfts/nfts.service';
 import { OpenseaAsset } from './opensea.types';
 
