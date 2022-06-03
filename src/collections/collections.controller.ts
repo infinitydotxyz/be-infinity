@@ -129,9 +129,7 @@ export class CollectionsController {
     }
 
     return {
-      data: results,
-      cursor: '',
-      hasNextPage: false
+      data: results
     };
   }
 

@@ -130,7 +130,8 @@ export class StatsService {
     for (const byParam of byArr) {
       promises.push(
         this.mnemonicService.getTopCollections(byParam as mnemonicByParam, query.period, {
-          limit: query.limit
+          limit: query.limit,
+          offset: query.offset
         })
       );
     }
@@ -145,7 +146,6 @@ export class StatsService {
         // todo: remove this to save data for all contract addresses:
         // goblin '0xbce3781ae7ca1a5e050bd9c4c77369867ebc307e'
         // BAYC '0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d'
-        // console.log('coll', coll)
         // if (coll.contractAddress === '0xbce3781ae7ca1a5e050bd9c4c77369867ebc307e') {
           // console.log('coll', coll);
           const collectionRef = await this.firebaseService.getCollectionRef({
