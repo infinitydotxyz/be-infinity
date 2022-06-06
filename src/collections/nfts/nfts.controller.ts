@@ -15,12 +15,14 @@ import { BadQueryError } from 'common/errors/bad-query.error';
 import { CacheControlInterceptor } from 'common/interceptors/cache-control.interceptor';
 import { ResponseDescription } from 'common/response-description';
 import { FirebaseService } from 'firebase/firebase.service';
-import { NftActivityArrayDto } from './dto/nft-activity-array.dto';
-import { NftActivityFiltersDto } from './dto/nft-activity-filters.dto';
-import { NftArrayDto } from './dto/nft-array.dto';
-import { NftDto } from './dto/nft.dto';
-import { NftsQueryDto } from './dto/nfts-query.dto';
 import { NftsService } from './nfts.service';
+import {
+  NftActivityArrayDto,
+  NftActivityFiltersDto,
+  NftArrayDto,
+  NftDto,
+  NftsQueryDto
+} from '@infinityxyz/lib/types/dto/collections/nfts';
 
 @Controller('collections')
 export class NftsController {

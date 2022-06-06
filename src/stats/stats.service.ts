@@ -13,17 +13,19 @@ import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { getStatsDocInfo } from 'utils/stats';
 import { Injectable } from '@nestjs/common';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
-import { CollectionHistoricalStatsQueryDto } from 'collections/dto/collection-historical-stats-query.dto';
-import { CollectionStatsByPeriodDto } from 'collections/dto/collection-stats-by-period.dto';
-import RankingsRequestDto from 'collections/dto/rankings-query.dto';
 import { VotesService } from 'votes/votes.service';
 import { DiscordService } from '../discord/discord.service';
 import { FirebaseService } from '../firebase/firebase.service';
 import { TwitterService } from '../twitter/twitter.service';
+import { mnemonicByParam, MnemonicService } from 'mnemonic/mnemonic.service';
 import { calcPercentChange } from '../utils';
-import { CollectionStatsArrayResponseDto } from './dto/collection-stats-array.dto';
-import { CollectionStatsDto } from './dto/collection-stats.dto';
 import { CursorService } from 'pagination/cursor.service';
+import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
+import {
+  CollectionHistoricalStatsQueryDto,
+  CollectionStatsByPeriodDto,
+  RankingQueryDto
+} from '@infinityxyz/lib/types/dto/collections';
 
 @Injectable()
 export class StatsService {
@@ -44,10 +46,11 @@ export class StatsService {
     private twitterService: TwitterService,
     private firebaseService: FirebaseService,
     private votesService: VotesService,
+    private mnemonicService: MnemonicService,
     private paginationService: CursorService
   ) {}
 
-  async getCollectionRankings(queryOptions: RankingsRequestDto): Promise<CollectionStatsArrayResponseDto> {
+  async getCollectionRankings(queryOptions: RankingQueryDto): Promise<CollectionStatsArrayResponseDto> {
     const { primary: primaryStatsCollectionName, secondary: secondaryStatsCollectionName } =
       this.getStatsCollectionNames(queryOptions.orderBy);
 
@@ -118,6 +121,75 @@ export class StatsService {
     );
 
     return statsByPeriod;
+  }
+
+  async getMenemonicCollectionStats(query: CollectionHistoricalStatsQueryDto) {
+    // console.log('collection', collection, query)
+    const byArr = ['by_sales_volume', 'by_avg_price'];
+    const promises = [];
+    for (const byParam of byArr) {
+      promises.push(
+        this.mnemonicService.getTopCollections(byParam as mnemonicByParam, query.period, {
+          limit: query.limit,
+          offset: query.offset
+        })
+      );
+    }
+    const values = await Promise.all(promises);
+    // console.log('values', values); // example [response1, response2]
+
+    for (const value of values) {
+      const collections = value?.collections ?? [];
+      const batch = this.firebaseService.firestore.batch();
+
+      for (const coll of collections) {
+        // todo: remove this to save data for all contract addresses:
+        // goblin '0xbce3781ae7ca1a5e050bd9c4c77369867ebc307e'
+        // BAYC '0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d'
+        // if (coll.contractAddress === '0xbce3781ae7ca1a5e050bd9c4c77369867ebc307e') {
+          // console.log('coll', coll);
+          const collectionRef = await this.firebaseService.getCollectionRef({
+            chainId: ChainId.Mainnet,
+            address: coll.contractAddress ?? ''
+          });
+          // const docRef = collectionRef.collection('stats').doc(query.period);
+          // console.log('coll.value', coll.salesVolume, coll.avgPrice)
+          if (coll.salesVolume) {
+            batch.set(
+              collectionRef,
+              {
+                stats: {
+                  daily: {
+                    salesVolume: coll.salesVolume
+                  }
+                }
+              },
+              { merge: true }
+            );
+          } else if (coll.avgPrice) {
+            batch.set(
+              collectionRef,
+              {
+                stats: {
+                  daily: {
+                    avgPrice: coll.avgPrice
+                  }
+                }
+              },
+              { merge: true }
+            );
+          }
+        // }
+      }
+      await batch.commit();
+    }
+
+    if (query.queryBy === 'by_sales_volume') {
+      return values[0];
+    } else if (query.queryBy === 'by_avg_price') {
+      return values[1];
+    }
+    return null;
   }
 
   async getCollectionHistoricalStats(
@@ -321,7 +393,7 @@ export class StatsService {
     return mergedStats;
   }
 
-  async getPrimaryStats(queryOptions: RankingsRequestDto, statsGroupName: string) {
+  async getPrimaryStats(queryOptions: RankingQueryDto, statsGroupName: string) {
     const date = queryOptions.date;
     const { timestamp } = getStatsDocInfo(date, queryOptions.period);
     const collectionGroup = this.firebaseService.firestore.collectionGroup(statsGroupName);

@@ -1,20 +1,24 @@
 import { ChainId, CreationFlow } from '@infinityxyz/lib/types/core';
+import { OrderType } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { FeedEventType, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
 import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
 import CollectionsService from 'collections/collections.service';
 import { FirebaseService } from 'firebase/firebase.service';
-import { NftActivityFiltersDto } from './dto/nft-activity-filters.dto';
-import { NftActivity } from './dto/nft-activity.dto';
-import { NftQueryDto } from './dto/nft-query.dto';
-import { NftDto } from './dto/nft.dto';
-import { NftArrayDto } from './dto/nft-array.dto';
-import { NftsOrderBy, NftsQueryDto, OrderType } from './dto/nfts-query.dto';
 import { ActivityType, activityTypeToEventType } from './nft-activity.types';
 import { CursorService } from 'pagination/cursor.service';
 import { getERC721Owner } from 'services/ethereum/checkOwnershipChange';
-import { ExternalNftDto } from './dto/external-nft.dto';
+import {
+  NftQueryDto,
+  NftDto,
+  ExternalNftDto,
+  NftsQueryDto,
+  NftArrayDto,
+  NftsOrderBy,
+  NftActivityFiltersDto,
+  NftActivity
+} from '@infinityxyz/lib/types/dto/collections/nfts';
 
 @Injectable()
 export class NftsService {
@@ -26,33 +30,25 @@ export class NftsService {
 
   async getNft(nftQuery: NftQueryDto): Promise<NftDto | undefined> {
     const collection = await this.collectionsService.getCollectionByAddress(nftQuery);
-
     if (collection) {
       const collectionDocId = getCollectionDocId({
         collectionAddress: collection.address,
         chainId: collection.chainId
       });
-
       if (collection?.state?.create?.step !== CreationFlow.Complete || !collectionDocId) {
         return undefined;
       }
-
       const nfts = await this.getNfts([
         { address: collection.address, chainId: collection.chainId as ChainId, tokenId: nftQuery.tokenId }
       ]);
-
       const nft = nfts?.[0];
-
-      // TODO: Adi, or Joe, this was added, along with the owner field in the dto.  change if wrong
       if (nft) {
         const owner = await getERC721Owner(nftQuery.address, nftQuery.tokenId, nftQuery.chainId);
         if (owner) {
           nft.owner = owner;
-
-          // save this back to firebase?
+          // todo: save assets in firebase to reduce the above call; needs asset ownership change listener to be implemented first
         }
       }
-
       return nft;
     }
   }
@@ -61,7 +57,6 @@ export class NftsService {
     const { getCollection } = await this.collectionsService.getCollectionsByAddress(
       nfts.map((nft) => ({ address: nft.collectionAddress ?? '', chainId: nft.chainId }))
     );
-
     const externalNfts: ExternalNftDto[] = nfts.map((nft) => {
       const collection = getCollection({ address: nft.collectionAddress ?? '', chainId: nft.chainId });
       const isSupported = collection?.state?.create?.step === CreationFlow.Complete;
@@ -92,14 +87,11 @@ export class NftsService {
       return [];
     }
     const snapshots = await this.firebaseService.firestore.getAll(...refs);
-
     const nftDtos = snapshots.map((snapshot, index) => {
       const nft = snapshot.data() as NftDto | undefined;
-
       if (nft) {
         nft.collectionAddress = nfts[index].address;
       }
-
       return nft;
     });
 
@@ -110,22 +102,18 @@ export class NftsService {
     type Cursor = Record<NftsOrderBy, string | number>;
     const nftsCollection = collection.ref.collection(firestoreConstants.COLLECTION_NFTS_COLL);
     const decodedCursor = this.paginationService.decodeCursorToObject<Cursor>(query.cursor);
-
     let nftsQuery: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = nftsCollection;
     if (query.orderBy === NftsOrderBy.Price && !query.orderType) {
       query.orderType = OrderType.Listing;
     }
-
     const orderType = query.orderType || OrderType.Listing;
     const startPriceField = `ordersSnippet.${orderType}.orderItem.startPriceEth`;
     if (query.orderType) {
       nftsQuery = nftsQuery.where(`ordersSnippet.${orderType}.hasOrder`, '==', true);
     }
-
     if (query.traitTypes) {
       const traitTypes = query.traitTypes ?? [];
       const traitTypesValues = query?.traitValues?.map((item) => item.split('|')) ?? [];
-
       const traits: object[] = [];
       for (let index = 0; index < traitTypes.length; index++) {
         const traitType = traitTypes[index];
@@ -144,7 +132,6 @@ export class NftsService {
         nftsQuery = nftsQuery.where('metadata.attributes', 'array-contains-any', traits);
       }
     }
-
     const hasPriceFilter = query.minPrice !== undefined || query.maxPrice !== undefined;
     if (hasPriceFilter) {
       const minPrice = query.minPrice ?? 0;
@@ -152,30 +139,24 @@ export class NftsService {
       nftsQuery = nftsQuery.where(startPriceField, '>=', minPrice);
       nftsQuery = nftsQuery.where(startPriceField, '<=', maxPrice);
     }
-
     let orderBy: string = query.orderBy;
     if (orderBy === NftsOrderBy.Price) {
       orderBy = startPriceField;
     }
     nftsQuery = nftsQuery.orderBy(orderBy, query.orderDirection);
-
     if (decodedCursor?.[query.orderBy]) {
       nftsQuery = nftsQuery.startAfter(decodedCursor[query.orderBy]);
     }
-
     nftsQuery = nftsQuery.limit(query.limit + 1); // +1 to check if there are more events
-
     const results = await nftsQuery.get();
     const data = results.docs.map((item) => item.data() as NftDto);
-
     const hasNextPage = data.length > query.limit;
     if (hasNextPage) {
       data.pop();
     }
-
     const cursor: Cursor = {} as any;
     const lastItem = data[data.length - 1];
-    for (const key of Object.values(NftsOrderBy) as NftsOrderBy[]) {
+    for (const key of Object.values(NftsOrderBy)) {
       switch (key) {
         case NftsOrderBy.Price: {
           const startPrice = lastItem?.ordersSnippet?.[orderType]?.orderItem?.startPriceEth;
@@ -193,7 +174,6 @@ export class NftsService {
       }
     }
     const encodedCursor = this.paginationService.encodeCursor(cursor);
-
     return {
       data,
       cursor: encodedCursor,

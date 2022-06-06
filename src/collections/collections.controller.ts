@@ -1,4 +1,5 @@
-import { Collection } from '@infinityxyz/lib/types/core';
+import { ChainId, Collection } from '@infinityxyz/lib/types/core';
+import { CollectionStatsArrayResponseDto } from '@infinityxyz/lib/types/dto/stats';
 import {
   Controller,
   Get,
@@ -16,7 +17,7 @@ import {
   ApiOkResponse,
   ApiOperation
 } from '@nestjs/swagger';
-import RankingsRequestDto from 'collections/dto/rankings-query.dto';
+
 import { ApiTag } from 'common/api-tags';
 import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param-collection-id.decorator';
 import { ErrorResponseDto } from 'common/dto/error-response.dto';
@@ -24,22 +25,25 @@ import { PaginatedQuery } from 'common/dto/paginated-query.dto';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { CacheControlInterceptor } from 'common/interceptors/cache-control.interceptor';
 import { ResponseDescription } from 'common/response-description';
-import { CollectionStatsArrayResponseDto } from 'stats/dto/collection-stats-array.dto';
 import { StatsService } from 'stats/stats.service';
-import { TweetArrayDto } from 'twitter/dto/tweet-array.dto';
 import { TwitterService } from 'twitter/twitter.service';
-import { CollectionVotesDto } from 'votes/dto/collection-votes.dto';
 import { VotesService } from 'votes/votes.service';
 import { ParseCollectionIdPipe, ParsedCollectionId } from './collection-id.pipe';
 import CollectionsService from './collections.service';
-import { CollectionHistoricalStatsQueryDto } from './dto/collection-historical-stats-query.dto';
-import { CollectionSearchArrayDto } from './dto/collection-search-array.dto';
-import { CollectionSearchQueryDto } from './dto/collection-search-query.dto';
-import { CollectionStatsByPeriodDto } from './dto/collection-stats-by-period.dto';
-import { CollectionStatsQueryDto } from './dto/collection-stats-query.dto';
-import { CollectionDto } from './dto/collection.dto';
-import { TopOwnersArrayResponseDto } from './dto/top-owners-array.dto';
-import { TopOwnersQueryDto } from './dto/top-owners-query.dto';
+import {
+  CollectionDto,
+  CollectionHistoricalStatsQueryDto,
+  CollectionSearchArrayDto,
+  CollectionSearchQueryDto,
+  CollectionStatsByPeriodDto,
+  CollectionStatsQueryDto,
+  TopOwnersArrayResponseDto,
+  TopOwnersQueryDto,
+  RankingQueryDto
+} from '@infinityxyz/lib/types/dto/collections';
+import { TweetArrayDto } from '@infinityxyz/lib/types/dto/twitter';
+import { CollectionVotesDto } from '@infinityxyz/lib/types/dto/votes';
+import { CollectionStatsArrayDto } from './dto/collection-stats-array.dto';
 
 @Controller('collections')
 export class CollectionsController {
@@ -72,9 +76,61 @@ export class CollectionsController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 3 }))
-  async getStats(@Query() query: RankingsRequestDto): Promise<CollectionStatsArrayResponseDto> {
+  async getStats(@Query() query: RankingQueryDto): Promise<CollectionStatsArrayResponseDto> {
     const res = await this.statsService.getCollectionRankings(query);
     return res;
+  }
+
+  @Get('stats')
+  @ApiOperation({
+    tags: [ApiTag.Collection, ApiTag.Stats],
+    description: 'Get stats for top collections.'
+  })
+  @ApiOkResponse({ description: ResponseDescription.Success, type: CollectionStatsArrayDto })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  @UseInterceptors(new CacheControlInterceptor())
+  async getCollectionStats(@Query() query: CollectionHistoricalStatsQueryDto): Promise<CollectionStatsArrayDto> {
+    const result = await this.statsService.getMenemonicCollectionStats(query);
+    // console.log('result', result?.collections)
+    const collections = result?.collections ?? [];
+
+    const { getCollection } = await this.collectionsService.getCollectionsByAddress(
+      collections.map((coll) => ({ address: coll?.contractAddress ?? '', chainId: ChainId.Mainnet }))
+    );
+
+    const results: Collection[] = [];
+    for (const coll of collections) {
+      const collectionData = getCollection({
+        address: coll.contractAddress ?? '',
+        chainId: ChainId.Mainnet
+      }) as Collection;
+
+      if (collectionData?.metadata?.name) {
+        const newData: Collection = {
+          ...collectionData,
+          attributes: {} // don't include attributess
+        };
+
+        newData.stats = newData.stats ? newData.stats : {};
+        newData.stats.daily = newData.stats.daily ? newData.stats.daily : {};
+        if (coll?.salesVolume) {
+          newData.stats.daily.salesVolume = coll?.salesVolume;
+        }
+        if (coll?.avgPrice) {
+          newData.stats.daily.avgPrice = coll?.avgPrice;
+        }
+        results.push(newData);
+      } else {
+        // can't get collection name (not indexed?)
+        // console.log('--- collectionData?.metadata?.name', collectionData?.metadata?.name)
+      }
+    }
+
+    return {
+      data: results
+    };
   }
 
   @Get('/:id')

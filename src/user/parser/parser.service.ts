@@ -1,8 +1,8 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
+import { UserProfileDto } from '@infinityxyz/lib/types/dto/user';
 import { trimLowerCase } from '@infinityxyz/lib/utils';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ethers } from 'ethers';
-import { UserProfileDto } from 'user/dto/user-profile.dto';
 import { UserService } from 'user/user.service';
 import { ParsedUserId } from './parsed-user-id';
 

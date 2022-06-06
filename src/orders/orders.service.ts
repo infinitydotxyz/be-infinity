@@ -12,23 +12,12 @@ import {
   OrderDirection,
   Token
 } from '@infinityxyz/lib/types/core';
-import {
-  firestoreConstants,
-  getCreatorFeeManagerAddress,
-  getFeeTreasuryAddress,
-  getInfinityLink,
-  trimLowerCase
-} from '@infinityxyz/lib/utils';
+import { firestoreConstants, getInfinityLink, PROTOCOL_FEE_BPS, trimLowerCase } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
-import { BigNumber, ethers } from 'ethers';
-import { getProvider } from '../utils/ethers';
+import { BigNumber } from 'ethers';
 import { FirebaseService } from '../firebase/firebase.service';
 import { getDocIdHash } from '../utils';
-import { SignedOBOrderDto } from './dto/signed-ob-order.dto';
-import { InfinityFeeTreasuryABI } from '../abi/infinityFeeTreasury';
-import { InfinityCreatorsFeeManagerABI } from '../abi/infinityCreatorsFeeManager';
 import { getOrderIdFromSignedOrder } from './orders.utils';
-import { ChainNFTsDto } from './dto/chain-nfts.dto';
 import { ParsedUserId } from '../user/parser/parsed-user-id';
 import { UserService } from '../user/user.service';
 import CollectionsService from '../collections/collections.service';
@@ -39,23 +28,17 @@ import { UserParserService } from '../user/parser/parser.service';
 import { FeedEventType, NftListingEvent, NftOfferEvent } from '@infinityxyz/lib/types/core/feed';
 import { EthereumService } from 'ethereum/ethereum.service';
 import { InvalidTokenError } from 'common/errors/invalid-token-error';
-import { OrderItemsOrderBy } from './dto/order-items-query.dto';
 import { CursorService } from '../pagination/cursor.service';
-import { SignedOBOrderArrayDto } from './dto/signed-ob-order-array.dto';
-import { UserOrderItemsQueryDto } from './dto/user-order-items-query.dto';
 import { BadQueryError } from 'common/errors/bad-query.error';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
+import {
+  SignedOBOrderDto,
+  UserOrderItemsQueryDto,
+  SignedOBOrderArrayDto,
+  OrderItemsOrderBy,
+  ChainNFTsDto
+} from '@infinityxyz/lib/types/dto/orders';
 import { OrderMatchesOrderBy, OrderMatchesQueryDto } from './dto/order-matches-query.dto';
-
-// todo: remove this with the below commented code
-// export interface ExpiredCacheItem {
-//   listId: MarketListId;
-//   order: OBOrder;
-// }
-
-// interface SellOrderSave extends OBOrder {
-//   collectionAddresses: string[];
-// }
 
 @Injectable()
 export default class OrdersService {
@@ -324,22 +307,14 @@ export default class OrdersService {
     return metadata;
   }
 
-  // todo: change this when fees change
-  public async fetchMinBps(chainId: string, collections: string[]): Promise<number> {
-    let minBps = 10000;
+  public fetchMinBps(): number {
     try {
-      const curatorFeeBps = await this.getCuratorFeeBps(chainId);
-      console.log(`Curator fee bps: ${curatorFeeBps}`);
-      for (const collection of collections) {
-        const creatorFeeBps = await this.getCreatorFeeBps(chainId, collection);
-        console.log(`Creator fee bps for ${collection}: ${creatorFeeBps}`);
-        const totalBps = curatorFeeBps + creatorFeeBps;
-        minBps = Math.min(minBps, totalBps);
-      }
+      const minBps = 10000 - PROTOCOL_FEE_BPS;
+      return minBps;
     } catch (e) {
       console.error('Failed to fetch min bps', e);
+      throw e;
     }
-    return minBps;
   }
 
   public async getOrders(
@@ -456,9 +431,11 @@ export default class OrdersService {
       const userDocRef = this.firebaseService.firestore.collection(firestoreConstants.USERS_COLL).doc(user);
       const updatedNonce = await this.firebaseService.firestore.runTransaction(async (t) => {
         const userDoc = await t.get(userDocRef);
-        const userDocData = userDoc.data() || { address: user };
-        const nonce = userDocData.orderNonce ?? '0';
-        const newNonce = BigNumber.from(nonce).add(1).toString();
+        // todo: use a user dto or type?
+        const userDocData = userDoc.data() || { userAddress: user };
+        const nonce = BigNumber.from(userDocData.orderNonce ?? '0').add(1);
+        const minOrderNonce = BigNumber.from(userDocData.minOrderNonce ?? '0').add(1);
+        const newNonce = (nonce.gt(minOrderNonce) ? nonce : minOrderNonce).toString();
         userDocData.orderNonce = newNonce;
         t.set(userDocRef, userDocData, { merge: true });
         return newNonce;
@@ -550,41 +527,15 @@ export default class OrdersService {
       numTokens: token.numTokens,
       tokenImage: token.tokenImage ?? '',
       tokenName: token.tokenName ?? '',
-      tokenSlug: token.tokenSlug ?? ''
+      tokenSlug: token.tokenSlug ?? '',
+      complicationAddress: order.execParams.complicationAddress
     };
     return data;
   }
 
-  private async getCuratorFeeBps(chainId: string): Promise<number> {
-    try {
-      const provider = getProvider(chainId);
-      if (provider == null) {
-        throw new Error('Cannot get curator fee bps as provider is null');
-      }
-      const feeTreasuryAddress = getFeeTreasuryAddress(chainId);
-      const contract = new ethers.Contract(feeTreasuryAddress, InfinityFeeTreasuryABI, provider);
-      const curatorFeeBps = await contract.CURATOR_FEE_BPS();
-      return curatorFeeBps;
-    } catch (err) {
-      console.error('Failed to get curator fee bps', err);
-      throw err;
-    }
-  }
-
-  private async getCreatorFeeBps(chainId: string, collection: string): Promise<number> {
-    try {
-      const provider = getProvider(chainId);
-      if (provider == null) {
-        throw new Error('Cannot get creator fee bps as provider is null');
-      }
-      const creatorFeeManagerAddress = getCreatorFeeManagerAddress(chainId);
-      const contract = new ethers.Contract(creatorFeeManagerAddress, InfinityCreatorsFeeManagerABI, provider);
-      const creatorFeeBps = await contract.getCreatorsFeeInfo(collection, 0, 0);
-      return creatorFeeBps;
-    } catch (err) {
-      console.error('Failed to get creator fee bps', err);
-      throw err;
-    }
+  private getProtocolFeeBps(): number {
+    // todo: should ideally fetch from contract
+    return 250;
   }
 
   private writeOrderItemsToFeed(

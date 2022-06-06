@@ -1,24 +1,27 @@
+import {
+  DeleteUserProfileImagesDto,
+  PartialUpdateUserProfileDto,
+  UserProfileDto
+} from '@infinityxyz/lib/types/dto/user';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { randomInt } from 'crypto';
 import { FirebaseService } from 'firebase/firebase.service';
-import { DeleteUserProfileImagesDto } from 'user/dto/update-user-profile-images.dto';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
-import { PartialUpdateUserProfileDto } from '../dto/update-user-profile.dto';
-import { UserProfileDto } from '../dto/user-profile.dto';
 import { InvalidProfileError } from '../errors/invalid-profile.error';
-import { MAX_USERNAME_CHARS, MIN_USERNAME_CHARS, usernameCharRegex, usernameRegex } from './profile.constants';
+import {
+  isValidUsername,
+  MAX_USERNAME_CHARS,
+  MIN_USERNAME_CHARS,
+  usernameCharRegex
+} from '@infinityxyz/lib/decorators/is-username.decorator';
 
 @Injectable()
 export class ProfileService {
   constructor(private firebaseService: FirebaseService) {}
 
   static isValidUsername(value: string) {
-    if (typeof value !== 'string') {
-      return false;
-    }
-    const isValid = usernameRegex.test(value);
-    return isValid;
+    return isValidUsername(value);
   }
 
   async updateProfileImages(user: ParsedUserId, data: DeleteUserProfileImagesDto) {
