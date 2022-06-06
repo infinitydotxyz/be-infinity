@@ -268,9 +268,7 @@ export class UserService {
     const nftsSnapshot = await query.limit(nftsQuery.limit + 1).get();
 
     const nfts: NftDto[] = nftsSnapshot.docs.map((doc) => {
-      const docData = doc.data();
-
-      return docData;
+      return doc.data();
     });
 
     let hasNextPage = false;
