@@ -147,38 +147,38 @@ export class StatsService {
         // goblin '0xbce3781ae7ca1a5e050bd9c4c77369867ebc307e'
         // BAYC '0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d'
         // if (coll.contractAddress === '0xbce3781ae7ca1a5e050bd9c4c77369867ebc307e') {
-          // console.log('coll', coll);
-          const collectionRef = await this.firebaseService.getCollectionRef({
-            chainId: ChainId.Mainnet,
-            address: coll.contractAddress ?? ''
-          });
-          // const docRef = collectionRef.collection('stats').doc(query.period);
-          // console.log('coll.value', coll.salesVolume, coll.avgPrice)
-          if (coll.salesVolume) {
-            batch.set(
-              collectionRef,
-              {
-                stats: {
-                  daily: {
-                    salesVolume: coll.salesVolume
-                  }
+        // console.log('coll', coll);
+        const collectionRef = await this.firebaseService.getCollectionRef({
+          chainId: ChainId.Mainnet,
+          address: coll.contractAddress ?? ''
+        });
+        // const docRef = collectionRef.collection('stats').doc(query.period);
+        // console.log('coll.value', coll.salesVolume, coll.avgPrice)
+        if (coll.salesVolume) {
+          batch.set(
+            collectionRef,
+            {
+              stats: {
+                daily: {
+                  salesVolume: coll.salesVolume
                 }
-              },
-              { merge: true }
-            );
-          } else if (coll.avgPrice) {
-            batch.set(
-              collectionRef,
-              {
-                stats: {
-                  daily: {
-                    avgPrice: coll.avgPrice
-                  }
+              }
+            },
+            { merge: true }
+          );
+        } else if (coll.avgPrice) {
+          batch.set(
+            collectionRef,
+            {
+              stats: {
+                daily: {
+                  avgPrice: coll.avgPrice
                 }
-              },
-              { merge: true }
-            );
-          }
+              }
+            },
+            { merge: true }
+          );
+        }
         // }
       }
       await batch.commit();

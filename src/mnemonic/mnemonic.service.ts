@@ -8,7 +8,7 @@ import { MnemonicTokenType, TopOwnersResponseBody, UserNftsResponseBody } from '
 
 type TopCollectionsApiResponse = {
   collections: CollectionPeriodStatsContent[];
-}
+};
 
 export type mnemonicByParam = 'by_sales_volume' | 'by_avg_price';
 
@@ -102,11 +102,11 @@ export class MnemonicService {
   ): Promise<TopCollectionsApiResponse | null> {
     let duration = '';
     if (period === 'daily') {
-      duration = 'DURATION_1_DAY'
+      duration = 'DURATION_1_DAY';
     } else if (period === 'weekly') {
-      duration = 'DURATION_7_DAYS'
+      duration = 'DURATION_7_DAYS';
     } else if (period === 'monthly') {
-      duration = 'DURATION_30_DAYS'
+      duration = 'DURATION_30_DAYS';
     }
 
     // const sortDirection = getSortDirection(options?.orderDirection ?? OrderDirection.Descending);
