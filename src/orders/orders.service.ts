@@ -13,16 +13,14 @@ import {
 } from '@infinityxyz/lib/types/core';
 import {
   firestoreConstants,
-  getCreatorFeeManagerAddress,
   getInfinityLink,
+  PROTOCOL_FEE_BPS,
   trimLowerCase
 } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
-import { BigNumber, ethers } from 'ethers';
-import { getProvider } from '../utils/ethers';
+import { BigNumber } from 'ethers';
 import { FirebaseService } from '../firebase/firebase.service';
 import { getDocIdHash } from '../utils';
-import { InfinityCreatorsFeeManagerABI } from '../abi/infinityCreatorsFeeManager';
 import { getOrderIdFromSignedOrder } from './orders.utils';
 import { ParsedUserId } from '../user/parser/parsed-user-id';
 import { UserService } from '../user/user.service';
@@ -44,16 +42,6 @@ import {
   OrderItemsOrderBy,
   ChainNFTsDto
 } from '@infinityxyz/lib/types/dto/orders';
-
-// todo: remove this with the below commented code
-// export interface ExpiredCacheItem {
-//   listId: MarketListId;
-//   order: OBOrder;
-// }
-
-// interface SellOrderSave extends OBOrder {
-//   collectionAddresses: string[];
-// }
 
 @Injectable()
 export default class OrdersService {
@@ -322,18 +310,9 @@ export default class OrdersService {
     return metadata;
   }
 
-  public async fetchMinBps(chainId: string, collections: string[]): Promise<number> {
+  public fetchMinBps(): number {
     try {
-      const protocolFeeBps = this.getProtocolFeeBps();
-      let minBps = 10000 - protocolFeeBps;
-      let maxCreatorFeeBps = 0;
-      for (const collection of collections) {
-        const creatorFeeBps = await this.getCreatorFeeBps(chainId, collection);
-        console.log(`Creator fee bps for ${collection}: ${creatorFeeBps}`);
-        maxCreatorFeeBps = Math.max(maxCreatorFeeBps, creatorFeeBps);
-      }
-      minBps -= maxCreatorFeeBps;
-      console.log(minBps);
+      const minBps = 10000 - PROTOCOL_FEE_BPS;
       return minBps;
     } catch (e) {
       console.error('Failed to fetch min bps', e);
@@ -558,22 +537,6 @@ export default class OrdersService {
   private getProtocolFeeBps(): number {
     // todo: should ideally fetch from contract
     return 250;
-  }
-
-  private async getCreatorFeeBps(chainId: string, collection: string): Promise<number> {
-    try {
-      const provider = getProvider(chainId);
-      if (provider == null) {
-        throw new Error('Cannot get creator fee bps as provider is null');
-      }
-      const creatorFeeManagerAddress = getCreatorFeeManagerAddress(chainId);
-      const contract = new ethers.Contract(creatorFeeManagerAddress, InfinityCreatorsFeeManagerABI, provider);
-      const creatorFeeBps = await contract.getCreatorsFeeInfo(collection, 0);
-      return creatorFeeBps[2];
-    } catch (err) {
-      console.error('Failed to get creator fee bps', err);
-      throw err;
-    }
   }
 
   private writeOrderItemsToFeed(

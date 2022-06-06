@@ -47,13 +47,11 @@ export class NftsService {
 
       const nft = nfts?.[0];
 
-      // TODO: Adi, or Joe, this was added, along with the owner field in the dto.  change if wrong
       if (nft) {
         const owner = await getERC721Owner(nftQuery.address, nftQuery.tokenId, nftQuery.chainId);
         if (owner) {
           nft.owner = owner;
-
-          // save this back to firebase?
+          // todo: save assets in firebase to reduce the above call; needs asset ownership change listener to be implemented first
         }
       }
 
