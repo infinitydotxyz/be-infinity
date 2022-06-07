@@ -228,7 +228,7 @@ export class StatsService {
             { merge: true }
           );
       }
-      await this.fsBatchHandler.flush().catch((err) => console.log('error saving mnemonic collection owners', err));
+      await this.fsBatchHandler.flush().catch((err) => console.log('error saving mnemonic collection tokens', err));
     }
     return data;
   }
