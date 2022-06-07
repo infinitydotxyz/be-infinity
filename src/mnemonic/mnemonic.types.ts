@@ -19,11 +19,53 @@ export enum MnemonicTokenType {
   CryptoPunks = 'TOKEN_TYPE_CRYPTOPUNKS'
 }
 
+export class MnemonicNumOwners {
+  timestamp: string;
+  count: string;
+}
+
+export class MnemonicNumOwnersResponseBody {
+  @IsArray()
+  @ValidateNested({ each: true, message: 'Invalid num owners' })
+  @Type(() => MnemonicNumOwners)
+  dataPoints: MnemonicNumOwners[];
+}
+
+export class MnemonicNumTokens {
+  timestamp: string;
+  minted: string;
+  burned: string;
+  totalMinted: string;
+  totalBurned: string;
+}
+
+export class MnemonicNumTokensResponseBody {
+  @IsArray()
+  @ValidateNested({ each: true, message: 'Invalid num tokens' })
+  @Type(() => MnemonicNumTokens)
+  dataPoints: MnemonicNumTokens[];
+}
+
 export class TopOwnersResponseBody {
   @IsArray()
   @ValidateNested({ each: true, message: 'Invalid top owner' })
   @Type(() => MnemonicTopOwner)
   owner: MnemonicTopOwner[];
+}
+
+export class MnemonicContractDetails {
+  type: string;
+  name: string;
+  symbol: string;
+  decimals: number;
+  address: string;
+  mintEvent: MnemonicMintEvent;
+}
+
+export class MnemonicMintEvent {
+  blockTimestamp: string;
+  minterAddress: string;
+  txHash: string;
 }
 
 export class MnemonicTokenMetadataUri {
