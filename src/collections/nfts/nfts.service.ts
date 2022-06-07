@@ -38,7 +38,7 @@ export class NftsService {
         { address: collection.address, chainId: collection.chainId as ChainId, tokenId: nftQuery.tokenId }
       ]);
       const nft = nfts?.[0];
-      if (nft) {
+      if (nft && !nft.owner) {
         const owner = await this.ethereumService.getErc721Owner({
           address: nftQuery.address,
           tokenId: nftQuery.tokenId,
@@ -46,11 +46,31 @@ export class NftsService {
         });
         if (owner) {
           nft.owner = owner;
-          // todo: save assets in firebase to reduce the above call; needs asset ownership change listener to be implemented first
+          this.updateOwnershipInFirestore(nft);
         }
       }
       return nft;
     }
+  }
+
+  updateOwnershipInFirestore(nft: NftDto): void {
+    const chainId = nft.chainId;
+    const collectionAddress = nft.collectionAddress ?? '';
+    const tokenId = nft.tokenId;
+    const collectionDocId = getCollectionDocId({ chainId, collectionAddress });
+    this.firebaseService.firestore
+      .collection(firestoreConstants.COLLECTIONS_COLL)
+      .doc(collectionDocId)
+      .collection(firestoreConstants.COLLECTION_NFTS_COLL)
+      .doc(tokenId)
+      .set({ owner: nft.owner }, { merge: true })
+      .then(() => {
+        console.log(`Updated ownership of ${chainId}:${collectionAddress}:${tokenId} to ${nft.owner}`);
+      })
+      .catch((err) => {
+        console.error(`Failed to update ownership of ${chainId}:${collectionAddress}:${tokenId} to ${nft.owner}`);
+        console.error(err);
+      });
   }
 
   async isSupported(nfts: NftDto[]) {
