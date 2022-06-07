@@ -162,7 +162,7 @@ export class StatsService {
             {
               stats: {
                 daily: {
-                  salesVolume: coll.salesVolume
+                  salesVolume: parseFloat(`${coll.salesVolume}`)
                 }
               }
             },
@@ -174,7 +174,7 @@ export class StatsService {
             {
               stats: {
                 daily: {
-                  avgPrice: coll.avgPrice
+                  avgPrice: parseFloat(`${coll.avgPrice}`)
                 }
               }
             },
