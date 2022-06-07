@@ -8,6 +8,7 @@ import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { CursorService } from 'pagination/cursor.service';
 import { BackfillService } from 'backfill/backfill.service';
 import { TopOwnersQueryDto, TopOwnerDto, CollectionSearchQueryDto } from '@infinityxyz/lib/types/dto/collections';
+import { ExternalNftCollectionDto, NftCollectionDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 
 interface CollectionQueryOptions {
   /**
@@ -158,11 +159,9 @@ export default class CollectionsService {
     if (!result) {
       result = await this.backfillService.backfillCollection(collection.chainId as ChainId, collection.address);
     }
-
     if (queryOptions.limitToCompleteCollections && result?.state?.create?.step !== CreationFlow.Complete) {
       return undefined;
     }
-
     return result;
   }
 
@@ -253,5 +252,23 @@ export default class CollectionsService {
       (await this.isEditor(userAddress, parsedCollection)) ||
       (await this.isAdmin(userAddress))
     );
+  }
+
+  async isSupported(collections: NftCollectionDto[]) {
+    const { getCollection } = await this.getCollectionsByAddress(
+      collections.map((collection) => ({ address: collection.collectionAddress ?? '', chainId: collection.chainId }))
+    );
+
+    const externalCollection: ExternalNftCollectionDto[] = collections.map((item) => {
+      const collection = getCollection({ address: item.collectionAddress ?? '', chainId: item.chainId });
+      const isSupported = collection?.state?.create?.step === CreationFlow.Complete;
+      const externalCollection: ExternalNftCollectionDto = {
+        ...item,
+        isSupported
+      };
+      return externalCollection;
+    });
+
+    return externalCollection;
   }
 }

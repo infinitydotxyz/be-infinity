@@ -1,4 +1,4 @@
-import { BaseCollection, ChainId, CreationFlow, TokenStandard } from '@infinityxyz/lib/types/core';
+import { BaseCollection, ChainId, TokenStandard } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, getCollectionDocId, getSearchFriendlyString } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { AlchemyService } from 'alchemy/alchemy.service';
@@ -26,7 +26,8 @@ export class BackfillService {
     this.collectionsRef = this.firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL);
   }
 
-  async backfillCollection(chainId: ChainId, collectionAddress: string): Promise<BaseCollection | undefined> {
+  public async backfillCollection(chainId: ChainId, collectionAddress: string): Promise<BaseCollection | undefined> {
+    console.log('backfilling collection', chainId, collectionAddress);
     try {
       const baseCollection: BaseCollection = await this.openseaService.getCollectionWithAddress(
         chainId,
@@ -58,18 +59,6 @@ export class BackfillService {
         const count = totalMinted - totalBurned;
         baseCollection.numNfts = count;
       }
-      // update indexing state
-      baseCollection.state = {
-        create: {
-          step: CreationFlow.CollectionMints,
-          updatedAt: Date.now(),
-          progress: 0
-        },
-        export: {
-          done: false
-        },
-        version: 1
-      };
       // write to firebase
       const collectionDocId = getCollectionDocId({ chainId, collectionAddress });
       this.collectionsRef
@@ -88,19 +77,13 @@ export class BackfillService {
     return undefined;
   }
 
-  async backfillOrFetchNfts(
+  public async backfillNfts(
     nfts: { address: string; chainId: ChainId; tokenId: string }[]
   ): Promise<(NftDto | undefined)[]> {
     // try OS first
-    const openseaNfts = await this.fetchAndBackfillNftsFromOpensea(nfts);
+    const openseaNfts = await this.fetchNftsFromOpensea(nfts);
     if (openseaNfts && openseaNfts.length > 0) {
       return openseaNfts;
-    }
-
-    // try mnemonic
-    const mnemonicNfts = await this.fetchNftsFromMnemonic(nfts);
-    if (mnemonicNfts && mnemonicNfts.length > 0) {
-      return mnemonicNfts;
     }
 
     // try alchemy
@@ -109,10 +92,16 @@ export class BackfillService {
       return alchemyNfts;
     }
 
+    // try mnemonic
+    const mnemonicNfts = await this.fetchNftsFromMnemonic(nfts);
+    if (mnemonicNfts && mnemonicNfts.length > 0) {
+      return mnemonicNfts;
+    }
+
     return [];
   }
 
-  async fetchAndBackfillNftsFromOpensea(
+  private async fetchNftsFromOpensea(
     nfts: { address: string; chainId: ChainId; tokenId: string }[]
   ): Promise<(NftDto | undefined)[]> {
     const nftDtos: NftDto[] = [];
@@ -133,7 +122,7 @@ export class BackfillService {
     this.fsBatchHandler
       .flush()
       .then(() => {
-        console.log('backfilled missing nfts');
+        console.log('backfilled missing nfts from opensea');
       })
       .catch((err) => {
         console.error('error backfilling nfts', err);
@@ -143,21 +132,7 @@ export class BackfillService {
     return nftDtos;
   }
 
-  async fetchNftsFromMnemonic(
-    nfts: { address: string; chainId: ChainId; tokenId: string }[]
-  ): Promise<(NftDto | undefined)[]> {
-    const nftDtos: NftDto[] = [];
-    for (const nft of nfts) {
-      const mnemonicAsset = await this.mnemonicService.getNft(nft.address, nft.tokenId);
-      if (mnemonicAsset) {
-        const nftDto = this.transformMnemonicNftToNftDto(nft.chainId, nft.address, nft.tokenId, mnemonicAsset);
-        nftDtos.push(nftDto);
-      }
-    }
-    return nftDtos;
-  }
-
-  async fetchNftsFromAlchemy(
+  private async fetchNftsFromAlchemy(
     nfts: { address: string; chainId: ChainId; tokenId: string }[]
   ): Promise<(NftDto | undefined)[]> {
     const nftDtos: NftDto[] = [];
@@ -171,7 +146,21 @@ export class BackfillService {
     return nftDtos;
   }
 
-  transformOpenseaNftToNftDto(chainId: ChainId, collectionAddress: string, nft: OpenseaAsset): NftDto {
+  private async fetchNftsFromMnemonic(
+    nfts: { address: string; chainId: ChainId; tokenId: string }[]
+  ): Promise<(NftDto | undefined)[]> {
+    const nftDtos: NftDto[] = [];
+    for (const nft of nfts) {
+      const mnemonicAsset = await this.mnemonicService.getNft(nft.address, nft.tokenId);
+      if (mnemonicAsset) {
+        const nftDto = this.transformMnemonicNftToNftDto(nft.chainId, nft.address, nft.tokenId, mnemonicAsset);
+        nftDtos.push(nftDto);
+      }
+    }
+    return nftDtos;
+  }
+
+  private transformOpenseaNftToNftDto(chainId: ChainId, collectionAddress: string, nft: OpenseaAsset): NftDto {
     return {
       collectionAddress: collectionAddress,
       chainId: chainId,
@@ -204,45 +193,7 @@ export class BackfillService {
     };
   }
 
-  transformMnemonicNftToNftDto(
-    chainId: ChainId,
-    collectionAddress: string,
-    tokenId: string,
-    nft: MnemonicTokenMetadata
-  ): NftDto {
-    return {
-      collectionAddress: collectionAddress,
-      chainId: chainId,
-      tokenId,
-      image: { url: nft.image.uri, originalUrl: nft.image.uri, updatedAt: NaN },
-      slug: getSearchFriendlyString(nft.name),
-      minter: '',
-      mintTxHash: '',
-      owner: '',
-      mintedAt: NaN,
-      mintPrice: NaN,
-      metadata: {
-        attributes: [],
-        name: nft.name,
-        title: nft.name,
-        description: nft.description,
-        external_url: '',
-        image: nft.image.uri,
-        image_data: '',
-        youtube_url: '',
-        animation_url: '',
-        background_color: ''
-      },
-      numTraitTypes: NaN,
-      tokenUri: nft.metadataUri.uri,
-      updatedAt: NaN,
-      rarityRank: NaN,
-      rarityScore: NaN,
-      tokenStandard: TokenStandard.ERC721 // todo: get this from the mnemonic or add an unknown token standard
-    };
-  }
-
-  transformAlchemyNftToNftDto(
+  private transformAlchemyNftToNftDto(
     chainId: ChainId,
     collectionAddress: string,
     tokenId: string,
@@ -286,6 +237,44 @@ export class BackfillService {
         updatedAt: NaN
       },
       tokenStandard: alchemyNft.id.tokenMetadata.tokenType
+    };
+  }
+
+  private transformMnemonicNftToNftDto(
+    chainId: ChainId,
+    collectionAddress: string,
+    tokenId: string,
+    nft: MnemonicTokenMetadata
+  ): NftDto {
+    return {
+      collectionAddress: collectionAddress,
+      chainId: chainId,
+      tokenId,
+      image: { url: nft.image.uri, originalUrl: nft.image.uri, updatedAt: NaN },
+      slug: getSearchFriendlyString(nft.name),
+      minter: '',
+      mintTxHash: '',
+      owner: '',
+      mintedAt: NaN,
+      mintPrice: NaN,
+      metadata: {
+        attributes: [],
+        name: nft.name,
+        title: nft.name,
+        description: nft.description,
+        external_url: '',
+        image: nft.image.uri,
+        image_data: '',
+        youtube_url: '',
+        animation_url: '',
+        background_color: ''
+      },
+      numTraitTypes: NaN,
+      tokenUri: nft.metadataUri.uri,
+      updatedAt: NaN,
+      rarityRank: NaN,
+      rarityScore: NaN,
+      tokenStandard: TokenStandard.ERC721 // todo: get this from the mnemonic or add an unknown token standard
     };
   }
 }

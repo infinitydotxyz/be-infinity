@@ -50,16 +50,6 @@ export class NftsService {
         }
       }
       return nft;
-    } else {
-      // async backfill
-      this.backfillService
-        .backfillCollection(nftQuery.chainId, nftQuery.address)
-        .then(() => {
-          console.log('backfilled collection', nftQuery.address);
-        })
-        .catch((err: any) => {
-          console.error('failed backfilling collection', nftQuery.address, err);
-        });
     }
   }
 
@@ -95,7 +85,7 @@ export class NftsService {
     });
 
     if (refs.length === 0) {
-      return this.backfillService.backfillOrFetchNfts(nfts);
+      return this.backfillService.backfillNfts(nfts);
     }
     const snapshots = await this.firebaseService.firestore.getAll(...refs);
     const nftDtos = snapshots.map((snapshot, index) => {

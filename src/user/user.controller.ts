@@ -227,8 +227,8 @@ export class UserController {
   async getUserNftCollections(
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId
   ): Promise<{ data: NftCollectionDto[] }> {
-    const nftCollections = await this.userService.getUserNftCollections(user);
-
+    let nftCollections = await this.userService.getUserNftCollections(user);
+    nftCollections = await this.collectionsService.isSupported(nftCollections);
     return {
       data: nftCollections
     };

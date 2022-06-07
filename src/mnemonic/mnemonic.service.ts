@@ -121,7 +121,7 @@ export class MnemonicService {
     try {
       const response = await this.client.get(url.toString());
       if (response.status === 200) {
-        return response.data as MnemonicContractDetails;
+        return response.data.contract as MnemonicContractDetails;
       }
       throw new Error(`Unexpected mnemonic response status: ${response.status}`);
     } catch (err) {
@@ -132,7 +132,7 @@ export class MnemonicService {
 
   async getNumOwners(collectionAddress: string): Promise<MnemonicNumOwnersResponseBody | undefined> {
     const url = new URL(
-      `https://canary-ethereum.rest.mnemonichq.com/contracts/v1beta1/owners_count/${collectionAddress}`
+      `https://ethereum-analytics.rest.mnemonichq.com/collections/v1beta1/owners_count/${collectionAddress}`
     );
     url.searchParams.append('duration', 'DURATION_1_DAY');
     url.searchParams.append('groupByPeriod', 'GROUP_BY_PERIOD_1_DAY');
@@ -149,7 +149,9 @@ export class MnemonicService {
   }
 
   async getNumTokens(collectionAddress: string): Promise<MnemonicNumTokensResponseBody | undefined> {
-    const url = new URL(`https://canary-ethereum.rest.mnemonichq.com/contracts/v1beta1/supply/${collectionAddress}`);
+    const url = new URL(
+      `https://ethereum-analytics.rest.mnemonichq.com/collections/v1beta1/supply/${collectionAddress}`
+    );
     url.searchParams.append('duration', 'DURATION_1_DAY');
     url.searchParams.append('groupByPeriod', 'GROUP_BY_PERIOD_1_DAY');
     try {
