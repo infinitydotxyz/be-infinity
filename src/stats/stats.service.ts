@@ -207,7 +207,7 @@ export class StatsService {
             {
               stats: {
                 daily: {
-                  ownerCount
+                  ownerCount: parseInt(ownerCount ?? '0')
                 }
               }
             },
