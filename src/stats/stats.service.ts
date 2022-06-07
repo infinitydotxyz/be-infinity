@@ -214,6 +214,19 @@ export class StatsService {
             { merge: true }
           );
         // console.log('owners', owners?.dataPoints[0]?.count)
+        const tokens = await this.mnemonicService.getNumTokens(`${coll.contractAddress}`);
+        const tokenCount = parseInt(tokens?.dataPoints[0]?.totalMinted ?? '0') - parseInt(tokens?.dataPoints[0]?.totalBurned ?? '0');
+        this.fsBatchHandler.add(
+            collectionRef,
+            {
+              stats: {
+                daily: {
+                  tokenCount
+                }
+              }
+            },
+            { merge: true }
+          );
       }
       await this.fsBatchHandler.flush().catch((err) => console.log('error saving mnemonic collection owners', err));
     }
