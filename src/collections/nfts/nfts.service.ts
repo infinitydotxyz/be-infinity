@@ -1,4 +1,4 @@
-import { ChainId } from '@infinityxyz/lib/types/core';
+import { ChainId, CreationFlow } from '@infinityxyz/lib/types/core';
 import { OrderType } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { FeedEventType, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
 import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
@@ -34,16 +34,6 @@ export class NftsService {
   async getNft(nftQuery: NftQueryDto): Promise<NftDto | undefined> {
     const collection = await this.collectionsService.getCollectionByAddress(nftQuery);
     if (collection) {
-      // todo: remove this commented code when not needed anymore
-      // const collectionDocId = getCollectionDocId({
-      //   collectionAddress: collection.address,
-      //   chainId: collection.chainId
-      // });
-
-      // if (collection?.state?.create?.step !== CreationFlow.Complete || !collectionDocId) {
-      //   return undefined;
-      // }
-
       const nfts = await this.getNfts([
         { address: collection.address, chainId: collection.chainId as ChainId, tokenId: nftQuery.tokenId }
       ]);
@@ -73,24 +63,14 @@ export class NftsService {
     }
   }
 
-  // todo: should this be removed since we are backfilling now?
-  isSupported(nfts: NftDto[]) {
-    // const { getCollection } = await this.collectionsService.getCollectionsByAddress(
-    //   nfts.map((nft) => ({ address: nft.collectionAddress ?? '', chainId: nft.chainId }))
-    // );
-
-    // const externalNfts: ExternalNftDto[] = nfts.map((nft) => {
-    //   const collection = getCollection({ address: nft.collectionAddress ?? '', chainId: nft.chainId });
-    //   const isSupported = collection?.state?.create?.step === CreationFlow.Complete;
-    //   const externalNft: ExternalNftDto = {
-    //     ...nft,
-    //     isSupported
-    //   };
-    //   return externalNft;
-    // });
+  async isSupported(nfts: NftDto[]) {
+    const { getCollection } = await this.collectionsService.getCollectionsByAddress(
+      nfts.map((nft) => ({ address: nft.collectionAddress ?? '', chainId: nft.chainId }))
+    );
 
     const externalNfts: ExternalNftDto[] = nfts.map((nft) => {
-      const isSupported = true;
+      const collection = getCollection({ address: nft.collectionAddress ?? '', chainId: nft.chainId });
+      const isSupported = collection?.state?.create?.step === CreationFlow.Complete;
       const externalNft: ExternalNftDto = {
         ...nft,
         isSupported

@@ -29,7 +29,7 @@ export default class CollectionsService {
 
   private get defaultCollectionQueryOptions(): CollectionQueryOptions {
     return {
-      limitToCompleteCollections: false
+      limitToCompleteCollections: true
     };
   }
 

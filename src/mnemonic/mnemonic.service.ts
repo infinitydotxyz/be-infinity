@@ -2,7 +2,6 @@ import { CollectionPeriodStatsContent, OrderDirection, StatsPeriod } from '@infi
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
-import { plainToClass } from 'class-transformer';
 import { getSortDirection } from './mnemonic.constants';
 import {
   MnemonicContractDetails,
@@ -58,7 +57,7 @@ export class MnemonicService {
     try {
       const response = await this.client.get(url.toString());
       if (response.status === 200) {
-        return plainToClass(TopOwnersResponseBody, response.data);
+        return response.data as TopOwnersResponseBody;
       }
       throw new Error(`Unexpected mnemonic response status: ${response.status}`);
     } catch (err) {
@@ -90,7 +89,7 @@ export class MnemonicService {
     try {
       const response = await this.client.get(url.toString());
       if (response.status === 200) {
-        return plainToClass(UserNftsResponseBody, response.data);
+        return response.data as UserNftsResponseBody;
       }
       throw new Error(`Unexpected mnemonic response status: ${response.status}`);
     } catch (err) {
@@ -106,7 +105,7 @@ export class MnemonicService {
     try {
       const response = await this.client.get(url.toString());
       if (response.status === 200) {
-        return plainToClass(MnemonicTokenMetadata, response.data);
+        return response.data as MnemonicTokenMetadata;
       }
       throw new Error(`Unexpected mnemonic response status: ${response.status}`);
     } catch (err) {
@@ -122,7 +121,7 @@ export class MnemonicService {
     try {
       const response = await this.client.get(url.toString());
       if (response.status === 200) {
-        return plainToClass(MnemonicContractDetails, response.data);
+        return response.data as MnemonicContractDetails;
       }
       throw new Error(`Unexpected mnemonic response status: ${response.status}`);
     } catch (err) {
@@ -140,7 +139,7 @@ export class MnemonicService {
     try {
       const response = await this.client.get(url.toString());
       if (response.status === 200) {
-        return plainToClass(MnemonicNumOwnersResponseBody, response.data);
+        return response.data as MnemonicNumOwnersResponseBody;
       }
       throw new Error(`Unexpected mnemonic response status: ${response.status}`);
     } catch (err) {
@@ -156,7 +155,7 @@ export class MnemonicService {
     try {
       const response = await this.client.get(url.toString());
       if (response.status === 200) {
-        return plainToClass(MnemonicNumTokensResponseBody, response.data);
+        return response.data as MnemonicNumTokensResponseBody;
       }
       throw new Error(`Unexpected mnemonic response status: ${response.status}`);
     } catch (err) {

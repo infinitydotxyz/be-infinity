@@ -1,4 +1,4 @@
-import { BaseCollection, ChainId, TokenStandard } from '@infinityxyz/lib/types/core';
+import { BaseCollection, ChainId, CreationFlow, TokenStandard } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, getCollectionDocId, getSearchFriendlyString } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { AlchemyService } from 'alchemy/alchemy.service';
@@ -58,7 +58,18 @@ export class BackfillService {
         const count = totalMinted - totalBurned;
         baseCollection.numNfts = count;
       }
-
+      // update indexing state
+      baseCollection.state = {
+        create: {
+          step: CreationFlow.CollectionMints,
+          updatedAt: Date.now(),
+          progress: 0
+        },
+        export: {
+          done: false
+        },
+        version: 1
+      };
       // write to firebase
       const collectionDocId = getCollectionDocId({ chainId, collectionAddress });
       this.collectionsRef
@@ -70,7 +81,6 @@ export class BackfillService {
         .catch((err) => {
           console.error('error backfilling collection', chainId, collectionAddress, err);
         });
-
       return baseCollection;
     } catch (err) {
       console.error('error backfilling collection', chainId, collectionAddress, err);
