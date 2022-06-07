@@ -186,12 +186,38 @@ export class StatsService {
       await this.fsBatchHandler.flush().catch((err) => console.log('error saving mnemonic collection stats', err));
     }
 
+    let data = null;
     if (query.queryBy === 'by_sales_volume') {
-      return values[0];
+      data = values[0];
     } else if (query.queryBy === 'by_avg_price') {
-      return values[1];
+      data = values[1];
     }
-    return null;
+
+    // for each collection: fetch owners & current holders
+    if (data && data.collections?.length > 0) {
+      for (const coll of data.collections) {
+        const collectionRef = await this.firebaseService.getCollectionRef({
+          chainId: ChainId.Mainnet,
+          address: coll.contractAddress ?? ''
+        });
+        const owners = await this.mnemonicService.getNumOwners(`${coll.contractAddress}`);
+        const ownerCount = owners?.dataPoints[0]?.count;
+        this.fsBatchHandler.add(
+            collectionRef,
+            {
+              stats: {
+                daily: {
+                  ownerCount
+                }
+              }
+            },
+            { merge: true }
+          );
+        // console.log('owners', owners?.dataPoints[0]?.count)
+      }
+      await this.fsBatchHandler.flush().catch((err) => console.log('error saving mnemonic collection owners', err));
+    }
+    return data;
   }
 
   async getCollectionHistoricalStats(
