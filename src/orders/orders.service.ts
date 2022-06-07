@@ -11,12 +11,7 @@ import {
   OrderDirection,
   Token
 } from '@infinityxyz/lib/types/core';
-import {
-  firestoreConstants,
-  getInfinityLink,
-  PROTOCOL_FEE_BPS,
-  trimLowerCase
-} from '@infinityxyz/lib/utils';
+import { firestoreConstants, getInfinityLink, PROTOCOL_FEE_BPS, trimLowerCase } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { BigNumber } from 'ethers';
 import { FirebaseService } from '../firebase/firebase.service';
