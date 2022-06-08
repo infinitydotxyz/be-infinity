@@ -2,6 +2,8 @@ import { Global, Module } from '@nestjs/common';
 import { UserParserModule } from 'user/parser/parser.module';
 import { UserParserService } from 'user/parser/parser.service';
 import { UserModule } from 'user/user.module';
+import { AuthController } from './auth.controller';
+import { AuthService } from './auth.service';
 /**
  * Global authentication module.
  *
@@ -9,7 +11,8 @@ import { UserModule } from 'user/user.module';
  */
 @Global()
 @Module({
-  providers: [UserParserService],
+  providers: [UserParserService, AuthService],
+  controllers: [AuthController],
   exports: [UserParserService],
   imports: [UserParserModule, UserModule]
 })

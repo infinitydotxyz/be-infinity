@@ -1,10 +1,11 @@
 import { trimLowerCase } from '@infinityxyz/lib/utils';
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
-import { auth } from '../constants';
+import { auth, NONCE_EXPIRY_TIME } from '../constants';
 import { ethers } from 'ethers';
 import { Reflector } from '@nestjs/core';
 import { metadataKey } from 'auth/match-signer.decorator';
 import { UserParserService } from 'user/parser/parser.service';
+import { base64Decode } from 'utils';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -13,24 +14,24 @@ export class AuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext) {
     const request = context.switchToHttp().getRequest();
     const paramName = this.reflector.get<string>(metadataKey, context.getHandler());
-    const messageHeader = request.headers?.[auth.message];
+    const nonce = request.headers?.[auth.nonce];
+    const messageHeader = base64Decode(request.headers?.[auth.message]);
     const signatureHeader = request.headers?.[auth.signature];
 
-    if (!messageHeader || !signatureHeader) {
+    if (!nonce || !messageHeader || !signatureHeader) {
       return false;
     }
 
     try {
       const signingAddress = trimLowerCase(ethers.utils.verifyMessage(messageHeader, JSON.parse(signatureHeader)));
-
       if (!signingAddress) {
         return false;
       }
-
       const paramValue = request.params[paramName];
       const user = await this.userParserService.parse(paramValue);
-
-      return user.userAddress === signingAddress;
+      const isSigValid = user.userAddress === signingAddress;
+      const isNonceValid = Date.now() - nonce < NONCE_EXPIRY_TIME;
+      return isSigValid && isNonceValid;
     } catch (err: any) {
       return false;
     }
