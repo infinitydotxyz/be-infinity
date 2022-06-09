@@ -1,20 +1,30 @@
 import {
+  ChainId,
+  Collection,
+  CreationFlow,
+  Erc721Metadata,
   FirestoreOrder,
   FirestoreOrderItem,
   InfinityLinkType,
   OBOrderItem,
   OBOrderStatus,
   OBTokenInfo,
-  OrderDirection
+  OrderDirection,
+  Token
 } from '@infinityxyz/lib/types/core';
 import { FeedEventType, NftListingEvent, NftOfferEvent } from '@infinityxyz/lib/types/core/feed';
 import {
+  ChainNFTsDto,
   OrderItemsOrderBy, SignedOBOrderArrayDto, SignedOBOrderDto,
   UserOrderItemsQueryDto
 } from '@infinityxyz/lib/types/dto/orders';
-import { firestoreConstants, getInfinityLink, getSearchFriendlyString, PROTOCOL_FEE_BPS, trimLowerCase } from '@infinityxyz/lib/utils';
+import { firestoreConstants, getInfinityLink, PROTOCOL_FEE_BPS, trimLowerCase } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
+import CollectionsService from 'collections/collections.service';
+import { NftsService } from 'collections/nfts/nfts.service';
 import { BadQueryError } from 'common/errors/bad-query.error';
+import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
+import { InvalidTokenError } from 'common/errors/invalid-token-error';
 import { EthereumService } from 'ethereum/ethereum.service';
 import { BigNumber } from 'ethers';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
@@ -24,7 +34,7 @@ import { ParsedUserId } from '../user/parser/parsed-user-id';
 import { UserParserService } from '../user/parser/parser.service';
 import { UserService } from '../user/user.service';
 import { getDocIdHash } from '../utils';
-import { OrderItemTokenMetadata } from './order.types';
+import { OrderItemTokenMetadata, OrderMetadata } from './order.types';
 import { getOrderIdFromSignedOrder } from './orders.utils';
 
 @Injectable()
@@ -32,6 +42,8 @@ export default class OrdersService {
   constructor(
     private firebaseService: FirebaseService,
     private userService: UserService,
+    private collectionService: CollectionsService,
+    private nftsService: NftsService,
     private userParser: UserParserService,
     private ethereumService: EthereumService,
     private cursorService: CursorService
@@ -41,6 +53,7 @@ export default class OrdersService {
     try {
       const fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
       const ordersCollectionRef = this.firebaseService.firestore.collection(firestoreConstants.ORDERS_COLL);
+      const metadata = await this.getOrderMetadata(orders);
       const makerProfile = await this.userService.getProfile(maker);
       const makerUsername = makerProfile?.username ?? '';
 
@@ -54,7 +67,7 @@ export default class OrdersService {
 
         // get order items
         const orderItemsRef = docRef.collection(firestoreConstants.ORDER_ITEMS_SUB_COLL);
-        for (const nft of order.nfts) {
+        for (const nft of order.signedOrder.nfts) {
           if (nft.tokens.length === 0) {
             // to support any tokens from a collection type orders
             const emptyToken: OrderItemTokenMetadata = {
@@ -65,32 +78,36 @@ export default class OrdersService {
               tokenSlug: '',
               attributes: []
             };
-            // const collection = metadata?.[order.chainId as ChainId]?.[nft.collection]?.collection ?? {};
+            const collection = metadata?.[order.chainId as ChainId]?.[nft.collection]?.collection ?? {};
             const orderItemData = await this.getFirestoreOrderItemFromSignedOBOrder(
               order,
               nft,
               emptyToken,
               orderId,
               maker.userAddress,
-              makerUsername
+              makerUsername,
+              collection
             );
             // get doc id
             const tokenId = '';
             const orderItemDocRef = orderItemsRef.doc(
-              getDocIdHash({ collectionAddress: nft.collectionAddress, tokenId, chainId: order.chainId })
+              getDocIdHash({ collectionAddress: nft.collection, tokenId, chainId: order.chainId })
             );
             // add to batch
             fsBatchHandler.add(orderItemDocRef, orderItemData, { merge: true });
             this.writeOrderItemsToFeed([{ ...orderItemData, orderItemId: orderItemDocRef.id }], fsBatchHandler);
           } else {
             for (const token of nft.tokens) {
+              const orderItemMetadata = metadata?.[order.chainId as ChainId]?.[nft.collection];
+              const tokenData = orderItemMetadata?.nfts?.[token.tokenId];
+              const collection = orderItemMetadata?.collection ?? {};
               const orderItemTokenMetadata: OrderItemTokenMetadata = {
                 tokenId: token.tokenId,
                 numTokens: token.numTokens, // default for both ERC721 and ERC1155
-                tokenImage: token.tokenImage ?? '',
-                tokenName: token.tokenName ?? '',
-                tokenSlug: getSearchFriendlyString(token.tokenName ?? ''),
-                attributes: token.attributes ?? []
+                tokenImage: tokenData?.image?.url ?? '',
+                tokenName: tokenData?.metadata?.name ?? '',
+                tokenSlug: tokenData?.slug ?? '',
+                attributes: (tokenData?.metadata as Erc721Metadata)?.attributes ?? []
               };
 
               const orderItemData = await this.getFirestoreOrderItemFromSignedOBOrder(
@@ -99,12 +116,13 @@ export default class OrdersService {
                 orderItemTokenMetadata,
                 orderId,
                 maker.userAddress,
-                makerUsername
+                makerUsername,
+                collection
               );
               // get doc id
               const tokenId = token.tokenId.toString();
               const orderItemDocRef = orderItemsRef.doc(
-                getDocIdHash({ collectionAddress: nft.collectionAddress, tokenId, chainId: order.chainId })
+                getDocIdHash({ collectionAddress: nft.collection, tokenId, chainId: order.chainId })
               );
               // add to batch
               fsBatchHandler.add(orderItemDocRef, orderItemData, { merge: true });
@@ -216,6 +234,76 @@ export default class OrdersService {
       cursor: nextCursor,
       hasNextPage
     };
+  }
+
+  private async getOrderMetadata(orders: SignedOBOrderDto[]): Promise<OrderMetadata> {
+    type CollectionAddress = string;
+    type TokenId = string;
+    const tokens: Map<ChainId, Map<CollectionAddress, Set<TokenId>>> = new Map();
+
+    for (const order of orders) {
+      const collectionsByChainId = tokens.get(order.chainId as ChainId) ?? new Map<CollectionAddress, Set<TokenId>>();
+      for (const nft of order.signedOrder.nfts) {
+        const tokensByCollection = collectionsByChainId.get(nft.collection) ?? new Set();
+        for (const token of nft.tokens) {
+          tokensByCollection.add(token.tokenId);
+        }
+        collectionsByChainId.set(nft.collection, tokensByCollection);
+      }
+      tokens.set(order.chainId as ChainId, collectionsByChainId);
+    }
+
+    const metadata: OrderMetadata = {};
+    for (const [chainId, collections] of tokens) {
+      const collectionsData = await Promise.all(
+        [...collections].map(([address]) => {
+          return this.collectionService.getCollectionByAddress({
+            address,
+            chainId
+          });
+        })
+      );
+      const collectionsByAddress = collectionsData.reduce((acc: { [address: string]: Collection }, collection) => {
+        if (collection?.state?.create?.step !== CreationFlow.Complete) {
+          throw new InvalidCollectionError(
+            collection?.address ?? 'Unknown',
+            collection?.chainId ?? 'Unknown',
+            'Collection indexing is not complete'
+          );
+        }
+        return {
+          ...acc,
+          [collection.address]: collection
+        };
+      }, {});
+
+      for (const [collectionAddress, tokenIds] of collections) {
+        const tokens = await Promise.all(
+          [...tokenIds].map((tokenId) => {
+            return this.nftsService.getNft({
+              address: collectionAddress,
+              chainId,
+              tokenId
+            });
+          })
+        );
+
+        for (const token of tokens) {
+          if (!token) {
+            throw new InvalidTokenError(collectionAddress, chainId, 'Unknown', `Failed to find token`);
+          }
+          metadata[chainId] = {
+            [collectionAddress]: {
+              collection: collectionsByAddress[collectionAddress],
+              nfts: {
+                [token.tokenId]: token as Token
+              }
+            }
+          };
+        }
+      }
+    }
+    return metadata;
   }
 
   public fetchMinBps(): number {
@@ -393,18 +481,19 @@ export default class OrdersService {
 
   private async getFirestoreOrderItemFromSignedOBOrder(
     order: SignedOBOrderDto,
-    nft: OBOrderItem,
+    nft: ChainNFTsDto,
     token: OrderItemTokenMetadata,
     orderId: string,
     makerAddress: string,
-    makerUsername: string
+    makerUsername: string,
+    collection: Partial<Collection>
   ): Promise<FirestoreOrderItem> {
     let takerAddress = '';
     let takerUsername = '';
-    if (!order.signedOrder.isSellOrder && nft.collectionAddress && token.tokenId) {
+    if (!order.signedOrder.isSellOrder && nft.collection && token.tokenId) {
       // for buy orders, fetch the current owner of the token
       takerAddress = await this.ethereumService.getErc721Owner({
-        address: nft.collectionAddress,
+        address: nft.collection,
         tokenId: token.tokenId,
         chainId: order.chainId
       });
@@ -429,11 +518,11 @@ export default class OrdersService {
       makerUsername: trimLowerCase(makerUsername),
       takerAddress: trimLowerCase(takerAddress),
       takerUsername: trimLowerCase(takerUsername),
-      collectionAddress: trimLowerCase(nft.collectionAddress),
-      collectionName: nft.collectionName ?? '',
-      collectionImage: nft.collectionImage ?? '',
-      collectionSlug: nft.collectionSlug ?? '',
-      hasBlueCheck: nft.hasBlueCheck ?? false,
+      collectionAddress: nft.collection,
+      collectionName: collection.metadata?.name ?? '',
+      collectionImage: collection.metadata?.profileImage ?? '',
+      collectionSlug: collection?.slug ?? '',
+      hasBlueCheck: collection.hasBlueCheck ?? false,
       tokenId: token.tokenId,
       numTokens: token.numTokens,
       tokenImage: token.tokenImage ?? '',
