@@ -1,3 +1,4 @@
+import { Erc721Attribute } from '@infinityxyz/lib/types/core';
 import { Collection } from '@infinityxyz/lib/types/core/Collection';
 import { Token } from '@infinityxyz/lib/types/core/Token';
 
@@ -22,4 +23,5 @@ export type OrderItemTokenMetadata = {
   tokenImage: string;
   tokenName: string;
   tokenSlug: string;
+  attributes: Erc721Attribute[];
 };
