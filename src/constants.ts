@@ -56,8 +56,6 @@ export const auth = {
   message: 'x-auth-message'
 };
 
-export const NONCE_EXPIRY_TIME = 24 * 60 * 60 * 1000; // 24 hours
-
 export const API_BASE = 'http://localhost:9090';
 export const SITE_BASE = 'http://localhost:3000';
 
