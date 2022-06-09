@@ -107,7 +107,7 @@ export default class OrdersService {
                 tokenImage: tokenData?.image?.url ?? '',
                 tokenName: tokenData?.metadata?.name ?? '',
                 tokenSlug: tokenData?.slug ?? '',
-                attributes: (tokenData?.metadata as Erc721Metadata)?.attributes ?? []
+                attributes: (tokenData?.metadata as Erc721Metadata)?.attributes ?? [] // todo: ERC1155?
               };
 
               const orderItemData = await this.getFirestoreOrderItemFromSignedOBOrder(
