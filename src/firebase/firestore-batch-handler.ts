@@ -1,4 +1,4 @@
-import { sleep } from 'utils';
+import { sleep } from '@infinityxyz/lib/utils';
 import { FirebaseService } from './firebase.service';
 
 const MAX_SIZE = 500;

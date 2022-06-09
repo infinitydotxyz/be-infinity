@@ -1,6 +1,6 @@
 /* eslint-disable no-empty */
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { AlchemyNftToInfinityNft } from 'alchemy/alchemy-nft-to-infinity-nft.pipe';
+import { AlchemyNftToInfinityNft } from '../common/transformers/alchemy-nft-to-infinity-nft.pipe';
 import { AlchemyService } from 'alchemy/alchemy.service';
 import { CreationFlow, OrderDirection } from '@infinityxyz/lib/types/core';
 import { NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
@@ -30,18 +30,25 @@ import {
   UserActivityQueryDto,
   UserActivityArrayDto
 } from '@infinityxyz/lib/types/dto/user';
+import { NftsService } from '../collections/nfts/nfts.service';
+import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
 
 export type UserActivity = NftSaleEvent | NftListingEvent | NftOfferEvent;
 
 @Injectable()
 export class UserService {
+  private alchemyNftToInfinityNft: AlchemyNftToInfinityNft;
+  private fsBatchHandler: FirestoreBatchHandler;
   constructor(
     private firebaseService: FirebaseService,
     private alchemyService: AlchemyService,
-    private alchemyNftToInfinityNft: AlchemyNftToInfinityNft,
     private paginationService: CursorService,
+    private nftsService: NftsService,
     @Optional() private statsService: StatsService
-  ) {}
+  ) {
+    this.fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
+    this.alchemyNftToInfinityNft = new AlchemyNftToInfinityNft(nftsService);
+  }
 
   async getWatchlist(user: ParsedUserId, query: RankingQueryDto) {
     const collectionFollows = user.ref
@@ -203,21 +210,26 @@ export class UserService {
       .doc(userAddress)
       .collection(firestoreConstants.USER_NFT_COLLECTION_COLL);
 
-    const batch = this.firebaseService.firestore.batch();
     for (const nft of nfts) {
       const { chainId, collectionAddress, collectionName, collectionSlug, hasBlueCheck } = nft;
       if (chainId && collectionAddress && collectionName && collectionSlug) {
         const docRef = userRef.doc(`${chainId}:${collectionAddress}`);
-        batch.set(docRef, {
-          chainId,
-          collectionAddress,
-          collectionName,
-          collectionSlug,
-          hasBlueCheck
-        });
+        this.fsBatchHandler.add(
+          docRef,
+          {
+            chainId,
+            collectionAddress,
+            collectionName,
+            collectionSlug,
+            hasBlueCheck
+          },
+          { merge: true }
+        );
       }
     }
-    await batch.commit();
+    await this.fsBatchHandler.flush().catch((err) => {
+      console.error('error saving user nft collections', err);
+    });
   }
 
   async getUserNftsWithOrders(user: ParsedUserId, nftsQuery: UserNftsQueryDto): Promise<NftArrayDto> {

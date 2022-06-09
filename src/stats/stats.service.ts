@@ -26,9 +26,11 @@ import {
   CollectionStatsByPeriodDto,
   RankingQueryDto
 } from '@infinityxyz/lib/types/dto/collections';
+import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
 
 @Injectable()
 export class StatsService {
+  private fsBatchHandler: FirestoreBatchHandler;
   private readonly socialsGroup = firestoreConstants.COLLECTION_SOCIALS_STATS_COLL;
   private readonly statsGroup = firestoreConstants.COLLECTION_STATS_COLL;
 
@@ -48,7 +50,9 @@ export class StatsService {
     private votesService: VotesService,
     private mnemonicService: MnemonicService,
     private paginationService: CursorService
-  ) {}
+  ) {
+    this.fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
+  }
 
   async getCollectionRankings(queryOptions: RankingQueryDto): Promise<CollectionStatsArrayResponseDto> {
     const { primary: primaryStatsCollectionName, secondary: secondaryStatsCollectionName } =
@@ -123,7 +127,7 @@ export class StatsService {
     return statsByPeriod;
   }
 
-  async getMenemonicCollectionStats(query: CollectionHistoricalStatsQueryDto) {
+  async getMnemonicCollectionStats(query: CollectionHistoricalStatsQueryDto) {
     // console.log('collection', collection, query)
     const byArr = ['by_sales_volume', 'by_avg_price'];
     const promises = [];
@@ -140,56 +144,93 @@ export class StatsService {
 
     for (const value of values) {
       const collections = value?.collections ?? [];
-      const batch = this.firebaseService.firestore.batch();
-
       for (const coll of collections) {
         // todo: remove this to save data for all contract addresses:
         // goblin '0xbce3781ae7ca1a5e050bd9c4c77369867ebc307e'
         // BAYC '0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d'
         // if (coll.contractAddress === '0xbce3781ae7ca1a5e050bd9c4c77369867ebc307e') {
-          // console.log('coll', coll);
-          const collectionRef = await this.firebaseService.getCollectionRef({
-            chainId: ChainId.Mainnet,
-            address: coll.contractAddress ?? ''
-          });
-          // const docRef = collectionRef.collection('stats').doc(query.period);
-          // console.log('coll.value', coll.salesVolume, coll.avgPrice)
-          if (coll.salesVolume) {
-            batch.set(
-              collectionRef,
-              {
-                stats: {
-                  daily: {
-                    salesVolume: coll.salesVolume
-                  }
+        // console.log('coll', coll);
+        const collectionRef = await this.firebaseService.getCollectionRef({
+          chainId: ChainId.Mainnet,
+          address: coll.contractAddress ?? ''
+        });
+        // const docRef = collectionRef.collection('stats').doc(query.period);
+        // console.log('coll.value', coll.salesVolume, coll.avgPrice)
+        if (coll.salesVolume) {
+          this.fsBatchHandler.add(
+            collectionRef,
+            {
+              stats: {
+                daily: {
+                  salesVolume: parseFloat(`${coll.salesVolume}`)
                 }
-              },
-              { merge: true }
-            );
-          } else if (coll.avgPrice) {
-            batch.set(
-              collectionRef,
-              {
-                stats: {
-                  daily: {
-                    avgPrice: coll.avgPrice
-                  }
+              }
+            },
+            { merge: true }
+          );
+        } else if (coll.avgPrice) {
+          this.fsBatchHandler.add(
+            collectionRef,
+            {
+              stats: {
+                daily: {
+                  avgPrice: parseFloat(`${coll.avgPrice}`)
                 }
-              },
-              { merge: true }
-            );
-          }
+              }
+            },
+            { merge: true }
+          );
+        }
         // }
       }
-      await batch.commit();
+      await this.fsBatchHandler.flush().catch((err) => console.log('error saving mnemonic collection stats', err));
     }
 
+    let data = null;
     if (query.queryBy === 'by_sales_volume') {
-      return values[0];
+      data = values[0];
     } else if (query.queryBy === 'by_avg_price') {
-      return values[1];
+      data = values[1];
     }
-    return null;
+
+    // for each collection: fetch owners & current holders
+    if (data && data.collections?.length > 0) {
+      for (const coll of data.collections) {
+        const collectionRef = await this.firebaseService.getCollectionRef({
+          chainId: ChainId.Mainnet,
+          address: coll.contractAddress ?? ''
+        });
+        const owners = await this.mnemonicService.getNumOwners(`${coll.contractAddress}`);
+        const ownerCount = owners?.dataPoints[0]?.count;
+        this.fsBatchHandler.add(
+            collectionRef,
+            {
+              stats: {
+                daily: {
+                  ownerCount: parseInt(ownerCount ?? '0')
+                }
+              }
+            },
+            { merge: true }
+          );
+        // console.log('owners', owners?.dataPoints[0]?.count)
+        const tokens = await this.mnemonicService.getNumTokens(`${coll.contractAddress}`);
+        const tokenCount = parseInt(tokens?.dataPoints[0]?.totalMinted ?? '0') - parseInt(tokens?.dataPoints[0]?.totalBurned ?? '0');
+        this.fsBatchHandler.add(
+            collectionRef,
+            {
+              stats: {
+                daily: {
+                  tokenCount
+                }
+              }
+            },
+            { merge: true }
+          );
+      }
+      await this.fsBatchHandler.flush().catch((err) => console.log('error saving mnemonic collection tokens', err));
+    }
+    return data;
   }
 
   async getCollectionHistoricalStats(
@@ -598,13 +639,14 @@ export class StatsService {
   ): Promise<SocialsStats> {
     const socialsCollection = collectionRef.collection(firestoreConstants.COLLECTION_SOCIALS_STATS_COLL);
     const aggregatedStats = await this.aggregateSocialsStats(collectionRef, preAggregatedStats);
-    const batch = this.firebaseService.firestore.batch();
     for (const [, stats] of Object.entries(aggregatedStats)) {
       const { docId } = getStatsDocInfo(stats.timestamp, stats.period);
       const docRef = socialsCollection.doc(docId);
-      batch.set(docRef, stats, { merge: true });
+      this.fsBatchHandler.add(docRef, stats, { merge: true });
     }
-    await batch.commit();
+    await this.fsBatchHandler.flush().catch((err) => {
+      console.error('error saving social stats', err);
+    });
 
     return aggregatedStats.all;
   }

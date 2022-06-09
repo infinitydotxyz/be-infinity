@@ -23,7 +23,7 @@
     "pre:push": "npm run lint && npm run format && npm run build"
   },
   "dependencies": {
-    "@infinityxyz/lib": "^1.77.1",
+    "@infinityxyz/lib": "^1.87.0",
     "@nestjs/common": "^8.4.4",
     "@nestjs/config": "^2.0.0",
     "@nestjs/core": "^8.4.4",
@@ -37,6 +37,7 @@
     "ethers": "5.6.4",
     "express": "4.17.3",
     "firebase-admin": "^10.0.2",
+    "got": "^11.8.3",
     "helmet": "^5.0.2",
     "lodash": "^4.17.21",
     "qs": "^6.10.3",

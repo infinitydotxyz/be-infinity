@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config/dist/config.service';
 import axios, { AxiosInstance } from 'axios';
 import { normalize } from 'path';
 import { EnvironmentVariables } from 'types/environment-variables.interface';
-import { AlchemyUserNftsResponse } from './alchemy.types';
+import { AlchemyNftWithMetadata, AlchemyUserNftsResponse } from './alchemy.types';
 
 @Injectable()
 export class AlchemyService {
@@ -59,6 +59,31 @@ export class AlchemyService {
     } catch (err) {
       console.error('failed to get user nfts from alchemy', err);
       return null;
+    }
+  }
+
+  async getNft(
+    chainId: ChainId,
+    collectionAddress: string,
+    tokenId: string
+  ): Promise<AlchemyNftWithMetadata | undefined> {
+    const url = this.getBaseUrl(chainId, '/getNFTMetadata');
+    try {
+      const response = await this.client.get(url.toString(), {
+        params: {
+          contractAddress: collectionAddress,
+          tokenId
+        }
+      });
+      const data = response.data as AlchemyNftWithMetadata;
+
+      if (!data) {
+        throw new Error('No data returned from alchemy');
+      }
+      return data;
+    } catch (err) {
+      console.error('failed to get user nfts from alchemy', err);
+      return undefined;
     }
   }
 }

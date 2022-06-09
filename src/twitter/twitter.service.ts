@@ -14,6 +14,7 @@ import { VerifiedMentionTweet, VerifiedMentionIncludes, VerifiedMentionUser, Twi
 import { PaginatedQuery } from 'common/dto/paginated-query.dto';
 import { CursorService } from 'pagination/cursor.service';
 import { TweetArrayDto, TweetDto } from '@infinityxyz/lib/types/dto/twitter';
+import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
 
 /**
  * Access level is Elevated
@@ -23,6 +24,7 @@ import { TweetArrayDto, TweetDto } from '@infinityxyz/lib/types/dto/twitter';
  */
 @Injectable()
 export class TwitterService {
+  private fsBatchHandler: FirestoreBatchHandler;
   private readonly client: AxiosInstance;
 
   constructor(
@@ -30,8 +32,8 @@ export class TwitterService {
     private firebaseService: FirebaseService,
     private paginationService: CursorService
   ) {
+    this.fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
     const bearer = this.config.get<EnvironmentVariables>('twitterBearerToken');
-
     this.client = axios.create({
       baseURL: 'https://api.twitter.com/2/',
       headers: {
@@ -51,14 +53,15 @@ export class TwitterService {
 
   async saveCollectionMentions(collectionRef: FirebaseFirestore.DocumentReference, tweets: InfinityTweet[]) {
     const mentionsCollection = collectionRef.collection(firestoreConstants.COLLECTION_MENTIONS_COLL);
-    const batch = this.firebaseService.firestore.batch();
 
     for (const tweet of tweets) {
       const tweetRef = mentionsCollection.doc(tweet.author.id); // Only store one tweet per author
-      batch.set(tweetRef, tweet);
+      this.fsBatchHandler.add(tweetRef, tweet, { merge: false });
     }
 
-    await batch.commit();
+    await this.fsBatchHandler.flush().catch((err) => {
+      console.error('error saving collection tweet mentions', err);
+    });
   }
 
   async getCollectionTopMentions(

@@ -1,19 +1,11 @@
 import { trimLowerCase } from '@infinityxyz/lib/utils';
 import BigNumber from 'bignumber.js';
-import { createHash } from 'crypto';
+import { createHash, randomInt } from 'crypto';
 import { List, uniqBy } from 'lodash';
 
 export const base64Encode = (data: string) => Buffer.from(data).toString('base64');
 
 export const base64Decode = (data?: string) => Buffer.from(data ?? '', 'base64').toString();
-
-export async function sleep(ms: number) {
-  return await new Promise<void>((resolve) => {
-    setTimeout(() => {
-      resolve();
-    }, ms);
-  });
-}
 
 export function deepCopy(object: any) {
   return JSON.parse(JSON.stringify(object));
@@ -85,4 +77,9 @@ export function getDocIdHash({
 }) {
   const data = chainId.trim() + '::' + trimLowerCase(collectionAddress) + '::' + tokenId.trim();
   return createHash('sha256').update(data).digest('hex').trim().toLowerCase();
+}
+
+export function randomItem<T>(array: T[]): T {
+  const index = randomInt(0, array.length - 1);
+  return array[index];
 }

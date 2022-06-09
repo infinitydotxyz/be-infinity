@@ -8,7 +8,8 @@ import CollectionsService from 'collections/collections.service';
 import { FirebaseService } from 'firebase/firebase.service';
 import { ActivityType, activityTypeToEventType } from './nft-activity.types';
 import { CursorService } from 'pagination/cursor.service';
-import { getERC721Owner } from 'services/ethereum/checkOwnershipChange';
+import { EthereumService } from 'ethereum/ethereum.service';
+import { BackfillService } from 'backfill/backfill.service';
 import {
   NftQueryDto,
   NftDto,
@@ -25,38 +26,58 @@ export class NftsService {
   constructor(
     private firebaseService: FirebaseService,
     private collectionsService: CollectionsService,
-    private paginationService: CursorService
+    private paginationService: CursorService,
+    private ethereumService: EthereumService,
+    private backfillService: BackfillService
   ) {}
 
   async getNft(nftQuery: NftQueryDto): Promise<NftDto | undefined> {
     const collection = await this.collectionsService.getCollectionByAddress(nftQuery);
     if (collection) {
-      const collectionDocId = getCollectionDocId({
-        collectionAddress: collection.address,
-        chainId: collection.chainId
-      });
-      if (collection?.state?.create?.step !== CreationFlow.Complete || !collectionDocId) {
-        return undefined;
-      }
       const nfts = await this.getNfts([
         { address: collection.address, chainId: collection.chainId as ChainId, tokenId: nftQuery.tokenId }
       ]);
       const nft = nfts?.[0];
-      if (nft) {
-        const owner = await getERC721Owner(nftQuery.address, nftQuery.tokenId, nftQuery.chainId);
+      if (nft && !nft.owner) {
+        const owner = await this.ethereumService.getErc721Owner({
+          address: nftQuery.address,
+          tokenId: nftQuery.tokenId,
+          chainId: nftQuery.chainId
+        });
         if (owner) {
           nft.owner = owner;
-          // todo: save assets in firebase to reduce the above call; needs asset ownership change listener to be implemented first
+          this.updateOwnershipInFirestore(nft);
         }
       }
       return nft;
     }
   }
 
+  updateOwnershipInFirestore(nft: NftDto): void {
+    const chainId = nft.chainId;
+    const collectionAddress = nft.collectionAddress ?? '';
+    const tokenId = nft.tokenId;
+    const collectionDocId = getCollectionDocId({ chainId, collectionAddress });
+    this.firebaseService.firestore
+      .collection(firestoreConstants.COLLECTIONS_COLL)
+      .doc(collectionDocId)
+      .collection(firestoreConstants.COLLECTION_NFTS_COLL)
+      .doc(tokenId)
+      .set({ owner: nft.owner }, { merge: true })
+      .then(() => {
+        console.log(`Updated ownership of ${chainId}:${collectionAddress}:${tokenId} to ${nft.owner}`);
+      })
+      .catch((err) => {
+        console.error(`Failed to update ownership of ${chainId}:${collectionAddress}:${tokenId} to ${nft.owner}`);
+        console.error(err);
+      });
+  }
+
   async isSupported(nfts: NftDto[]) {
     const { getCollection } = await this.collectionsService.getCollectionsByAddress(
       nfts.map((nft) => ({ address: nft.collectionAddress ?? '', chainId: nft.chainId }))
     );
+
     const externalNfts: ExternalNftDto[] = nfts.map((nft) => {
       const collection = getCollection({ address: nft.collectionAddress ?? '', chainId: nft.chainId });
       const isSupported = collection?.state?.create?.step === CreationFlow.Complete;
@@ -70,7 +91,7 @@ export class NftsService {
     return externalNfts;
   }
 
-  async getNfts(nfts: { address: string; chainId: ChainId; tokenId: string }[]) {
+  async getNfts(nfts: { address: string; chainId: ChainId; tokenId: string }[]): Promise<(NftDto | undefined)[]> {
     const refs = nfts.map((item) => {
       const collectionDocId = getCollectionDocId({
         collectionAddress: item.address,
@@ -84,7 +105,7 @@ export class NftsService {
     });
 
     if (refs.length === 0) {
-      return [];
+      return this.backfillService.backfillNfts(nfts);
     }
     const snapshots = await this.firebaseService.firestore.getAll(...refs);
     const nftDtos = snapshots.map((snapshot, index) => {
@@ -94,7 +115,6 @@ export class NftsService {
       }
       return nft;
     });
-
     return nftDtos;
   }
 
