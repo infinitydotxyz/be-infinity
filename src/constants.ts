@@ -51,6 +51,7 @@ export const ERROR_LOG = getEnvironmentVariable('ERROR_LOG', false) === 'true';
 export const WARN_LOG = getEnvironmentVariable('WARN_LOG', false) === 'true';
 
 export const auth = {
+  nonce: 'x-auth-nonce',
   signature: 'x-auth-signature',
   message: 'x-auth-message'
 };
