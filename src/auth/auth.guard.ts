@@ -1,6 +1,6 @@
-import { trimLowerCase } from '@infinityxyz/lib/utils';
+import { LOGIN_NONCE_EXPIRY_TIME, trimLowerCase } from '@infinityxyz/lib/utils';
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
-import { auth, NONCE_EXPIRY_TIME } from '../constants';
+import { auth } from '../constants';
 import { ethers } from 'ethers';
 import { Reflector } from '@nestjs/core';
 import { metadataKey } from 'auth/match-signer.decorator';
@@ -30,7 +30,7 @@ export class AuthGuard implements CanActivate {
       const paramValue = request.params[paramName];
       const user = await this.userParserService.parse(paramValue);
       const isSigValid = user.userAddress === signingAddress;
-      const isNonceValid = Date.now() - nonce < NONCE_EXPIRY_TIME;
+      const isNonceValid = Date.now() - nonce < LOGIN_NONCE_EXPIRY_TIME;
       return isSigValid && isNonceValid;
     } catch (err: any) {
       return false;
