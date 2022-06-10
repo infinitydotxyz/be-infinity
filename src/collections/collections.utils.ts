@@ -1,4 +1,4 @@
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 
 const INDEXER_URL = `https://nft-collection-service-dot-nftc-infinity.ue.r.appspot.com/collection`;
 
@@ -43,14 +43,16 @@ export async function enqueueCollection(
       }
     );
 
-    const response = getResponseType(res.status);
+    // const response = getResponseType(res.status);
+    getResponseType(res.status);
     console.log('enqueueCollection', collection.address, res.status)
 
     // return response;
-  } catch (err: AxiosError | any) {
+  } catch (err: any) {
     if (axios.isAxiosError(err)) {
       if (err.response?.status && typeof err.response.status === 'number') {
-        const response = getResponseType(err.response.status);
+        getResponseType(err.response.status);
+        // const response = getResponseType(err.response.status);
         // return response;
       } else {
         throw err;
