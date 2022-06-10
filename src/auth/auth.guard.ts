@@ -5,7 +5,7 @@ import { ethers } from 'ethers';
 import { Reflector } from '@nestjs/core';
 import { metadataKey } from 'auth/match-signer.decorator';
 import { UserParserService } from 'user/parser/parser.service';
-import { base64Decode } from 'utils';
+import { base64Decode, base64Encode } from 'utils';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -15,15 +15,23 @@ export class AuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const paramName = this.reflector.get<string>(metadataKey, context.getHandler());
     const nonce = request.headers?.[auth.nonce];
-    const messageHeader = base64Decode(request.headers?.[auth.message]);
+    const messageHeader = request.headers?.[auth.message];
     const signatureHeader = request.headers?.[auth.signature];
 
     if (!nonce || !messageHeader || !signatureHeader) {
       return false;
     }
 
+    const constructedMsg = this.getEncodedLoginMessage(nonce);
+    if (constructedMsg !== messageHeader) {
+      return false;
+    }
+
+    const decodedMessageHeader = base64Decode(request.headers?.[auth.message]);
     try {
-      const signingAddress = trimLowerCase(ethers.utils.verifyMessage(messageHeader, JSON.parse(signatureHeader)));
+      const signingAddress = trimLowerCase(
+        ethers.utils.verifyMessage(decodedMessageHeader, JSON.parse(signatureHeader))
+      );
       if (!signingAddress) {
         return false;
       }
@@ -35,5 +43,17 @@ export class AuthGuard implements CanActivate {
     } catch (err: any) {
       return false;
     }
+  }
+
+  getEncodedLoginMessage(nonce: number): string {
+    // ignore the formatting of this multiline string
+    const msg = `Welcome to Infinity. Click "Sign" to sign in. No password needed. This request will not trigger a blockchain transaction or cost any gas fees.
+ 
+I accept the Infinity Terms of Service: https://infinity.xyz/terms
+
+Nonce: ${nonce}
+Expires in: 24 hrs`;
+
+    return base64Encode(msg);
   }
 }
