@@ -4,7 +4,8 @@ import {
   SignedOBOrderDto,
   SignedOBOrderArrayDto,
   OrderItemsQueryDto,
-  UserOrderItemsQueryDto
+  UserOrderItemsQueryDto,
+  OBOrderItemDto
 } from '@infinityxyz/lib/types/dto/orders';
 import { BadRequestException, Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
@@ -19,6 +20,12 @@ import { ResponseDescription } from 'common/response-description';
 import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 import OrdersService from './orders.service';
+
+class OBOrderCollectionsArrayDto {
+  data: OBOrderItemDto[];
+  cursor: string;
+  hasNextPage: boolean;
+}
 
 @Controller('orders')
 export class OrdersController {
@@ -93,6 +100,47 @@ export class OrdersController {
     // TODO delete once FE is changed. this endpoint is deprecated prefer to use GET /orders
     const results = await this.ordersService.getSignedOBOrders(reqQuery);
     return results;
+  }
+
+  @Get(':userId/collections')
+  @ApiOperation({
+    description: 'Get collections from user orders',
+    tags: [ApiTag.Orders, ApiTag.User]
+  })
+  @UserAuth('userId')
+  @ApiOkResponse({ description: ResponseDescription.Success, type: SignedOBOrderArrayDto })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  public async getUserOrdersCollections(
+    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
+    @Query() reqQuery: UserOrderItemsQueryDto
+  ): Promise<OBOrderCollectionsArrayDto> {
+    reqQuery.limit = 999999; // get all user's orders (todo: Number.MAX_SAFE_INTEGER doesn't work here)
+    const results = await this.ordersService.getSignedOBOrders(reqQuery, user);
+
+    // dedup and normalize (make sure name & slug exist) collections:
+    const colls: any = {};
+    results?.data.forEach((order) => {
+      order.nfts.forEach((nft) => {
+        if (nft.collectionName && nft.collectionSlug) {
+          colls[nft.collectionAddress] = {
+            ...nft
+          };
+        }
+      });
+    });
+
+    const data: OBOrderItemDto[] = [];
+    for (const address of Object.keys(colls)) {
+      const collData = colls[address];
+      collData.tokens = []; // not needed for this response.
+      data.push(collData);
+    }
+    return {
+      data,
+      cursor: '',
+      hasNextPage: false
+    };
   }
 
   @Get(':userId')

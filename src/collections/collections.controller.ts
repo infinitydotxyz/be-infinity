@@ -44,6 +44,7 @@ import {
 import { TweetArrayDto } from '@infinityxyz/lib/types/dto/twitter';
 import { CollectionVotesDto } from '@infinityxyz/lib/types/dto/votes';
 import { CollectionStatsArrayDto } from './dto/collection-stats-array.dto';
+import { enqueueCollection } from './collections.utils';
 
 @Controller('collections')
 export class CollectionsController {
@@ -124,7 +125,12 @@ export class CollectionsController {
         results.push(newData);
       } else {
         // can't get collection name (not indexed?)
-        // console.log('--- collectionData?.metadata?.name', collectionData?.metadata?.name)
+        // console.log('--- collectionData?.metadata?.name', collectionData?.metadata?.name, coll.contractAddress)
+        enqueueCollection({ chainId: ChainId.Mainnet, address: coll.contractAddress ?? '' }).then((res) => {
+          console.log('enqueueCollection response:', res)
+        }).catch((e) => {
+          console.log('enqueueCollection error', e)
+        })
       }
     }
 
