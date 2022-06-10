@@ -30,6 +30,7 @@ export class FirebaseService {
       );
     }
     this._firestore = firebaseAdmin.firestore();
+    this._firestore.settings({ ignoreUndefinedProperties: true });
   }
 
   /**

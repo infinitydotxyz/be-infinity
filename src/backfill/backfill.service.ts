@@ -81,21 +81,33 @@ export class BackfillService {
     nfts: { address: string; chainId: ChainId; tokenId: string }[]
   ): Promise<(NftDto | undefined)[]> {
     // try OS first
-    const openseaNfts = await this.fetchNftsFromOpensea(nfts);
-    if (openseaNfts && openseaNfts.length > 0) {
-      return openseaNfts;
+    try {
+      const openseaNfts = await this.fetchNftsFromOpensea(nfts);
+      if (openseaNfts && openseaNfts.length > 0) {
+        return openseaNfts;
+      }
+    } catch (err) {
+      console.error(err);
     }
 
-    // try alchemy
-    const alchemyNfts = await this.fetchNftsFromAlchemy(nfts);
-    if (alchemyNfts && alchemyNfts.length > 0) {
-      return alchemyNfts;
+    try {
+      // try alchemy
+      const alchemyNfts = await this.fetchNftsFromAlchemy(nfts);
+      if (alchemyNfts && alchemyNfts.length > 0) {
+        return alchemyNfts;
+      }
+    } catch (err) {
+      console.error(err);
     }
 
-    // try mnemonic
-    const mnemonicNfts = await this.fetchNftsFromMnemonic(nfts);
-    if (mnemonicNfts && mnemonicNfts.length > 0) {
-      return mnemonicNfts;
+    try {
+      // try mnemonic
+      const mnemonicNfts = await this.fetchNftsFromMnemonic(nfts);
+      if (mnemonicNfts && mnemonicNfts.length > 0) {
+        return mnemonicNfts;
+      }
+    } catch (err) {
+      console.error(err);
     }
 
     return [];

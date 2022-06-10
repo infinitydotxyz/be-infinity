@@ -105,9 +105,15 @@ export class NftsService {
     });
 
     if (refs.length === 0) {
+      return [];
+    }
+
+    const snapshots = await this.firebaseService.firestore.getAll(...refs);
+    const complete = snapshots.map((item) => item.exists).every((item) => item === true);
+    if (!complete) {
       return this.backfillService.backfillNfts(nfts);
     }
-    const snapshots = await this.firebaseService.firestore.getAll(...refs);
+
     const nftDtos = snapshots.map((snapshot, index) => {
       const nft = snapshot.data() as NftDto | undefined;
       if (nft) {

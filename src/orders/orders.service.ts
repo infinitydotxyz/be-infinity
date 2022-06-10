@@ -15,7 +15,9 @@ import {
 import { FeedEventType, NftListingEvent, NftOfferEvent } from '@infinityxyz/lib/types/core/feed';
 import {
   ChainNFTsDto,
-  OrderItemsOrderBy, SignedOBOrderArrayDto, SignedOBOrderDto,
+  OrderItemsOrderBy,
+  SignedOBOrderArrayDto,
+  SignedOBOrderDto,
   UserOrderItemsQueryDto
 } from '@infinityxyz/lib/types/dto/orders';
 import { firestoreConstants, getInfinityLink, PROTOCOL_FEE_BPS, trimLowerCase } from '@infinityxyz/lib/utils';
@@ -277,32 +279,32 @@ export default class OrdersService {
         };
       }, {});
 
-      for (const [collectionAddress, tokenIds] of collections) {
-        const tokens = await Promise.all(
-          [...tokenIds].map((tokenId) => {
-            return this.nftsService.getNft({
-              address: collectionAddress,
-              chainId,
-              tokenId
-            });
-          })
-        );
-
-        for (const token of tokens) {
-          if (!token) {
-            throw new InvalidTokenError(collectionAddress, chainId, 'Unknown', `Failed to find token`);
-          }
-          metadata[chainId] = {
-            [collectionAddress]: {
-              collection: collectionsByAddress[collectionAddress],
-              nfts: {
-                [token.tokenId]: token as Token
-              }
-            }
+      const tokenProps = [...collections.entries()].flatMap(([collectionAddress, tokenIds]) => {
+        return [...tokenIds].map((tokenId) => {
+          return {
+            address: collectionAddress,
+            tokenId: tokenId,
+            chainId: chainId
           };
+        });
+      });
+
+      const tokens = await this.nftsService.getNfts(tokenProps);
+      for (const token of tokens) {
+        if (!token || !token.collectionAddress) {
+          throw new InvalidTokenError('Unknown', chainId, 'Unknown', `Failed to find token`);
         }
+        metadata[chainId] = {
+          [token.collectionAddress]: {
+            collection: collectionsByAddress[token.collectionAddress],
+            nfts: {
+              [token.tokenId]: token as Token
+            }
+          }
+        };
       }
     }
+
     return metadata;
   }
 
