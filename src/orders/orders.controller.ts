@@ -21,6 +21,10 @@ import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 import OrdersService from './orders.service';
 
+type UserOrderCollectionsQueryDto = UserOrderItemsQueryDto & {
+  name?: string;
+}
+
 class OBOrderCollectionsArrayDto {
   data: OBOrderItemDto[];
   cursor: string;
@@ -113,7 +117,7 @@ export class OrdersController {
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   public async getUserOrdersCollections(
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
-    @Query() reqQuery: UserOrderItemsQueryDto
+    @Query() reqQuery: UserOrderCollectionsQueryDto
   ): Promise<OBOrderCollectionsArrayDto> {
     reqQuery.limit = 999999; // get all user's orders (todo: Number.MAX_SAFE_INTEGER doesn't work here)
     const results = await this.ordersService.getSignedOBOrders(reqQuery, user);
@@ -131,10 +135,17 @@ export class OrdersController {
     });
 
     const data: OBOrderItemDto[] = [];
+    const nameSearch = (reqQuery.name ?? '').toLowerCase();
     for (const address of Object.keys(colls)) {
-      const collData = colls[address];
+      const collData = colls[address] as OBOrderItemDto;
       collData.tokens = []; // not needed for this response.
-      data.push(collData);
+      if (nameSearch) {
+        if (collData.collectionName.toLowerCase().indexOf(nameSearch) >= 0) {
+          data.push(collData);
+        }
+      } else {
+        data.push(collData);
+      }
     }
     return {
       data,
