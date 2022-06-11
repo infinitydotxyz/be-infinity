@@ -1,4 +1,3 @@
-import { GetMinBpsQuery } from '@infinityxyz/lib/types/core';
 import {
   OrdersDto,
   SignedOBOrderDto,
@@ -59,23 +58,6 @@ export class OrdersController {
       }
       throw err;
     }
-  }
-
-  @Get('minbps')
-  @ApiOperation({
-    description: 'Fetch MinBps',
-    tags: [ApiTag.Orders]
-  })
-  @ApiOkResponse({ description: ResponseDescription.Success, type: Number })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  public fetchMinBps(@Query() query: GetMinBpsQuery): number {
-    // todo: use DTO instead o fthis hack
-    let collections = query.collections ?? [];
-    if (typeof collections === 'string') {
-      collections = [collections];
-    }
-    const result = this.ordersService.fetchMinBps();
-    return result;
   }
 
   @Get()

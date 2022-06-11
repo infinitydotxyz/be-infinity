@@ -16,7 +16,6 @@ export type OrderHashParams = Pick<
   | 'endTimeMs'
   | 'execParams'
   | 'extraParams'
-  | 'minBpsToSeller'
   | 'numItems'
   | 'nonce'
   | 'isSellOrder'
@@ -37,7 +36,6 @@ function getOrderHashParamsFromSignedOrder(signedOrder: SignedOBOrderDto, makerA
     endTimeMs: signedOrder.endTimeMs,
     execParams: signedOrder.execParams,
     extraParams: signedOrder.extraParams,
-    minBpsToSeller: signedOrder.minBpsToSeller,
     numItems: signedOrder.numItems,
     nonce: signedOrder.nonce.toString(),
     isSellOrder: signedOrder.signedOrder.isSellOrder,
@@ -65,7 +63,6 @@ export function getOrderId(chainId: string, exchangeAddr: string, orderHashParam
       parseEther(String(orderHashParams.endPriceEth)),
       Math.floor(orderHashParams.startTimeMs / 1000),
       Math.floor(orderHashParams.endTimeMs / 1000),
-      orderHashParams.minBpsToSeller,
       orderHashParams.nonce
     ];
     const execParams = [orderHashParams.execParams.complicationAddress, orderHashParams.execParams.currencyAddress];

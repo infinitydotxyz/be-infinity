@@ -308,16 +308,6 @@ export default class OrdersService {
     return metadata;
   }
 
-  public fetchMinBps(): number {
-    try {
-      const minBps = 10000 - PROTOCOL_FEE_BPS;
-      return minBps;
-    } catch (e) {
-      console.error('Failed to fetch min bps', e);
-      throw e;
-    }
-  }
-
   public async getOrders(
     firestoreQuery: FirebaseFirestore.Query<FirebaseFirestore.DocumentData>
   ): Promise<SignedOBOrderDto[]> {
@@ -371,7 +361,6 @@ export default class OrdersService {
         endPriceEth: orderItemData.endPriceEth,
         startTimeMs: orderItemData.startTimeMs,
         endTimeMs: orderItemData.endTimeMs,
-        minBpsToSeller: orderDocData.minBpsToSeller,
         nonce: parseInt(orderDocData.nonce, 10),
         makerAddress: orderItemData.makerAddress,
         makerUsername: orderItemData.makerUsername,
@@ -466,7 +455,6 @@ export default class OrdersService {
         endPriceEth: order.endPriceEth,
         startTimeMs: order.startTimeMs,
         endTimeMs: order.endTimeMs,
-        minBpsToSeller: order.minBpsToSeller,
         nonce: order.nonce.toString(),
         complicationAddress: order.execParams.complicationAddress,
         currencyAddress: order.execParams.currencyAddress,
