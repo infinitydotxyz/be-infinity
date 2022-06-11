@@ -20,7 +20,7 @@ import {
   SignedOBOrderDto,
   UserOrderItemsQueryDto
 } from '@infinityxyz/lib/types/dto/orders';
-import { firestoreConstants, getInfinityLink, PROTOCOL_FEE_BPS, trimLowerCase } from '@infinityxyz/lib/utils';
+import { firestoreConstants, getInfinityLink, trimLowerCase } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import CollectionsService from 'collections/collections.service';
 import { NftsService } from 'collections/nfts/nfts.service';
