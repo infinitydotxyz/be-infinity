@@ -423,7 +423,7 @@ export default class OrdersService {
       const updatedNonce = await this.firebaseService.firestore.runTransaction(async (t) => {
         const userDoc = await t.get(userDocRef);
         // todo: use a user dto or type?
-        const userDocData = userDoc.data() || { userAddress: user };
+        const userDocData = userDoc.data() || { address: user };
         const nonce = BigNumber.from(userDocData.orderNonce ?? '0').add(1);
         const minOrderNonce = BigNumber.from(userDocData.minOrderNonce ?? '0').add(1);
         const newNonce = (nonce.gt(minOrderNonce) ? nonce : minOrderNonce).toString();
