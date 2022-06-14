@@ -45,6 +45,7 @@ import { TweetArrayDto } from '@infinityxyz/lib/types/dto/twitter';
 import { CollectionVotesDto } from '@infinityxyz/lib/types/dto/votes';
 import { CollectionStatsArrayDto } from './dto/collection-stats-array.dto';
 import { enqueueCollection } from './collections.utils';
+import { EXCLUDED_COLLECTIONS } from 'utils/stats';
 
 @Controller('collections')
 export class CollectionsController {
@@ -109,20 +110,22 @@ export class CollectionsController {
       }) as Collection;
 
       if (collectionData?.metadata?.name) {
-        const newData: Collection = {
-          ...collectionData,
-          attributes: {} // don't include attributess
-        };
-
-        newData.stats = newData.stats ? newData.stats : {};
-        newData.stats.daily = newData.stats.daily ? newData.stats.daily : {};
-        if (coll?.salesVolume) {
-          newData.stats.daily.salesVolume = coll?.salesVolume;
+        if (!EXCLUDED_COLLECTIONS.includes(collectionData?.address)) {
+          const newData: Collection = {
+            ...collectionData,
+            attributes: {} // don't include attributess
+          };
+  
+          newData.stats = newData.stats ? newData.stats : {};
+          newData.stats.daily = newData.stats.daily ? newData.stats.daily : {};
+          if (coll?.salesVolume) {
+            newData.stats.daily.salesVolume = coll?.salesVolume;
+          }
+          if (coll?.avgPrice) {
+            newData.stats.daily.avgPrice = coll?.avgPrice;
+          }
+          results.push(newData);
         }
-        if (coll?.avgPrice) {
-          newData.stats.daily.avgPrice = coll?.avgPrice;
-        }
-        results.push(newData);
       } else {
         // can't get collection name (not indexed?)
         // console.log('--- collectionData?.metadata?.name', collectionData?.metadata?.name, coll.contractAddress)
