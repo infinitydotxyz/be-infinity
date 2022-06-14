@@ -232,7 +232,7 @@ export class BackfillService {
         title: alchemyNft.metadata.name,
         description: alchemyNft.description,
         external_url: alchemyNft.metadata.external_url,
-        image: alchemyNft.metadata.image,
+        image: alchemyNft?.media?.[0]?.gateway || alchemyNft.metadata.image,
         image_data: '',
         youtube_url: '',
         animation_url: '',
