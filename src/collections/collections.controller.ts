@@ -129,11 +129,13 @@ export class CollectionsController {
       } else {
         // can't get collection name (not indexed?)
         // console.log('--- collectionData?.metadata?.name', collectionData?.metadata?.name, coll.contractAddress)
-        enqueueCollection({ chainId: ChainId.Mainnet, address: coll.contractAddress ?? '' }).then((res) => {
-          console.log('enqueueCollection response:', res)
-        }).catch((e) => {
-          console.log('enqueueCollection error', e)
-        })
+
+        // disabling this until further discussion:
+        // enqueueCollection({ chainId: ChainId.Mainnet, address: coll.contractAddress ?? '' }).then((res) => {
+        //   console.log('enqueueCollection response:', res)
+        // }).catch((e) => {
+        //   console.log('enqueueCollection error', e)
+        // })
       }
     }
 
