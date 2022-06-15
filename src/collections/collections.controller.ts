@@ -44,8 +44,8 @@ import {
 import { TweetArrayDto } from '@infinityxyz/lib/types/dto/twitter';
 import { CollectionVotesDto } from '@infinityxyz/lib/types/dto/votes';
 import { CollectionStatsArrayDto } from './dto/collection-stats-array.dto';
-import { enqueueCollection } from './collections.utils';
 import { EXCLUDED_COLLECTIONS } from 'utils/stats';
+import { AttributesService } from './attributes/attributes.service';
 
 @Controller('collections')
 export class CollectionsController {
@@ -53,7 +53,8 @@ export class CollectionsController {
     private collectionsService: CollectionsService,
     private statsService: StatsService,
     private votesService: VotesService,
-    private twitterService: TwitterService
+    private twitterService: TwitterService,
+    private attributesService: AttributesService
   ) {}
 
   @Get('search')
@@ -115,7 +116,7 @@ export class CollectionsController {
             ...collectionData,
             attributes: {} // don't include attributess
           };
-  
+
           newData.stats = newData.stats ? newData.stats : {};
           newData.stats.daily = newData.stats.daily ? newData.stats.daily : {};
           if (coll?.salesVolume) {
@@ -129,7 +130,6 @@ export class CollectionsController {
       } else {
         // can't get collection name (not indexed?)
         // console.log('--- collectionData?.metadata?.name', collectionData?.metadata?.name, coll.contractAddress)
-
         // disabling this until further discussion:
         // enqueueCollection({ chainId: ChainId.Mainnet, address: coll.contractAddress ?? '' }).then((res) => {
         //   console.log('enqueueCollection response:', res)
@@ -156,13 +156,15 @@ export class CollectionsController {
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor())
   async getOne(
-    @ParamCollectionId('id', ParseCollectionIdPipe) { chainId, address }: ParsedCollectionId
+    @ParamCollectionId('id', ParseCollectionIdPipe) parsedCollection: ParsedCollectionId
   ): Promise<Collection> {
-    const collection = await this.collectionsService.getCollectionByAddress({ chainId, address });
+    const collection = await this.collectionsService.getCollectionByAddress(parsedCollection);
 
     if (!collection) {
       throw new NotFoundException();
     }
+
+    collection.attributes = await this.attributesService.getAttributes(parsedCollection);
 
     return collection;
   }
