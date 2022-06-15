@@ -1,5 +1,10 @@
 import { BaseCollection, ChainId, TokenStandard } from '@infinityxyz/lib/types/core';
-import { firestoreConstants, getCollectionDocId, getSearchFriendlyString } from '@infinityxyz/lib/utils';
+import {
+  firestoreConstants,
+  getCollectionDocId,
+  getSearchFriendlyString,
+  hexToDecimalTokenId
+} from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { AlchemyService } from 'alchemy/alchemy.service';
 import { NftDto } from '@infinityxyz/lib/types/dto/collections/nfts';
@@ -9,7 +14,7 @@ import { MnemonicService } from 'mnemonic/mnemonic.service';
 import { MnemonicTokenMetadata } from 'mnemonic/mnemonic.types';
 import { OpenseaService } from 'opensea/opensea.service';
 import { OpenseaAsset } from 'opensea/opensea.types';
-import { AlchemyNftWithMetadata } from '@infinityxyz/lib/types/services/alchemy';
+import { AlchemyNft, AlchemyNftWithMetadata } from '@infinityxyz/lib/types/services/alchemy';
 
 @Injectable()
 export class BackfillService {
@@ -111,6 +116,44 @@ export class BackfillService {
     }
 
     return [];
+  }
+
+  public backfillAlchemyCachedImages(nfts: AlchemyNft[], chainId: ChainId, user?: string) {
+    for (const nft of nfts) {
+      const nftWithMetadata = nft as AlchemyNftWithMetadata;
+      const collectionAddress = nftWithMetadata.contract.address;
+      const tokenId = hexToDecimalTokenId(nftWithMetadata.id.tokenId);
+      const alchemyCachedImage = nftWithMetadata.media?.[0]?.gateway;
+      const collectionDocId = getCollectionDocId({ chainId, collectionAddress });
+      // save in collections/nfts
+      const tokenDocRef = this.collectionsRef
+        .doc(collectionDocId)
+        .collection(firestoreConstants.COLLECTION_NFTS_COLL)
+        .doc(tokenId);
+      this.fsBatchHandler.add(tokenDocRef, { alchemyCachedImage }, { merge: true });
+
+      // save in user assets
+      if (user) {
+        const userTokenIdDocRef = this.firebaseService.firestore
+          .collection(firestoreConstants.USERS_COLL)
+          .doc(user)
+          .collection(firestoreConstants.USER_COLLECTIONS_COLL)
+          .doc(collectionDocId)
+          .collection(firestoreConstants.USER_NFTS_COLL)
+          .doc(tokenId);
+        this.fsBatchHandler.add(userTokenIdDocRef, { alchemyCachedImage }, { merge: true });
+      }
+    }
+
+    // write batch
+    this.fsBatchHandler
+      .flush()
+      .then(() => {
+        console.log('backfilled alchemy cached images');
+      })
+      .catch((e) => {
+        console.error('Error backfilling alchemy cached images', e);
+      });
   }
 
   private async fetchNftsFromOpensea(

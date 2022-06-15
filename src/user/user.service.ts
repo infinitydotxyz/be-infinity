@@ -32,6 +32,7 @@ import {
 } from '@infinityxyz/lib/types/dto/user';
 import { NftsService } from '../collections/nfts/nfts.service';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
+import { BackfillService } from 'backfill/backfill.service';
 
 export type UserActivity = NftSaleEvent | NftListingEvent | NftOfferEvent;
 
@@ -44,6 +45,7 @@ export class UserService {
     private alchemyService: AlchemyService,
     private paginationService: CursorService,
     private nftsService: NftsService,
+    private backfillService: BackfillService,
     @Optional() private statsService: StatsService
   ) {
     this.fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
@@ -318,6 +320,9 @@ export class UserService {
       );
       const nextPageKey = response?.pageKey ?? '';
       let nfts = response?.ownedNfts ?? [];
+
+      // backfill alchemy cached images in firestore
+      this.backfillService.backfillAlchemyCachedImages(nfts, chainId, user.userAddress);
 
       if (startAtToken) {
         const indexToStartAt = nfts.findIndex(

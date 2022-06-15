@@ -11,6 +11,7 @@ import { ProfileModule } from './profile/profile.module';
 import { AlchemyModule } from 'alchemy/alchemy.module';
 import { MnemonicModule } from 'mnemonic/mnemonic.module';
 import { PaginationModule } from 'pagination/pagination.module';
+import { BackfillModule } from 'backfill/backfill.module';
 
 @Module({
   imports: [
@@ -23,7 +24,8 @@ import { PaginationModule } from 'pagination/pagination.module';
     ProfileModule,
     PaginationModule,
     MnemonicModule,
-    AlchemyModule
+    AlchemyModule,
+    BackfillModule
   ],
   providers: [UserService],
   controllers: [UserController],
