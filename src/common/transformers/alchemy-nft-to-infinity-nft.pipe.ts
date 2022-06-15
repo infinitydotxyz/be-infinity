@@ -2,10 +2,10 @@ import { BigNumber } from '@ethersproject/bignumber/lib/bignumber';
 import { TokenStandard } from '@infinityxyz/lib/types/core';
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
 import { NftDto } from '@infinityxyz/lib/types/dto/collections/nfts';
+import { AlchemyNft } from '@infinityxyz/lib/types/services/alchemy';
 import { Injectable } from '@nestjs/common/decorators/core/injectable.decorator';
 import { PipeTransform } from '@nestjs/common/interfaces/features/pipe-transform.interface';
 import { NftsService } from '../../collections/nfts/nfts.service';
-import { AlchemyNft } from '../../alchemy/alchemy.types';
 
 @Injectable()
 export class AlchemyNftToInfinityNft

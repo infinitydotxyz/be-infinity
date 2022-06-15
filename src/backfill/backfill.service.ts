@@ -2,7 +2,6 @@ import { BaseCollection, ChainId, TokenStandard } from '@infinityxyz/lib/types/c
 import { firestoreConstants, getCollectionDocId, getSearchFriendlyString } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { AlchemyService } from 'alchemy/alchemy.service';
-import { AlchemyNftWithMetadata } from 'alchemy/alchemy.types';
 import { NftDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { FirebaseService } from 'firebase/firebase.service';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
@@ -10,6 +9,7 @@ import { MnemonicService } from 'mnemonic/mnemonic.service';
 import { MnemonicTokenMetadata } from 'mnemonic/mnemonic.types';
 import { OpenseaService } from 'opensea/opensea.service';
 import { OpenseaAsset } from 'opensea/opensea.types';
+import { AlchemyNftWithMetadata } from '@infinityxyz/lib/types/services/alchemy';
 
 @Injectable()
 export class BackfillService {

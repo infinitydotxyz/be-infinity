@@ -23,7 +23,7 @@
     "pre:push": "npm run lint && npm run format && npm run build"
   },
   "dependencies": {
-    "@infinityxyz/lib": "^1.89.3",
+    "@infinityxyz/lib": "^1.91.7",
     "@nestjs/common": "^8.4.4",
     "@nestjs/config": "^2.0.0",
     "@nestjs/core": "^8.4.4",
