@@ -161,6 +161,7 @@ export default class OrdersService {
     if (reqQuery.makerAddress && reqQuery.makerAddress !== user?.userAddress) {
       throw new BadQueryError('Maker address must match user address');
     }
+
     if (reqQuery.makerAddress) {
       firestoreQuery = firestoreQuery.where('makerAddress', '==', reqQuery.makerAddress);
     }
@@ -168,6 +169,11 @@ export default class OrdersService {
     if (reqQuery.takerAddress && reqQuery.takerAddress !== user?.userAddress) {
       throw new BadQueryError('Taker address must match user address');
     }
+
+    if (reqQuery.id) {
+      firestoreQuery = firestoreQuery.where('id', '==', reqQuery.id);
+    }
+    
     if (reqQuery.takerAddress) {
       firestoreQuery = firestoreQuery.where('takerAddress', '==', reqQuery.takerAddress);
     }
