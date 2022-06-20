@@ -1,6 +1,6 @@
 import { ChainId, CreationFlow } from '@infinityxyz/lib/types/core';
 import { OrderType } from '@infinityxyz/lib/types/dto/collections/nfts';
-import { FeedEventType, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
+import { FeedEventType, NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
 import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
@@ -232,27 +232,64 @@ export class NftsService {
     const activities = data.map((item) => {
       let activity: NftActivity;
       switch (item.type) {
-        case FeedEventType.NftSale:
-          {
-            const sale: NftSaleEvent = item as any;
-            activity = {
-              address: sale.collectionAddress,
-              tokenId: sale.tokenId,
-              chainId: sale.chainId as ChainId,
-              type: ActivityType.Sale,
-              from: sale.seller,
-              fromDisplayName: sale.sellerDisplayName,
-              to: sale.buyer,
-              toDisplayName: sale.buyerDisplayName,
-              price: sale.price,
-              paymentToken: sale.paymentToken,
-              internalUrl: sale.internalUrl,
-              externalUrl: sale.externalUrl,
-              timestamp: sale.timestamp
-            };
-          }
-
+        case FeedEventType.NftSale: {
+          const sale: NftSaleEvent = item as any;
+          activity = {
+            address: sale.collectionAddress,
+            tokenId: sale.tokenId,
+            chainId: sale.chainId as ChainId,
+            type: ActivityType.Sale,
+            from: sale.seller,
+            fromDisplayName: sale.sellerDisplayName,
+            to: sale.buyer,
+            toDisplayName: sale.buyerDisplayName,
+            price: sale.price,
+            paymentToken: sale.paymentToken,
+            internalUrl: sale.internalUrl,
+            externalUrl: sale.externalUrl,
+            timestamp: sale.timestamp
+          };
           break;
+        }
+        case FeedEventType.NftListing: {
+          const listing: NftListingEvent = item as any;
+          activity = {
+            address: listing.collectionAddress,
+            tokenId: listing.tokenId,
+            chainId: listing.chainId as ChainId,
+            type: ActivityType.Listing,
+            from: listing.makerAddress,
+            fromDisplayName: listing.makerUsername,
+            to: listing.takerAddress ?? '',
+            toDisplayName: listing.takerUsername,
+            price: listing.startPriceEth,
+            paymentToken: listing.paymentToken,
+            internalUrl: listing.internalUrl,
+            externalUrl: '',
+            timestamp: listing.timestamp
+          };
+          break;
+        }
+
+        case FeedEventType.NftOffer: {
+          const offer: NftOfferEvent = item as any;
+          activity = {
+            address: offer.collectionAddress,
+            tokenId: offer.tokenId,
+            chainId: offer.chainId as ChainId,
+            type: ActivityType.Offer,
+            from: offer.makerAddress,
+            fromDisplayName: offer.makerUsername,
+            to: offer.takerAddress ?? '',
+            toDisplayName: offer.takerUsername,
+            price: offer.startPriceEth,
+            paymentToken: offer.paymentToken,
+            internalUrl: offer.internalUrl,
+            externalUrl: '',
+            timestamp: offer.timestamp
+          };
+          break;
+        }
         default:
           throw new Error(`Activity transformation not implemented type: ${item.type}`);
       }
