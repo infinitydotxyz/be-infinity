@@ -1,10 +1,10 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
+import { AlchemyNftWithMetadata, AlchemyUserNftsResponse } from '@infinityxyz/lib/types/services/alchemy';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config/dist/config.service';
 import axios, { AxiosInstance } from 'axios';
 import { normalize } from 'path';
 import { EnvironmentVariables } from 'types/environment-variables.interface';
-import { AlchemyNftWithMetadata, AlchemyUserNftsResponse } from './alchemy.types';
 
 @Injectable()
 export class AlchemyService {

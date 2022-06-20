@@ -2,10 +2,10 @@ import { BigNumber } from '@ethersproject/bignumber/lib/bignumber';
 import { TokenStandard } from '@infinityxyz/lib/types/core';
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
 import { NftDto } from '@infinityxyz/lib/types/dto/collections/nfts';
+import { AlchemyNft } from '@infinityxyz/lib/types/services/alchemy';
 import { Injectable } from '@nestjs/common/decorators/core/injectable.decorator';
 import { PipeTransform } from '@nestjs/common/interfaces/features/pipe-transform.interface';
 import { NftsService } from '../../collections/nfts/nfts.service';
-import { AlchemyNft } from '../../alchemy/alchemy.types';
 
 @Injectable()
 export class AlchemyNftToInfinityNft
@@ -55,7 +55,10 @@ export class AlchemyNftToInfinityNft
         rarityRank: nftDto?.rarityRank ?? NaN,
         rarityScore: nftDto?.rarityScore ?? NaN,
         image: {
-          url: (nftDto?.image?.url || alchemyNft?.media?.[0]?.gateway || alchemyNft?.metadata?.image) ?? '',
+          url:
+            (nftDto?.image?.url || alchemyNft?.media?.[0]?.gateway || alchemyNft?.metadata?.image) ??
+            nftDto?.image?.originalUrl ??
+            '',
           originalUrl: (nftDto?.image?.originalUrl || alchemyNft?.media?.[0]?.raw || alchemyNft?.metadata?.image) ?? '',
           updatedAt: nftDto?.image?.updatedAt ?? NaN
         },

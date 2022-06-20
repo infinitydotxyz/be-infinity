@@ -32,6 +32,7 @@ import {
 } from '@infinityxyz/lib/types/dto/user';
 import { NftsService } from '../collections/nfts/nfts.service';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
+import { BackfillService } from 'backfill/backfill.service';
 
 export type UserActivity = NftSaleEvent | NftListingEvent | NftOfferEvent;
 
@@ -44,6 +45,7 @@ export class UserService {
     private alchemyService: AlchemyService,
     private paginationService: CursorService,
     private nftsService: NftsService,
+    private backfillService: BackfillService,
     @Optional() private statsService: StatsService
   ) {
     this.fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
@@ -309,6 +311,7 @@ export class UserService {
       pageKey: string,
       startAtToken?: string
     ): Promise<{ pageKey: string; nfts: NftDto[]; hasNextPage: boolean }> => {
+      // todo: directly fetch from firestore when data is ready
       const response = await this.alchemyService.getUserNfts(
         user.userAddress,
         chainId,
@@ -317,6 +320,9 @@ export class UserService {
       );
       const nextPageKey = response?.pageKey ?? '';
       let nfts = response?.ownedNfts ?? [];
+
+      // backfill alchemy cached images in firestore
+      this.backfillService.backfillAlchemyCachedImages(nfts, chainId, user.userAddress);
 
       if (startAtToken) {
         const indexToStartAt = nfts.findIndex(
@@ -357,6 +363,7 @@ export class UserService {
       pageKey: continueFromCurrentPage ? pageKey : nextPageKey,
       startAtToken: nftToStartAt
     });
+    // todo: remove this
     await this.saveUserNftCollections(user.userAddress, nfts);
 
     return {

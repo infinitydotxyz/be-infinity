@@ -44,7 +44,8 @@ import {
 import { TweetArrayDto } from '@infinityxyz/lib/types/dto/twitter';
 import { CollectionVotesDto } from '@infinityxyz/lib/types/dto/votes';
 import { CollectionStatsArrayDto } from './dto/collection-stats-array.dto';
-import { enqueueCollection } from './collections.utils';
+import { EXCLUDED_COLLECTIONS } from 'utils/stats';
+import { AttributesService } from './attributes/attributes.service';
 
 @Controller('collections')
 export class CollectionsController {
@@ -52,7 +53,8 @@ export class CollectionsController {
     private collectionsService: CollectionsService,
     private statsService: StatsService,
     private votesService: VotesService,
-    private twitterService: TwitterService
+    private twitterService: TwitterService,
+    private attributesService: AttributesService
   ) {}
 
   @Get('search')
@@ -91,7 +93,7 @@ export class CollectionsController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor())
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 60 * 24 }))
   async getCollectionStats(@Query() query: CollectionHistoricalStatsQueryDto): Promise<CollectionStatsArrayDto> {
     const result = await this.statsService.getMnemonicCollectionStats(query);
     // console.log('result', result?.collections)
@@ -109,30 +111,31 @@ export class CollectionsController {
       }) as Collection;
 
       if (collectionData?.metadata?.name) {
-        const newData: Collection = {
-          ...collectionData,
-          attributes: {} // don't include attributess
-        };
+        if (!EXCLUDED_COLLECTIONS.includes(collectionData?.address)) {
+          const newData: Collection = {
+            ...collectionData,
+            attributes: {} // don't include attributess
+          };
 
-        newData.stats = newData.stats ? newData.stats : {};
-        newData.stats.daily = newData.stats.daily ? newData.stats.daily : {};
-        if (coll?.salesVolume) {
-          newData.stats.daily.salesVolume = coll?.salesVolume;
+          newData.stats = newData.stats ? newData.stats : {};
+          newData.stats.daily = newData.stats.daily ? newData.stats.daily : {};
+          if (coll?.salesVolume) {
+            newData.stats.daily.salesVolume = coll?.salesVolume;
+          }
+          if (coll?.avgPrice) {
+            newData.stats.daily.avgPrice = coll?.avgPrice;
+          }
+          results.push(newData);
         }
-        if (coll?.avgPrice) {
-          newData.stats.daily.avgPrice = coll?.avgPrice;
-        }
-        results.push(newData);
       } else {
         // can't get collection name (not indexed?)
         // console.log('--- collectionData?.metadata?.name', collectionData?.metadata?.name, coll.contractAddress)
-        enqueueCollection({ chainId: ChainId.Mainnet, address: coll.contractAddress ?? '' })
-          .then((res) => {
-            console.log('enqueueCollection response:', res);
-          })
-          .catch((e) => {
-            console.log('enqueueCollection error', e);
-          });
+        // disabling this until further discussion:
+        // enqueueCollection({ chainId: ChainId.Mainnet, address: coll.contractAddress ?? '' }).then((res) => {
+        //   console.log('enqueueCollection response:', res)
+        // }).catch((e) => {
+        //   console.log('enqueueCollection error', e)
+        // })
       }
     }
 
@@ -153,13 +156,15 @@ export class CollectionsController {
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor())
   async getOne(
-    @ParamCollectionId('id', ParseCollectionIdPipe) { chainId, address }: ParsedCollectionId
+    @ParamCollectionId('id', ParseCollectionIdPipe) parsedCollection: ParsedCollectionId
   ): Promise<Collection> {
-    const collection = await this.collectionsService.getCollectionByAddress({ chainId, address });
+    const collection = await this.collectionsService.getCollectionByAddress(parsedCollection);
 
     if (!collection) {
       throw new NotFoundException();
     }
+
+    collection.attributes = await this.attributesService.getAttributes(parsedCollection);
 
     return collection;
   }

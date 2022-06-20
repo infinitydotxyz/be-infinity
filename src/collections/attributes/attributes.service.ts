@@ -1,5 +1,4 @@
-import { CollectionAttribute, CollectionAttributes } from '@infinityxyz/lib/types/core';
-import { decodeDocId } from '@infinityxyz/lib/utils';
+import { CollectionAttribute, CollectionAttributes, TraitValueMetadata } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 import { Injectable } from '@nestjs/common';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
@@ -13,7 +12,8 @@ export class AttributesService {
 
     for (const doc of snapshot.docs) {
       const values = await this.getAttributeValues(collection, doc.id);
-      attributes[decodeDocId(doc.id)] = { ...(doc.data() as any), values };
+      const data = doc.data() as CollectionAttribute;
+      attributes[data.attributeType] = { ...data, values };
     }
 
     return attributes;
@@ -30,7 +30,10 @@ export class AttributesService {
       .doc(attributeDocId)
       .collection(firestoreConstants.COLLECTION_ATTRIBUTES_VALUES)
       .get();
-    snapshot.forEach((doc) => (attributes[decodeDocId(doc.id)] = doc.data() as any));
+    snapshot.forEach((doc) => {
+      const data = doc.data() as TraitValueMetadata;
+      attributes[data.attributeValue] = data;
+    });
 
     return attributes;
   }
