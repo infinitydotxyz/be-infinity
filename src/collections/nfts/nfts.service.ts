@@ -1,5 +1,5 @@
 import { ChainId, CreationFlow } from '@infinityxyz/lib/types/core';
-import { OrderType } from '@infinityxyz/lib/types/dto/collections/nfts';
+import { NftActivityQueryDto, OrderType } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { FeedEventType, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
 import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
@@ -20,6 +20,7 @@ import {
   NftActivityFiltersDto,
   NftActivity
 } from '@infinityxyz/lib/types/dto/collections/nfts';
+
 
 @Injectable()
 export class NftsService {
@@ -207,16 +208,30 @@ export class NftsService {
     };
   }
 
-  async getNftActivity(nftQuery: NftQueryDto, filter: NftActivityFiltersDto) {
+  async getNftActivity(nftQuery: NftActivityQueryDto, filter: NftActivityFiltersDto) {
     const eventTypes = typeof filter.eventType === 'string' ? [filter.eventType] : filter.eventType;
     const events = eventTypes?.map((item) => activityTypeToEventType[item]).filter((item) => !!item);
-    let activityQuery = this.firebaseService.firestore
+    
+    let activityQuery = null;
+    
+    if (nftQuery.tokenId) {
+      // query for NFT Token Activity
+      activityQuery = this.firebaseService.firestore
       .collection(firestoreConstants.FEED_COLL)
       .where('collectionAddress', '==', nftQuery.address)
       .where('chainId', '==', nftQuery.chainId)
       .where('tokenId', '==', nftQuery.tokenId)
       .where('type', 'in', events)
       .orderBy('timestamp', 'desc');
+    } else {
+      // query for Collection Activity
+      activityQuery = this.firebaseService.firestore
+      .collection(firestoreConstants.FEED_COLL)
+      .where('collectionAddress', '==', nftQuery.address)
+      .where('chainId', '==', nftQuery.chainId)
+      .where('type', 'in', events)
+      .orderBy('timestamp', 'desc');
+    }
 
     if (filter.cursor) {
       const decodedCursor = this.paginationService.decodeCursorToNumber(filter.cursor);
