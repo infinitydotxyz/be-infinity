@@ -22,7 +22,7 @@ import OrdersService from './orders.service';
 
 type UserOrderCollectionsQueryDto = UserOrderItemsQueryDto & {
   name?: string;
-}
+};
 
 class OBOrderCollectionsArrayDto {
   data: OBOrderItemDto[];

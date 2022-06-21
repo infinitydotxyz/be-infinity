@@ -7,7 +7,7 @@ export const EXCLUDED_COLLECTIONS = [
   '0x81ae0be3a8044772d04f32398bac1e1b4b215aa8', // Dreadfulz
   '0x1dfe7ca09e99d10835bf73044a23b73fc20623df', // More loot
   '0x7bd29408f11d2bfc23c34f18275bbf23bb716bc7', // Meebits
-  '0x4e1f41613c9084fdb9e34e11fae9412427480e56', // Terraforms
+  '0x4e1f41613c9084fdb9e34e11fae9412427480e56' // Terraforms
 ];
 
 export function getCollectionDocId(collection: { collectionAddress: string; chainId: string }) {

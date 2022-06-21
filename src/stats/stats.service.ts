@@ -203,30 +203,31 @@ export class StatsService {
         const owners = await this.mnemonicService.getNumOwners(`${coll.contractAddress}`);
         const ownerCount = owners?.dataPoints[0]?.count;
         this.fsBatchHandler.add(
-            collectionRef,
-            {
-              stats: {
-                daily: {
-                  ownerCount: parseInt(ownerCount ?? '0')
-                }
+          collectionRef,
+          {
+            stats: {
+              daily: {
+                ownerCount: parseInt(ownerCount ?? '0')
               }
-            },
-            { merge: true }
-          );
+            }
+          },
+          { merge: true }
+        );
         // console.log('owners', owners?.dataPoints[0]?.count)
         const tokens = await this.mnemonicService.getNumTokens(`${coll.contractAddress}`);
-        const tokenCount = parseInt(tokens?.dataPoints[0]?.totalMinted ?? '0') - parseInt(tokens?.dataPoints[0]?.totalBurned ?? '0');
+        const tokenCount =
+          parseInt(tokens?.dataPoints[0]?.totalMinted ?? '0') - parseInt(tokens?.dataPoints[0]?.totalBurned ?? '0');
         this.fsBatchHandler.add(
-            collectionRef,
-            {
-              stats: {
-                daily: {
-                  tokenCount
-                }
+          collectionRef,
+          {
+            stats: {
+              daily: {
+                tokenCount
               }
-            },
-            { merge: true }
-          );
+            }
+          },
+          { merge: true }
+        );
       }
       await this.fsBatchHandler.flush().catch((err) => console.log('error saving mnemonic collection tokens', err));
     }

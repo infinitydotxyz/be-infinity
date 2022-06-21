@@ -173,7 +173,7 @@ export default class OrdersService {
     if (reqQuery.id) {
       firestoreQuery = firestoreQuery.where('id', '==', reqQuery.id);
     }
-    
+
     if (reqQuery.takerAddress) {
       firestoreQuery = firestoreQuery.where('takerAddress', '==', reqQuery.takerAddress);
     }

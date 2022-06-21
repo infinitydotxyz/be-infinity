@@ -25,9 +25,11 @@ function getResponseType(status: number): ResponseType {
   }
 }
 
-export async function enqueueCollection(
-  collection: { chainId: string; address: string; indexInitiator?: string }
-): Promise<void> {
+export async function enqueueCollection(collection: {
+  chainId: string;
+  address: string;
+  indexInitiator?: string;
+}): Promise<void> {
   try {
     const res = await axios.post(
       INDEXER_URL,
@@ -45,7 +47,7 @@ export async function enqueueCollection(
 
     // const response = getResponseType(res.status);
     getResponseType(res.status);
-    console.log('enqueueCollection', collection.address, res.status)
+    console.log('enqueueCollection', collection.address, res.status);
 
     // return response;
   } catch (err: any) {

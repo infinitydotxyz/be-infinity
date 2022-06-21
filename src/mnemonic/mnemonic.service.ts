@@ -183,7 +183,7 @@ export class MnemonicService {
     } else if (period === 'monthly') {
       duration = 'DURATION_30_DAYS';
     }
-    console.log('options', options)
+    console.log('options', options);
 
     // const sortDirection = getSortDirection(options?.orderDirection ?? OrderDirection.Descending);
     const limit = 50; // todo: hard code Top 50 for now; for pagination later, use: options?.limit ?? 50;
