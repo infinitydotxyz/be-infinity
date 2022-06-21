@@ -339,6 +339,7 @@ export default class OrdersService {
           existingOrderItem.tokens.push(token);
         } else {
           existingOrder[orderItemData.collectionAddress] = {
+            chainId: orderItemData.chainId as ChainId,
             collectionAddress: orderItemData.collectionAddress,
             collectionName: orderItemData.collectionName,
             collectionImage: orderItemData.collectionImage,
@@ -349,6 +350,7 @@ export default class OrdersService {
         }
       } else {
         const obOrderItem: OBOrderItem = {
+          chainId: orderItemData.chainId as ChainId,
           collectionAddress: orderItemData.collectionAddress,
           collectionImage: orderItemData.collectionImage,
           collectionName: orderItemData.collectionName,
@@ -367,7 +369,7 @@ export default class OrdersService {
         endPriceEth: orderItemData.endPriceEth,
         startTimeMs: orderItemData.startTimeMs,
         endTimeMs: orderItemData.endTimeMs,
-        nonce: parseInt(orderDocData.nonce, 10),
+        nonce: orderDocData.nonce,
         makerAddress: orderItemData.makerAddress,
         makerUsername: orderItemData.makerUsername,
         nfts: Object.values(obOrderItemMap[orderItemData.id]),
@@ -564,7 +566,8 @@ export default class OrdersService {
         internalUrl: getInfinityLink({
           type: InfinityLinkType.Asset,
           collectionAddress: orderItem.collectionAddress,
-          tokenId: orderItem.tokenId
+          tokenId: orderItem.tokenId,
+          chainId: orderItem.chainId as ChainId,
         }),
         image: orderItem.tokenImage,
         nftName: orderItem.tokenName,
