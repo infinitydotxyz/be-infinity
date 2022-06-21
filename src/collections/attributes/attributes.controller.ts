@@ -28,7 +28,7 @@ export class AttributesController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor())
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 10 }))
   async getAttributes(@ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId) {
     return this.attributesService.getAttributes(collection);
   }

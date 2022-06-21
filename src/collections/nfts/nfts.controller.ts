@@ -38,7 +38,7 @@ export class NftsController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor())
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 20 }))
   async getCollectionNfts(
     @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
     @Query() query: NftsQueryDto
@@ -66,7 +66,7 @@ export class NftsController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor())
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 20 }))
   async getNft(
     @ParamCollectionId('id', ParseCollectionIdPipe) { address, chainId }: ParsedCollectionId,
     @ParamTokenId('tokenId') tokenId: string
@@ -91,7 +91,6 @@ export class NftsController {
   @ApiOkResponse({ description: ResponseDescription.Success, type: NftActivityArrayDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor())
   async getNftActivity(
     @ParamCollectionId('id', ParseCollectionIdPipe) { address, chainId }: ParsedCollectionId,
     @ParamTokenId('tokenId') tokenId: string,

@@ -189,7 +189,7 @@ export class UserController {
   @ApiOkResponse({ description: ResponseDescription.Success, type: NftArrayDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor())
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 2 }))
   async getNfts(
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
     @Query() filters: UserNftsQueryDto
@@ -223,7 +223,7 @@ export class UserController {
   @ApiOkResponse({ description: ResponseDescription.Success, type: NftCollectionArrayDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor())
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 3 }))
   async getUserNftCollections(
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId
   ): Promise<{ data: NftCollectionDto[] }> {
@@ -337,7 +337,6 @@ export class UserController {
   @UserAuth('userId')
   @ApiOkResponse({ description: ResponseDescription.Success, type: CollectionStatsArrayResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 3 }))
   async getWatchlist(
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
     @Query() query: RankingQueryDto
@@ -361,7 +360,6 @@ export class UserController {
   })
   @ApiOkResponse({ description: ResponseDescription.Success, type: UserCollectionVotesArrayDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  @UseInterceptors(new CacheControlInterceptor())
   async getUserCollectionVotes(
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
     @Query() query: UserCollectionVotesQuery
@@ -379,7 +377,6 @@ export class UserController {
   @ApiOkResponse({ description: ResponseDescription.Success, type: UserCollectionVoteBodyDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  @UseInterceptors(new CacheControlInterceptor())
   async getUserCollectionVote(
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
     @ParamCollectionId('collectionId', ParseCollectionIdPipe) collection: ParsedCollectionId
@@ -399,7 +396,6 @@ export class UserController {
   })
   @ApiCreatedResponse({ description: ResponseDescription.Success })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  @UseInterceptors(new CacheControlInterceptor())
   async saveUserCollectionVote(
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
     @ParamCollectionId('collectionId', ParseCollectionIdPipe) collection: ParsedCollectionId,
@@ -484,6 +480,7 @@ export class UserController {
   @ApiParamCollectionId('collectionId')
   @ApiOkResponse({ description: ResponseDescription.Success, type: UserCollectionPermissions })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 5 }))
   async getCollectionPermissions(
     @ParamUserId('userId', ParseUserIdPipe) { userAddress }: ParsedUserId,
     @ParamCollectionId('collectionId', ParseCollectionIdPipe) collection: ParsedCollectionId
@@ -499,7 +496,6 @@ export class UserController {
   })
   @ApiOkResponse({ description: ResponseDescription.Success, type: UserFollowingCollectionsArrayDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  // @UseInterceptors(new CacheControlInterceptor()) // disabled cache until there is a way to refresh cache.
   async getCollectionsBeingFollowed(
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId
   ): Promise<UserFollowingCollectionsArrayDto> {
@@ -569,7 +565,6 @@ export class UserController {
   })
   @ApiOkResponse({ description: ResponseDescription.Success, type: UserFollowingUsersArrayDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  // @UseInterceptors(new CacheControlInterceptor()) // disabled cache until there is a way to refresh cache.
   async getUsersBeingFollowed(
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId
   ): Promise<UserFollowingUsersArrayDto> {
@@ -640,7 +635,7 @@ export class UserController {
   @ApiOkResponse({ description: ResponseDescription.Success, type: NftActivityArrayDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  @UseInterceptors(new CacheControlInterceptor())
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 3 }))
   async getActivity(
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
     @Query() query: UserActivityQueryDto

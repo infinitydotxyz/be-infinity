@@ -1,10 +1,5 @@
 import {
-  OrdersDto,
-  SignedOBOrderDto,
-  SignedOBOrderArrayDto,
-  OrderItemsQueryDto,
-  UserOrderItemsQueryDto,
-  OBOrderItemDto
+  OBOrderItemDto, OrderItemsQueryDto, OrdersDto, SignedOBOrderArrayDto, SignedOBOrderDto, UserOrderItemsQueryDto
 } from '@infinityxyz/lib/types/dto/orders';
 import { BadRequestException, Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
@@ -69,21 +64,6 @@ export class OrdersController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   public async getOrders(@Query() reqQuery: OrderItemsQueryDto): Promise<SignedOBOrderArrayDto> {
-    const results = await this.ordersService.getSignedOBOrders(reqQuery);
-    return results;
-  }
-
-  @Get('get')
-  @ApiOperation({
-    description: 'Get orders',
-    tags: [ApiTag.Orders],
-    deprecated: true
-  })
-  @ApiOkResponse({ description: ResponseDescription.Success, type: SignedOBOrderArrayDto })
-  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  public async getOrdersDeprecated(@Query() reqQuery: OrderItemsQueryDto): Promise<SignedOBOrderArrayDto> {
-    // TODO delete once FE is changed. this endpoint is deprecated prefer to use GET /orders
     const results = await this.ordersService.getSignedOBOrders(reqQuery);
     return results;
   }
@@ -153,12 +133,11 @@ export class OrdersController {
     return results;
   }
 
-  // todo: uncomment
   @Get(':userId/nonce')
-  // @ApiOperation({
-  //   description: 'Get order nonce for user',
-  //   tags: [ApiTag.Orders]
-  // })
+  @ApiOperation({
+    description: 'Get order nonce for user',
+    tags: [ApiTag.Orders]
+  })
   @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })

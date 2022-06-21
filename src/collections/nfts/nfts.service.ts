@@ -1,5 +1,5 @@
-import { ChainId, CreationFlow } from '@infinityxyz/lib/types/core';
-import { OrderType } from '@infinityxyz/lib/types/dto/collections/nfts';
+import { ChainId, Collection, CreationFlow } from '@infinityxyz/lib/types/core';
+import { NftActivityQueryDto, OrderType } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { FeedEventType, NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
 import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
@@ -207,30 +207,52 @@ export class NftsService {
     };
   }
 
-  async getNftActivity(nftQuery: NftQueryDto, filter: NftActivityFiltersDto) {
+  async getNftActivity(nftQuery: NftActivityQueryDto, filter: NftActivityFiltersDto) {
     const eventTypes = typeof filter.eventType === 'string' ? [filter.eventType] : filter.eventType;
     const events = eventTypes?.map((item) => activityTypeToEventType[item]).filter((item) => !!item);
-    let activityQuery = this.firebaseService.firestore
-      .collection(firestoreConstants.FEED_COLL)
-      .where('collectionAddress', '==', nftQuery.address)
-      .where('chainId', '==', nftQuery.chainId)
-      .where('tokenId', '==', nftQuery.tokenId)
-      .where('type', 'in', events)
-      .orderBy('timestamp', 'desc');
+
+    let activityQuery = null;
+
+    if (nftQuery.tokenId) {
+      // query for NFT Token Activity
+      activityQuery = this.firebaseService.firestore
+        .collection(firestoreConstants.FEED_COLL)
+        .where('collectionAddress', '==', nftQuery.address)
+        .where('chainId', '==', nftQuery.chainId)
+        .where('tokenId', '==', nftQuery.tokenId)
+        .where('type', 'in', events)
+        .orderBy('timestamp', 'desc');
+    } else {
+      // query for Collection Activity
+      activityQuery = this.firebaseService.firestore
+        .collection(firestoreConstants.FEED_COLL)
+        .where('collectionAddress', '==', nftQuery.address)
+        .where('chainId', '==', nftQuery.chainId)
+        .where('type', 'in', events)
+        .orderBy('timestamp', 'desc');
+    }
+
+    activityQuery = activityQuery.limit(filter.limit); // +1 to check if there are more events
 
     if (filter.cursor) {
       const decodedCursor = this.paginationService.decodeCursorToNumber(filter.cursor);
       activityQuery = activityQuery.startAfter(decodedCursor);
     }
 
-    activityQuery.limit(filter.limit + 1); // +1 to check if there are more events
-
     const results = await activityQuery.get();
 
     const data = results.docs.map((item) => item.data());
+    const activities: FirebaseFirestore.DocumentData[] = [];
 
-    const activities = data.map((item) => {
-      let activity: NftActivity;
+    data.forEach((item) => {
+      let activity: NftActivity | null;
+      if (
+        item.type !== FeedEventType.NftSale &&
+        item.type !== FeedEventType.NftListing &&
+        item.type !== FeedEventType.NftOffer
+      ) {
+        return null;
+      }
       switch (item.type) {
         case FeedEventType.NftSale: {
           const sale: NftSaleEvent = item as any;
@@ -291,16 +313,30 @@ export class NftsService {
           break;
         }
         default:
-          throw new Error(`Activity transformation not implemented type: ${item.type}`);
+          activity = null;
+        // throw new Error(`Activity transformation not implemented type: ${item.type}`);
       }
-
-      return activity;
+      // return activity;
+      if (activity) {
+        activities.push(activity);
+      }
     });
 
     const hasNextPage = data.length > filter.limit;
 
     if (hasNextPage) {
       activities.pop(); // Remove item used for pagination
+    }
+
+    // fill in collection data
+    const activitiesCollAddresses = activities.map((act) => ({ address: act?.address ?? '', chainId: act.chainId }));
+    const { getCollection } = await this.collectionsService.getCollectionsByAddress(activitiesCollAddresses);
+    for (const act of activities) {
+      const collectionData = getCollection({
+        address: act.address ?? '',
+        chainId: act.chainId
+      }) as Collection;
+      act.collectionData = collectionData;
     }
 
     const rawCursor = `${activities?.[activities?.length - 1]?.timestamp ?? ''}`;

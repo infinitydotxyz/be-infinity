@@ -36,19 +36,8 @@ export const OPENSEA_API_KEYS = (() => {
   return apiKeys;
 })();
 
-export const TEST_ROOT = getEnvironmentVariable('firestoreTestRoot', false) ?? 'testRoot';
-export const COVALENT_API_KEY = getEnvironmentVariable('covalentKey');
-export const UNMARSHALL_API_KEY = getEnvironmentVariable('unmarshalKey');
 export const ALCHEMY_JSON_RPC_ETH_MAINNET = getEnvironmentVariable('alchemyJsonRpcEthMainnet');
 export const ALCHEMY_JSON_RPC_POLYGON_MAINNET = getEnvironmentVariable('alchemyJsonRpcPolygonMainnet');
-export const TWITTER_BEARER_TOKEN = getEnvironmentVariable('twitterBearerToken');
-export const ETHERSCAN_API_KEY = getEnvironmentVariable('etherscanApiKey');
-export const ICY_TOOLS_API_KEY = getEnvironmentVariable('icyToolsApiKey');
-
-export const TRACE_LOG = getEnvironmentVariable('TRACE_LOG', false) === 'true';
-export const INFO_LOG = getEnvironmentVariable('INFO_LOG', false) === 'true';
-export const ERROR_LOG = getEnvironmentVariable('ERROR_LOG', false) === 'true';
-export const WARN_LOG = getEnvironmentVariable('WARN_LOG', false) === 'true';
 
 export const auth = {
   nonce: 'x-auth-nonce',
@@ -58,14 +47,6 @@ export const auth = {
 
 export const API_BASE = 'http://localhost:9090';
 export const SITE_BASE = 'http://localhost:3000';
-
-export const SALE_FEES_TO_PURCHASE_FEES_RATIO = 5;
-
-// todo: remove these
-export const POLYGON_WYVERN_EXCHANGE_ADDRESS = '0xbfbf0bd8963fe4f5168745ad59da20bf78d6385e';
-export const WYVERN_EXCHANGE_ADDRESS = '0x7be8076f4ea4a4ad08075c2508e481d6c946d12b';
-
-export const OPENSEA_API = 'https://api.opensea.io/api/v1/';
 
 export const DEFAULT_MIN_ETH = 0.0000001;
 export const DEFAULT_MAX_ETH = 1000000; // For listings
