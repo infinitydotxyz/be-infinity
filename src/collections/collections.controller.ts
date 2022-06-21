@@ -1,5 +1,5 @@
-import { ChainId, Collection } from '@infinityxyz/lib/types/core';
-import { CollectionStatsArrayResponseDto } from '@infinityxyz/lib/types/dto/stats';
+import { ChainId, Collection, StatsPeriod } from '@infinityxyz/lib/types/core';
+import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
 import {
   Controller,
   Get,
@@ -221,6 +221,27 @@ export class CollectionsController {
     return response;
   }
 
+  @Get('/:id/stats/current')
+  @ApiOperation({
+    tags: [ApiTag.Collection, ApiTag.Stats],
+    description: 'Get current hourly stats for a collection'
+  })
+  @ApiParamCollectionId()
+  @ApiOkResponse({ description: ResponseDescription.Success, type: CollectionStatsByPeriodDto })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  @UseInterceptors(new CacheControlInterceptor())
+  async getCurrentStats(
+    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
+  ): Promise<CollectionStatsDto> {
+    const res = await this.statsService.getCollectionStats(collection, {
+      period: StatsPeriod.Hourly,
+      date: Date.now()
+    });
+    return res;
+  }
+
   @Get('/:id/stats/:date')
   @ApiOperation({
     tags: [ApiTag.Collection, ApiTag.Stats],
@@ -238,7 +259,6 @@ export class CollectionsController {
     @Query() query: CollectionStatsQueryDto
   ): Promise<CollectionStatsByPeriodDto> {
     const response = await this.statsService.getCollectionStatsByPeriodAndDate(collection, date, query.periods);
-
     return response;
   }
 
