@@ -1,10 +1,9 @@
 import {
   ALCHEMY_JSON_RPC_ETH_MAINNET,
-  ALCHEMY_JSON_RPC_POLYGON_MAINNET,
-  POLYGON_WYVERN_EXCHANGE_ADDRESS,
-  WYVERN_EXCHANGE_ADDRESS
+  ALCHEMY_JSON_RPC_POLYGON_MAINNET
 } from '../constants';
 import { ethers } from 'ethers';
+import { ETHEREUM_INFINITY_EXCHANGE_ADDRESS, POLYGON_INFINITY_EXCHANGE_ADDRESS } from '@infinityxyz/lib/utils';
 
 const ethProvider = new ethers.providers.JsonRpcProvider(ALCHEMY_JSON_RPC_ETH_MAINNET);
 const polygonProvider = new ethers.providers.JsonRpcProvider(ALCHEMY_JSON_RPC_POLYGON_MAINNET);
@@ -23,9 +22,9 @@ export function getProvider(chainId: string) {
 
 export function getExchangeAddress(chainId: string) {
   if (chainId === '1') {
-    return WYVERN_EXCHANGE_ADDRESS;
+    return ETHEREUM_INFINITY_EXCHANGE_ADDRESS;
   } else if (chainId === '137') {
-    return POLYGON_WYVERN_EXCHANGE_ADDRESS;
+    return POLYGON_INFINITY_EXCHANGE_ADDRESS;
   }
   return null;
 }

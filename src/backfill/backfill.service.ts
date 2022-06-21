@@ -329,7 +329,7 @@ export class BackfillService {
       updatedAt: NaN,
       rarityRank: NaN,
       rarityScore: NaN,
-      tokenStandard: TokenStandard.ERC721 // todo: get this from the mnemonic or add an unknown token standard
+      tokenStandard: TokenStandard.ERC721 // todo: adi get this from the mnemonic or add an unknown token standard
     };
   }
 }

@@ -530,11 +530,6 @@ export default class OrdersService {
     return data;
   }
 
-  private getProtocolFeeBps(): number {
-    // todo: should ideally fetch from contract
-    return 250;
-  }
-
   private writeOrderItemsToFeed(
     orderItems: (FirestoreOrderItem & { orderItemId: string })[],
     batch: FirebaseFirestore.WriteBatch | FirestoreBatchHandler

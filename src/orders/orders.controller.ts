@@ -153,12 +153,11 @@ export class OrdersController {
     return results;
   }
 
-  // todo: uncomment
   @Get(':userId/nonce')
-  // @ApiOperation({
-  //   description: 'Get order nonce for user',
-  //   tags: [ApiTag.Orders]
-  // })
+  @ApiOperation({
+    description: 'Get order nonce for user',
+    tags: [ApiTag.Orders]
+  })
   @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
