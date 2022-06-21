@@ -1,6 +1,6 @@
 import { ChainId, CreationFlow } from '@infinityxyz/lib/types/core';
 import { NftActivityQueryDto, OrderType } from '@infinityxyz/lib/types/dto/collections/nfts';
-import { FeedEventType, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
+import { FeedEventType, NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
 import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
@@ -20,7 +20,6 @@ import {
   NftActivityFiltersDto,
   NftActivity
 } from '@infinityxyz/lib/types/dto/collections/nfts';
-
 
 @Injectable()
 export class NftsService {
@@ -211,41 +210,49 @@ export class NftsService {
   async getNftActivity(nftQuery: NftActivityQueryDto, filter: NftActivityFiltersDto) {
     const eventTypes = typeof filter.eventType === 'string' ? [filter.eventType] : filter.eventType;
     const events = eventTypes?.map((item) => activityTypeToEventType[item]).filter((item) => !!item);
-    
+
     let activityQuery = null;
-    
+
     if (nftQuery.tokenId) {
       // query for NFT Token Activity
       activityQuery = this.firebaseService.firestore
-      .collection(firestoreConstants.FEED_COLL)
-      .where('collectionAddress', '==', nftQuery.address)
-      .where('chainId', '==', nftQuery.chainId)
-      .where('tokenId', '==', nftQuery.tokenId)
-      .where('type', 'in', events)
-      .orderBy('timestamp', 'desc');
+        .collection(firestoreConstants.FEED_COLL)
+        .where('collectionAddress', '==', nftQuery.address)
+        .where('chainId', '==', nftQuery.chainId)
+        .where('tokenId', '==', nftQuery.tokenId)
+        .where('type', 'in', events)
+        .orderBy('timestamp', 'desc');
     } else {
       // query for Collection Activity
       activityQuery = this.firebaseService.firestore
-      .collection(firestoreConstants.FEED_COLL)
-      .where('collectionAddress', '==', nftQuery.address)
-      .where('chainId', '==', nftQuery.chainId)
-      .where('type', 'in', events)
-      .orderBy('timestamp', 'desc');
+        .collection(firestoreConstants.FEED_COLL)
+        .where('collectionAddress', '==', nftQuery.address)
+        .where('chainId', '==', nftQuery.chainId)
+        .where('type', 'in', events)
+        .orderBy('timestamp', 'desc');
     }
+
+    activityQuery = activityQuery.limit(filter.limit); // +1 to check if there are more events
 
     if (filter.cursor) {
       const decodedCursor = this.paginationService.decodeCursorToNumber(filter.cursor);
       activityQuery = activityQuery.startAfter(decodedCursor);
     }
 
-    activityQuery.limit(filter.limit + 1); // +1 to check if there are more events
-
     const results = await activityQuery.get();
 
     const data = results.docs.map((item) => item.data());
+    const activities: FirebaseFirestore.DocumentData[] = [];
 
-    const activities = data.map((item) => {
-      let activity: NftActivity;
+    data.forEach((item) => {
+      let activity: NftActivity | null;
+      if (
+        item.type !== FeedEventType.NftSale &&
+        item.type !== FeedEventType.NftListing &&
+        item.type !== FeedEventType.NftOffer
+      ) {
+        return null;
+      }
       switch (item.type) {
         case FeedEventType.NftSale:
           {
@@ -266,13 +273,53 @@ export class NftsService {
               timestamp: sale.timestamp
             };
           }
-
+          break;
+        case FeedEventType.NftListing:
+          {
+            const sale: NftListingEvent = item as any;
+            activity = {
+              address: sale.collectionAddress,
+              tokenId: sale.tokenId,
+              chainId: sale.chainId as ChainId,
+              type: ActivityType.Sale,
+              from: sale.makerAddress,
+              fromDisplayName: sale.makerUsername,
+              to: sale.takerAddress,
+              toDisplayName: sale.takerUsername,
+              price: sale.startPriceEth,
+              paymentToken: sale.paymentToken,
+              internalUrl: sale.internalUrl,
+              timestamp: sale.timestamp
+            };
+          }
+          break;
+        case FeedEventType.NftOffer:
+          {
+            const sale: NftOfferEvent = item as any;
+            activity = {
+              address: sale.collectionAddress,
+              tokenId: sale.tokenId,
+              chainId: sale.chainId as ChainId,
+              type: ActivityType.Sale,
+              from: sale.makerAddress,
+              fromDisplayName: sale.makerUsername,
+              to: sale.takerAddress,
+              toDisplayName: sale.takerUsername,
+              price: sale.startPriceEth,
+              paymentToken: sale.paymentToken,
+              internalUrl: sale.internalUrl,
+              timestamp: sale.timestamp
+            };
+          }
           break;
         default:
-          throw new Error(`Activity transformation not implemented type: ${item.type}`);
+          activity = null;
+        // throw new Error(`Activity transformation not implemented type: ${item.type}`);
       }
-
-      return activity;
+      // return activity;
+      if (activity) {
+        activities.push(activity);
+      }
     });
 
     const hasNextPage = data.length > filter.limit;
