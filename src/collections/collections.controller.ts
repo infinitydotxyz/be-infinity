@@ -57,7 +57,7 @@ export class CollectionsController {
     private votesService: VotesService,
     private twitterService: TwitterService,
     private attributesService: AttributesService,
-    private nftsService: NftsService,
+    private nftsService: NftsService
   ) {}
 
   @Get('search')
@@ -96,7 +96,7 @@ export class CollectionsController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 60 * 2 }))
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 60 * 2 })) // 2 hour cache is fine
   async getCollectionStats(@Query() query: CollectionHistoricalStatsQueryDto): Promise<CollectionStatsArrayDto> {
     const result = await this.statsService.getMnemonicCollectionStats(query);
     // console.log('result', result?.collections)
@@ -157,7 +157,7 @@ export class CollectionsController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor())
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 5 }))
   async getOne(
     @ParamCollectionId('id', ParseCollectionIdPipe) parsedCollection: ParsedCollectionId
   ): Promise<Collection> {
@@ -182,7 +182,7 @@ export class CollectionsController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 3 }))
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 10 }))
   async getTopOwners(
     @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
     @Query() query: TopOwnersQueryDto
@@ -211,7 +211,7 @@ export class CollectionsController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor())
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 60 }))
   async getCollectionHistoricalStats(
     @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
     @Query() query: CollectionHistoricalStatsQueryDto
@@ -231,7 +231,7 @@ export class CollectionsController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor())
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 2 }))
   async getStatsByDate(
     @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
     @Param('date', ParseIntPipe) date: number,
@@ -270,7 +270,7 @@ export class CollectionsController {
   @ApiOkResponse({ description: ResponseDescription.Success, type: TweetArrayDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor())
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 5 }))
   async getCollectionTwitterMentions(
     @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
     @Query() query: PaginatedQuery
@@ -289,7 +289,7 @@ export class CollectionsController {
   @ApiOkResponse({ description: ResponseDescription.Success, type: NftActivityArrayDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor())
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 2 }))
   async getCollectionActivity(
     @ParamCollectionId('id', ParseCollectionIdPipe) { address, chainId }: ParsedCollectionId,
     @Query() filters: NftActivityFiltersDto
