@@ -3,7 +3,7 @@ import { trimLowerCase } from '@infinityxyz/lib/utils/formatters';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config/dist/config.service';
 import { ERC721ABI } from '../abi/erc721';
-import { ethers } from 'ethers';
+import { Contract, ethers } from 'ethers';
 import { EnvironmentVariables } from '../types/environment-variables.interface';
 
 @Injectable()
@@ -43,5 +43,10 @@ export class EthereumService {
     const contract = new ethers.Contract(token.address, ERC721ABI, provider);
     const owner = trimLowerCase(await contract.ownerOf(token.tokenId));
     return owner;
+  }
+
+  getContract(contract: { address: string; chainId: string; abi: ethers.ContractInterface }) {
+    const provider = this.getProvider(contract.chainId as ChainId);
+    return new Contract(contract.address, contract.abi, provider);
   }
 }

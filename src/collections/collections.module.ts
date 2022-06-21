@@ -12,11 +12,13 @@ import CollectionsService from './collections.service';
 import { NftsController } from './nfts/nfts.controller';
 import { NftsService } from './nfts/nfts.service';
 import { AttributesController } from './attributes/attributes.controller';
+import { CurationController } from './curation/curation.controller';
+import { CurationService } from './curation/curation.service';
 
 @Module({
   imports: [StatsModule, VotesModule, TwitterModule, MnemonicModule, PaginationModule, EthereumModule, BackfillModule],
-  providers: [CollectionsService, NftsService, AttributesService],
-  controllers: [CollectionsController, NftsController, AttributesController],
+  providers: [CollectionsService, NftsService, AttributesService, CurationService],
+  controllers: [CollectionsController, NftsController, AttributesController, CurationController],
   exports: [CollectionsService, NftsService, AttributesService]
 })
 export class CollectionsModule {}
