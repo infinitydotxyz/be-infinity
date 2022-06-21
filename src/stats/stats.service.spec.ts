@@ -7,7 +7,7 @@ import { DiscordService } from 'discord/discord.service';
 import { TwitterService } from 'twitter/twitter.service';
 import RankingsRequestDto from 'collections/dto/rankings-query.dto';
 import { TestModule } from 'test.module';
-import serviceAccount from '../creds/nftc-dev-firebase-creds.json';
+import serviceAccount from '../creds/nftc-infinity-firebase-creds.json';
 
 describe('StatsService', () => {
   let service: StatsService;

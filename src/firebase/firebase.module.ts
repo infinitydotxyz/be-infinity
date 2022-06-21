@@ -2,7 +2,7 @@ import { FirebaseService } from './firebase.service';
 import { DynamicModule, Module } from '@nestjs/common';
 import { FirebaseModuleOptions } from './firebase.types';
 import { FIREBASE_OPTIONS } from './firebase.constants';
-import * as serviceAccount from '../creds/nftc-dev-firebase-creds.json';
+import * as serviceAccount from '../creds/nftc-infinity-firebase-creds.json';
 
 @Module({})
 export class FirebaseModule {
