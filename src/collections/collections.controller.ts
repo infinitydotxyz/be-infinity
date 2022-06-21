@@ -46,6 +46,8 @@ import { CollectionVotesDto } from '@infinityxyz/lib/types/dto/votes';
 import { CollectionStatsArrayDto } from './dto/collection-stats-array.dto';
 import { EXCLUDED_COLLECTIONS } from 'utils/stats';
 import { AttributesService } from './attributes/attributes.service';
+import { NftActivityArrayDto, NftActivityFiltersDto } from '@infinityxyz/lib/types/dto/collections/nfts';
+import { NftsService } from './nfts/nfts.service';
 
 @Controller('collections')
 export class CollectionsController {
@@ -54,7 +56,8 @@ export class CollectionsController {
     private statsService: StatsService,
     private votesService: VotesService,
     private twitterService: TwitterService,
-    private attributesService: AttributesService
+    private attributesService: AttributesService,
+    private nftsService: NftsService,
   ) {}
 
   @Get('search')
@@ -275,5 +278,28 @@ export class CollectionsController {
     const response = await this.twitterService.getCollectionTopMentions(collection.ref, query);
 
     return response;
+  }
+
+  @Get(':id/activity')
+  @ApiOperation({
+    description: 'Get activity for a specific nft',
+    tags: [ApiTag.Nft]
+  })
+  @ApiParamCollectionId('id')
+  @ApiOkResponse({ description: ResponseDescription.Success, type: NftActivityArrayDto })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  @UseInterceptors(new CacheControlInterceptor())
+  async getCollectionActivity(
+    @ParamCollectionId('id', ParseCollectionIdPipe) { address, chainId }: ParsedCollectionId,
+    @Query() filters: NftActivityFiltersDto
+  ) {
+    const { data, cursor, hasNextPage } = await this.nftsService.getNftActivity({ address, chainId }, filters);
+
+    return {
+      data,
+      cursor,
+      hasNextPage
+    };
   }
 }
