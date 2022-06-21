@@ -93,7 +93,7 @@ export class CollectionsController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 60 * 24 }))
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 60 * 2 }))
   async getCollectionStats(@Query() query: CollectionHistoricalStatsQueryDto): Promise<CollectionStatsArrayDto> {
     const result = await this.statsService.getMnemonicCollectionStats(query);
     // console.log('result', result?.collections)
