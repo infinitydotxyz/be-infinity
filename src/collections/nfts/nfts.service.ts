@@ -1,4 +1,4 @@
-import { ChainId, CreationFlow } from '@infinityxyz/lib/types/core';
+import { ChainId, Collection, CreationFlow } from '@infinityxyz/lib/types/core';
 import { NftActivityQueryDto, OrderType } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { FeedEventType, NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
 import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
@@ -326,6 +326,17 @@ export class NftsService {
 
     if (hasNextPage) {
       activities.pop(); // Remove item used for pagination
+    }
+
+    // fill in collection data
+    const activitiesCollAddresses = activities.map((act) => ({ address: act?.address ?? '', chainId: act.chainId }));
+    const { getCollection } = await this.collectionsService.getCollectionsByAddress(activitiesCollAddresses);
+    for (const act of activities) {
+      const collectionData = getCollection({
+        address: act.address ?? '',
+        chainId: act.chainId
+      }) as Collection;
+      act.collectionData = collectionData;
     }
 
     const rawCursor = `${activities?.[activities?.length - 1]?.timestamp ?? ''}`;
