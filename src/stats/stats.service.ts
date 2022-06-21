@@ -27,6 +27,7 @@ import {
   RankingQueryDto
 } from '@infinityxyz/lib/types/dto/collections';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
+import { ONE_HOUR } from '../constants';
 
 @Injectable()
 export class StatsService {
@@ -500,14 +501,15 @@ export class StatsService {
         .orderBy('timestamp', 'desc')
         .limit(1);
       const snapshot = await statsQuery.get();
-      const stats = snapshot.docs?.[0]?.data();
+      const stats = snapshot.docs?.[0]?.data() as Stats | SocialsStats | undefined;
       const requestedTimestamp = getStatsDocInfo(timestamp, period).timestamp;
       const currentTimestamp = getStatsDocInfo(Date.now(), period).timestamp;
       const isMostRecent = requestedTimestamp === currentTimestamp;
+      const stale = !!stats?.updatedAt || (stats?.updatedAt && stats?.updatedAt < Date.now() - ONE_HOUR);
       /**
        * Attempt to update socials stats if they're out of date
        */
-      if (isMostRecent && statsCollectionName === this.socialsGroup) {
+      if (isMostRecent && stale && statsCollectionName === this.socialsGroup) {
         if (this.areStatsStale(stats)) {
           if (waitForUpdate) {
             const updated = await this.updateSocialsStats(collectionRef);
@@ -520,7 +522,7 @@ export class StatsService {
         }
       }
 
-      return stats as Stats | SocialsStats | undefined;
+      return stats;
     } catch (err: any) {
       console.error(err);
       return undefined;
