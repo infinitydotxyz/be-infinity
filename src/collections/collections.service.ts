@@ -9,6 +9,7 @@ import { CursorService } from 'pagination/cursor.service';
 import { BackfillService } from 'backfill/backfill.service';
 import { TopOwnersQueryDto, TopOwnerDto, CollectionSearchQueryDto } from '@infinityxyz/lib/types/dto/collections';
 import { ExternalNftCollectionDto, NftCollectionDto } from '@infinityxyz/lib/types/dto/collections/nfts';
+import { CuratedCollectionsQuery, CuratedCollectionsOrderBy } from './curation/curation.dto';
 
 interface CollectionQueryOptions {
   /**
@@ -270,5 +271,46 @@ export default class CollectionsService {
     });
 
     return externalCollection;
+  }
+
+  /**
+   * Fetch all curated collections.
+   */
+  async getCurated(query: CuratedCollectionsQuery) {
+    const collections = this.firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL);
+
+    type Cursor = Record<'address' | 'chainId', string | number>;
+
+    const mapOrderByQuery = {
+      [CuratedCollectionsOrderBy.Votes]: 'numCurationVotes',
+      [CuratedCollectionsOrderBy.AprHighToLow]: '', // TODO: APRs
+      [CuratedCollectionsOrderBy.AprLowToHigh]: ''
+    };
+
+    let q = collections.orderBy(mapOrderByQuery[query.orderBy], query.orderDirection).limit(query.limit + 1);
+
+    if (query.cursor) {
+      const decodedCursor = this.paginationService.decodeCursorToObject<Cursor>(query.cursor);
+      const lastDocument = await collections.doc(`${decodedCursor.chainId}:${decodedCursor.address}`).get();
+      q = q.startAfter(lastDocument);
+    }
+
+    const snap = await q.get();
+    const data = snap.docs.map((item) => item.data() as Collection);
+
+    const hasNextPage = data.length > query.limit;
+    if (hasNextPage) {
+      data.pop();
+    }
+
+    const lastItem = data[data.length - 1];
+
+    return {
+      data,
+      cursor: hasNextPage
+        ? this.paginationService.encodeCursor({ address: lastItem.address, chainId: lastItem.chainId } as Cursor)
+        : undefined,
+      hasNextPage
+    };
   }
 }

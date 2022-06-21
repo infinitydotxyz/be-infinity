@@ -48,6 +48,7 @@ import { EXCLUDED_COLLECTIONS } from 'utils/stats';
 import { AttributesService } from './attributes/attributes.service';
 import { NftActivityArrayDto, NftActivityFiltersDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { NftsService } from './nfts/nfts.service';
+import { CuratedCollectionsQuery } from './curation/curation.dto';
 
 @Controller('collections')
 export class CollectionsController {
@@ -145,6 +146,18 @@ export class CollectionsController {
     return {
       data: results
     };
+  }
+
+  @Get('curated')
+  @ApiOperation({
+    description: 'Fetch all curated collections',
+    tags: [ApiTag.Collection]
+  })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  async getCurated(@Query() query: CuratedCollectionsQuery) {
+    return this.collectionsService.getCurated(query);
   }
 
   @Get('/:id')

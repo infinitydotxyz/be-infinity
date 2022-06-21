@@ -15,9 +15,11 @@ export class CurationService {
     votes: number;
     userAddress: string;
   }) {
+    const incrementVotes = this.firebaseService.firestoreNamespace.FieldValue.increment(votes);
+
     return Promise.all([
-      collection.ref.update('numVotes', this.firebaseService.firestoreNamespace.FieldValue.increment(votes)),
-      collection.ref.collection('votes').doc(userAddress).set({ votes })
+      collection.ref.update('numCurationVotes', incrementVotes),
+      collection.ref.collection('curated').doc(userAddress).set({ votes: incrementVotes })
     ]);
   }
 }
