@@ -89,10 +89,11 @@ export default class CollectionsService {
 
       if (startsWith && endCode) {
         firestoreQuery = firestoreQuery.where('slug', '>=', startsWith).where('slug', '<', endCode);
+        firestoreQuery = firestoreQuery.orderBy('slug');
       }
     }
 
-    firestoreQuery = firestoreQuery.orderBy('slug');
+    firestoreQuery = firestoreQuery.orderBy('hasBlueCheck', 'desc');
 
     const cursor = this.paginationService.decodeCursor(search.cursor);
     if (cursor) {
