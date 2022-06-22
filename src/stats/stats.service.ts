@@ -162,7 +162,7 @@ export class StatsService {
             collectionRef,
             {
               stats: {
-                daily: {
+                [query.period]: {
                   salesVolume: parseFloat(`${coll.salesVolume}`)
                 }
               }
@@ -174,7 +174,7 @@ export class StatsService {
             collectionRef,
             {
               stats: {
-                daily: {
+                [query.period]: {
                   avgPrice: parseFloat(`${coll.avgPrice}`)
                 }
               }
@@ -207,7 +207,7 @@ export class StatsService {
           collectionRef,
           {
             stats: {
-              daily: {
+              [query.period]: {
                 ownerCount: parseInt(ownerCount ?? '0')
               }
             }
@@ -222,7 +222,7 @@ export class StatsService {
           collectionRef,
           {
             stats: {
-              daily: {
+              [query.period]: {
                 tokenCount
               }
             }
