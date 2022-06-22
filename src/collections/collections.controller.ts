@@ -49,6 +49,11 @@ import { AttributesService } from './attributes/attributes.service';
 import { NftActivityArrayDto, NftActivityFiltersDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { NftsService } from './nfts/nfts.service';
 import { CuratedCollectionsQuery } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
+import { CurationService } from './curation/curation.service';
+import { ApiParamUserId, ParamUserId } from 'auth/param-user-id.decorator';
+import { UserAuth } from 'auth/user-auth.decorator';
+import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
+import { ParsedUserId } from 'user/parser/parsed-user-id';
 
 @Controller('collections')
 export class CollectionsController {
@@ -58,7 +63,8 @@ export class CollectionsController {
     private votesService: VotesService,
     private twitterService: TwitterService,
     private attributesService: AttributesService,
-    private nftsService: NftsService
+    private nftsService: NftsService,
+    private curationService: CurationService
   ) {}
 
   @Get('search')
@@ -156,8 +162,34 @@ export class CollectionsController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  async getCurated(@Query() query: CuratedCollectionsQuery) {
+  async getAllCurated(@Query() query: CuratedCollectionsQuery) {
     return this.collectionsService.getCurated(query);
+  }
+
+  @Get('/:id/curated/:userId')
+  @UserAuth('userId')
+  @ApiParamUserId('userId')
+  @ApiParamCollectionId('collectionId')
+  @ApiOperation({
+    description: 'Fetch curation details and estimations',
+    tags: [ApiTag.Collection]
+  })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 5 }))
+  async getCurated(
+    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
+    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId
+  ) {
+    const curated = await this.curationService.findUserCurated(user, collection);
+
+    if (!curated) {
+      // TODO: maybe return empty object instead?
+      throw new NotFoundException('Curation details and estimations not found!');
+    }
+
+    return curated;
   }
 
   @Get('/:id')
