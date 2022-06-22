@@ -354,7 +354,6 @@ export class CollectionsController {
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 2 }))
   enqueueCollectionForIndexing(@ParamCollectionId('id', ParseCollectionIdPipe) { address, chainId }: ParsedCollectionId) {
 
-    console.log('enqueueCollectionForIndexing: chainId, address:', chainId, address)
     enqueueCollection({ chainId, address }).then((res) => {
       console.log('enqueueCollection response:', res)
     }).catch((e) => {
