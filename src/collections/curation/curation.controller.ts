@@ -16,8 +16,8 @@ import { TokenContractService } from 'ethereum/contracts/token.contract.service'
 import { ParamUserId } from 'auth/param-user-id.decorator';
 import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
-import { CurationVoteDto } from './curation.dto';
 import { CurationService } from './curation.service';
+import { CurationVoteDto } from '@infinityxyz/lib/types/dto/collections/curation/curation-vote.dto';
 
 @Controller('collections')
 export class CurationController {

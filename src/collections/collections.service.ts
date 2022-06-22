@@ -9,7 +9,10 @@ import { CursorService } from 'pagination/cursor.service';
 import { BackfillService } from 'backfill/backfill.service';
 import { TopOwnersQueryDto, TopOwnerDto, CollectionSearchQueryDto } from '@infinityxyz/lib/types/dto/collections';
 import { ExternalNftCollectionDto, NftCollectionDto } from '@infinityxyz/lib/types/dto/collections/nfts';
-import { CuratedCollectionsQuery, CuratedCollectionsOrderBy } from './curation/curation.dto';
+import {
+  CuratedCollectionsOrderBy,
+  CuratedCollectionsQuery
+} from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
 
 interface CollectionQueryOptions {
   /**
@@ -282,7 +285,7 @@ export default class CollectionsService {
     type Cursor = Record<'address' | 'chainId', string | number>;
 
     const mapOrderByQuery = {
-      [CuratedCollectionsOrderBy.Votes]: 'numCurationVotes',
+      [CuratedCollectionsOrderBy.Votes]: 'numCuratorVotes',
       [CuratedCollectionsOrderBy.AprHighToLow]: '', // TODO: APRs
       [CuratedCollectionsOrderBy.AprLowToHigh]: ''
     };
