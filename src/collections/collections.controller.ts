@@ -48,6 +48,7 @@ import { EXCLUDED_COLLECTIONS } from 'utils/stats';
 import { AttributesService } from './attributes/attributes.service';
 import { NftActivityArrayDto, NftActivityFiltersDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { NftsService } from './nfts/nfts.service';
+import { enqueueCollection } from './collections.utils';
 
 @Controller('collections')
 export class CollectionsController {
@@ -115,20 +116,38 @@ export class CollectionsController {
 
       if (collectionData?.metadata?.name) {
         if (!EXCLUDED_COLLECTIONS.includes(collectionData?.address)) {
-          const newData: Collection = {
+          const resultItem: Collection = {
             ...collectionData,
             attributes: {} // don't include attributess
           };
 
-          newData.stats = newData.stats ? newData.stats : {};
-          newData.stats.daily = newData.stats.daily ? newData.stats.daily : {};
-          if (coll?.salesVolume) {
-            newData.stats.daily.salesVolume = coll?.salesVolume;
+          resultItem.stats = resultItem.stats ? resultItem.stats : {};
+          if (query.period === StatsPeriod.Daily) {
+            resultItem.stats.daily = resultItem.stats.daily ? resultItem.stats.daily : {};
+            if (coll?.salesVolume) {
+              resultItem.stats.daily.salesVolume = coll?.salesVolume;
+            }
+            if (coll?.avgPrice) {
+              resultItem.stats.daily.avgPrice = coll?.avgPrice;
+            }
+          } else if (query.period === StatsPeriod.Weekly) {
+            resultItem.stats.weekly = resultItem.stats.weekly ? resultItem.stats.weekly : {};
+            if (coll?.salesVolume) {
+              resultItem.stats.weekly.salesVolume = coll?.salesVolume;
+            }
+            if (coll?.avgPrice) {
+              resultItem.stats.weekly.avgPrice = coll?.avgPrice;
+            }
+          } else if (query.period === StatsPeriod.Monthly) {
+            resultItem.stats.monthly = resultItem.stats.monthly ? resultItem.stats.monthly : {};
+            if (coll?.salesVolume) {
+              resultItem.stats.monthly.salesVolume = coll?.salesVolume;
+            }
+            if (coll?.avgPrice) {
+              resultItem.stats.monthly.avgPrice = coll?.avgPrice;
+            }
           }
-          if (coll?.avgPrice) {
-            newData.stats.daily.avgPrice = coll?.avgPrice;
-          }
-          results.push(newData);
+          results.push(resultItem);
         }
       } else {
         // can't get collection name (not indexed?)
@@ -321,5 +340,25 @@ export class CollectionsController {
       cursor,
       hasNextPage
     };
+  }
+
+  @Get(':id/enqueue')
+  @ApiOperation({
+    description: 'Enqueue collection for indexing',
+    tags: [ApiTag.Nft]
+  })
+  @ApiParamCollectionId('id')
+  @ApiOkResponse({ description: ResponseDescription.Success, type: String })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 2 }))
+  enqueueCollectionForIndexing(@ParamCollectionId('id', ParseCollectionIdPipe) { address, chainId }: ParsedCollectionId) {
+
+    enqueueCollection({ chainId, address }).then((res) => {
+      console.log('enqueueCollection response:', res)
+    }).catch((e) => {
+      console.error('enqueueCollection error', e)
+    })
+    return '';
   }
 }

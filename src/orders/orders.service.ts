@@ -196,6 +196,10 @@ export default class OrdersService {
       firestoreQuery = firestoreQuery.where('collectionAddress', 'in', reqQuery.collections);
     }
 
+    if (reqQuery.tokenId) {
+      firestoreQuery = firestoreQuery.where('tokenId', '==', reqQuery.tokenId);
+    }
+
     // ordering
     let orderedBy = reqQuery.orderBy;
     if (requiresOrderByPrice) {

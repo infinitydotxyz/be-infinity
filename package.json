@@ -20,7 +20,9 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "update:lib": "npm install @infinityxyz/lib@latest",
-    "pre:push": "npm run lint && npm run format && npm run build"
+    "pre:push": "npm run lint && npm run format && npm run build",
+    "deploy:dev": "npm run build && gcloud app deploy --appyaml=./app.yaml --project=nftc-dev",
+    "deploy:prod": "npm run build && gcloud app deploy --appyaml=./app.yaml --project=nftc-infinity"
   },
   "dependencies": {
     "@infinityxyz/lib": "^1.99.0",
