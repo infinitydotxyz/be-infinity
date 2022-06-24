@@ -33,7 +33,10 @@ export class CurationService {
   /**
    * Find a specific user-curated collection.
    */
-  async findUserCurated(user: ParsedUserId, collection: ParsedCollectionId): Promise<CuratedCollection | null> {
+  async findUserCurated(
+    user: Omit<ParsedUserId, 'ref'>,
+    collection: Omit<ParsedCollectionId, 'ref'>
+  ): Promise<CuratedCollection | null> {
     const snap = await this.firebaseService.firestore
       .collectionGroup(firestoreConstants.COLLECTION_CURATORS_COLL)
       .where('userAddress', '==', user.userAddress)

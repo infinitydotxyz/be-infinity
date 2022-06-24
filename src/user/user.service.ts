@@ -1,5 +1,5 @@
 /* eslint-disable no-empty */
-import { ChainId } from '@infinityxyz/lib/types/core';
+import { ChainId, CuratedCollection } from '@infinityxyz/lib/types/core';
 import { AlchemyNftToInfinityNft } from '../common/transformers/alchemy-nft-to-infinity-nft.pipe';
 import { AlchemyService } from 'alchemy/alchemy.service';
 import { CreationFlow, OrderDirection } from '@infinityxyz/lib/types/core';
@@ -33,6 +33,8 @@ import {
 import { NftsService } from '../collections/nfts/nfts.service';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
 import { BackfillService } from 'backfill/backfill.service';
+import { CuratedCollectionsQuery } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
+import { CuratedCollectionsDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 
 export type UserActivity = NftSaleEvent | NftListingEvent | NftOfferEvent;
 
@@ -431,6 +433,44 @@ export class UserService {
       data: data,
       hasNextPage,
       cursor: nextCursor
+    };
+  }
+
+  /**
+   * Fetch all user-curated collections.
+   */
+  async getAllCurated(user: ParsedUserId, query: CuratedCollectionsQuery): Promise<CuratedCollectionsDto> {
+    let q = this.firebaseService.firestore
+      .collectionGroup(firestoreConstants.COLLECTION_CURATORS_COLL)
+      .where('userAddress', '==', user.userAddress)
+      .where('userChainId', '==', user.userChainId)
+      .orderBy('votes', query.orderDirection)
+      .limit(query.limit + 1);
+
+    if (query.cursor) {
+      const decodedCursor = this.paginationService.decodeCursorToObject<CuratedCollection>(query.cursor);
+      q = q.startAfter(decodedCursor);
+    }
+
+    const snap = await q.get();
+    const curations = snap.docs.map((item) => item.data() as CuratedCollection);
+
+    const hasNextPage = curations.length > query.limit;
+    if (hasNextPage) {
+      curations.pop();
+    }
+
+    const lastItem = curations[curations.length - 1];
+
+    // TODO: get collections based on curatedCollections
+
+    return {
+      data: {
+        curations,
+        collections: []
+      },
+      cursor: hasNextPage ? this.paginationService.encodeCursor(lastItem) : undefined,
+      hasNextPage
     };
   }
 }

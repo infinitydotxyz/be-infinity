@@ -87,6 +87,7 @@ import {
   UserCollectionVoteBodyDto,
   UserCollectionVoteDto
 } from '@infinityxyz/lib/types/dto/votes';
+import { CuratedCollectionsQuery } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
 
 @Controller('user')
 export class UserController {
@@ -486,6 +487,21 @@ export class UserController {
     @ParamCollectionId('collectionId', ParseCollectionIdPipe) collection: ParsedCollectionId
   ): Promise<UserCollectionPermissions> {
     return { canModify: await this.collectionsService.canModify(userAddress, collection) };
+  }
+
+  @Get(':userId/curated')
+  @UserAuth('userId')
+  @ApiOperation({
+    description: "Get the user's curated collections",
+    tags: [ApiTag.User, ApiTag.Collection]
+  })
+  @ApiParamUserId('userId')
+  @ApiParamCollectionId('collectionId')
+  @ApiOkResponse({ description: ResponseDescription.Success, type: UserCollectionPermissions })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 5 }))
+  getCurated(@ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId, @Query() query: CuratedCollectionsQuery) {
+    return this.userService.getAllCurated(user, query);
   }
 
   @Get(':userId/followingCollections')

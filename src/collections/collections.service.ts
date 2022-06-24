@@ -1,4 +1,4 @@
-import { ChainId, Collection, CollectionMetadata, CreationFlow } from '@infinityxyz/lib/types/core';
+import { ChainId, Collection, CollectionMetadata, CreationFlow, CuratedCollection } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, getCollectionDocId, getEndCode, getSearchFriendlyString } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { FirebaseService } from 'firebase/firebase.service';
@@ -13,6 +13,9 @@ import {
   CuratedCollectionsOrderBy,
   CuratedCollectionsQuery
 } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
+import { CuratedCollectionsDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
+import { ParsedUserId } from 'user/parser/parsed-user-id';
+import { CurationService } from './curation/curation.service';
 
 interface CollectionQueryOptions {
   /**
@@ -29,7 +32,8 @@ export default class CollectionsService {
     private firebaseService: FirebaseService,
     private mnemonicService: MnemonicService,
     private paginationService: CursorService,
-    private backfillService: BackfillService
+    private backfillService: BackfillService,
+    private curationService: CurationService
   ) {}
 
   private get defaultCollectionQueryOptions(): CollectionQueryOptions {
@@ -279,8 +283,8 @@ export default class CollectionsService {
   /**
    * Fetch all curated collections.
    */
-  async getCurated(query: CuratedCollectionsQuery) {
-    const collections = this.firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL);
+  async getCurated(query: CuratedCollectionsQuery, user?: ParsedUserId): Promise<CuratedCollectionsDto> {
+    const collectionsRef = this.firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL);
 
     type Cursor = Record<'address' | 'chainId', string | number>;
 
@@ -290,26 +294,43 @@ export default class CollectionsService {
       [CuratedCollectionsOrderBy.AprLowToHigh]: ''
     };
 
-    let q = collections.orderBy(mapOrderByQuery[query.orderBy], query.orderDirection).limit(query.limit + 1);
+    let q = collectionsRef.orderBy(mapOrderByQuery[query.orderBy], query.orderDirection).limit(query.limit + 1);
 
     if (query.cursor) {
       const decodedCursor = this.paginationService.decodeCursorToObject<Cursor>(query.cursor);
-      const lastDocument = await collections.doc(`${decodedCursor.chainId}:${decodedCursor.address}`).get();
+      const lastDocument = await collectionsRef.doc(`${decodedCursor.chainId}:${decodedCursor.address}`).get();
       q = q.startAfter(lastDocument);
     }
 
     const snap = await q.get();
-    const data = snap.docs.map((item) => item.data() as Collection);
+    const collections = snap.docs.map((item) => item.data() as Collection);
 
-    const hasNextPage = data.length > query.limit;
+    const hasNextPage = collections.length > query.limit;
     if (hasNextPage) {
-      data.pop();
+      collections.pop();
     }
 
-    const lastItem = data[data.length - 1];
+    const lastItem = collections[collections.length - 1];
+
+    const curations: CuratedCollection[] = [];
+
+    // read curations too, given the user is logged in
+    if (user) {
+      for (const collection of collections) {
+        // TODO: can we read this in bulk/parallel to achieve better performance?
+        const curators = await this.curationService.findUserCurated(user, collection as any);
+
+        if (curators) {
+          curations.push(curators);
+        }
+      }
+    }
 
     return {
-      data,
+      data: {
+        collections,
+        curations
+      },
       cursor: hasNextPage
         ? this.paginationService.encodeCursor({ address: lastItem.address, chainId: lastItem.chainId } as Cursor)
         : undefined,
