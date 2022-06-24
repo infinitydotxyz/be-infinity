@@ -1,4 +1,4 @@
-import { ChainId, Collection, StatsPeriod } from '@infinityxyz/lib/types/core';
+import { ChainId, Collection, CreationFlow, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
 import {
   Controller,
@@ -85,6 +85,22 @@ export class CollectionsController {
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 3 }))
   async getStats(@Query() query: RankingQueryDto): Promise<CollectionStatsArrayResponseDto> {
     const res = await this.statsService.getCollectionRankings(query);
+
+    const { getCollection } = await this.collectionsService.getCollectionsByAddress(
+      res.data.map((st) => ({ address: st.collectionAddress, chainId: st.chainId }))
+    );
+
+    // get collection details and set them to the result:
+    const finalData: any[] = [];
+    for (const st of res.data) {
+      const collectionData = getCollection({ address: st.collectionAddress ?? '', chainId: st.chainId });
+      if (collectionData && collectionData.state?.create.step === CreationFlow.Complete) {
+        st.collectionData = collectionData as Collection;
+        finalData.push(st);
+      }
+    }
+    res.data = finalData;
+
     return res;
   }
 
@@ -352,13 +368,16 @@ export class CollectionsController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 2 }))
-  enqueueCollectionForIndexing(@ParamCollectionId('id', ParseCollectionIdPipe) { address, chainId }: ParsedCollectionId) {
-
-    enqueueCollection({ chainId, address }).then((res) => {
-      console.log('enqueueCollection response:', res)
-    }).catch((e) => {
-      console.error('enqueueCollection error', e)
-    })
+  enqueueCollectionForIndexing(
+    @ParamCollectionId('id', ParseCollectionIdPipe) { address, chainId }: ParsedCollectionId
+  ) {
+    enqueueCollection({ chainId, address })
+      .then((res) => {
+        console.log('enqueueCollection response:', res);
+      })
+      .catch((e) => {
+        console.error('enqueueCollection error', e);
+      });
     return '';
   }
 }
