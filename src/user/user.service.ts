@@ -1,5 +1,5 @@
 /* eslint-disable no-empty */
-import { ChainId, CuratedCollection } from '@infinityxyz/lib/types/core';
+import { ChainId, Collection, CuratedCollection } from '@infinityxyz/lib/types/core';
 import { AlchemyNftToInfinityNft } from '../common/transformers/alchemy-nft-to-infinity-nft.pipe';
 import { AlchemyService } from 'alchemy/alchemy.service';
 import { CreationFlow, OrderDirection } from '@infinityxyz/lib/types/core';
@@ -462,12 +462,21 @@ export class UserService {
 
     const lastItem = curations[curations.length - 1];
 
-    // TODO: get collections based on curatedCollections
+    const collections: Collection[] = [];
+
+    for (const curation of curations) {
+      const collectionRef = this.firebaseService.firestore
+        .collection(firestoreConstants.COLLECTIONS_COLL)
+        .doc(`${curation.collectionChainId}:${curation.collectionAddress}`);
+      // TODO: improve performance of these reads?
+      const snap = await collectionRef.get();
+      collections.push(snap.data() as Collection);
+    }
 
     return {
       data: {
-        curations,
-        collections: []
+        collections,
+        curations
       },
       cursor: hasNextPage ? this.paginationService.encodeCursor(lastItem) : undefined,
       hasNextPage
