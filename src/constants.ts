@@ -48,6 +48,14 @@ export const auth = {
 export const API_BASE = 'https://sv-dev.nftcompany.com';
 export const SITE_BASE = 'https://dev.nftcompany.com';
 
+export const SALE_FEES_TO_PURCHASE_FEES_RATIO = 5;
+
+// todo: remove these
+export const POLYGON_WYVERN_EXCHANGE_ADDRESS = '0xbfbf0bd8963fe4f5168745ad59da20bf78d6385e';
+export const WYVERN_EXCHANGE_ADDRESS = '0x7be8076f4ea4a4ad08075c2508e481d6c946d12b';
+
+export const OPENSEA_API = 'https://api.opensea.io/api/v1/';
+
 export const DEFAULT_MIN_ETH = 0.0000001;
 export const DEFAULT_MAX_ETH = 1000000; // For listings
 export const DEFAULT_PRICE_SORT_DIRECTION = OrderDirection.Descending;
