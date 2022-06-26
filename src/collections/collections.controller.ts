@@ -55,6 +55,7 @@ import { NftActivityArrayDto, NftActivityFiltersDto } from '@infinityxyz/lib/typ
 import { NftsService } from './nfts/nfts.service';
 import { enqueueCollection } from './collections.utils';
 import { FirebaseService } from 'firebase/firebase.service';
+import { COLLECT_STATS_INVOKE_INTERVAL } from '../constants';
 
 @Controller('collections')
 export class CollectionsController {
@@ -102,7 +103,7 @@ export class CollectionsController {
     }
     let triggerTimer = 0;
     for (const address of idsArr) {
-      triggerTimer += 1000 * 5; // todo: use the right timer
+      triggerTimer += COLLECT_STATS_INVOKE_INTERVAL; // todo: use the right timer
       setTimeout(() => {
         trigger(address).catch(() => console.log);
       }, triggerTimer);

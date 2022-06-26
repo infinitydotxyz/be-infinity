@@ -58,9 +58,11 @@ export const FIREBASE_SERVICE_ACCOUNT = 'nftc-dev-firebase-creds.json';
 export const ORIGIN = /http:\/\/localhost:\d+/;
 export const INFINITY_URL = 'https://infinity.xyz/';
 
+export const ONE_MIN = 1000 * 60;
 export const ONE_HOUR = 3_600_000; // In ms
 export const ONE_DAY = ONE_HOUR * 24;
 export const MIN_TWITTER_UPDATE_INTERVAL = ONE_HOUR; // In ms
 export const MIN_DISCORD_UPDATE_INTERVAL = ONE_HOUR;
 export const MIN_LINK_UPDATE_INTERVAL = ONE_HOUR;
 export const MIN_COLLECTION_STATS_UPDATE_INTERVAL = ONE_HOUR / 4; // 15 min
+export const COLLECT_STATS_INVOKE_INTERVAL = 5000; // every 5s, collect stats for 1 collection from the list (see: /collect-stats)
