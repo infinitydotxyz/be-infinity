@@ -32,7 +32,9 @@ export class NftsService {
   ) {}
 
   async getNft(nftQuery: NftQueryDto): Promise<NftDto | undefined> {
-    const collection = await this.collectionsService.getCollectionByAddress(nftQuery);
+    const collection = await this.collectionsService.getCollectionByAddress(nftQuery, {
+      limitToCompleteCollections: false
+    });
     if (collection) {
       const nfts = await this.getNfts([
         { address: collection.address, chainId: collection.chainId as ChainId, tokenId: nftQuery.tokenId }

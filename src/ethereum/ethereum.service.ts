@@ -2,7 +2,7 @@ import { ChainId } from '@infinityxyz/lib/types/core';
 import { trimLowerCase } from '@infinityxyz/lib/utils/formatters';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config/dist/config.service';
-import { ERC721ABI } from '../abi/erc721';
+import { ERC721ABI } from '@infinityxyz/lib/abi/erc721';
 import { ethers } from 'ethers';
 import { EnvironmentVariables } from '../types/environment-variables.interface';
 
