@@ -1,4 +1,4 @@
-import { ChainId, Collection, StatsPeriod } from '@infinityxyz/lib/types/core';
+import { ChainId, Collection, CreationFlow, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
 import {
   Controller,
@@ -17,6 +17,11 @@ import {
   ApiOkResponse,
   ApiOperation
 } from '@nestjs/swagger';
+
+// todo: move to lib
+type CollectStatsQuery = {
+  list: string;
+};
 
 import { ApiTag } from 'common/api-tags';
 import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param-collection-id.decorator';
@@ -49,6 +54,8 @@ import { AttributesService } from './attributes/attributes.service';
 import { NftActivityArrayDto, NftActivityFiltersDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { NftsService } from './nfts/nfts.service';
 import { enqueueCollection } from './collections.utils';
+import { FirebaseService } from 'firebase/firebase.service';
+import { COLLECT_STATS_INVOKE_INTERVAL } from '../constants';
 
 @Controller('collections')
 export class CollectionsController {
@@ -58,7 +65,8 @@ export class CollectionsController {
     private votesService: VotesService,
     private twitterService: TwitterService,
     private attributesService: AttributesService,
-    private nftsService: NftsService
+    private nftsService: NftsService,
+    private firebaseService: FirebaseService
   ) {}
 
   @Get('search')
@@ -74,6 +82,35 @@ export class CollectionsController {
     return res;
   }
 
+  @Get('collect-stats')
+  @ApiOperation({
+    description: 'A background task to collect Stats for a list of collection',
+    tags: [ApiTag.Collection]
+  })
+  @ApiOkResponse({ description: ResponseDescription.Success, type: String })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  collectStats(@Query() query: CollectStatsQuery) {
+    const idsArr = query.list.split(',');
+
+    const trigger = async (address: string) => {
+      const collectionRef = (await this.firebaseService.getCollectionRef({
+        chainId: ChainId.Mainnet,
+        address
+      })) as FirebaseFirestore.DocumentReference<Collection>;
+      this.statsService.getCurrentSocialsStats(collectionRef).catch((err) => console.error(err));
+      console.log('getCurrentSocialsStats:', address);
+    };
+    let triggerTimer = 0;
+    for (const address of idsArr) {
+      setTimeout(() => {
+        trigger(address).catch((err) => console.error(err));
+      }, triggerTimer);
+      triggerTimer += COLLECT_STATS_INVOKE_INTERVAL; // todo: use the right timer
+    }
+    return query;
+  }
+
   @Get('rankings')
   @ApiOperation({
     description: 'Get stats for collections ordered by a given field',
@@ -85,6 +122,22 @@ export class CollectionsController {
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 3 }))
   async getStats(@Query() query: RankingQueryDto): Promise<CollectionStatsArrayResponseDto> {
     const res = await this.statsService.getCollectionRankings(query);
+
+    const { getCollection } = await this.collectionsService.getCollectionsByAddress(
+      res.data.map((st) => ({ address: st.collectionAddress, chainId: st.chainId }))
+    );
+
+    // get collection details and set them to the result:
+    const finalData: any[] = [];
+    for (const st of res.data) {
+      const collectionData = getCollection({ address: st.collectionAddress ?? '', chainId: st.chainId });
+      if (collectionData && collectionData.state?.create.step === CreationFlow.Complete) {
+        st.collectionData = collectionData as Collection;
+        finalData.push(st);
+      }
+    }
+    res.data = finalData;
+
     return res;
   }
 
@@ -115,7 +168,10 @@ export class CollectionsController {
       }) as Collection;
 
       if (collectionData?.metadata?.name) {
-        if (!EXCLUDED_COLLECTIONS.includes(collectionData?.address)) {
+        if (
+          !EXCLUDED_COLLECTIONS.includes(collectionData?.address) &&
+          collectionData?.state?.create?.step === CreationFlow.Complete
+        ) {
           const resultItem: Collection = {
             ...collectionData,
             attributes: {} // don't include attributess
@@ -345,20 +401,23 @@ export class CollectionsController {
   @Get(':id/enqueue')
   @ApiOperation({
     description: 'Enqueue collection for indexing',
-    tags: [ApiTag.Nft]
+    tags: [ApiTag.Collection]
   })
   @ApiParamCollectionId('id')
   @ApiOkResponse({ description: ResponseDescription.Success, type: String })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 2 }))
-  enqueueCollectionForIndexing(@ParamCollectionId('id', ParseCollectionIdPipe) { address, chainId }: ParsedCollectionId) {
-
-    enqueueCollection({ chainId, address }).then((res) => {
-      console.log('enqueueCollection response:', res)
-    }).catch((e) => {
-      console.error('enqueueCollection error', e)
-    })
+  enqueueCollectionForIndexing(
+    @ParamCollectionId('id', ParseCollectionIdPipe) { address, chainId }: ParsedCollectionId
+  ) {
+    enqueueCollection({ chainId, address })
+      .then((res) => {
+        console.log('enqueueCollection response:', res);
+      })
+      .catch((e) => {
+        console.error('enqueueCollection error', e);
+      });
     return '';
   }
 }

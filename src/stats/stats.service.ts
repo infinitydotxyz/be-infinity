@@ -169,7 +169,8 @@ export class StatsService {
             },
             { merge: true }
           );
-        } else if (coll.avgPrice) {
+        }
+        if (coll.avgPrice) {
           this.fsBatchHandler.add(
             collectionRef,
             {
