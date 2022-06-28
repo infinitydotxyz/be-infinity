@@ -4,7 +4,7 @@ import { AlchemyNftToInfinityNft } from '../common/transformers/alchemy-nft-to-i
 import { AlchemyService } from 'alchemy/alchemy.service';
 import { CreationFlow, OrderDirection } from '@infinityxyz/lib/types/core';
 import { NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
-import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
+import { firestoreConstants, getEndCode, getSearchFriendlyString, trimLowerCase } from '@infinityxyz/lib/utils';
 import { Injectable, Optional } from '@nestjs/common';
 import { ActivityType, activityTypeToEventType } from 'collections/nfts/nft-activity.types';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
@@ -195,11 +195,22 @@ export class UserService {
     return {};
   }
 
-  async getUserNftCollections(user: ParsedUserId) {
+  async getUserNftCollections(user: ParsedUserId, search = '') {
     const collRef = user.ref.collection(firestoreConstants.USER_NFT_COLLECTION_COLL);
 
-    const snap = await collRef.get();
-    const nftCollections: NftCollectionDto[] = snap.docs.map((doc) => {
+    let snap = undefined;
+    if (!search) {
+      snap = await collRef.get();
+    } else {
+      // search by name (collectionSlug)
+      const startsWith = getSearchFriendlyString(search);
+      const endCode = getEndCode(startsWith);
+      if (startsWith && endCode) {
+        snap = await collRef.where('collectionSlug', '>=', startsWith).where('collectionSlug', '<', endCode).get();
+      }
+    }
+
+    const nftCollections: NftCollectionDto[] = (snap?.docs ?? []).map((doc) => {
       const docData = doc.data() as NftCollectionDto;
       return docData;
     });
