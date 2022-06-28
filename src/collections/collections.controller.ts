@@ -21,7 +21,7 @@ import {
 // todo: move to lib
 type CollectStatsQuery = {
   list: string;
-}
+};
 
 import { ApiTag } from 'common/api-tags';
 import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param-collection-id.decorator';
@@ -91,16 +91,16 @@ export class CollectionsController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   collectStats(@Query() query: CollectStatsQuery) {
-    const idsArr = query.list.split(',')
+    const idsArr = query.list.split(',');
 
     const trigger = async (address: string) => {
       const collectionRef = (await this.firebaseService.getCollectionRef({
         chainId: ChainId.Mainnet,
         address
-      })) as FirebaseFirestore.DocumentReference<Collection>
+      })) as FirebaseFirestore.DocumentReference<Collection>;
       this.statsService.getCurrentSocialsStats(collectionRef).catch((err) => console.error(err));
-      console.log('getCurrentSocialsStats:', address)
-    }
+      console.log('getCurrentSocialsStats:', address);
+    };
     let triggerTimer = 0;
     for (const address of idsArr) {
       setTimeout(() => {
@@ -168,7 +168,10 @@ export class CollectionsController {
       }) as Collection;
 
       if (collectionData?.metadata?.name) {
-        if (!EXCLUDED_COLLECTIONS.includes(collectionData?.address)) {
+        if (
+          !EXCLUDED_COLLECTIONS.includes(collectionData?.address) &&
+          collectionData?.state?.create?.step === CreationFlow.Complete
+        ) {
           const resultItem: Collection = {
             ...collectionData,
             attributes: {} // don't include attributess
