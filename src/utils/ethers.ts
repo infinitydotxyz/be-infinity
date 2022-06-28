@@ -1,7 +1,4 @@
-import {
-  ALCHEMY_JSON_RPC_ETH_MAINNET,
-  ALCHEMY_JSON_RPC_POLYGON_MAINNET
-} from '../constants';
+import { ALCHEMY_JSON_RPC_ETH_MAINNET, ALCHEMY_JSON_RPC_POLYGON_MAINNET } from '../constants';
 import { ethers } from 'ethers';
 import { ETHEREUM_INFINITY_EXCHANGE_ADDRESS, POLYGON_INFINITY_EXCHANGE_ADDRESS } from '@infinityxyz/lib/utils';
 

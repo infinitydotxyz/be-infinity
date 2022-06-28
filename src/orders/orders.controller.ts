@@ -1,5 +1,10 @@
 import {
-  OBOrderItemDto, OrderItemsQueryDto, OrdersDto, SignedOBOrderArrayDto, SignedOBOrderDto, UserOrderItemsQueryDto
+  OBOrderItemDto,
+  OrderItemsQueryDto,
+  OrdersDto,
+  SignedOBOrderArrayDto,
+  SignedOBOrderDto,
+  UserOrderItemsQueryDto
 } from '@infinityxyz/lib/types/dto/orders';
 import { BadRequestException, Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';

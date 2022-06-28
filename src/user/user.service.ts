@@ -384,7 +384,7 @@ export class UserService {
       pageKey: continueFromCurrentPage ? pageKey : nextPageKey,
       startAtToken: nftToStartAt
     });
-    
+
     // save user's collections to be used in /:userId/nftCollections
     this.saveUserNftCollections(user.userAddress, nfts);
 
