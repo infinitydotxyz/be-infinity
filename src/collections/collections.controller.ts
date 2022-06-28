@@ -168,7 +168,10 @@ export class CollectionsController {
       }) as Collection;
 
       if (collectionData?.metadata?.name) {
-        if (!EXCLUDED_COLLECTIONS.includes(collectionData?.address)) {
+        if (
+          !EXCLUDED_COLLECTIONS.includes(collectionData?.address) &&
+          collectionData?.state?.create?.step === CreationFlow.Complete
+        ) {
           const resultItem: Collection = {
             ...collectionData,
             attributes: {} // don't include attributess
