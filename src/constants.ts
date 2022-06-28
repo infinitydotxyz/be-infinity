@@ -65,4 +65,4 @@ export const MIN_TWITTER_UPDATE_INTERVAL = ONE_HOUR; // In ms
 export const MIN_DISCORD_UPDATE_INTERVAL = ONE_HOUR;
 export const MIN_LINK_UPDATE_INTERVAL = ONE_HOUR;
 export const MIN_COLLECTION_STATS_UPDATE_INTERVAL = ONE_HOUR / 4; // 15 min
-export const COLLECT_STATS_INVOKE_INTERVAL = 5000; // every 5s, collect stats for 1 collection from the list (see: /collect-stats)
+export const COLLECT_STATS_INVOKE_INTERVAL = 500; // every 500ms, collect stats for 1 collection from the list (see: /collect-stats)

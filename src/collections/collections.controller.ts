@@ -103,10 +103,10 @@ export class CollectionsController {
     }
     let triggerTimer = 0;
     for (const address of idsArr) {
-      triggerTimer += COLLECT_STATS_INVOKE_INTERVAL; // todo: use the right timer
       setTimeout(() => {
-        trigger(address).catch(() => console.log);
+        trigger(address).catch((err) => console.error(err));
       }, triggerTimer);
+      triggerTimer += COLLECT_STATS_INVOKE_INTERVAL; // todo: use the right timer
     }
     return query;
   }
