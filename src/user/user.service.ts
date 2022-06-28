@@ -227,7 +227,7 @@ export class UserService {
     return nftCollections;
   }
 
-  async saveUserNftCollections(userAddress: string, nfts: NftDto[]): Promise<void> {
+  saveUserNftCollections(userAddress: string, nfts: NftDto[]) {
     const userRef = this.firebaseService.firestore
       .collection(firestoreConstants.USERS_COLL)
       .doc(userAddress)
@@ -250,7 +250,7 @@ export class UserService {
         );
       }
     }
-    await this.fsBatchHandler.flush().catch((err) => {
+    this.fsBatchHandler.flush().catch((err) => {
       console.error('error saving user nft collections', err);
     });
   }
@@ -384,8 +384,9 @@ export class UserService {
       pageKey: continueFromCurrentPage ? pageKey : nextPageKey,
       startAtToken: nftToStartAt
     });
-    // todo: remove this
-    await this.saveUserNftCollections(user.userAddress, nfts);
+    
+    // save user's collections to be used in /:userId/nftCollections
+    this.saveUserNftCollections(user.userAddress, nfts);
 
     return {
       data: nftsToReturn,
