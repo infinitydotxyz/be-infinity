@@ -76,6 +76,7 @@ import {
   UserFollowingUserDeletePayload,
   UserFollowingUserPostPayload,
   UserFollowingUsersArrayDto,
+  UserNftCollectionsQueryDto,
   UserNftsQueryDto,
   UserProfileDto,
   UserProfileImagesDto,
@@ -225,9 +226,10 @@ export class UserController {
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 3 }))
   async getUserNftCollections(
-    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId
+    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
+    @Query() query: UserNftCollectionsQueryDto
   ): Promise<{ data: NftCollectionDto[] }> {
-    let nftCollections = await this.userService.getUserNftCollections(user);
+    let nftCollections = await this.userService.getUserNftCollections(user, query.search);
     nftCollections = await this.collectionsService.isSupported(nftCollections);
     return {
       data: nftCollections

@@ -18,6 +18,11 @@ import {
   ApiOperation
 } from '@nestjs/swagger';
 
+// todo: move to lib
+type CollectStatsQuery = {
+  list: string;
+};
+
 import { ApiTag } from 'common/api-tags';
 import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param-collection-id.decorator';
 import { ErrorResponseDto } from 'common/dto/error-response.dto';
@@ -49,6 +54,8 @@ import { AttributesService } from './attributes/attributes.service';
 import { NftActivityArrayDto, NftActivityFiltersDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { NftsService } from './nfts/nfts.service';
 import { enqueueCollection } from './collections.utils';
+import { FirebaseService } from 'firebase/firebase.service';
+import { COLLECT_STATS_INVOKE_INTERVAL } from '../constants';
 
 @Controller('collections')
 export class CollectionsController {
@@ -58,7 +65,8 @@ export class CollectionsController {
     private votesService: VotesService,
     private twitterService: TwitterService,
     private attributesService: AttributesService,
-    private nftsService: NftsService
+    private nftsService: NftsService,
+    private firebaseService: FirebaseService
   ) {}
 
   @Get('search')
@@ -72,6 +80,35 @@ export class CollectionsController {
   async searchByName(@Query() search: CollectionSearchQueryDto) {
     const res = await this.collectionsService.searchByName(search);
     return res;
+  }
+
+  @Get('collect-stats')
+  @ApiOperation({
+    description: 'A background task to collect Stats for a list of collection',
+    tags: [ApiTag.Collection]
+  })
+  @ApiOkResponse({ description: ResponseDescription.Success, type: String })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  collectStats(@Query() query: CollectStatsQuery) {
+    const idsArr = query.list.split(',');
+
+    const trigger = async (address: string) => {
+      const collectionRef = (await this.firebaseService.getCollectionRef({
+        chainId: ChainId.Mainnet,
+        address
+      })) as FirebaseFirestore.DocumentReference<Collection>;
+      this.statsService.getCurrentSocialsStats(collectionRef).catch((err) => console.error(err));
+      console.log('getCurrentSocialsStats:', address);
+    };
+    let triggerTimer = 0;
+    for (const address of idsArr) {
+      setTimeout(() => {
+        trigger(address).catch((err) => console.error(err));
+      }, triggerTimer);
+      triggerTimer += COLLECT_STATS_INVOKE_INTERVAL; // todo: use the right timer
+    }
+    return query;
   }
 
   @Get('rankings')
@@ -131,7 +168,10 @@ export class CollectionsController {
       }) as Collection;
 
       if (collectionData?.metadata?.name) {
-        if (!EXCLUDED_COLLECTIONS.includes(collectionData?.address)) {
+        if (
+          !EXCLUDED_COLLECTIONS.includes(collectionData?.address) &&
+          collectionData?.state?.create?.step === CreationFlow.Complete
+        ) {
           const resultItem: Collection = {
             ...collectionData,
             attributes: {} // don't include attributess
@@ -361,7 +401,7 @@ export class CollectionsController {
   @Get(':id/enqueue')
   @ApiOperation({
     description: 'Enqueue collection for indexing',
-    tags: [ApiTag.Nft]
+    tags: [ApiTag.Collection]
   })
   @ApiParamCollectionId('id')
   @ApiOkResponse({ description: ResponseDescription.Success, type: String })
