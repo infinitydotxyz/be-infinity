@@ -55,7 +55,7 @@ import { NftActivityArrayDto, NftActivityFiltersDto } from '@infinityxyz/lib/typ
 import { NftsService } from './nfts/nfts.service';
 import { enqueueCollection } from './collections.utils';
 import { FirebaseService } from 'firebase/firebase.service';
-import { COLLECT_STATS_INVOKE_INTERVAL } from '../constants';
+import { UPDATE_SOCIAL_STATS_INTERVAL } from '../constants';
 
 @Controller('collections')
 export class CollectionsController {
@@ -82,7 +82,7 @@ export class CollectionsController {
     return res;
   }
 
-  @Get('collect-stats')
+  @Get('update-social-stats')
   @ApiOperation({
     description: 'A background task to collect Stats for a list of collection',
     tags: [ApiTag.Collection]
@@ -103,10 +103,12 @@ export class CollectionsController {
     };
     let triggerTimer = 0;
     for (const address of idsArr) {
-      setTimeout(() => {
-        trigger(address).catch((err) => console.error(err));
-      }, triggerTimer);
-      triggerTimer += COLLECT_STATS_INVOKE_INTERVAL; // todo: use the right timer
+      if (address) {
+        setTimeout(() => {
+          trigger(address).catch((err) => console.error(err));
+        }, triggerTimer);
+        triggerTimer += UPDATE_SOCIAL_STATS_INTERVAL; // todo: use the right timer
+      }
     }
     return query;
   }
