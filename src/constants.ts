@@ -31,6 +31,9 @@ const getMultipleEnvVariables = (prefix: string, minLength = 1): (string | undef
   return variables;
 };
 
+export const RESERVOIR_API_KEY = getEnvironmentVariable('RESERVOIR_API_KEY');
+export const ZORA_API_KEY = getEnvironmentVariable('ZORA_API_KEY');
+
 export const OPENSEA_API_KEYS = (() => {
   const apiKeys = getMultipleEnvVariables('OPENSEA_API_KEY');
   return apiKeys;
