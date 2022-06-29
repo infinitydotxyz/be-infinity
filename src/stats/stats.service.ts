@@ -24,6 +24,7 @@ import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxy
 import {
   CollectionHistoricalStatsQueryDto,
   CollectionStatsByPeriodDto,
+  CollectionTrendingStatsQueryDto,
   RankingQueryDto
 } from '@infinityxyz/lib/types/dto/collections';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
@@ -128,16 +129,13 @@ export class StatsService {
     return statsByPeriod;
   }
 
-  async getMnemonicCollectionStats(query: CollectionHistoricalStatsQueryDto) {
+  async getMnemonicCollectionStats(query: CollectionTrendingStatsQueryDto) {
     // console.log('collection', collection, query)
     const byArr = ['by_sales_volume', 'by_avg_price'];
     const promises = [];
     for (const byParam of byArr) {
       promises.push(
-        this.mnemonicService.getTopCollections(byParam as mnemonicByParam, query.period, {
-          limit: query.limit,
-          offset: query.offset
-        })
+        this.mnemonicService.getTopCollections(byParam as mnemonicByParam, query.period, {})
       );
     }
     const values = await Promise.all(promises);

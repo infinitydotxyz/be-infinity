@@ -44,7 +44,8 @@ import {
   CollectionStatsQueryDto,
   TopOwnersArrayResponseDto,
   TopOwnersQueryDto,
-  RankingQueryDto
+  RankingQueryDto,
+  CollectionTrendingStatsQueryDto
 } from '@infinityxyz/lib/types/dto/collections';
 import { TweetArrayDto } from '@infinityxyz/lib/types/dto/twitter';
 import { CollectionVotesDto } from '@infinityxyz/lib/types/dto/votes';
@@ -153,7 +154,7 @@ export class CollectionsController {
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 60 * 2 })) // 2 hour cache is fine
-  async getCollectionStats(@Query() query: CollectionHistoricalStatsQueryDto): Promise<CollectionStatsArrayDto> {
+  async getCollectionStats(@Query() query: CollectionTrendingStatsQueryDto): Promise<CollectionStatsArrayDto> {
     const result = await this.statsService.getMnemonicCollectionStats(query);
     // console.log('result', result?.collections)
     const collections = result?.collections ?? [];
