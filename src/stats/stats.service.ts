@@ -249,6 +249,11 @@ export class StatsService {
       }
     }
 
+    // check in case there is no data
+    if (minPrice == Number.MAX_VALUE) {
+      minPrice = 0;
+    }
+
     if (numItems > 0) {
       avgPrice = totalPrice / numItems;
     }
