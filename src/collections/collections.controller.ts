@@ -15,13 +15,26 @@ import {
   ApiInternalServerErrorResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
-  ApiOperation
+  ApiOperation,
+  ApiProperty
 } from '@nestjs/swagger';
 
 // todo: move to lib
 type CollectStatsQuery = {
   list: string;
 };
+
+class ExternalDataResponseDto {
+  @ApiProperty({
+    description: 'number of owners.'
+  })
+  numOwners!: number;
+
+  @ApiProperty({
+    description: 'number of tokens.'
+  })
+  numTokens!: number;
+}
 
 import { ApiTag } from 'common/api-tags';
 import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param-collection-id.decorator';
@@ -57,6 +70,7 @@ import { NftsService } from './nfts/nfts.service';
 import { enqueueCollection } from './collections.utils';
 import { FirebaseService } from 'firebase/firebase.service';
 import { UPDATE_SOCIAL_STATS_INTERVAL } from '../constants';
+import { MnemonicService } from 'mnemonic/mnemonic.service';
 
 @Controller('collections')
 export class CollectionsController {
@@ -67,7 +81,8 @@ export class CollectionsController {
     private twitterService: TwitterService,
     private attributesService: AttributesService,
     private nftsService: NftsService,
-    private firebaseService: FirebaseService
+    private firebaseService: FirebaseService,
+    private mnemonicService: MnemonicService,
   ) {}
 
   @Get('search')
@@ -422,5 +437,29 @@ export class CollectionsController {
         console.error('enqueueCollection error', e);
       });
     return '';
+  }
+
+  @Get(':id/ext-data')
+  @ApiOperation({
+    description: 'Enqueue collection for indexing',
+    tags: [ApiTag.Collection]
+  })
+  @ApiParamCollectionId('id')
+  @ApiOkResponse({ description: ResponseDescription.Success, type: ExternalDataResponseDto })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 2 }))
+  async getExternalData(
+    @ParamCollectionId('id', ParseCollectionIdPipe) { address }: ParsedCollectionId
+  ) {
+    const numOwnersRes = await this.mnemonicService.getNumOwners(address)
+    const numOwners = parseInt(numOwnersRes?.dataPoints[0]?.count ?? '0');
+    const numTokensRes = await this.mnemonicService.getNumTokens(address)
+    const totalMinted = parseInt(numTokensRes?.dataPoints[0]?.totalMinted ?? '0');
+    // todo: mnemonic doesn't have APIs to get All-time Sales Volume & Floor Price
+    return {
+      numOwners,
+      numTokens: totalMinted
+    };
   }
 }
