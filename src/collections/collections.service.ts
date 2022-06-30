@@ -11,7 +11,8 @@ import {
   TopOwnersQueryDto,
   TopOwnerDto,
   CollectionSearchQueryDto,
-  PaginatedCollectionsDto
+  PaginatedCollectionsDto,
+  CollectionDto
 } from '@infinityxyz/lib/types/dto/collections';
 import { ExternalNftCollectionDto, NftCollectionDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import {
@@ -314,7 +315,7 @@ export default class CollectionsService {
     const lastItem = collections[collections.length - 1];
 
     return {
-      data: collections,
+      data: collections as CollectionDto[],
       cursor: hasNextPage
         ? this.paginationService.encodeCursor({ address: lastItem.address, chainId: lastItem.chainId } as Cursor)
         : undefined,

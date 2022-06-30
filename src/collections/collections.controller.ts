@@ -41,7 +41,8 @@ import {
   CollectionStatsQueryDto,
   TopOwnersArrayResponseDto,
   TopOwnersQueryDto,
-  RankingQueryDto
+  RankingQueryDto,
+  PaginatedCollectionsDto
 } from '@infinityxyz/lib/types/dto/collections';
 import { TweetArrayDto } from '@infinityxyz/lib/types/dto/twitter';
 import { CollectionVotesDto } from '@infinityxyz/lib/types/dto/votes';
@@ -56,7 +57,6 @@ import { ApiParamUserId, ParamUserId } from 'auth/param-user-id.decorator';
 import { UserAuth } from 'auth/user-auth.decorator';
 import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
-import { CuratedCollectionsDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 import CuratedCollectionDto from './curation/curation.dto';
 
 @Controller('collections')
@@ -163,7 +163,7 @@ export class CollectionsController {
     description: 'Fetch all curated collections',
     tags: [ApiTag.Collection, ApiTag.Curation]
   })
-  @ApiOkResponse({ type: CuratedCollectionsDto })
+  @ApiOkResponse({ type: PaginatedCollectionsDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })

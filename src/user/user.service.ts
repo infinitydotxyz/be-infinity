@@ -1,5 +1,4 @@
-/* eslint-disable no-empty */
-import { ChainId, CuratedCollection } from '@infinityxyz/lib/types/core';
+import { ChainId, Collection, CuratedCollection } from '@infinityxyz/lib/types/core';
 import { AlchemyNftToInfinityNft } from '../common/transformers/alchemy-nft-to-infinity-nft.pipe';
 import { AlchemyService } from 'alchemy/alchemy.service';
 import { CreationFlow, OrderDirection } from '@infinityxyz/lib/types/core';
@@ -15,7 +14,7 @@ import { CursorService } from 'pagination/cursor.service';
 import { StatsService } from 'stats/stats.service';
 import { ParsedUserId } from './parser/parsed-user-id';
 import { BadQueryError } from 'common/errors/bad-query.error';
-import { RankingQueryDto } from '@infinityxyz/lib/types/dto/collections';
+import { CollectionDto, RankingQueryDto } from '@infinityxyz/lib/types/dto/collections';
 import { NftCollectionDto, NftDto, NftArrayDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import {
   UserFollowingCollection,
@@ -468,8 +467,22 @@ export class UserService {
 
     const lastItem = curations[curations.length - 1];
 
+    const collections: Collection[] = [];
+
+    for (const curation of curations) {
+      const collectionRef = this.firebaseService.firestore
+        .collection(firestoreConstants.COLLECTIONS_COLL)
+        .doc(`${curation.collectionChainId}:${curation.collectionAddress}`);
+      // TODO: improve performance of these reads?
+      const snap = await collectionRef.get();
+      collections.push(snap.data() as Collection);
+    }
+
     return {
-      data: curations,
+      data: {
+        curations: curations,
+        collections: collections as CollectionDto[]
+      },
       cursor: hasNextPage ? this.paginationService.encodeCursor(lastItem) : undefined,
       hasNextPage
     };
