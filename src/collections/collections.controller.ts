@@ -30,6 +30,19 @@ type CollectStatsQuery = {
   list: string;
 };
 
+import {
+  CollectionDto,
+  CollectionHistoricalStatsQueryDto,
+  CollectionSearchArrayDto,
+  CollectionSearchQueryDto,
+  CollectionStatsByPeriodDto,
+  CollectionStatsQueryDto, CollectionTrendingStatsQueryDto, RankingQueryDto, TopOwnersArrayResponseDto,
+  TopOwnersQueryDto
+} from '@infinityxyz/lib/types/dto/collections';
+import { NftActivityArrayDto, NftActivityFiltersDto } from '@infinityxyz/lib/types/dto/collections/nfts';
+import { TweetArrayDto } from '@infinityxyz/lib/types/dto/twitter';
+import { CollectionVotesDto } from '@infinityxyz/lib/types/dto/votes';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { ApiTag } from 'common/api-tags';
 import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param-collection-id.decorator';
 import { ErrorResponseDto } from 'common/dto/error-response.dto';
@@ -37,35 +50,19 @@ import { PaginatedQuery } from 'common/dto/paginated-query.dto';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { CacheControlInterceptor } from 'common/interceptors/cache-control.interceptor';
 import { ResponseDescription } from 'common/response-description';
+import { FirebaseService } from 'firebase/firebase.service';
+import { mnemonicByParam } from 'mnemonic/mnemonic.service';
 import { StatsService } from 'stats/stats.service';
 import { TwitterService } from 'twitter/twitter.service';
+import { EXCLUDED_COLLECTIONS } from 'utils/stats';
 import { VotesService } from 'votes/votes.service';
+import { UPDATE_SOCIAL_STATS_INTERVAL } from '../constants';
+import { AttributesService } from './attributes/attributes.service';
 import { ParseCollectionIdPipe, ParsedCollectionId } from './collection-id.pipe';
 import CollectionsService from './collections.service';
-import {
-  CollectionDto,
-  CollectionHistoricalStatsQueryDto,
-  CollectionSearchArrayDto,
-  CollectionSearchQueryDto,
-  CollectionStatsByPeriodDto,
-  CollectionStatsQueryDto,
-  TopOwnersArrayResponseDto,
-  TopOwnersQueryDto,
-  RankingQueryDto,
-  CollectionTrendingStatsQueryDto
-} from '@infinityxyz/lib/types/dto/collections';
-import { TweetArrayDto } from '@infinityxyz/lib/types/dto/twitter';
-import { CollectionVotesDto } from '@infinityxyz/lib/types/dto/votes';
-import { CollectionStatsArrayDto } from './dto/collection-stats-array.dto';
-import { EXCLUDED_COLLECTIONS } from 'utils/stats';
-import { AttributesService } from './attributes/attributes.service';
-import { NftActivityArrayDto, NftActivityFiltersDto } from '@infinityxyz/lib/types/dto/collections/nfts';
-import { NftsService } from './nfts/nfts.service';
 import { enqueueCollection } from './collections.utils';
-import { FirebaseService } from 'firebase/firebase.service';
-import { UPDATE_SOCIAL_STATS_INTERVAL } from '../constants';
-import { mnemonicByParam } from 'mnemonic/mnemonic.service';
-import { firestoreConstants } from '@infinityxyz/lib/utils';
+import { CollectionStatsArrayDto } from './dto/collection-stats-array.dto';
+import { NftsService } from './nfts/nfts.service';
 
 @Controller('collections')
 export class CollectionsController {
@@ -182,15 +179,18 @@ export class CollectionsController {
       firestoreConstants.TRENDING_COLLECTIONS_COLL
     );
     let byParamDoc = '';
+    let orderBy = '';
     if (queryBy === 'by_sales_volume') {
-      byParamDoc = 'bySalesVolume';
+      byParamDoc = firestoreConstants.TRENDING_BY_VOLUME_DOC;
+      orderBy = 'salesVolume';
     } else if (queryBy === 'by_avg_price') {
-      byParamDoc = 'byAvgPrice';
+      byParamDoc = firestoreConstants.TRENDING_BY_AVG_PRICE_DOC;
+      orderBy = 'avgPrice';
     }
     const byParamCollectionRef = trendingCollectionsRef.doc(byParamDoc);
     const byPeriodCollectionRef = byParamCollectionRef.collection(queryPeriod);
 
-    const result = await byPeriodCollectionRef.get();
+    const result = await byPeriodCollectionRef.orderBy(orderBy, 'desc').get(); // default descending
     const collections = result?.docs ?? [];
 
     const { getCollection } = await this.collectionsService.getCollectionsByAddress(
