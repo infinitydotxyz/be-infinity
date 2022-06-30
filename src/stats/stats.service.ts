@@ -140,9 +140,9 @@ export class StatsService {
     );
     let byParamDoc = '';
     if (queryBy === 'by_sales_volume') {
-      byParamDoc = 'bySalesVolume';
+      byParamDoc = firestoreConstants.TRENDING_BY_VOLUME_DOC;
     } else if (queryBy === 'by_avg_price') {
-      byParamDoc = 'byAvgPrice';
+      byParamDoc = firestoreConstants.TRENDING_BY_AVG_PRICE_DOC;
     }
     const byParamCollectionRef = trendingCollectionsRef.doc(byParamDoc);
     const byPeriodCollectionRef = byParamCollectionRef.collection(queryPeriod);
@@ -228,7 +228,7 @@ export class StatsService {
     const resp = await this.mnemonicService.getPricesByContract(collectionAddress, period);
     const dataPoints = resp?.dataPoints ?? [];
     let maxPrice = 0,
-      minPrice = 0,
+      minPrice = Number.MAX_VALUE,
       avgPrice = 0,
       totalPrice = 0,
       numItems = 0;
