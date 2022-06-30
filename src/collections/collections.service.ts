@@ -1,14 +1,13 @@
 import { ChainId, Collection, CollectionMetadata, CreationFlow } from '@infinityxyz/lib/types/core';
+import { CollectionSearchQueryDto, TopOwnerDto, TopOwnersQueryDto } from '@infinityxyz/lib/types/dto/collections';
+import { ExternalNftCollectionDto, NftCollectionDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { firestoreConstants, getCollectionDocId, getEndCode, getSearchFriendlyString } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
-import { FirebaseService } from 'firebase/firebase.service';
-import { ParsedCollectionId } from './collection-id.pipe';
-import { MnemonicService } from 'mnemonic/mnemonic.service';
-import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
-import { CursorService } from 'pagination/cursor.service';
 import { BackfillService } from 'backfill/backfill.service';
-import { TopOwnersQueryDto, TopOwnerDto, CollectionSearchQueryDto } from '@infinityxyz/lib/types/dto/collections';
-import { ExternalNftCollectionDto, NftCollectionDto } from '@infinityxyz/lib/types/dto/collections/nfts';
+import { FirebaseService } from 'firebase/firebase.service';
+import { MnemonicService } from 'mnemonic/mnemonic.service';
+import { CursorService } from 'pagination/cursor.service';
+import { ParsedCollectionId } from './collection-id.pipe';
 
 interface CollectionQueryOptions {
   /**
@@ -36,36 +35,57 @@ export default class CollectionsService {
 
   async getTopOwners(collection: ParsedCollectionId, query: TopOwnersQueryDto) {
     const collectionData = (await collection.ref.get()).data();
-    if (collectionData?.state?.create?.step !== CreationFlow.Complete) {
-      throw new InvalidCollectionError(collection.address, collection.chainId, 'Collection is not complete');
-    }
+    // if (collectionData?.state?.create?.step !== CreationFlow.Complete) {
+    //   throw new InvalidCollectionError(collection.address, collection.chainId, 'Collection is not complete');
+    // }
 
     const offset = this.paginationService.decodeCursorToNumber(query.cursor || '');
 
-    const topOwners = await this.mnemonicService.getTopOwners(collection.address, {
-      limit: query.limit + 1,
-      orderDirection: query.orderDirection,
-      offset
-    });
+    // todo: make a type for this
+    let topOwners: { owner: string; count: number }[] = [];
+    // check if data exists in firestore
+    const collectionDocId = getCollectionDocId({ collectionAddress: collection.address, chainId: collection.chainId });
+    const allStatsDoc = await this.firebaseService.firestore
+      .collection(firestoreConstants.COLLECTIONS_COLL)
+      .doc(collectionDocId)
+      .collection(firestoreConstants.COLLECTION_STATS_COLL)
+      .doc('all')
+      .get();
+    if (allStatsDoc.exists) {
+      topOwners = allStatsDoc.data()?.topOwnersByOwnedNftsCount as { owner: string; count: number }[];
+    }
 
-    if (topOwners == null) {
+    // if data doesn't exist in firestore, fetch from mnemonic
+    if (!topOwners || topOwners.length === 0) {
+      const topOwnersMnemonic = await this.mnemonicService.getTopOwners(collection.address, {
+        limit: query.limit,
+        orderDirection: query.orderDirection,
+        offset
+      });
+      const owners = topOwnersMnemonic?.owner ?? [];
+      for (const owner of owners) {
+        topOwners.push({
+          owner: owner.address,
+          count: owner.ownedCount
+        });
+      }
+    }
+
+    if (!topOwners || topOwners.length === 0) {
       return null;
     }
 
-    const hasNextPage = topOwners.owner.length > query.limit;
-    if (hasNextPage) {
-      topOwners.owner.pop(); // Remove item used to check if there are more results
-    }
-    const updatedOffset = topOwners.owner.length + offset;
+    const hasNextPage = topOwners.length > query.limit;
+    const updatedOffset = topOwners.length + offset;
     const cursor = this.paginationService.encodeCursor(updatedOffset);
 
     const numNfts = (collectionData as Collection)?.numNfts;
 
-    const transformedData = topOwners.owner.map((owner) => {
+    const transformedData = topOwners.map((owner) => {
       const topOwner: TopOwnerDto = {
-        ownerAddress: owner.address,
-        ownedCount: owner.ownedCount,
-        percentOwned: Math.floor((owner.ownedCount / numNfts) * 1_000_000) / 10_000,
+        ownerAddress: owner.owner,
+        ownedCount: owner.count,
+        percentOwned: Math.floor((owner.count / numNfts) * 1_000_000) / 10_000,
         numNfts
       };
       return topOwner;

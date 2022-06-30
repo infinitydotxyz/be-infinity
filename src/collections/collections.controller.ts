@@ -305,7 +305,6 @@ export class CollectionsController {
     @Query() query: CollectionHistoricalStatsQueryDto
   ): Promise<CollectionStatsArrayResponseDto> {
     const response = await this.statsService.getCollectionHistoricalStats(collection, query);
-
     return response;
   }
 
