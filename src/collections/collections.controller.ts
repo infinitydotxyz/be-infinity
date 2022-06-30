@@ -441,7 +441,7 @@ export class CollectionsController {
 
   @Get(':id/ext-data')
   @ApiOperation({
-    description: 'Enqueue collection for indexing',
+    description: 'Fetch external collection data (numOwners, numTokens, etc.) from a 3rd-party service.',
     tags: [ApiTag.Collection]
   })
   @ApiParamCollectionId('id')
