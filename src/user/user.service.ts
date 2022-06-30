@@ -5,7 +5,7 @@ import { AlchemyService } from 'alchemy/alchemy.service';
 import { CreationFlow, OrderDirection } from '@infinityxyz/lib/types/core';
 import { NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
 import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
-import { Injectable, Optional } from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 import { ActivityType, activityTypeToEventType } from 'collections/nfts/nft-activity.types';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { InvalidUserError } from 'common/errors/invalid-user.error';
@@ -447,9 +447,27 @@ export class UserService {
       .orderBy('votes', query.orderDirection)
       .limit(query.limit + 1);
 
+    // NOTE: the following code isn't used in FE anymore, I believe. Should consider deprecating it.
+    if ((query.collections?.length || 0) > 0) {
+      if ((query.collections?.length || 0) > 10) {
+        throw new BadRequestException('Maximum of 10 collections to filter on reached!');
+      }
+
+      const collectionChainIds = query.collections?.map((c) => c.split(':')[0]);
+      const collectionAddresses = query.collections?.map((c) => c.split(':')[1]);
+
+      q = q.where('collectionAddress', 'in', collectionAddresses); // TODO: store collection id in db?
+    }
+
     if (query.cursor) {
       const decodedCursor = this.paginationService.decodeCursorToObject<CuratedCollection>(query.cursor);
-      q = q.startAfter(decodedCursor);
+      const lastDocument = await this.firebaseService.firestore
+        .collection(firestoreConstants.COLLECTIONS_COLL)
+        .doc(`${decodedCursor.collectionChainId}:${decodedCursor.collectionAddress}`)
+        .collection(firestoreConstants.COLLECTION_CURATORS_COLL)
+        .doc(user.ref.id)
+        .get();
+      q = q.startAfter(lastDocument);
     }
 
     const snap = await q.get();
@@ -462,22 +480,8 @@ export class UserService {
 
     const lastItem = curations[curations.length - 1];
 
-    const collections: Collection[] = [];
-
-    for (const curation of curations) {
-      const collectionRef = this.firebaseService.firestore
-        .collection(firestoreConstants.COLLECTIONS_COLL)
-        .doc(`${curation.collectionChainId}:${curation.collectionAddress}`);
-      // TODO: improve performance of these reads?
-      const snap = await collectionRef.get();
-      collections.push(snap.data() as Collection);
-    }
-
     return {
-      data: {
-        collections,
-        curations
-      },
+      data: curations,
       cursor: hasNextPage ? this.paginationService.encodeCursor(lastItem) : undefined,
       hasNextPage
     };
