@@ -1,6 +1,7 @@
 import {
   ChainId,
   Collection,
+  CollectionPeriodStatsContent,
   OrderDirection,
   PreAggregatedSocialsStats,
   SocialsStats,
@@ -10,7 +11,7 @@ import {
 } from '@infinityxyz/lib/types/core';
 import { InfinityTweet, InfinityTwitterAccount } from '@infinityxyz/lib/types/services/twitter';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import { getStatsDocInfo } from 'utils/stats';
+import { getCollectionDocId, getStatsDocInfo } from 'utils/stats';
 import { Injectable } from '@nestjs/common';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
 import { VotesService } from 'votes/votes.service';
@@ -29,6 +30,7 @@ import {
 } from '@infinityxyz/lib/types/dto/collections';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
 import { ONE_HOUR } from '../constants';
+import { MnemonicPricesForStatsPeriod, MnemonicVolumesForStatsPeriod } from 'mnemonic/mnemonic.types';
 
 @Injectable()
 export class StatsService {
@@ -129,109 +131,157 @@ export class StatsService {
     return statsByPeriod;
   }
 
-  async getMnemonicCollectionStats(query: CollectionTrendingStatsQueryDto) {
-    // console.log('collection', collection, query)
-    const byArr = ['by_sales_volume', 'by_avg_price'];
-    const promises = [];
-    for (const byParam of byArr) {
-      promises.push(
-        this.mnemonicService.getTopCollections(byParam as mnemonicByParam, query.period, {})
-      );
+  async fetchAndStoreTopCollectionsFromMnemonic(query: CollectionTrendingStatsQueryDto) {
+    const queryBy = query.queryBy as mnemonicByParam;
+    const queryPeriod = query.period;
+    const data = await this.mnemonicService.getTopCollections(queryBy, queryPeriod, { limit: 500, offset: 0 });
+    const trendingCollectionsRef = this.firebaseService.firestore.collection(
+      firestoreConstants.TRENDING_COLLECTIONS_COLL
+    );
+    let byParamDoc = '';
+    if (queryBy === 'by_sales_volume') {
+      byParamDoc = 'bySalesVolume';
+    } else if (queryBy === 'by_avg_price') {
+      byParamDoc = 'byAvgPrice';
     }
-    const values = await Promise.all(promises);
-    // console.log('values', values); // example [response1, response2]
+    const byParamCollectionRef = trendingCollectionsRef.doc(byParamDoc);
+    const byPeriodCollectionRef = byParamCollectionRef.collection(queryPeriod);
 
-    for (const value of values) {
-      const collections = value?.collections ?? [];
-      for (const coll of collections) {
-        // todo: remove this to save data for all contract addresses:
-        // goblin '0xbce3781ae7ca1a5e050bd9c4c77369867ebc307e'
-        // BAYC '0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d'
-        // if (coll.contractAddress === '0xbce3781ae7ca1a5e050bd9c4c77369867ebc307e') {
-        // console.log('coll', coll);
-        const collectionRef = await this.firebaseService.getCollectionRef({
-          chainId: ChainId.Mainnet,
-          address: coll.contractAddress ?? ''
-        });
-        // const docRef = collectionRef.collection('stats').doc(query.period);
-        // console.log('coll.value', coll.salesVolume, coll.avgPrice)
-        if (coll.salesVolume) {
-          this.fsBatchHandler.add(
-            collectionRef,
-            {
-              stats: {
-                [query.period]: {
-                  salesVolume: parseFloat(`${coll.salesVolume}`)
-                }
-              }
-            },
-            { merge: true }
-          );
-        }
-        if (coll.avgPrice) {
-          this.fsBatchHandler.add(
-            collectionRef,
-            {
-              stats: {
-                [query.period]: {
-                  avgPrice: parseFloat(`${coll.avgPrice}`)
-                }
-              }
-            },
-            { merge: true }
-          );
-        }
-        // }
-      }
-      await this.fsBatchHandler.flush().catch((err) => console.log('error saving mnemonic collection stats', err));
-    }
-
-    let data = null;
-    if (query.queryBy === 'by_sales_volume') {
-      data = values[0];
-    } else if (query.queryBy === 'by_avg_price') {
-      data = values[1];
-    }
-
-    // for each collection: fetch owners & current holders
     if (data && data.collections?.length > 0) {
       for (const coll of data.collections) {
-        const collectionRef = await this.firebaseService.getCollectionRef({
+        if (!coll.contractAddress) {
+          return;
+        }
+
+        const collectionDocId = getCollectionDocId({
           chainId: ChainId.Mainnet,
-          address: coll.contractAddress ?? ''
+          collectionAddress: coll.contractAddress
         });
+        const trendingCollectionDocRef = byPeriodCollectionRef.doc(collectionDocId);
+
+        // fetch prices for the period
+        const prices = await this.fetchPricesForStatsPeriod(coll.contractAddress, queryPeriod);
+
+        // fetch sales for the period
+        const sales = await this.fetchSalesForStatsPeriod(coll.contractAddress, queryPeriod);
+
+        const dataToStore: CollectionPeriodStatsContent = {
+          chainId: ChainId.Mainnet,
+          contractAddress: coll.contractAddress,
+          period: queryPeriod,
+          salesVolume: sales?.salesVolume,
+          numSales: sales.numSales,
+          minPrice: prices.minPrice,
+          maxPrice: prices.maxPrice,
+          avgPrice: prices.avgPrice,
+          updatedAt: Date.now()
+        };
+
+        if (queryBy === 'by_sales_volume') {
+          // more accurate sales volume
+          if (coll.salesVolume) {
+            dataToStore.salesVolume = parseFloat(`${coll.salesVolume}`);
+          }
+          this.fsBatchHandler.add(trendingCollectionDocRef, dataToStore, { merge: true });
+        } else if (queryBy === 'by_avg_price') {
+          // more accurate avg price
+          if (coll.avgPrice) {
+            dataToStore.avgPrice = parseFloat(`${coll.avgPrice}`);
+          }
+          this.fsBatchHandler.add(trendingCollectionDocRef, dataToStore, { merge: true });
+        } else {
+          console.error('Unknown queryBy param');
+        }
+
+        // for each collection: fetch owner count & total supply
+        // todo: could fetch from firestore instead of calling api
         const owners = await this.mnemonicService.getNumOwners(`${coll.contractAddress}`);
         const ownerCount = owners?.dataPoints[0]?.count;
         this.fsBatchHandler.add(
-          collectionRef,
+          trendingCollectionDocRef,
           {
-            stats: {
-              [query.period]: {
-                ownerCount: parseInt(ownerCount ?? '0')
-              }
-            }
+            ownerCount: parseInt(ownerCount ?? '0')
           },
           { merge: true }
         );
-        // console.log('owners', owners?.dataPoints[0]?.count)
+
         const tokens = await this.mnemonicService.getNumTokens(`${coll.contractAddress}`);
         const tokenCount =
           parseInt(tokens?.dataPoints[0]?.totalMinted ?? '0') - parseInt(tokens?.dataPoints[0]?.totalBurned ?? '0');
         this.fsBatchHandler.add(
-          collectionRef,
+          trendingCollectionDocRef,
           {
-            stats: {
-              [query.period]: {
-                tokenCount
-              }
-            }
+            tokenCount
           },
           { merge: true }
         );
       }
-      await this.fsBatchHandler.flush().catch((err) => console.log('error saving mnemonic collection tokens', err));
     }
+    this.fsBatchHandler.flush().catch((err) => console.error('error saving mnemonic collection tokens', err));
     return data;
+  }
+
+  async fetchPricesForStatsPeriod(
+    collectionAddress: string,
+    period: StatsPeriod
+  ): Promise<MnemonicPricesForStatsPeriod> {
+    const resp = await this.mnemonicService.getPricesByContract(collectionAddress, period);
+    const dataPoints = resp?.dataPoints ?? [];
+    let maxPrice = 0,
+      minPrice = 0,
+      avgPrice = 0,
+      totalPrice = 0,
+      numItems = 0;
+
+    for (const dataPoint of dataPoints) {
+      if (dataPoint.max && dataPoint.min && dataPoint.avg) {
+        const max = parseFloat(dataPoint.max);
+        const min = parseFloat(dataPoint.min);
+        const avg = parseFloat(dataPoint.avg);
+        if (max > maxPrice) {
+          maxPrice = max;
+        }
+        if (min < minPrice) {
+          minPrice = min;
+        }
+        totalPrice += avg;
+        numItems++;
+      }
+    }
+
+    if (numItems > 0) {
+      avgPrice = totalPrice / numItems;
+    }
+
+    return {
+      maxPrice,
+      minPrice,
+      avgPrice
+    };
+  }
+
+  async fetchSalesForStatsPeriod(
+    collectionAddress: string,
+    period: StatsPeriod
+  ): Promise<MnemonicVolumesForStatsPeriod> {
+    const resp = await this.mnemonicService.getSalesVolumeByContract(collectionAddress, period);
+    const dataPoints = resp?.dataPoints ?? [];
+    let numSales = 0,
+      salesVolume = 0;
+
+    for (const dataPoint of dataPoints) {
+      if (dataPoint.count && dataPoint.volume) {
+        const count = parseFloat(dataPoint.count);
+        const volume = parseFloat(dataPoint.volume);
+        numSales += count;
+        salesVolume += volume;
+      }
+    }
+
+    return {
+      numSales,
+      salesVolume
+    };
   }
 
   async getCollectionHistoricalStats(

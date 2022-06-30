@@ -1,4 +1,10 @@
-import { ChainId, Collection, CreationFlow, StatsPeriod } from '@infinityxyz/lib/types/core';
+import {
+  ChainId,
+  Collection,
+  CollectionPeriodStatsContent,
+  CreationFlow,
+  StatsPeriod
+} from '@infinityxyz/lib/types/core';
 import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
 import {
   Controller,
@@ -7,6 +13,7 @@ import {
   NotFoundException,
   Param,
   ParseIntPipe,
+  Put,
   Query,
   UseInterceptors
 } from '@nestjs/common';
@@ -57,6 +64,8 @@ import { NftsService } from './nfts/nfts.service';
 import { enqueueCollection } from './collections.utils';
 import { FirebaseService } from 'firebase/firebase.service';
 import { UPDATE_SOCIAL_STATS_INTERVAL } from '../constants';
+import { mnemonicByParam } from 'mnemonic/mnemonic.service';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
 
 @Controller('collections')
 export class CollectionsController {
@@ -100,7 +109,6 @@ export class CollectionsController {
         address
       })) as FirebaseFirestore.DocumentReference<Collection>;
       this.statsService.getCurrentSocialsStats(collectionRef).catch((err) => console.error(err));
-      console.log('getCurrentSocialsStats:', address);
     };
     let triggerTimer = 0;
     for (const address of idsArr) {
@@ -144,6 +152,19 @@ export class CollectionsController {
     return res;
   }
 
+  @Put('update-trending-stats')
+  @ApiOperation({
+    tags: [ApiTag.Collection, ApiTag.Stats],
+    description: 'Update stats for top collections in firebase. Called by an external job'
+  })
+  @ApiOkResponse({ description: ResponseDescription.Success })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  async storeTrendingCollectionStats(@Query() query: CollectionTrendingStatsQueryDto) {
+    await this.statsService.fetchAndStoreTopCollectionsFromMnemonic(query);
+  }
+
   @Get('stats')
   @ApiOperation({
     tags: [ApiTag.Collection, ApiTag.Stats],
@@ -153,70 +174,59 @@ export class CollectionsController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 60 * 2 })) // 2 hour cache is fine
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 10 })) // 10 mins
   async getCollectionStats(@Query() query: CollectionTrendingStatsQueryDto): Promise<CollectionStatsArrayDto> {
-    const result = await this.statsService.getMnemonicCollectionStats(query);
-    // console.log('result', result?.collections)
-    const collections = result?.collections ?? [];
+    const queryBy = query.queryBy as mnemonicByParam;
+    const queryPeriod = query.period;
+    const trendingCollectionsRef = this.firebaseService.firestore.collection(
+      firestoreConstants.TRENDING_COLLECTIONS_COLL
+    );
+    let byParamDoc = '';
+    if (queryBy === 'by_sales_volume') {
+      byParamDoc = 'bySalesVolume';
+    } else if (queryBy === 'by_avg_price') {
+      byParamDoc = 'byAvgPrice';
+    }
+    const byParamCollectionRef = trendingCollectionsRef.doc(byParamDoc);
+    const byPeriodCollectionRef = byParamCollectionRef.collection(queryPeriod);
+
+    const result = await byPeriodCollectionRef.get();
+    const collections = result?.docs ?? [];
 
     const { getCollection } = await this.collectionsService.getCollectionsByAddress(
-      collections.map((coll) => ({ address: coll?.contractAddress ?? '', chainId: ChainId.Mainnet }))
+      collections.map((coll) => ({ address: coll?.data().contractAddress ?? '', chainId: coll?.data().chainId }))
     );
 
     const results: Collection[] = [];
     for (const coll of collections) {
+      const statsData = coll.data() as CollectionPeriodStatsContent;
+
       const collectionData = getCollection({
-        address: coll.contractAddress ?? '',
-        chainId: ChainId.Mainnet
+        address: statsData.contractAddress ?? '',
+        chainId: statsData.chainId ?? ChainId.Mainnet
       }) as Collection;
 
-      if (collectionData?.metadata?.name) {
-        if (
-          !EXCLUDED_COLLECTIONS.includes(collectionData?.address) &&
-          collectionData?.state?.create?.step === CreationFlow.Complete
-        ) {
+      if (collectionData?.metadata?.name && collectionData.metadata?.profileImage) {
+        if (!EXCLUDED_COLLECTIONS.includes(collectionData?.address)) {
           const resultItem: Collection = {
             ...collectionData,
             attributes: {} // don't include attributess
           };
 
-          resultItem.stats = resultItem.stats ? resultItem.stats : {};
-          if (query.period === StatsPeriod.Daily) {
-            resultItem.stats.daily = resultItem.stats.daily ? resultItem.stats.daily : {};
-            if (coll?.salesVolume) {
-              resultItem.stats.daily.salesVolume = coll?.salesVolume;
+          resultItem.stats = {
+            [queryPeriod]: {
+              ownerCount: statsData.ownerCount,
+              tokenCount: statsData.tokenCount,
+              salesVolume: statsData.salesVolume,
+              avgPrice: statsData.avgPrice,
+              minPrice: statsData.minPrice,
+              maxPrice: statsData.maxPrice,
+              numSales: statsData.numSales,
+              period: queryPeriod
             }
-            if (coll?.avgPrice) {
-              resultItem.stats.daily.avgPrice = coll?.avgPrice;
-            }
-          } else if (query.period === StatsPeriod.Weekly) {
-            resultItem.stats.weekly = resultItem.stats.weekly ? resultItem.stats.weekly : {};
-            if (coll?.salesVolume) {
-              resultItem.stats.weekly.salesVolume = coll?.salesVolume;
-            }
-            if (coll?.avgPrice) {
-              resultItem.stats.weekly.avgPrice = coll?.avgPrice;
-            }
-          } else if (query.period === StatsPeriod.Monthly) {
-            resultItem.stats.monthly = resultItem.stats.monthly ? resultItem.stats.monthly : {};
-            if (coll?.salesVolume) {
-              resultItem.stats.monthly.salesVolume = coll?.salesVolume;
-            }
-            if (coll?.avgPrice) {
-              resultItem.stats.monthly.avgPrice = coll?.avgPrice;
-            }
-          }
+          };
           results.push(resultItem);
         }
-      } else {
-        // can't get collection name (not indexed?)
-        // console.log('--- collectionData?.metadata?.name', collectionData?.metadata?.name, coll.contractAddress)
-        // disabling this until further discussion:
-        // enqueueCollection({ chainId: ChainId.Mainnet, address: coll.contractAddress ?? '' }).then((res) => {
-        //   console.log('enqueueCollection response:', res)
-        // }).catch((e) => {
-        //   console.log('enqueueCollection error', e)
-        // })
       }
     }
 
