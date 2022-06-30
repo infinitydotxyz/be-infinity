@@ -494,6 +494,11 @@ export class StatsService {
       }
     }
 
+    if (Number.isNaN(numNfts) || Number.isNaN(numOwners)) {
+      numNfts = collectionData?.numNfts ?? NaN;
+      numOwners = collectionData?.numOwners ?? NaN;
+    }
+
     const mergedStats: CollectionStatsDto = {
       name,
       slug,
