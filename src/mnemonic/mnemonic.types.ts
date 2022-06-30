@@ -24,6 +24,38 @@ export class MnemonicNumOwners {
   count: string;
 }
 
+export class MnemonicPricesByContractResponse {
+  dataPoints: MnemonicPricesByContractDataPoint[];
+}
+
+export class MnemonicPricesForStatsPeriod {
+  minPrice: number;
+  maxPrice: number;
+  avgPrice: number;
+}
+
+export class MnemonicPricesByContractDataPoint {
+  timestamp: string;
+  min: string;
+  max: string;
+  avg: string;
+}
+
+export class MnemonicVolumesForStatsPeriod {
+  numSales: number;
+  salesVolume: number;
+}
+
+export class MnemonicSalesVolumeByContractResponse {
+  dataPoints: MnemonicSalesVolumeByContractDataPoint[];
+}
+
+export class MnemonicSalesVolumeByContractDataPoint {
+  timestamp: string;
+  count: string;
+  volume: string;
+}
+
 export class MnemonicNumOwnersResponseBody {
   @IsArray()
   @ValidateNested({ each: true, message: 'Invalid num owners' })
