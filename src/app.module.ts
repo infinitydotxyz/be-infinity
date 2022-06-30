@@ -2,7 +2,6 @@ import { StorageModule } from './storage/storage.module';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { LoggerMiddleware } from 'logger.middleware';
 import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 import { FirebaseModule } from './firebase/firebase.module';
 import { StatsModule } from './stats/stats.module';
@@ -52,8 +51,7 @@ import { ReservoirModule } from 'reservoir/reservoir.module';
     OpenseaModule,
     ReservoirModule
   ],
-  controllers: [AppController],
-  providers: [AppService]
+  controllers: [AppController]
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
