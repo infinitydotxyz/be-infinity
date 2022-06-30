@@ -2,6 +2,7 @@ import {
   ChainId,
   Collection,
   CollectionPeriodStatsContent,
+  CollectionStats,
   OrderDirection,
   PreAggregatedSocialsStats,
   SocialsStats,
@@ -31,6 +32,8 @@ import {
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
 import { ONE_HOUR } from '../constants';
 import { MnemonicPricesForStatsPeriod, MnemonicVolumesForStatsPeriod } from 'mnemonic/mnemonic.types';
+import { ZoraService } from 'zora/zora.service';
+import { ReservoirService } from 'reservoir/reservoir.service';
 
 @Injectable()
 export class StatsService {
@@ -53,7 +56,9 @@ export class StatsService {
     private firebaseService: FirebaseService,
     private votesService: VotesService,
     private mnemonicService: MnemonicService,
-    private paginationService: CursorService
+    private paginationService: CursorService,
+    private zoraService: ZoraService,
+    private reservoirService: ReservoirService
   ) {
     this.fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
   }
@@ -422,30 +427,92 @@ export class StatsService {
 
     const name = collectionData?.metadata?.name ?? 'Unknown';
     const profileImage = collectionData?.metadata?.profileImage ?? '';
-    const numOwners = collectionData?.numOwners ?? NaN;
-    const numNfts = collectionData?.numNfts ?? NaN;
     const hasBlueCheck = collectionData?.hasBlueCheck ?? false;
     const slug = collectionData?.slug ?? '';
+
+    let numSales = mergeStat(primary?.numSales, secondary?.numSales);
+    let numNfts = mergeStat(primary?.numNfts, secondary?.numNfts);
+    let numOwners = mergeStat(primary?.numOwners, secondary?.numOwners);
+    let floorPrice = mergeStat(primary?.floorPrice, secondary?.floorPrice);
+    let volume = mergeStat(primary?.volume, secondary?.volume);
+
+    if (Number.isNaN(floorPrice) || Number.isNaN(numOwners) || Number.isNaN(volume) || Number.isNaN(numNfts)) {
+      // fetch from reservoir
+      try {
+        console.log('mergeStats: fetching stats from reservoir');
+        const data = await this.reservoirService.getSingleCollectionInfo(collection.chainId, collection.address);
+        if (data) {
+          const collection = data.collection;
+          numNfts = parseInt(String(collection.tokenCount));
+          numOwners = parseInt(String(collection.ownerCount));
+          floorPrice = collection.floorAsk.price;
+          volume = collection.volume.allTime ?? NaN;
+        }
+      } catch (err) {
+        console.error('mergeStats: error getting floor price from reservoir', err);
+      }
+    }
+
+    if (Number.isNaN(numNfts) || Number.isNaN(numOwners) || Number.isNaN(volume)) {
+      // fetch from zora
+      try {
+        console.log('mergeStats: fetching stats from zora');
+        const stats = await this.zoraService.getAggregatedCollectionStats(collection.chainId, collection.address, 10);
+        if (stats) {
+          numSales = stats.aggregateStat?.salesVolume?.totalCount;
+          numNfts = stats.aggregateStat?.nftCount ?? NaN;
+          numOwners = stats.aggregateStat?.ownerCount ?? NaN;
+          volume = stats.aggregateStat?.salesVolume.chainTokenPrice ?? NaN;
+
+          // save to firestore async
+          const data: Partial<CollectionStats> = {
+            volume: stats.aggregateStat?.salesVolume?.chainTokenPrice,
+            numSales: stats.aggregateStat?.salesVolume?.totalCount,
+            volumeUSDC: stats.aggregateStat?.salesVolume?.usdcPrice,
+            numOwners: stats.aggregateStat?.ownerCount,
+            numNfts: stats.aggregateStat?.nftCount,
+            topOwnersByOwnedNftsCount: stats.aggregateStat?.ownersByCount?.nodes,
+            updatedAt: Date.now()
+          };
+          const collectionDocId = getCollectionDocId({
+            chainId: collection.chainId,
+            collectionAddress: collection.address
+          });
+          const allTimeCollStatsDocRef = this.firebaseService.firestore
+            .collection(firestoreConstants.COLLECTIONS_COLL)
+            .doc(collectionDocId)
+            .collection(firestoreConstants.COLLECTION_STATS_COLL)
+            .doc('all');
+
+          // save
+          allTimeCollStatsDocRef.set(data, { merge: true }).catch((err) => {
+            console.error('mergeStats: Error saving zora stats', err);
+          });
+        }
+      } catch (err) {
+        console.error('mergeStats: error getting zora data', err);
+      }
+    }
 
     const mergedStats: CollectionStatsDto = {
       name,
       slug,
       profileImage,
-      numOwners,
-      numNfts,
       hasBlueCheck,
+      numSales,
+      numNfts,
+      numOwners,
+      floorPrice,
+      volume,
       chainId: collection.chainId,
       collectionAddress: collection.address,
-      floorPrice: mergeStat(primary?.floorPrice, secondary?.floorPrice),
       prevFloorPrice: mergeStat(primary?.prevFloorPrice, secondary?.prevFloorPrice),
       floorPricePercentChange: mergeStat(primary?.floorPricePercentChange, secondary?.floorPricePercentChange),
       ceilPrice: mergeStat(primary?.ceilPrice, secondary?.ceilPrice),
       prevCeilPrice: mergeStat(primary?.prevCeilPrice, secondary?.prevCeilPrice),
       ceilPricePercentChange: mergeStat(primary?.ceilPricePercentChange, secondary?.ceilPricePercentChange),
-      volume: mergeStat(primary?.volume, secondary?.volume),
       prevVolume: mergeStat(primary?.prevVolume, secondary?.prevVolume),
       volumePercentChange: mergeStat(primary?.volumePercentChange, secondary?.volumePercentChange),
-      numSales: mergeStat(primary?.numSales, secondary?.numSales),
       prevNumSales: mergeStat(primary?.prevNumSales, secondary?.prevNumSales),
       numSalesPercentChange: mergeStat(primary?.numSalesPercentChange, secondary?.numSalesPercentChange),
       avgPrice: mergeStat(primary?.avgPrice, secondary?.avgPrice),
