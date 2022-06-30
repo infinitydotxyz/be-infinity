@@ -7,13 +7,17 @@ import { MnemonicService } from 'mnemonic/mnemonic.service';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { CursorService } from 'pagination/cursor.service';
 import { BackfillService } from 'backfill/backfill.service';
-import { TopOwnersQueryDto, TopOwnerDto, CollectionSearchQueryDto } from '@infinityxyz/lib/types/dto/collections';
+import {
+  TopOwnersQueryDto,
+  TopOwnerDto,
+  CollectionSearchQueryDto,
+  PaginatedCollectionsDto
+} from '@infinityxyz/lib/types/dto/collections';
 import { ExternalNftCollectionDto, NftCollectionDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import {
   CuratedCollectionsOrderBy,
   CuratedCollectionsQuery
 } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
-import { CuratedCollectionsDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 import { CurationService } from './curation/curation.service';
 
@@ -283,7 +287,7 @@ export default class CollectionsService {
   /**
    * Fetch all curated collections.
    */
-  async getCurated(query: CuratedCollectionsQuery, user?: ParsedUserId): Promise<CuratedCollectionsDto> {
+  async getCurated(query: CuratedCollectionsQuery): Promise<PaginatedCollectionsDto> {
     const collectionsRef = this.firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL);
 
     type Cursor = Record<'address' | 'chainId', string | number>;
@@ -312,25 +316,8 @@ export default class CollectionsService {
 
     const lastItem = collections[collections.length - 1];
 
-    const curations: CuratedCollection[] = [];
-
-    // read curations too, given the user is logged in
-    if (user) {
-      for (const collection of collections) {
-        // TODO: can we read this in bulk/parallel to achieve better performance?
-        const curators = await this.curationService.findUserCurated(user, collection as any);
-
-        if (curators) {
-          curations.push(curators);
-        }
-      }
-    }
-
     return {
-      data: {
-        collections,
-        curations
-      },
+      data: collections,
       cursor: hasNextPage
         ? this.paginationService.encodeCursor({ address: lastItem.address, chainId: lastItem.chainId } as Cursor)
         : undefined,

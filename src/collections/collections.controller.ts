@@ -170,24 +170,6 @@ export class CollectionsController {
   async getAllCurated(@Query() query: CuratedCollectionsQuery) {
     return this.collectionsService.getCurated(query);
   }
-
-  @Get('curated/:userId')
-  @UserAuth('userId')
-  @ApiOperation({
-    description: 'Fetch all curated collections including possible votes and estimations (APR) of the current user',
-    tags: [ApiTag.Collection, ApiTag.Curation]
-  })
-  @ApiOkResponse({ type: CuratedCollectionsDto })
-  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
-  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  async getUseCurated(
-    @Query() query: CuratedCollectionsQuery,
-    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId
-  ) {
-    return this.collectionsService.getCurated(query, user);
-  }
-
   @Get('/:id/curated/:userId')
   @UserAuth('userId')
   @ApiParamUserId('userId')

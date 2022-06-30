@@ -498,7 +498,6 @@ export class UserController {
   })
   @ApiOkResponse({ type: CuratedCollectionsDto })
   @ApiParamUserId('userId')
-  @ApiParamCollectionId('collectionId')
   @ApiOkResponse({ description: ResponseDescription.Success, type: UserCollectionPermissions })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 5 }))
