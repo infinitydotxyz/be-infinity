@@ -1,11 +1,11 @@
 /* eslint-disable no-empty */
-import { ChainId, Collection, CuratedCollection } from '@infinityxyz/lib/types/core';
+import { ChainId, CuratedCollection } from '@infinityxyz/lib/types/core';
 import { AlchemyNftToInfinityNft } from '../common/transformers/alchemy-nft-to-infinity-nft.pipe';
 import { AlchemyService } from 'alchemy/alchemy.service';
 import { CreationFlow, OrderDirection } from '@infinityxyz/lib/types/core';
 import { NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
 import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
-import { BadRequestException, Injectable, Optional } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { ActivityType, activityTypeToEventType } from 'collections/nfts/nft-activity.types';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { InvalidUserError } from 'common/errors/invalid-user.error';
@@ -446,18 +446,6 @@ export class UserService {
       .where('userChainId', '==', user.userChainId)
       .orderBy('votes', query.orderDirection)
       .limit(query.limit + 1);
-
-    // NOTE: the following code isn't used in FE anymore, I believe. Should consider deprecating it.
-    if ((query.collections?.length || 0) > 0) {
-      if ((query.collections?.length || 0) > 10) {
-        throw new BadRequestException('Maximum of 10 collections to filter on reached!');
-      }
-
-      const collectionChainIds = query.collections?.map((c) => c.split(':')[0]);
-      const collectionAddresses = query.collections?.map((c) => c.split(':')[1]);
-
-      q = q.where('collectionAddress', 'in', collectionAddresses); // TODO: store collection id in db?
-    }
 
     if (query.cursor) {
       const decodedCursor = this.paginationService.decodeCursorToObject<CuratedCollection>(query.cursor);

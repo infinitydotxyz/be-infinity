@@ -1,4 +1,4 @@
-import { ChainId, Collection, CollectionMetadata, CreationFlow, CuratedCollection } from '@infinityxyz/lib/types/core';
+import { ChainId, Collection, CollectionMetadata, CreationFlow } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, getCollectionDocId, getEndCode, getSearchFriendlyString } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { FirebaseService } from 'firebase/firebase.service';
@@ -18,8 +18,6 @@ import {
   CuratedCollectionsOrderBy,
   CuratedCollectionsQuery
 } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
-import { ParsedUserId } from 'user/parser/parsed-user-id';
-import { CurationService } from './curation/curation.service';
 
 interface CollectionQueryOptions {
   /**
@@ -36,8 +34,7 @@ export default class CollectionsService {
     private firebaseService: FirebaseService,
     private mnemonicService: MnemonicService,
     private paginationService: CursorService,
-    private backfillService: BackfillService,
-    private curationService: CurationService
+    private backfillService: BackfillService
   ) {}
 
   private get defaultCollectionQueryOptions(): CollectionQueryOptions {
