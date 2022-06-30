@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiCreatedResponse,
@@ -27,8 +27,9 @@ export class CurationController {
   @UserAuth('userId')
   @ApiOperation({
     description: 'Vote on the collection',
-    tags: [ApiTag.Collection]
+    tags: [ApiTag.Collection, ApiTag.Curation]
   })
+  @ApiCreatedResponse()
   @ApiParamCollectionId('id')
   @ApiCreatedResponse({ description: ResponseDescription.Success })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
@@ -36,18 +37,18 @@ export class CurationController {
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   async vote(
     @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
-    @ParamUserId('userId', ParseUserIdPipe) { userAddress }: ParsedUserId,
+    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
     @Body() vote: CurationVoteDto
   ) {
-    const availableVotes = await this.tokenContractService.getVotes(userAddress);
+    const availableVotes = await this.tokenContractService.getVotes(user.userAddress);
 
-    if (availableVotes < vote.votes) {
+    /* if (availableVotes < vote.votes) {
       throw new BadRequestException('Insufficient amount of votes available');
-    }
+    } */
 
     await this.curationService.vote({
       collection,
-      userAddress,
+      user,
       votes: vote.votes
     });
   }

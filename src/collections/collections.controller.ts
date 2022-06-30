@@ -15,8 +15,10 @@ import {
   ApiInternalServerErrorResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
-  ApiOperation
+  ApiOperation,
+  ApiResponse
 } from '@nestjs/swagger';
+import { CuratedCollection } from '@infinityxyz/lib/types/core/CuratedCollection';
 
 import { ApiTag } from 'common/api-tags';
 import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param-collection-id.decorator';
@@ -54,6 +56,8 @@ import { ApiParamUserId, ParamUserId } from 'auth/param-user-id.decorator';
 import { UserAuth } from 'auth/user-auth.decorator';
 import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
+import { CuratedCollectionsDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
+import CuratedCollectionDto from './curation/curation.dto';
 
 @Controller('collections')
 export class CollectionsController {
@@ -157,8 +161,9 @@ export class CollectionsController {
   @Get('curated')
   @ApiOperation({
     description: 'Fetch all curated collections',
-    tags: [ApiTag.Collection]
+    tags: [ApiTag.Collection, ApiTag.Curation]
   })
+  @ApiOkResponse({ type: CuratedCollectionsDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
@@ -169,9 +174,10 @@ export class CollectionsController {
   @Get('curated/:userId')
   @UserAuth('userId')
   @ApiOperation({
-    description: 'Fetch curation estimations for the current user',
-    tags: [ApiTag.Collection]
+    description: 'Fetch all curated collections including possible votes and estimations (APR) of the current user',
+    tags: [ApiTag.Collection, ApiTag.Curation]
   })
+  @ApiOkResponse({ type: CuratedCollectionsDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
@@ -190,6 +196,7 @@ export class CollectionsController {
     description: 'Fetch curation details and estimations of the collection',
     tags: [ApiTag.Collection]
   })
+  @ApiOkResponse({ type: CuratedCollectionDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })

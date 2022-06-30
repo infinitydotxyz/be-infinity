@@ -88,6 +88,7 @@ import {
   UserCollectionVoteDto
 } from '@infinityxyz/lib/types/dto/votes';
 import { CuratedCollectionsQuery } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
+import { CuratedCollectionsDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 
 @Controller('user')
 export class UserController {
@@ -493,8 +494,9 @@ export class UserController {
   @UserAuth('userId')
   @ApiOperation({
     description: "Get the user's curated collections",
-    tags: [ApiTag.User, ApiTag.Collection]
+    tags: [ApiTag.User, ApiTag.Collection, ApiTag.Curation]
   })
+  @ApiOkResponse({ type: CuratedCollectionsDto })
   @ApiParamUserId('userId')
   @ApiParamCollectionId('collectionId')
   @ApiOkResponse({ description: ResponseDescription.Success, type: UserCollectionPermissions })
