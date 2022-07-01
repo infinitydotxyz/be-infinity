@@ -11,8 +11,9 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { Multer } from 'multer';
 
 function setup(app: INestApplication) {
+  // todo: allow connection from localhost temporarily - revert back to ORIGIN after prod release:
   app.enableCors({
-    origin: ORIGIN,
+    origin: '*', // ORIGIN,
     optionsSuccessStatus: 200
   });
   app.use(helmet());
