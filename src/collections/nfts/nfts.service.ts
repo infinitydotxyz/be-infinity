@@ -136,6 +136,7 @@ export class NftsService {
     if (query.orderBy === NftsOrderBy.Price && !query.orderType) {
       query.orderType = OrderType.Listing;
     }
+    const orderType = query.orderType || OrderType.Listing;
     const startPriceField = `ordersSnippet.${query.orderType}.orderItem.startPriceEth`;
     if (query.orderType) {
       nftsQuery = nftsQuery.where(`ordersSnippet.${query.orderType}.hasOrder`, '==', true);
