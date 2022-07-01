@@ -1,9 +1,7 @@
 import {
   ChainId,
   Collection,
-  CollectionPeriodStatsContent,
-  CreationFlow,
-  StatsPeriod
+  CollectionPeriodStatsContent, StatsPeriod
 } from '@infinityxyz/lib/types/core';
 import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
 import {
