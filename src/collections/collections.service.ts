@@ -1,4 +1,4 @@
-import { ChainId, Collection, CollectionMetadata, CreationFlow } from '@infinityxyz/lib/types/core';
+import { ChainId, Collection, CollectionMetadata, CreationFlow, TopOwner } from '@infinityxyz/lib/types/core';
 import { CollectionSearchQueryDto, TopOwnerDto, TopOwnersQueryDto } from '@infinityxyz/lib/types/dto/collections';
 import { ExternalNftCollectionDto, NftCollectionDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { firestoreConstants, getCollectionDocId, getEndCode, getSearchFriendlyString } from '@infinityxyz/lib/utils';
@@ -41,8 +41,7 @@ export default class CollectionsService {
 
     const offset = this.paginationService.decodeCursorToNumber(query.cursor || '');
 
-    // todo: make a type for this
-    let topOwners: { owner: string; count: number }[] = [];
+    let topOwners: TopOwner[] = [];
     // check if data exists in firestore
     const collectionDocId = getCollectionDocId({ collectionAddress: collection.address, chainId: collection.chainId });
     const allStatsDoc = await this.firebaseService.firestore
@@ -52,7 +51,7 @@ export default class CollectionsService {
       .doc('all')
       .get();
     if (allStatsDoc.exists) {
-      topOwners = allStatsDoc.data()?.topOwnersByOwnedNftsCount as { owner: string; count: number }[];
+      topOwners = allStatsDoc.data()?.topOwnersByOwnedNftsCount as TopOwner[];
     }
 
     // if data doesn't exist in firestore, fetch from mnemonic

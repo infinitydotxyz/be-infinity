@@ -443,10 +443,10 @@ export class StatsService {
         const data = await this.reservoirService.getSingleCollectionInfo(collection.chainId, collection.address);
         if (data) {
           const collection = data.collection;
-          numNfts = parseInt(String(collection.tokenCount));
-          numOwners = parseInt(String(collection.ownerCount));
-          floorPrice = collection.floorAsk.price;
-          volume = collection.volume.allTime ?? NaN;
+          numNfts = parseInt(String(collection?.tokenCount));
+          numOwners = parseInt(String(collection?.ownerCount));
+          floorPrice = collection?.floorAsk?.price;
+          volume = collection?.volume?.allTime ?? NaN;
         }
       } catch (err) {
         console.error('mergeStats: error getting floor price from reservoir', err);
@@ -492,6 +492,11 @@ export class StatsService {
       } catch (err) {
         console.error('mergeStats: error getting zora data', err);
       }
+    }
+
+    if (Number.isNaN(numNfts) || Number.isNaN(numOwners)) {
+      numNfts = collectionData?.numNfts ?? NaN;
+      numOwners = collectionData?.numOwners ?? NaN;
     }
 
     const mergedStats: CollectionStatsDto = {
