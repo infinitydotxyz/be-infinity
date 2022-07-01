@@ -1,9 +1,11 @@
 /* eslint-disable no-empty */
-import { ChainId } from '@infinityxyz/lib/types/core';
-import { AlchemyNftToInfinityNft } from '../common/transformers/alchemy-nft-to-infinity-nft.pipe';
-import { AlchemyService } from 'alchemy/alchemy.service';
-import { CreationFlow, OrderDirection } from '@infinityxyz/lib/types/core';
+import { ChainId, OrderDirection } from '@infinityxyz/lib/types/core';
 import { NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
+import { RankingQueryDto } from '@infinityxyz/lib/types/dto/collections';
+import { NftArrayDto, NftCollectionDto, NftDto } from '@infinityxyz/lib/types/dto/collections/nfts';
+import {
+  UserActivityArrayDto, UserActivityQueryDto, UserFollowingCollection, UserFollowingCollectionDeletePayload, UserFollowingCollectionPostPayload, UserFollowingUser, UserFollowingUserDeletePayload, UserFollowingUserPostPayload, UserNftsOrderType, UserNftsQueryDto, UserProfileDto
+} from '@infinityxyz/lib/types/dto/user';
 import {
   DEFAULT_ITEMS_PER_PAGE,
   firestoreConstants,
@@ -12,33 +14,20 @@ import {
   trimLowerCase
 } from '@infinityxyz/lib/utils';
 import { Injectable, Optional } from '@nestjs/common';
+import { AlchemyService } from 'alchemy/alchemy.service';
+import { BackfillService } from 'backfill/backfill.service';
 import { ActivityType, activityTypeToEventType } from 'collections/nfts/nft-activity.types';
+import { BadQueryError } from 'common/errors/bad-query.error';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { InvalidUserError } from 'common/errors/invalid-user.error';
 import { BigNumber } from 'ethers/lib/ethers';
 import { FirebaseService } from 'firebase/firebase.service';
+import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
 import { CursorService } from 'pagination/cursor.service';
 import { StatsService } from 'stats/stats.service';
-import { ParsedUserId } from './parser/parsed-user-id';
-import { BadQueryError } from 'common/errors/bad-query.error';
-import { RankingQueryDto } from '@infinityxyz/lib/types/dto/collections';
-import { NftCollectionDto, NftDto, NftArrayDto } from '@infinityxyz/lib/types/dto/collections/nfts';
-import {
-  UserFollowingCollection,
-  UserFollowingCollectionPostPayload,
-  UserFollowingCollectionDeletePayload,
-  UserFollowingUser,
-  UserFollowingUserPostPayload,
-  UserFollowingUserDeletePayload,
-  UserNftsQueryDto,
-  UserNftsOrderType,
-  UserProfileDto,
-  UserActivityQueryDto,
-  UserActivityArrayDto
-} from '@infinityxyz/lib/types/dto/user';
 import { NftsService } from '../collections/nfts/nfts.service';
-import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
-import { BackfillService } from 'backfill/backfill.service';
+import { AlchemyNftToInfinityNft } from '../common/transformers/alchemy-nft-to-infinity-nft.pipe';
+import { ParsedUserId } from './parser/parsed-user-id';
 
 export type UserActivity = NftSaleEvent | NftListingEvent | NftOfferEvent;
 
@@ -120,7 +109,7 @@ export class UserService {
     if (!collection) {
       throw new InvalidCollectionError(payload.collectionAddress, payload.collectionChainId, 'Collection not found');
     }
-    if (collection?.state?.create?.step !== CreationFlow.Complete) {
+    if (!collection?.state?.create?.step) {
       throw new InvalidCollectionError(
         payload.collectionAddress,
         payload.collectionChainId,
@@ -151,7 +140,7 @@ export class UserService {
     if (!collection) {
       throw new InvalidCollectionError(payload.collectionAddress, payload.collectionChainId, 'Collection not found');
     }
-    if (collection?.state?.create?.step !== CreationFlow.Complete) {
+    if (!collection?.state?.create?.step) {
       throw new InvalidCollectionError(
         payload.collectionAddress,
         payload.collectionChainId,

@@ -99,8 +99,7 @@ export default class CollectionsService {
 
   async searchByName(search: CollectionSearchQueryDto) {
     let firestoreQuery: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = this.firebaseService.firestore
-      .collection(firestoreConstants.COLLECTIONS_COLL)
-      .where('state.create.step', '==', CreationFlow.Complete);
+      .collection(firestoreConstants.COLLECTIONS_COLL);
 
     if (search.query) {
       const startsWith = getSearchFriendlyString(search.query);
@@ -273,14 +272,15 @@ export default class CollectionsService {
     );
   }
 
-  async isSupported(collections: NftCollectionDto[]) {
-    const { getCollection } = await this.getCollectionsByAddress(
-      collections.map((collection) => ({ address: collection.collectionAddress ?? '', chainId: collection.chainId }))
-    );
+  isSupported(collections: NftCollectionDto[]) {
+    // const { getCollection } = await this.getCollectionsByAddress(
+    //   collections.map((collection) => ({ address: collection.collectionAddress ?? '', chainId: collection.chainId }))
+    // );
 
     const externalCollection: ExternalNftCollectionDto[] = collections.map((item) => {
-      const collection = getCollection({ address: item.collectionAddress ?? '', chainId: item.chainId });
-      const isSupported = collection?.state?.create?.step === CreationFlow.Complete;
+      // const collection = getCollection({ address: item.collectionAddress ?? '', chainId: item.chainId });
+      // const isSupported = collection?.state?.create?.step === CreationFlow.Complete;
+      const isSupported = true;
       const externalCollection: ExternalNftCollectionDto = {
         ...item,
         isSupported

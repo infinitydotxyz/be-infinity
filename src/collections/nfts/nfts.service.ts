@@ -1,25 +1,15 @@
-import { ChainId, Collection, CreationFlow } from '@infinityxyz/lib/types/core';
-import { NftActivityQueryDto, OrderType } from '@infinityxyz/lib/types/dto/collections/nfts';
+import { ChainId, Collection } from '@infinityxyz/lib/types/core';
 import { FeedEventType, NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
+import { ExternalNftDto, NftActivity, NftActivityFiltersDto, NftActivityQueryDto, NftArrayDto, NftDto, NftQueryDto, NftsOrderBy, NftsQueryDto, OrderType } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
+import { BackfillService } from 'backfill/backfill.service';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
 import CollectionsService from 'collections/collections.service';
-import { FirebaseService } from 'firebase/firebase.service';
-import { ActivityType, activityTypeToEventType } from './nft-activity.types';
-import { CursorService } from 'pagination/cursor.service';
 import { EthereumService } from 'ethereum/ethereum.service';
-import { BackfillService } from 'backfill/backfill.service';
-import {
-  NftQueryDto,
-  NftDto,
-  ExternalNftDto,
-  NftsQueryDto,
-  NftArrayDto,
-  NftsOrderBy,
-  NftActivityFiltersDto,
-  NftActivity
-} from '@infinityxyz/lib/types/dto/collections/nfts';
+import { FirebaseService } from 'firebase/firebase.service';
+import { CursorService } from 'pagination/cursor.service';
+import { ActivityType, activityTypeToEventType } from './nft-activity.types';
 
 @Injectable()
 export class NftsService {
@@ -75,14 +65,15 @@ export class NftsService {
       });
   }
 
-  async isSupported(nfts: NftDto[]) {
-    const { getCollection } = await this.collectionsService.getCollectionsByAddress(
-      nfts.map((nft) => ({ address: nft.collectionAddress ?? '', chainId: nft.chainId }))
-    );
+  isSupported(nfts: NftDto[]) {
+    // const { getCollection } = await this.collectionsService.getCollectionsByAddress(
+    //   nfts.map((nft) => ({ address: nft.collectionAddress ?? '', chainId: nft.chainId }))
+    // );
 
     const externalNfts: ExternalNftDto[] = nfts.map((nft) => {
-      const collection = getCollection({ address: nft.collectionAddress ?? '', chainId: nft.chainId });
-      const isSupported = collection?.state?.create?.step === CreationFlow.Complete;
+      // const collection = getCollection({ address: nft.collectionAddress ?? '', chainId: nft.chainId });
+      // const isSupported = collection?.state?.create?.step === CreationFlow.Complete;
+      const isSupported = true;
       const externalNft: ExternalNftDto = {
         ...nft,
         isSupported
@@ -136,7 +127,7 @@ export class NftsService {
     }
     const orderType = query.orderType || OrderType.Listing;
     const startPriceField = `ordersSnippet.${orderType}.orderItem.startPriceEth`;
-    if (query.orderType) {
+    if (orderType) {
       nftsQuery = nftsQuery.where(`ordersSnippet.${orderType}.hasOrder`, '==', true);
     }
     if (query.traitTypes) {
@@ -171,7 +162,9 @@ export class NftsService {
     if (orderBy === NftsOrderBy.Price) {
       orderBy = startPriceField;
     }
-    nftsQuery = nftsQuery.orderBy(orderBy, query.orderDirection);
+    if (orderBy) {
+      nftsQuery = nftsQuery.orderBy(orderBy, query.orderDirection);
+    }
     if (decodedCursor?.[query.orderBy]) {
       nftsQuery = nftsQuery.startAfter(decodedCursor[query.orderBy]);
     }

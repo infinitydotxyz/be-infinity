@@ -1,9 +1,7 @@
 import {
   ChainId,
   Collection,
-  CollectionPeriodStatsContent,
-  CreationFlow,
-  StatsPeriod
+  CollectionPeriodStatsContent, StatsPeriod
 } from '@infinityxyz/lib/types/core';
 import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
 import {
@@ -139,7 +137,7 @@ export class CollectionsController {
     const finalData: any[] = [];
     for (const st of res.data) {
       const collectionData = getCollection({ address: st.collectionAddress ?? '', chainId: st.chainId });
-      if (collectionData && collectionData.state?.create.step === CreationFlow.Complete) {
+      if (collectionData) {
         st.collectionData = collectionData as Collection;
         finalData.push(st);
       }

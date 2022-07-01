@@ -443,10 +443,18 @@ export class StatsService {
         const data = await this.reservoirService.getSingleCollectionInfo(collection.chainId, collection.address);
         if (data) {
           const collection = data.collection;
-          numNfts = parseInt(String(collection?.tokenCount));
-          numOwners = parseInt(String(collection?.ownerCount));
-          floorPrice = collection?.floorAsk?.price;
-          volume = collection?.volume?.allTime ?? NaN;
+          if (collection.tokenCount) {
+            numNfts = parseInt(String(collection.tokenCount));
+          }
+          if (collection.ownerCount) {
+            numOwners = parseInt(String(collection.ownerCount));
+          }
+          if (collection.floorAsk) {
+            floorPrice = collection.floorAsk.price;
+          }
+          if (collection.tokenCount) {
+            volume = collection?.volume?.allTime ?? NaN;
+          }
         }
       } catch (err) {
         console.error('mergeStats: error getting floor price from reservoir', err);
@@ -459,21 +467,36 @@ export class StatsService {
         console.log('mergeStats: fetching stats from zora');
         const stats = await this.zoraService.getAggregatedCollectionStats(collection.chainId, collection.address, 10);
         if (stats) {
-          numSales = stats.aggregateStat?.salesVolume?.totalCount;
-          numNfts = stats.aggregateStat?.nftCount ?? NaN;
-          numOwners = stats.aggregateStat?.ownerCount ?? NaN;
-          volume = stats.aggregateStat?.salesVolume.chainTokenPrice ?? NaN;
+          const data: Partial<CollectionStats> = {};
+
+          if (stats.aggregateStat?.salesVolume?.totalCount) {
+            numSales = stats.aggregateStat?.salesVolume?.totalCount;
+            data.numSales = numSales;
+          }
+          if (stats.aggregateStat?.nftCount) {
+            numNfts = stats.aggregateStat.nftCount;
+            data.numNfts = numNfts;
+          }
+          if (stats.aggregateStat.ownerCount) {
+            numOwners = stats.aggregateStat.ownerCount;
+            data.numOwners = numOwners;
+          }
+          if (stats.aggregateStat?.salesVolume.chainTokenPrice) {
+            volume = stats.aggregateStat.salesVolume.chainTokenPrice;
+            data.volume = volume;
+          }
+          if (stats.aggregateStat?.salesVolume.usdcPrice) {
+            data.volumeUSDC = stats.aggregateStat.salesVolume.usdcPrice;;
+          }
+          if (stats.aggregateStat?.ownersByCount?.nodes && stats.aggregateStat?.ownersByCount?.nodes.length >= 10) {
+            data.topOwnersByOwnedNftsCount = stats.aggregateStat.ownersByCount.nodes;
+          }
+
+          if (data) {
+            data.updatedAt = Date.now();
+          }
 
           // save to firestore async
-          const data: Partial<CollectionStats> = {
-            volume: stats.aggregateStat?.salesVolume?.chainTokenPrice,
-            numSales: stats.aggregateStat?.salesVolume?.totalCount,
-            volumeUSDC: stats.aggregateStat?.salesVolume?.usdcPrice,
-            numOwners: stats.aggregateStat?.ownerCount,
-            numNfts: stats.aggregateStat?.nftCount,
-            topOwnersByOwnedNftsCount: stats.aggregateStat?.ownersByCount?.nodes,
-            updatedAt: Date.now()
-          };
           const collectionDocId = getCollectionDocId({
             chainId: collection.chainId,
             collectionAddress: collection.address
