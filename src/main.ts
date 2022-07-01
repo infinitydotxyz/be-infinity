@@ -11,11 +11,10 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { Multer } from 'multer';
 
 function setup(app: INestApplication) {
-  // todo: disable CORS for now for testing - enable this after prod release:
-  // app.enableCors({
-  //   origin: ORIGIN,
-  //   optionsSuccessStatus: 200
-  // });
+  app.enableCors({
+    origin: ORIGIN,
+    optionsSuccessStatus: 200
+  });
   app.use(helmet());
   app.useGlobalFilters(new HttpExceptionFilter());
 
