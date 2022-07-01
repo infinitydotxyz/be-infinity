@@ -1,8 +1,6 @@
 import {
   ChainId,
-  Collection,
-  CreationFlow,
-  Erc721Metadata,
+  Collection, Erc721Metadata,
   FirestoreOrder,
   FirestoreOrderItem,
   InfinityLinkType,
@@ -276,7 +274,7 @@ export default class OrdersService {
         })
       );
       const collectionsByAddress = collectionsData.reduce((acc: { [address: string]: Collection }, collection) => {
-        if (collection?.state?.create?.step !== CreationFlow.Complete) {
+        if (!collection?.state?.create?.step) {
           throw new InvalidCollectionError(
             collection?.address ?? 'Unknown',
             collection?.chainId ?? 'Unknown',

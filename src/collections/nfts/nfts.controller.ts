@@ -45,7 +45,6 @@ export class NftsController {
   ) {
     try {
       const nfts = await this.nftService.getCollectionNfts(collection, query);
-
       return nfts;
     } catch (err) {
       if (err instanceof BadQueryError) {
