@@ -439,7 +439,7 @@ export class StatsService {
     if (Number.isNaN(floorPrice) || Number.isNaN(numOwners) || Number.isNaN(volume) || Number.isNaN(numNfts)) {
       // fetch from reservoir
       try {
-        console.log('mergeStats: fetching stats from reservoir');
+        console.log('mergeStats: Fetching stats from reservoir');
         const data = await this.reservoirService.getSingleCollectionInfo(collection.chainId, collection.address);
         if (data) {
           const collection = data.collection;
@@ -457,14 +457,14 @@ export class StatsService {
           }
         }
       } catch (err) {
-        console.error('mergeStats: error getting floor price from reservoir', err);
+        console.error('mergeStats: Error getting floor price from reservoir', err);
       }
     }
 
     if (Number.isNaN(numNfts) || Number.isNaN(numOwners) || Number.isNaN(volume)) {
       // fetch from zora
       try {
-        console.log('mergeStats: fetching stats from zora');
+        console.log('mergeStats: Fetching stats from zora');
         const stats = await this.zoraService.getAggregatedCollectionStats(collection.chainId, collection.address, 10);
         if (stats) {
           const data: Partial<CollectionStats> = {};
@@ -513,7 +513,7 @@ export class StatsService {
           });
         }
       } catch (err) {
-        console.error('mergeStats: error getting zora data', err);
+        console.error('mergeStats: Error getting zora data', err);
       }
     }
 

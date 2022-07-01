@@ -1,6 +1,17 @@
 import { ChainId, Collection } from '@infinityxyz/lib/types/core';
 import { FeedEventType, NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
-import { ExternalNftDto, NftActivity, NftActivityFiltersDto, NftActivityQueryDto, NftArrayDto, NftDto, NftQueryDto, NftsOrderBy, NftsQueryDto, OrderType } from '@infinityxyz/lib/types/dto/collections/nfts';
+import {
+  ExternalNftDto,
+  NftActivity,
+  NftActivityFiltersDto,
+  NftActivityQueryDto,
+  NftArrayDto,
+  NftDto,
+  NftQueryDto,
+  NftsOrderBy,
+  NftsQueryDto,
+  OrderType
+} from '@infinityxyz/lib/types/dto/collections/nfts';
 import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { BackfillService } from 'backfill/backfill.service';
@@ -125,10 +136,9 @@ export class NftsService {
     if (query.orderBy === NftsOrderBy.Price && !query.orderType) {
       query.orderType = OrderType.Listing;
     }
-    const orderType = query.orderType || OrderType.Listing;
-    const startPriceField = `ordersSnippet.${orderType}.orderItem.startPriceEth`;
-    if (orderType) {
-      nftsQuery = nftsQuery.where(`ordersSnippet.${orderType}.hasOrder`, '==', true);
+    const startPriceField = `ordersSnippet.${query.orderType}.orderItem.startPriceEth`;
+    if (query.orderType) {
+      nftsQuery = nftsQuery.where(`ordersSnippet.${query.orderType}.hasOrder`, '==', true);
     }
     if (query.traitTypes) {
       const traitTypes = query.traitTypes ?? [];
@@ -162,9 +172,7 @@ export class NftsService {
     if (orderBy === NftsOrderBy.Price) {
       orderBy = startPriceField;
     }
-    if (orderBy) {
-      nftsQuery = nftsQuery.orderBy(orderBy, query.orderDirection);
-    }
+    nftsQuery = nftsQuery.orderBy(orderBy, query.orderDirection);
     if (decodedCursor?.[query.orderBy]) {
       nftsQuery = nftsQuery.startAfter(decodedCursor[query.orderBy]);
     }
