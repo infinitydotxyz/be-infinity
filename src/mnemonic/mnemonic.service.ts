@@ -10,7 +10,9 @@ import {
   MnemonicNumOwnersResponseBody,
   TopOwnersResponseBody,
   UserNftsResponseBody,
-  MnemonicNumTokensResponseBody
+  MnemonicNumTokensResponseBody,
+  MnemonicPricesByContractResponse,
+  MnemonicSalesVolumeByContractResponse
 } from './mnemonic.types';
 
 type TopCollectionsApiResponse = {
@@ -185,15 +187,11 @@ export class MnemonicService {
       duration = 'DURATION_30_DAYS';
     }
 
-    // const sortDirection = getSortDirection(options?.orderDirection ?? OrderDirection.Descending);
-    const limit = 50; // todo: hard code Top 50 for now; for pagination later, use: options?.limit ?? 50;
-    const offset = 0; // options?.offset ?? 0;
-    const url = new URL(
-      `https://ethereum-analytics.rest.mnemonichq.com/collections/v1beta1/top/${by}?duration=${duration}`
-    );
+    const limit = options?.limit ?? 100;
+    const offset = options?.offset ?? 0;
+    const url = new URL(`https://ethereum.rest.mnemonichq.com/collections/v1beta1/top/${by}?duration=${duration}`);
     url.searchParams.append('limit', limit.toString());
     url.searchParams.append('offset', offset.toString());
-    // url.searchParams.append('sortDirection', sortDirection);
     try {
       const response = await this.client.get(url.toString());
       if (response.status === 200) {
@@ -203,6 +201,58 @@ export class MnemonicService {
     } catch (err) {
       console.error(err);
       return null;
+    }
+  }
+
+  async getPricesByContract(
+    contractAddress: string,
+    period: StatsPeriod
+  ): Promise<MnemonicPricesByContractResponse | undefined> {
+    let duration = '';
+    if (period === 'daily') {
+      duration = 'DURATION_1_DAY';
+    } else if (period === 'weekly') {
+      duration = 'DURATION_7_DAYS';
+    } else if (period === 'monthly') {
+      duration = 'DURATION_30_DAYS';
+    }
+    const GROUP_BY_PERIOD_1_DAY = 'GROUP_BY_PERIOD_1_DAY';
+    const url = new URL(
+      `https://ethereum.rest.mnemonichq.com/pricing/v1beta1/prices/by_contract/${contractAddress}?duration=${duration}&groupByPeriod=${GROUP_BY_PERIOD_1_DAY}`
+    );
+    try {
+      const response = await this.client.get(url.toString());
+      if (response.status === 200) {
+        return response.data;
+      }
+    } catch (err) {
+      console.error('Error fetching prices by contract', err);
+    }
+  }
+
+  async getSalesVolumeByContract(
+    contractAddress: string,
+    period: StatsPeriod
+  ): Promise<MnemonicSalesVolumeByContractResponse | undefined> {
+    let duration = '';
+    if (period === 'daily') {
+      duration = 'DURATION_1_DAY';
+    } else if (period === 'weekly') {
+      duration = 'DURATION_7_DAYS';
+    } else if (period === 'monthly') {
+      duration = 'DURATION_30_DAYS';
+    }
+    const GROUP_BY_PERIOD_1_DAY = 'GROUP_BY_PERIOD_1_DAY';
+    const url = new URL(
+      `https://ethereum.rest.mnemonichq.com/pricing/v1beta1/volumes/by_contract/${contractAddress}?duration=${duration}&groupByPeriod=${GROUP_BY_PERIOD_1_DAY}`
+    );
+    try {
+      const response = await this.client.get(url.toString());
+      if (response.status === 200) {
+        return response.data;
+      }
+    } catch (err) {
+      console.error('Error fetching prices by contract', err);
     }
   }
 }

@@ -31,6 +31,9 @@ const getMultipleEnvVariables = (prefix: string, minLength = 1): (string | undef
   return variables;
 };
 
+export const RESERVOIR_API_KEY = getEnvironmentVariable('RESERVOIR_API_KEY');
+export const ZORA_API_KEY = getEnvironmentVariable('ZORA_API_KEY');
+
 export const OPENSEA_API_KEYS = (() => {
   const apiKeys = getMultipleEnvVariables('OPENSEA_API_KEY');
   return apiKeys;
@@ -66,9 +69,13 @@ export const FIREBASE_SERVICE_ACCOUNT = 'nftc-dev-firebase-creds.json';
 export const ORIGIN = 'https://dev.nftcompany.com';
 export const INFINITY_URL = 'https://infinity.xyz/';
 
+export const ONE_MIN = 1000 * 60;
 export const ONE_HOUR = 3_600_000; // In ms
 export const ONE_DAY = ONE_HOUR * 24;
 export const MIN_TWITTER_UPDATE_INTERVAL = ONE_HOUR; // In ms
 export const MIN_DISCORD_UPDATE_INTERVAL = ONE_HOUR;
 export const MIN_LINK_UPDATE_INTERVAL = ONE_HOUR;
 export const MIN_COLLECTION_STATS_UPDATE_INTERVAL = ONE_HOUR / 4; // 15 min
+
+// every 1s, collect stats for 1 collection from the list (see: /update-social-stats)
+export const UPDATE_SOCIAL_STATS_INTERVAL = 1000;

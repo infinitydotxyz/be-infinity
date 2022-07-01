@@ -4,7 +4,13 @@ import { AlchemyNftToInfinityNft } from '../common/transformers/alchemy-nft-to-i
 import { AlchemyService } from 'alchemy/alchemy.service';
 import { CreationFlow, OrderDirection } from '@infinityxyz/lib/types/core';
 import { NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
-import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
+import {
+  DEFAULT_ITEMS_PER_PAGE,
+  firestoreConstants,
+  getEndCode,
+  getSearchFriendlyString,
+  trimLowerCase
+} from '@infinityxyz/lib/utils';
 import { Injectable, Optional } from '@nestjs/common';
 import { ActivityType, activityTypeToEventType } from 'collections/nfts/nft-activity.types';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
@@ -195,18 +201,33 @@ export class UserService {
     return {};
   }
 
-  async getUserNftCollections(user: ParsedUserId) {
+  async getUserNftCollections(user: ParsedUserId, search = '') {
     const collRef = user.ref.collection(firestoreConstants.USER_NFT_COLLECTION_COLL);
 
-    const snap = await collRef.get();
-    const nftCollections: NftCollectionDto[] = snap.docs.map((doc) => {
+    let snap = undefined;
+    if (!search) {
+      snap = await collRef.limit(DEFAULT_ITEMS_PER_PAGE).get();
+    } else {
+      // search by name (collectionSlug)
+      const startsWith = getSearchFriendlyString(search);
+      const endCode = getEndCode(startsWith);
+      if (startsWith && endCode) {
+        snap = await collRef
+          .where('collectionSlug', '>=', startsWith)
+          .where('collectionSlug', '<', endCode)
+          .limit(DEFAULT_ITEMS_PER_PAGE)
+          .get();
+      }
+    }
+
+    const nftCollections: NftCollectionDto[] = (snap?.docs ?? []).map((doc) => {
       const docData = doc.data() as NftCollectionDto;
       return docData;
     });
     return nftCollections;
   }
 
-  async saveUserNftCollections(userAddress: string, nfts: NftDto[]): Promise<void> {
+  saveUserNftCollections(userAddress: string, nfts: NftDto[]) {
     const userRef = this.firebaseService.firestore
       .collection(firestoreConstants.USERS_COLL)
       .doc(userAddress)
@@ -229,7 +250,7 @@ export class UserService {
         );
       }
     }
-    await this.fsBatchHandler.flush().catch((err) => {
+    this.fsBatchHandler.flush().catch((err) => {
       console.error('error saving user nft collections', err);
     });
   }
@@ -363,8 +384,9 @@ export class UserService {
       pageKey: continueFromCurrentPage ? pageKey : nextPageKey,
       startAtToken: nftToStartAt
     });
-    // todo: remove this
-    await this.saveUserNftCollections(user.userAddress, nfts);
+
+    // save user's collections to be used in /:userId/nftCollections
+    this.saveUserNftCollections(user.userAddress, nfts);
 
     return {
       data: nftsToReturn,

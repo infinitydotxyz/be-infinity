@@ -20,6 +20,7 @@ export type OrderHashParams = Pick<
   | 'nonce'
   | 'isSellOrder'
   | 'makerAddress'
+  | 'maxGasPriceWei'
 > & { nfts: OrderHashNftsParam[] };
 
 export function getOrderIdFromSignedOrder(order: SignedOBOrderDto, makerAddress: string) {
@@ -40,6 +41,7 @@ function getOrderHashParamsFromSignedOrder(signedOrder: SignedOBOrderDto, makerA
     nonce: signedOrder.nonce.toString(),
     isSellOrder: signedOrder.signedOrder.isSellOrder,
     makerAddress: trimLowerCase(makerAddress),
+    maxGasPriceWei: signedOrder.maxGasPriceWei,
     nfts: signedOrder.signedOrder.nfts.map((item) => {
       return {
         collectionAddress: item.collection,
@@ -63,14 +65,15 @@ export function getOrderId(chainId: string, exchangeAddr: string, orderHashParam
       parseEther(String(orderHashParams.endPriceEth)),
       Math.floor(orderHashParams.startTimeMs / 1000),
       Math.floor(orderHashParams.endTimeMs / 1000),
-      orderHashParams.nonce
+      orderHashParams.nonce,
+      orderHashParams.maxGasPriceWei
     ];
     const execParams = [orderHashParams.execParams.complicationAddress, orderHashParams.execParams.currencyAddress];
     const extraParams = defaultAbiCoder.encode(['address'], [orderHashParams.extraParams.buyer || NULL_ADDRESS]);
 
     // todo: adi constraints has new length
     const constraintsHash = keccak256(
-      defaultAbiCoder.encode(['uint256', 'uint256', 'uint256', 'uint256', 'uint256', 'uint256'], constraints)
+      defaultAbiCoder.encode(['uint256', 'uint256', 'uint256', 'uint256', 'uint256', 'uint256', 'uint256'], constraints)
     );
     // console.log('constraints hash', constraintsHash);
     const nftsHash = _getNftsHash(orderHashParams.nfts);

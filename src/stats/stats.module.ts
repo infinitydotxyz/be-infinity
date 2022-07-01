@@ -5,9 +5,11 @@ import { TwitterModule } from 'twitter/twitter.module';
 import { VotesModule } from 'votes/votes.module';
 import { MnemonicModule } from 'mnemonic/mnemonic.module';
 import { StatsService } from './stats.service';
+import { ZoraModule } from 'zora/zora.module';
+import { ReservoirModule } from 'reservoir/reservoir.module';
 
 @Module({
-  imports: [TwitterModule, DiscordModule, VotesModule, MnemonicModule, PaginationModule],
+  imports: [TwitterModule, DiscordModule, VotesModule, MnemonicModule, PaginationModule, ZoraModule, ReservoirModule],
   providers: [StatsService],
   exports: [StatsService]
 })
