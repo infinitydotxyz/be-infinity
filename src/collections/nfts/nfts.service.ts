@@ -204,6 +204,12 @@ export class NftsService {
       }
     }
     const encodedCursor = this.paginationService.encodeCursor(cursor);
+
+    // backfill any missing data
+    this.backfillService.backfillAnyMissingNftData(data).catch((err) => {
+      console.error('Error backfilling missing nft data', err);
+    });
+
     return {
       data,
       cursor: encodedCursor,
