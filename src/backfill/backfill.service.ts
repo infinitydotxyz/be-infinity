@@ -1,4 +1,11 @@
-import { BaseCollection, ChainId, TokenStandard } from '@infinityxyz/lib/types/core';
+import {
+  BaseCollection,
+  ChainId,
+  Erc721Attribute,
+  Erc721Metadata,
+  Token,
+  TokenStandard
+} from '@infinityxyz/lib/types/core';
 import {
   firestoreConstants,
   getCollectionDocId,
@@ -15,6 +22,7 @@ import { MnemonicTokenMetadata } from 'mnemonic/mnemonic.types';
 import { OpenseaService } from 'opensea/opensea.service';
 import { OpenseaAsset } from 'opensea/opensea.types';
 import { AlchemyNft, AlchemyNftWithMetadata } from '@infinityxyz/lib/types/services/alchemy';
+import { ALCHEMY_CACHED_IMAGE_HOST } from '../constants';
 
 @Injectable()
 export class BackfillService {
@@ -86,6 +94,16 @@ export class BackfillService {
     nfts: { address: string; chainId: ChainId; tokenId: string }[]
   ): Promise<(NftDto | undefined)[]> {
     try {
+      // try opensea
+      const openseaNfts = await this.fetchNftsFromOpenseaAndSaveInFirestore(nfts);
+      if (openseaNfts && openseaNfts.length > 0) {
+        return openseaNfts;
+      }
+    } catch (err) {
+      console.error(err);
+    }
+
+    try {
       // try alchemy
       const alchemyNfts = await this.fetchNftsFromAlchemy(nfts);
       if (alchemyNfts && alchemyNfts.length > 0) {
@@ -95,27 +113,96 @@ export class BackfillService {
       console.error(err);
     }
 
-    try {
-      // try mnemonic
-      const mnemonicNfts = await this.fetchNftsFromMnemonic(nfts);
-      if (mnemonicNfts && mnemonicNfts.length > 0) {
-        return mnemonicNfts;
-      }
-    } catch (err) {
-      console.error(err);
-    }
-
-    try {
-      // try opensea
-      const openseaNfts = await this.fetchNftsFromOpensea(nfts);
-      if (openseaNfts && openseaNfts.length > 0) {
-        return openseaNfts;
-      }
-    } catch (err) {
-      console.error(err);
-    }
-
     return [];
+  }
+
+  public async backfillAnyMissingNftData(nfts: NftDto[]) {
+    for (const nft of nfts) {
+      if (!nft.collectionAddress || nft.tokenId) {
+        return;
+      }
+      const dataToSave: Partial<Token> = {};
+      let attributes: Erc721Attribute[] = [];
+
+      // image
+      if (!nft.image?.url) {
+        const openseaData = await this.openseaService.getNFT(nft.collectionAddress, nft.tokenId);
+        if (openseaData.image_url) {
+          dataToSave.image = { url: openseaData.image_url };
+        }
+
+        if (openseaData.traits && openseaData.traits.length > 0) {
+          attributes = openseaData.traits;
+        }
+      }
+
+      // alchemy cached image
+      const alchemyCachedImage = nft?.alchemyCachedImage;
+      const hasAlchemyCachedImage = alchemyCachedImage && alchemyCachedImage.includes(ALCHEMY_CACHED_IMAGE_HOST);
+      if (!hasAlchemyCachedImage) {
+        const alchemyData = await this.alchemyService.getNft(
+          nft.chainId ?? ChainId.Mainnet,
+          nft.collectionAddress,
+          nft.tokenId
+        );
+        const cachedImage = alchemyData?.media?.[0]?.gateway;
+        if (cachedImage && cachedImage.includes(ALCHEMY_CACHED_IMAGE_HOST)) {
+          dataToSave.alchemyCachedImage = cachedImage;
+        }
+
+        if (alchemyData?.metadata?.attributes && alchemyData?.metadata?.attributes.length > 0) {
+          attributes = alchemyData.metadata.attributes;
+        }
+      }
+
+      // attributes
+      const metadata = nft.metadata as Erc721Metadata;
+      const hasAttributes = metadata?.attributes && metadata?.attributes.length > 0;
+      if (!hasAttributes) {
+        if (attributes.length === 0) {
+          const openseaData = await this.openseaService.getNFT(nft.collectionAddress, nft.tokenId);
+          if (openseaData.traits && openseaData.traits.length > 0) {
+            attributes = openseaData.traits;
+          } else {
+            const alchemyData = await this.alchemyService.getNft(
+              nft.chainId ?? ChainId.Mainnet,
+              nft.collectionAddress,
+              nft.tokenId
+            );
+            if (alchemyData?.metadata?.attributes && alchemyData?.metadata?.attributes.length > 0) {
+              attributes = alchemyData.metadata.attributes;
+            }
+          }
+        } else {
+          if (attributes.length > 0) {
+            dataToSave.metadata = { attributes };
+            dataToSave.numTraitTypes = attributes.length;
+          }
+        }
+      }
+
+      // save to firestore
+      const collectionDocId = getCollectionDocId({
+        chainId: nft.chainId ?? ChainId.Mainnet,
+        collectionAddress: nft.collectionAddress
+      });
+      const docRef = this.firebaseService.firestore
+        .collection(firestoreConstants.COLLECTIONS_COLL)
+        .doc(collectionDocId)
+        .collection(firestoreConstants.COLLECTION_NFTS_COLL)
+        .doc(nft.tokenId);
+      this.fsBatchHandler.add(docRef, dataToSave, { merge: true });
+    }
+
+    // flush
+    this.fsBatchHandler
+      .flush()
+      .then(() => {
+        console.log('Backfilled missing nft data');
+      })
+      .catch((err) => {
+        console.error('Error backfilling missing nft data', err);
+      });
   }
 
   public backfillAlchemyCachedImages(nfts: AlchemyNft[], chainId: ChainId, user?: string) {
@@ -124,6 +211,10 @@ export class BackfillService {
       const collectionAddress = nftWithMetadata.contract.address;
       const tokenId = hexToDecimalTokenId(nftWithMetadata.id.tokenId);
       const alchemyCachedImage = nftWithMetadata.media?.[0]?.gateway;
+      if (!alchemyCachedImage.includes(ALCHEMY_CACHED_IMAGE_HOST)) {
+        // skip if not cached image
+        continue;
+      }
       const collectionDocId = getCollectionDocId({ chainId, collectionAddress });
       // save in collections/nfts
       const tokenDocRef = this.collectionsRef
@@ -149,14 +240,14 @@ export class BackfillService {
     this.fsBatchHandler
       .flush()
       .then(() => {
-        console.log('backfilled alchemy cached images');
+        console.log('Backfilled alchemy cached images');
       })
       .catch((e) => {
         console.error('Error backfilling alchemy cached images', e);
       });
   }
 
-  private async fetchNftsFromOpensea(
+  private async fetchNftsFromOpenseaAndSaveInFirestore(
     nfts: { address: string; chainId: ChainId; tokenId: string }[]
   ): Promise<(NftDto | undefined)[]> {
     const nftDtos: NftDto[] = [];
@@ -177,10 +268,10 @@ export class BackfillService {
     this.fsBatchHandler
       .flush()
       .then(() => {
-        console.log('backfilled missing nfts from opensea');
+        console.log('Backfilled missing nfts from opensea');
       })
       .catch((err) => {
-        console.error('error backfilling nfts', err);
+        console.error('Error backfilling nfts from opensea', err);
       });
 
     // return
@@ -195,20 +286,6 @@ export class BackfillService {
       const alchemyAsset = await this.alchemyService.getNft(nft.chainId, nft.address, nft.tokenId);
       if (alchemyAsset) {
         const nftDto = this.transformAlchemyNftToNftDto(nft.chainId, nft.address, nft.tokenId, alchemyAsset);
-        nftDtos.push(nftDto);
-      }
-    }
-    return nftDtos;
-  }
-
-  private async fetchNftsFromMnemonic(
-    nfts: { address: string; chainId: ChainId; tokenId: string }[]
-  ): Promise<(NftDto | undefined)[]> {
-    const nftDtos: NftDto[] = [];
-    for (const nft of nfts) {
-      const mnemonicAsset = await this.mnemonicService.getNft(nft.address, nft.tokenId);
-      if (mnemonicAsset) {
-        const nftDto = this.transformMnemonicNftToNftDto(nft.chainId, nft.address, nft.tokenId, mnemonicAsset);
         nftDtos.push(nftDto);
       }
     }

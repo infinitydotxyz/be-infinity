@@ -14,7 +14,7 @@ export class AlchemyService {
   /**
    *
    */
-  private getBaseUrl(chainId: ChainId, path: string) {
+  private getBaseUrl(chainId: ChainId | string, path: string) {
     switch (chainId) {
       case ChainId.Mainnet:
         return new URL(normalize(`https://eth-mainnet.alchemyapi.io/v2/${this.apiKey}/${path}`));
@@ -63,7 +63,7 @@ export class AlchemyService {
   }
 
   async getNft(
-    chainId: ChainId,
+    chainId: ChainId | string,
     collectionAddress: string,
     tokenId: string
   ): Promise<AlchemyNftWithMetadata | undefined> {
