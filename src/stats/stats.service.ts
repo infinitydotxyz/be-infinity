@@ -443,16 +443,16 @@ export class StatsService {
         const data = await this.reservoirService.getSingleCollectionInfo(collection.chainId, collection.address);
         if (data) {
           const collection = data.collection;
-          if (collection.tokenCount) {
+          if (collection?.tokenCount) {
             numNfts = parseInt(String(collection.tokenCount));
           }
-          if (collection.ownerCount) {
+          if (collection?.ownerCount) {
             numOwners = parseInt(String(collection.ownerCount));
           }
-          if (collection.floorAsk) {
+          if (collection?.floorAsk) {
             floorPrice = collection.floorAsk.price;
           }
-          if (collection.tokenCount) {
+          if (collection?.volume) {
             volume = collection?.volume?.allTime ?? NaN;
           }
         }
