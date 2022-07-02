@@ -3,6 +3,7 @@ import {
   ChainId,
   Erc721Attribute,
   Erc721Metadata,
+  Erc721Token,
   Token,
   TokenStandard
 } from '@infinityxyz/lib/types/core';
@@ -22,7 +23,9 @@ import { MnemonicTokenMetadata } from 'mnemonic/mnemonic.types';
 import { OpenseaService } from 'opensea/opensea.service';
 import { OpenseaAsset } from 'opensea/opensea.types';
 import { AlchemyNft, AlchemyNftWithMetadata } from '@infinityxyz/lib/types/services/alchemy';
-import { ALCHEMY_CACHED_IMAGE_HOST } from '../constants';
+import { ALCHEMY_CACHED_IMAGE_HOST, ONE_HOUR } from '../constants';
+import { Readable } from 'stream';
+import { pageStream } from 'utils/streams';
 
 @Injectable()
 export class BackfillService {
@@ -116,11 +119,123 @@ export class BackfillService {
     return [];
   }
 
+  public async backfillAnyInvalidNfts(chainId: string, collectionAddress: string) {
+    console.log('Backfilling any invalid nfts for', chainId, collectionAddress);
+
+    const collectionDocId = getCollectionDocId({ chainId, collectionAddress });
+    const invalidNftsRef = this.collectionsRef
+      .doc(collectionDocId)
+      .collection(firestoreConstants.COLLECTION_INVALID_NFTS_COLL);
+
+    const now = Date.now();
+    const staleIfUpdatedBefore = now - ONE_HOUR;
+    const invalidNfts = (await invalidNftsRef.where('updatedAt', '<', staleIfUpdatedBefore).limit(1000).get()).docs;
+    console.log('Found', invalidNfts.length, 'invalid nfts');
+
+    const tokenIds: string[] = [];
+    for (const invalidNft of invalidNfts) {
+      const nft = invalidNft.data() as Token;
+      if (!nft.collectionAddress || !nft.tokenId) {
+        continue;
+      }
+
+      // image and attributes
+      const imageUrl = nft.image?.url;
+      const metadata = nft.metadata as Erc721Metadata;
+      const hasAttributes = metadata?.attributes && metadata?.attributes.length > 0;
+      if (!imageUrl || !hasAttributes) {
+        tokenIds.push(nft.tokenId);
+      }
+    }
+
+    this.bacfillInvalidNftsFromOS(tokenIds, chainId, collectionAddress).catch((err) => {
+      console.error('Error backfilling invalid nfts from OS for', collectionAddress, err);
+    });
+  }
+
+  private async bacfillInvalidNftsFromOS(allTokenIds: string[], chainId: string, collectionAddress: string) {
+    const openseaLimit = 20;
+    console.log('Backfilling', allTokenIds.length, 'invalid nfts from OS for', chainId, collectionAddress);
+    const updateTokens = async (tokenIds: Partial<Token>[]) => {
+      let tokenIdsConcat = '';
+      for (const tokenId of tokenIds) {
+        tokenIdsConcat += `token_ids=${tokenId}&`;
+      }
+      const data = await this.openseaService.getGivenNFTsOfContract(collectionAddress, tokenIdsConcat);
+      for (const datum of data.assets) {
+        const token: Partial<Erc721Token> = {
+          updatedAt: Date.now(),
+          tokenId: datum.token_id,
+          slug: getSearchFriendlyString(datum.name),
+          tokenStandard: TokenStandard.ERC721, // default
+          metadata: {
+            name: datum.name ?? null,
+            title: datum.name ?? null,
+            image: datum.image_url ?? '',
+            external_url: datum?.external_link ?? '',
+            description: datum.description ?? '',
+            background_color: datum.background_color ?? '',
+            animation_url: datum?.animation_url ?? ''
+          },
+          image: { originalUrl: datum.image_original_url, updatedAt: Date.now() }
+        };
+
+        if (datum.image_url && token.image) {
+          token.image.url = datum.image_url;
+        }
+
+        if (datum.traits && datum.traits.length > 0 && token.metadata) {
+          token.metadata.attributes = datum.traits;
+          token.numTraitTypes = datum.traits.length;
+        }
+
+        // update firestore if data is present
+        const tokenId = datum.token_id;
+        if (!tokenId || !token.image?.url || !token.metadata?.attributes || token.numTraitTypes === 0) {
+          continue;
+        }
+
+        // set nft data
+        const collectionDocId = getCollectionDocId({ chainId, collectionAddress });
+        const nftDocRef = this.collectionsRef
+          .doc(collectionDocId)
+          .collection(firestoreConstants.COLLECTION_NFTS_COLL)
+          .doc(tokenId);
+        this.fsBatchHandler.add(nftDocRef, token, { merge: true });
+
+        // remove from invalid nfts
+        const invalidNftDocRef = this.collectionsRef
+          .doc(collectionDocId)
+          .collection(firestoreConstants.COLLECTION_INVALID_NFTS_COLL)
+          .doc(tokenId);
+        this.fsBatchHandler.delete(invalidNftDocRef);
+      }
+    };
+
+    const metadataLessTokenPages = Readable.from(allTokenIds).pipe(pageStream(openseaLimit));
+    let tokensUpdated = 0;
+    for await (const tokens of metadataLessTokenPages) {
+      tokensUpdated += tokens.length;
+      await updateTokens(tokens as Partial<Token>[]);
+    }
+
+    // flush
+    this.fsBatchHandler
+      .flush()
+      .then(() => {
+        console.log('Backfilled', tokensUpdated, 'invalid nfts for', collectionAddress);
+      })
+      .catch((err) => {
+        console.error('Error backfilling invalid nfts from OS for', collectionAddress, err);
+      });
+  }
+
   public async backfillAnyMissingNftData(nfts: NftDto[]) {
     for (const nft of nfts) {
-      if (!nft.collectionAddress || nft.tokenId) {
-        return;
+      if (!nft.collectionAddress || !nft.tokenId) {
+        continue;
       }
+
       const dataToSave: Partial<Token> = {};
       let attributes: Erc721Attribute[] = [];
 
@@ -186,8 +301,7 @@ export class BackfillService {
         chainId: nft.chainId ?? ChainId.Mainnet,
         collectionAddress: nft.collectionAddress
       });
-      const docRef = this.firebaseService.firestore
-        .collection(firestoreConstants.COLLECTIONS_COLL)
+      const docRef = this.collectionsRef
         .doc(collectionDocId)
         .collection(firestoreConstants.COLLECTION_NFTS_COLL)
         .doc(nft.tokenId);
