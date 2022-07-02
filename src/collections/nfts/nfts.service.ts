@@ -209,6 +209,9 @@ export class NftsService {
     this.backfillService.backfillAnyMissingNftData(data).catch((err) => {
       console.error('Error backfilling missing nft data', err);
     });
+    this.backfillService.backfillAnyInvalidNfts(collection.chainId, collection.address).catch((err) => {
+      console.error('Error backfilling invalid nfts', err);
+    });
 
     return {
       data,
