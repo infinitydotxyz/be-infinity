@@ -62,6 +62,7 @@ export const ORIGIN = /http:\/\/localhost:\d+/;
 export const INFINITY_URL = 'https://infinity.xyz/';
 
 export const ONE_MIN = 1000 * 60;
+export const TEN_MINS = ONE_MIN * 10;
 export const ONE_HOUR = 3_600_000; // In ms
 export const ONE_DAY = ONE_HOUR * 24;
 export const MIN_TWITTER_UPDATE_INTERVAL = ONE_HOUR; // In ms

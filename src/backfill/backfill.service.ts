@@ -7,6 +7,8 @@ import {
   Token,
   TokenStandard
 } from '@infinityxyz/lib/types/core';
+import { NftDto } from '@infinityxyz/lib/types/dto/collections/nfts';
+import { AlchemyNft, AlchemyNftWithMetadata } from '@infinityxyz/lib/types/services/alchemy';
 import {
   firestoreConstants,
   getCollectionDocId,
@@ -15,17 +17,15 @@ import {
 } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { AlchemyService } from 'alchemy/alchemy.service';
-import { NftDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { FirebaseService } from 'firebase/firebase.service';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
 import { MnemonicService } from 'mnemonic/mnemonic.service';
 import { MnemonicTokenMetadata } from 'mnemonic/mnemonic.types';
 import { OpenseaService } from 'opensea/opensea.service';
 import { OpenseaAsset } from 'opensea/opensea.types';
-import { AlchemyNft, AlchemyNftWithMetadata } from '@infinityxyz/lib/types/services/alchemy';
-import { ALCHEMY_CACHED_IMAGE_HOST, ONE_HOUR } from '../constants';
 import { Readable } from 'stream';
 import { pageStream } from 'utils/streams';
+import { ALCHEMY_CACHED_IMAGE_HOST, TEN_MINS } from '../constants';
 
 @Injectable()
 export class BackfillService {
@@ -128,7 +128,7 @@ export class BackfillService {
       .collection(firestoreConstants.COLLECTION_INVALID_NFTS_COLL);
 
     const now = Date.now();
-    const staleIfUpdatedBefore = now - ONE_HOUR;
+    const staleIfUpdatedBefore = now - TEN_MINS;
     const invalidNfts = (await invalidNftsRef.where('updatedAt', '<', staleIfUpdatedBefore).limit(1000).get()).docs;
     console.log('Found', invalidNfts.length, 'invalid nfts');
 
