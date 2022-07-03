@@ -207,7 +207,7 @@ export class UserController {
       nfts = await this.userService.getNfts(user, filters);
     }
 
-    const externalNfts = await this.nftsService.isSupported(nfts.data);
+    const externalNfts = this.nftsService.isSupported(nfts.data);
 
     return {
       ...nfts,
@@ -230,7 +230,7 @@ export class UserController {
     @Query() query: UserNftCollectionsQueryDto
   ): Promise<{ data: NftCollectionDto[] }> {
     let nftCollections = await this.userService.getUserNftCollections(user, query.search);
-    nftCollections = await this.collectionsService.isSupported(nftCollections);
+    nftCollections = this.collectionsService.isSupported(nftCollections);
     return {
       data: nftCollections
     };

@@ -35,9 +35,7 @@ export default class FirestoreBatchHandler {
     this.currentBatch.size += 1;
   }
 
-  delete(
-    doc: FirebaseFirestore.DocumentReference,
-  ): void {
+  delete(doc: FirebaseFirestore.DocumentReference): void {
     if (this.currentBatch.size >= MAX_SIZE) {
       this.flush().catch((err) => {
         console.error(err);

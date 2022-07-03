@@ -486,7 +486,7 @@ export class StatsService {
             data.volume = volume;
           }
           if (stats.aggregateStat?.salesVolume.usdcPrice) {
-            data.volumeUSDC = stats.aggregateStat.salesVolume.usdcPrice;;
+            data.volumeUSDC = stats.aggregateStat.salesVolume.usdcPrice;
           }
           if (stats.aggregateStat?.ownersByCount?.nodes && stats.aggregateStat?.ownersByCount?.nodes.length >= 10) {
             data.topOwnersByOwnedNftsCount = stats.aggregateStat.ownersByCount.nodes;

@@ -3,7 +3,10 @@ import { RESERVOIR_API_KEY } from '../constants';
 import { gotErrorHandler } from '../utils/got';
 import got, { Got, Response } from 'got/dist/source';
 import { sleep } from '@infinityxyz/lib/utils';
-import { ReservoirDetailedTokensResponse, ReservoirSingleCollectionResponse } from '@infinityxyz/lib/types/services/reservoir';
+import {
+  ReservoirDetailedTokensResponse,
+  ReservoirSingleCollectionResponse
+} from '@infinityxyz/lib/types/services/reservoir';
 
 @Injectable()
 export class ReservoirService {

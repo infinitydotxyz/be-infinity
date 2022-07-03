@@ -4,7 +4,17 @@ import { NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/t
 import { RankingQueryDto } from '@infinityxyz/lib/types/dto/collections';
 import { NftArrayDto, NftCollectionDto, NftDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import {
-  UserActivityArrayDto, UserActivityQueryDto, UserFollowingCollection, UserFollowingCollectionDeletePayload, UserFollowingCollectionPostPayload, UserFollowingUser, UserFollowingUserDeletePayload, UserFollowingUserPostPayload, UserNftsOrderType, UserNftsQueryDto, UserProfileDto
+  UserActivityArrayDto,
+  UserActivityQueryDto,
+  UserFollowingCollection,
+  UserFollowingCollectionDeletePayload,
+  UserFollowingCollectionPostPayload,
+  UserFollowingUser,
+  UserFollowingUserDeletePayload,
+  UserFollowingUserPostPayload,
+  UserNftsOrderType,
+  UserNftsQueryDto,
+  UserProfileDto
 } from '@infinityxyz/lib/types/dto/user';
 import {
   DEFAULT_ITEMS_PER_PAGE,
