@@ -1,8 +1,4 @@
-import {
-  ChainId,
-  Collection,
-  CollectionPeriodStatsContent, StatsPeriod
-} from '@infinityxyz/lib/types/core';
+import { ChainId, Collection, CollectionPeriodStatsContent, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
 import {
   Controller,
@@ -34,7 +30,10 @@ import {
   CollectionSearchArrayDto,
   CollectionSearchQueryDto,
   CollectionStatsByPeriodDto,
-  CollectionStatsQueryDto, CollectionTrendingStatsQueryDto, RankingQueryDto, TopOwnersArrayResponseDto,
+  CollectionStatsQueryDto,
+  CollectionTrendingStatsQueryDto,
+  RankingQueryDto,
+  TopOwnersArrayResponseDto,
   TopOwnersQueryDto
 } from '@infinityxyz/lib/types/dto/collections';
 import { NftActivityArrayDto, NftActivityFiltersDto } from '@infinityxyz/lib/types/dto/collections/nfts';
@@ -324,6 +323,7 @@ export class CollectionsController {
       period: StatsPeriod.Hourly,
       date: Date.now()
     });
+
     return res;
   }
 

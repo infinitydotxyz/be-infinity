@@ -443,16 +443,16 @@ export class StatsService {
         const data = await this.reservoirService.getSingleCollectionInfo(collection.chainId, collection.address);
         if (data) {
           const collection = data.collection;
-          if (collection.tokenCount) {
+          if (collection?.tokenCount) {
             numNfts = parseInt(String(collection.tokenCount));
           }
-          if (collection.ownerCount) {
+          if (collection?.ownerCount) {
             numOwners = parseInt(String(collection.ownerCount));
           }
-          if (collection.floorAsk) {
+          if (collection?.floorAsk) {
             floorPrice = collection.floorAsk.price;
           }
-          if (collection.tokenCount) {
+          if (collection?.volume) {
             volume = collection?.volume?.allTime ?? NaN;
           }
         }
@@ -486,7 +486,7 @@ export class StatsService {
             data.volume = volume;
           }
           if (stats.aggregateStat?.salesVolume.usdcPrice) {
-            data.volumeUSDC = stats.aggregateStat.salesVolume.usdcPrice;;
+            data.volumeUSDC = stats.aggregateStat.salesVolume.usdcPrice;
           }
           if (stats.aggregateStat?.ownersByCount?.nodes && stats.aggregateStat?.ownersByCount?.nodes.length >= 10) {
             data.topOwnersByOwnedNftsCount = stats.aggregateStat.ownersByCount.nodes;
@@ -650,7 +650,8 @@ export class StatsService {
         .orderBy('timestamp', 'desc')
         .limit(1);
       const snapshot = await statsQuery.get();
-      const stats = snapshot.docs?.[0]?.data() as Stats | SocialsStats | undefined;
+      const stats: Partial<Stats> | Partial<SocialsStats> =
+        (snapshot.docs?.[0]?.data() as Stats | SocialsStats | undefined) ?? {};
       const requestedTimestamp = getStatsDocInfo(timestamp, period).timestamp;
       const currentTimestamp = getStatsDocInfo(Date.now(), period).timestamp;
       const isMostRecent = requestedTimestamp === currentTimestamp;
@@ -670,7 +671,6 @@ export class StatsService {
           }
         }
       }
-
       return stats;
     } catch (err: any) {
       console.error(err);
@@ -819,7 +819,11 @@ export class StatsService {
       StatsPeriod.All
     ];
 
-    const mostRecentStats = statsPeriods.map((period) => this.getMostRecentSocialsStats(collectionRef, period));
+    const mostRecentStats = statsPeriods.map((period) => {
+      const currentTime = getStatsDocInfo(Date.now(), period).timestamp;
+      const afterDate = getStatsDocInfo(currentTime - 1000, period).timestamp;
+      return this.getMostRecentSocialsStats(collectionRef, period, afterDate);
+    });
     const mostRecentStatsResponse = await Promise.all(mostRecentStats);
 
     const socialsStatsMap: Record<StatsPeriod, SocialsStats | undefined> = {} as any;
@@ -831,16 +835,24 @@ export class StatsService {
     for (const [period, prevStats] of Object.entries(socialsStatsMap) as [StatsPeriod, SocialsStats | undefined][]) {
       const info = getStatsDocInfo(currentStats.updatedAt, period);
       const prevDiscordFollowers = prevStats?.discordFollowers || currentStats.discordFollowers;
-      const discordFollowersPercentChange = calcPercentChange(prevDiscordFollowers, currentStats.discordFollowers);
+      const currentDiscordFollowers = (currentStats.discordFollowers || prevStats?.discordFollowers) ?? NaN;
+      const currentDiscordPresence = (currentStats.discordPresence || prevStats?.discordPresence) ?? NaN;
+      const currentTwitterFollowers = (currentStats.twitterFollowers || prevStats?.twitterFollowers) ?? NaN;
+      const currentTwitterFollowing = (currentStats.twitterFollowing || prevStats?.twitterFollowing) ?? NaN;
+      const discordFollowersPercentChange = calcPercentChange(prevDiscordFollowers, currentDiscordFollowers);
       const prevDiscordPresence = prevStats?.discordPresence || currentStats.discordPresence;
-      const discordPresencePercentChange = calcPercentChange(prevDiscordPresence, currentStats.discordPresence);
+      const discordPresencePercentChange = calcPercentChange(prevDiscordPresence, currentDiscordPresence);
       const prevTwitterFollowers = prevStats?.twitterFollowers || currentStats.twitterFollowers;
-      const twitterFollowersPercentChange = calcPercentChange(prevTwitterFollowers, currentStats.twitterFollowers);
+      const twitterFollowersPercentChange = calcPercentChange(prevTwitterFollowers, currentTwitterFollowers);
       const prevTwitterFollowing = prevStats?.twitterFollowing || currentStats.twitterFollowing;
-      const twitterFollowingPercentChange = calcPercentChange(prevTwitterFollowing, currentStats.twitterFollowing);
+      const twitterFollowingPercentChange = calcPercentChange(prevTwitterFollowing, currentTwitterFollowing);
 
       const stats: SocialsStats = {
         ...currentStats,
+        discordFollowers: currentDiscordFollowers,
+        discordPresence: currentDiscordPresence,
+        twitterFollowers: currentTwitterFollowers,
+        twitterFollowing: currentTwitterFollowing,
         timestamp: info.timestamp,
         prevDiscordFollowers,
         discordFollowersPercentChange,
@@ -866,12 +878,20 @@ export class StatsService {
     return timestamp !== current;
   }
 
-  private async getMostRecentSocialsStats(collectionRef: FirebaseFirestore.DocumentReference, period: StatsPeriod) {
-    const socialStatsQuery = collectionRef
+  private async getMostRecentSocialsStats(
+    collectionRef: FirebaseFirestore.DocumentReference,
+    period: StatsPeriod,
+    beforeDate?: number
+  ) {
+    let socialStatsQuery = collectionRef
       .collection(firestoreConstants.COLLECTION_SOCIALS_STATS_COLL)
-      .where('period', '==', period)
-      .orderBy('timestamp', 'desc')
-      .limit(1);
+      .where('period', '==', period);
+
+    if (beforeDate) {
+      socialStatsQuery = socialStatsQuery.where('timestamp', '<', beforeDate);
+    }
+
+    socialStatsQuery = socialStatsQuery.orderBy('timestamp', 'desc').limit(1);
     const snapshot = await socialStatsQuery.get();
     const stats = snapshot.docs?.[0]?.data();
     return stats as SocialsStats | undefined;

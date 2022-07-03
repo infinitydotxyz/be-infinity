@@ -1,6 +1,7 @@
 import {
   ChainId,
-  Collection, Erc721Metadata,
+  Collection,
+  Erc721Metadata,
   FirestoreOrder,
   FirestoreOrderItem,
   InfinityLinkType,
