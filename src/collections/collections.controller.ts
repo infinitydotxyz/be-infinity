@@ -323,6 +323,7 @@ export class CollectionsController {
       period: StatsPeriod.Hourly,
       date: Date.now()
     });
+
     return res;
   }
 
