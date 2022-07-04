@@ -38,7 +38,7 @@ function getOrderHashParamsFromSignedOrder(signedOrder: SignedOBOrderDto, makerA
     execParams: signedOrder.execParams,
     extraParams: signedOrder.extraParams,
     numItems: signedOrder.numItems,
-    nonce: signedOrder.nonce.toString(),
+    nonce: signedOrder.nonce,
     isSellOrder: signedOrder.signedOrder.isSellOrder,
     makerAddress: trimLowerCase(makerAddress),
     maxGasPriceWei: signedOrder.maxGasPriceWei,
