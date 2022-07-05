@@ -387,7 +387,7 @@ export class CollectionsController {
 
   @Get(':id/activity')
   @ApiOperation({
-    description: 'Get activity for a specific nft',
+    description: 'Get activity for a collection or a specific nft activity',
     tags: [ApiTag.Nft]
   })
   @ApiParamCollectionId('id')
