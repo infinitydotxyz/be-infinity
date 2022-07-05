@@ -368,7 +368,7 @@ export class StatsService {
       this.socialsGroup,
       options.period,
       options.date,
-      true
+      false
     );
 
     if (stats && socialStats) {
@@ -662,7 +662,7 @@ export class StatsService {
       if (isMostRecent && stale && statsCollectionName === this.socialsGroup) {
         if (this.areStatsStale(stats)) {
           if (waitForUpdate) {
-            const updated = await this.updateSocialsStats(collectionRef);
+            const updated = await this.updateSocialsStats(collectionRef, period);
             if (updated) {
               return updated;
             }
@@ -698,7 +698,8 @@ export class StatsService {
   }
 
   private async updateSocialsStats(
-    collectionRef: FirebaseFirestore.DocumentReference
+    collectionRef: FirebaseFirestore.DocumentReference,
+    period: StatsPeriod = StatsPeriod.All
   ): Promise<SocialsStats | undefined> {
     const collectionData = await collectionRef.get();
     const collection = collectionData?.data() ?? ({} as Partial<Collection>);
@@ -781,18 +782,23 @@ export class StatsService {
       updatedAt: Date.now()
     };
 
-    const allTimeStats = await this.saveSocialsStats(collectionRef, socialsStats);
+    const allTimeStats = await this.saveSocialsStats(collectionRef, socialsStats, period);
     return allTimeStats;
   }
 
   private async saveSocialsStats(
     collectionRef: FirebaseFirestore.DocumentReference,
-    preAggregatedStats: PreAggregatedSocialsStats
+    preAggregatedStats: PreAggregatedSocialsStats,
+    periodToReturn: StatsPeriod = StatsPeriod.All
   ): Promise<SocialsStats> {
+    console.log(`\n\nPre-aggregated socials stats: \n${JSON.stringify(preAggregatedStats)}`);
     const socialsCollection = collectionRef.collection(firestoreConstants.COLLECTION_SOCIALS_STATS_COLL);
     const aggregatedStats = await this.aggregateSocialsStats(collectionRef, preAggregatedStats);
+    console.log(`\n\nAggregated Stats:`);
+    console.log(JSON.stringify(aggregatedStats));
     for (const [, stats] of Object.entries(aggregatedStats)) {
       const { docId } = getStatsDocInfo(stats.timestamp, stats.period);
+      console.log(docId);
       const docRef = socialsCollection.doc(docId);
       this.fsBatchHandler.add(docRef, stats, { merge: true });
     }
@@ -800,7 +806,7 @@ export class StatsService {
       console.error('error saving social stats', err);
     });
 
-    return aggregatedStats.all;
+    return aggregatedStats[periodToReturn];
   }
 
   private async aggregateSocialsStats(
