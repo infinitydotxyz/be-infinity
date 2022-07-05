@@ -14,7 +14,6 @@ export class TokenContractService {
 
   async getVotes(address: string): Promise<number> {
     const balance: BigNumber = await this.contract.getVotes(address);
-    console.log(balance);
     const ether = utils.formatEther(balance);
     return +ether;
   }

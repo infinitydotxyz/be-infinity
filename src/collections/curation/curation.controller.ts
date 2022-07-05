@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Post } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiCreatedResponse,
@@ -12,7 +12,6 @@ import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param
 import { ErrorResponseDto } from 'common/dto/error-response.dto';
 import { ResponseDescription } from 'common/response-description';
 import { UserAuth } from 'auth/user-auth.decorator';
-import { TokenContractService } from 'ethereum/contracts/token.contract.service';
 import { ParamUserId } from 'auth/param-user-id.decorator';
 import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
@@ -21,7 +20,7 @@ import { CurationVoteDto } from '@infinityxyz/lib/types/dto/collections/curation
 
 @Controller('collections')
 export class CurationController {
-  constructor(private curationService: CurationService, private tokenContractService: TokenContractService) {}
+  constructor(private curationService: CurationService) {}
 
   @Post('/:id/curated/:userId')
   @UserAuth('userId')
@@ -40,11 +39,11 @@ export class CurationController {
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
     @Body() vote: CurationVoteDto
   ) {
-    const availableVotes = await this.tokenContractService.getVotes(user.userAddress);
+    const availableVotes = await this.curationService.getAvailableVotes(user);
 
-    /* if (availableVotes < vote.votes) {
+    if (availableVotes <= 0 || availableVotes < vote.votes) {
       throw new BadRequestException('Insufficient amount of votes available');
-    } */
+    }
 
     await this.curationService.vote({
       collection,

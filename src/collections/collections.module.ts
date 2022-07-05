@@ -19,6 +19,6 @@ import { CurationService } from './curation/curation.service';
   imports: [StatsModule, VotesModule, TwitterModule, MnemonicModule, PaginationModule, EthereumModule, BackfillModule],
   providers: [CollectionsService, NftsService, AttributesService, CurationService],
   controllers: [CollectionsController, NftsController, AttributesController, CurationController],
-  exports: [CollectionsService, NftsService, AttributesService]
+  exports: [CollectionsService, NftsService, AttributesService, CurationService]
 })
 export class CollectionsModule {}

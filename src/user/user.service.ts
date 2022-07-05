@@ -197,7 +197,7 @@ export class UserService {
   }
 
   async getUserNftCollections(user: ParsedUserId) {
-    const collRef = user.ref.collection(firestoreConstants.USER_NFT_COLLECTION_COLL);
+    const collRef = user.ref.collection(firestoreConstants.USER_NFTS_COLL);
 
     const snap = await collRef.get();
     const nftCollections: NftCollectionDto[] = snap.docs.map((doc) => {
@@ -211,7 +211,7 @@ export class UserService {
     const userRef = this.firebaseService.firestore
       .collection(firestoreConstants.USERS_COLL)
       .doc(userAddress)
-      .collection(firestoreConstants.USER_NFT_COLLECTION_COLL);
+      .collection(firestoreConstants.USER_NFTS_COLL);
 
     for (const nft of nfts) {
       const { chainId, collectionAddress, collectionName, collectionSlug, hasBlueCheck } = nft;
