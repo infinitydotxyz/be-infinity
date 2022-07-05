@@ -25,11 +25,15 @@ export class CurationService {
     // write to 'users' collection
     const curatorDocRef = collection.ref.collection(firestoreConstants.COLLECTION_CURATORS_COLL).doc(user.ref.id);
     if (!(await curatorDocRef.get()).exists) {
-      batch.set(user.ref, {
-        totalCurated: this.firebaseService.firestoreNamespace.FieldValue.increment(1)
-      } as any);
+      batch.set(
+        user.ref,
+        {
+          totalCurated: this.firebaseService.firestoreNamespace.FieldValue.increment(1)
+        } as any,
+        { merge: true }
+      );
     }
-    batch.set(user.ref, { totalCuratedVotes: incrementVotes } as any);
+    batch.set(user.ref, { totalCuratedVotes: incrementVotes } as any, { merge: true });
 
     // write to 'collections' collection
     batch.set(collection.ref, { numCuratorVotes: incrementVotes as any }, { merge: true });
@@ -54,7 +58,7 @@ export class CurationService {
    */
   async getAvailableVotes(user: ParsedUserId): Promise<number> {
     // available votes according to contract
-    const contractVotes = await this.tokenContractService.getVotes(user.userAddress);
+    const contractVotes = 100; // await this.tokenContractService.getVotes(user.userAddress);
 
     // available votes according to record in database
     const { totalCuratedVotes: dbVotes } = await this.getUserCurationInfo(user);

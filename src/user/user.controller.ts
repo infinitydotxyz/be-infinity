@@ -90,6 +90,7 @@ import {
 import { CuratedCollectionsQuery } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
 import { CuratedCollectionsDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 import { CurationService } from 'collections/curation/curation.service';
+import { CurationQuotaDto } from '@infinityxyz/lib/types/dto/collections/curation/curation-quota.dto';
 
 @Controller('user')
 export class UserController {
@@ -518,7 +519,7 @@ export class UserController {
   @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 5 }))
-  async getCurationQuota(@ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId) {
+  async getCurationQuota(@ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId): Promise<CurationQuotaDto> {
     return {
       availableVotes: await this.curationService.getAvailableVotes(user)
     };
