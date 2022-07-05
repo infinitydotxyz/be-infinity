@@ -16,9 +16,7 @@ import {
   UserNftsQueryDto,
   UserProfileDto
 } from '@infinityxyz/lib/types/dto/user';
-import {
-  firestoreConstants, trimLowerCase
-} from '@infinityxyz/lib/utils';
+import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
 import { Injectable, Optional } from '@nestjs/common';
 import { AlchemyService } from 'alchemy/alchemy.service';
 import { BackfillService } from 'backfill/backfill.service';
