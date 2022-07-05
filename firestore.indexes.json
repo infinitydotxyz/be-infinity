@@ -434,20 +434,6 @@
         },
         {
           "fieldPath": "timestamp",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "feed",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "buyer",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "timestamp",
           "order": "DESCENDING"
         }
       ]
@@ -515,20 +501,6 @@
         {
           "fieldPath": "timestamp",
           "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "feed",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "timestamp",
-          "order": "ASCENDING"
         }
       ]
     },
