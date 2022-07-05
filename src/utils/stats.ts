@@ -7,7 +7,9 @@ export const EXCLUDED_COLLECTIONS = [
   '0x81ae0be3a8044772d04f32398bac1e1b4b215aa8', // Dreadfulz
   '0x1dfe7ca09e99d10835bf73044a23b73fc20623df', // More loot
   '0x7bd29408f11d2bfc23c34f18275bbf23bb716bc7', // Meebits
-  '0x4e1f41613c9084fdb9e34e11fae9412427480e56' // Terraforms
+  '0x4e1f41613c9084fdb9e34e11fae9412427480e56', // Terraforms
+  '0xa5d37c0364b9e6d96ee37e03964e7ad2b33a93f4', // Cat girls academia
+  '0xff36ca1396d2a9016869274f1017d6c2139f495e' // dementors town wtf
 ];
 
 export function getCollectionDocId(collection: { collectionAddress: string; chainId: string }) {
