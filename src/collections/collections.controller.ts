@@ -15,10 +15,8 @@ import {
   ApiInternalServerErrorResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
-  ApiOperation,
-  ApiResponse
+  ApiOperation
 } from '@nestjs/swagger';
-import { CuratedCollection } from '@infinityxyz/lib/types/core/CuratedCollection';
 
 import { ApiTag } from 'common/api-tags';
 import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param-collection-id.decorator';
@@ -176,7 +174,7 @@ export class CollectionsController {
   @ApiParamCollectionId('collectionId')
   @ApiOperation({
     description: 'Fetch curation details and estimations of the collection',
-    tags: [ApiTag.Collection]
+    tags: [ApiTag.Collection, ApiTag.Curation]
   })
   @ApiOkResponse({ type: CuratedCollectionDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
