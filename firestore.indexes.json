@@ -4821,6 +4821,20 @@
       ]
     },
     {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "orderStatus",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "startTimeMs",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "sales",
       "queryScope": "COLLECTION",
       "fields": [
@@ -4870,51 +4884,7 @@
         },
         {
           "fieldPath": "discordFollowers",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "socialsStats",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "timestamp",
           "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "period",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "discordFollowers",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "socialsStats",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "timestamp",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "period",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "discordFollowersPercentChange",
-          "order": "ASCENDING"
         },
         {
           "fieldPath": "collectionAddress",
@@ -4958,28 +4928,6 @@
         },
         {
           "fieldPath": "discordPresence",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "socialsStats",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "timestamp",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "period",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "discordPresence",
           "order": "DESCENDING"
         },
         {
@@ -5002,51 +4950,7 @@
         },
         {
           "fieldPath": "twitterFollowers",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "socialsStats",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "timestamp",
           "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "period",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "twitterFollowers",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "socialsStats",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "timestamp",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "period",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "twitterFollowersPercentChange",
-          "order": "ASCENDING"
         },
         {
           "fieldPath": "collectionAddress",
