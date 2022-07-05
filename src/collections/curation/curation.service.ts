@@ -58,7 +58,7 @@ export class CurationService {
    */
   async getAvailableVotes(user: ParsedUserId): Promise<number> {
     // available votes according to contract
-    const contractVotes = 100; // await this.tokenContractService.getVotes(user.userAddress);
+    const contractVotes = await this.tokenContractService.getVotes(user.userAddress);
 
     // available votes according to record in database
     const { totalCuratedVotes: dbVotes } = await this.getUserCurationInfo(user);
