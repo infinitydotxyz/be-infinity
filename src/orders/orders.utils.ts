@@ -38,7 +38,7 @@ function getOrderHashParamsFromSignedOrder(signedOrder: SignedOBOrderDto, makerA
     execParams: signedOrder.execParams,
     extraParams: signedOrder.extraParams,
     numItems: signedOrder.numItems,
-    nonce: signedOrder.nonce.toString(),
+    nonce: signedOrder.nonce,
     isSellOrder: signedOrder.signedOrder.isSellOrder,
     makerAddress: trimLowerCase(makerAddress),
     maxGasPriceWei: signedOrder.maxGasPriceWei,
@@ -71,7 +71,6 @@ export function getOrderId(chainId: string, exchangeAddr: string, orderHashParam
     const execParams = [orderHashParams.execParams.complicationAddress, orderHashParams.execParams.currencyAddress];
     const extraParams = defaultAbiCoder.encode(['address'], [orderHashParams.extraParams.buyer || NULL_ADDRESS]);
 
-    // todo: adi constraints has new length
     const constraintsHash = keccak256(
       defaultAbiCoder.encode(['uint256', 'uint256', 'uint256', 'uint256', 'uint256', 'uint256', 'uint256'], constraints)
     );
