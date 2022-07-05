@@ -8,7 +8,7 @@ import { EnvironmentVariables } from '../types/environment-variables.interface';
 
 @Injectable()
 export class EthereumService {
-  private _providers: Map<ChainId, ethers.providers.JsonRpcProvider> = new Map();
+  private _providers: Map<ChainId, ethers.providers.StaticJsonRpcProvider> = new Map();
 
   constructor(private configService: ConfigService<EnvironmentVariables>) {
     const mainnetUrl = this.configService.get('alchemyJsonRpcEthMainnet');
@@ -25,7 +25,7 @@ export class EthereumService {
       if (!providerUrl) {
         throw new Error(`Provider is not configured for chainId: ${chainId}`);
       }
-      this._providers.set(chainId, new ethers.providers.JsonRpcProvider(providerUrl));
+      this._providers.set(chainId, new ethers.providers.StaticJsonRpcProvider(providerUrl));
     }
   }
 
