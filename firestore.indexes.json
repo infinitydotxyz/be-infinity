@@ -2074,32 +2074,6 @@
       "fields": [
         {
           "fieldPath": "timestamp",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "period",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "tokenId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nftStats",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "timestamp",
           "order": "DESCENDING"
         },
         {
@@ -2577,20 +2551,6 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "endTimeMs",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orderItems",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "numItems",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "startPriceEth",
           "order": "ASCENDING"
         }
@@ -3651,36 +3611,6 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "endTimeMs",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orderItems",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "orderStatus",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "numItems",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "startPriceEth",
           "order": "DESCENDING"
         }
@@ -4426,28 +4356,6 @@
         },
         {
           "fieldPath": "startPriceEth",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orderItems",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "orderStatus",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "numItems",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "endTimeMs",
           "order": "ASCENDING"
         }
       ]
