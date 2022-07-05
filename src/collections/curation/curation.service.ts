@@ -66,7 +66,7 @@ export class CurationService {
     // actual available votes
     const availableVotes = contractVotes - dbVotes;
 
-    return availableVotes;
+    return availableVotes > 0 ? availableVotes : 0;
   }
 
   /**
