@@ -435,9 +435,9 @@ export default class OrdersService {
         const userDoc = await t.get(userDocRef);
         // todo: use a user dto or type?
         const userDocData = userDoc.data() || { address: user };
-        const nonce = parseInt(userDocData.orderNonce ?? 0) + 1; 
+        const nonce = parseInt(userDocData.orderNonce ?? 0) + 1;
         const minOrderNonce = parseInt(userDocData.minOrderNonce ?? 0) + 1;
-        const newNonce = (nonce > minOrderNonce ? nonce : minOrderNonce);
+        const newNonce = nonce > minOrderNonce ? nonce : minOrderNonce;
         userDocData.orderNonce = newNonce;
         t.set(userDocRef, userDocData, { merge: true });
         return newNonce;

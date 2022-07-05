@@ -791,14 +791,10 @@ export class StatsService {
     preAggregatedStats: PreAggregatedSocialsStats,
     periodToReturn: StatsPeriod = StatsPeriod.All
   ): Promise<SocialsStats> {
-    console.log(`\n\nPre-aggregated socials stats: \n${JSON.stringify(preAggregatedStats)}`);
     const socialsCollection = collectionRef.collection(firestoreConstants.COLLECTION_SOCIALS_STATS_COLL);
     const aggregatedStats = await this.aggregateSocialsStats(collectionRef, preAggregatedStats);
-    console.log(`\n\nAggregated Stats:`);
-    console.log(JSON.stringify(aggregatedStats));
     for (const [, stats] of Object.entries(aggregatedStats)) {
       const { docId } = getStatsDocInfo(stats.timestamp, stats.period);
-      console.log(docId);
       const docRef = socialsCollection.doc(docId);
       this.fsBatchHandler.add(docRef, stats, { merge: true });
     }

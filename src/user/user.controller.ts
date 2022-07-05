@@ -1,10 +1,6 @@
 import { CollectionMetadata } from '@infinityxyz/lib/types/core';
 import { RankingQueryDto, UpdateCollectionDto } from '@infinityxyz/lib/types/dto/collections';
-import {
-  ExternalNftArrayDto,
-  NftActivityArrayDto,
-  NftArrayDto
-} from '@infinityxyz/lib/types/dto/collections/nfts';
+import { ExternalNftArrayDto, NftActivityArrayDto, NftArrayDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { CollectionStatsArrayResponseDto } from '@infinityxyz/lib/types/dto/stats';
 import {
   DeleteUserProfileImagesDto,
@@ -18,26 +14,35 @@ import {
   UserFollowingCollectionsArrayDto,
   UserFollowingUserDeletePayload,
   UserFollowingUserPostPayload,
-  UserFollowingUsersArrayDto, UserNftsQueryDto,
+  UserFollowingUsersArrayDto,
+  UserNftsQueryDto,
   UserProfileDto,
   UserProfileImagesDto,
   ValidateUsernameResponseDto
 } from '@infinityxyz/lib/types/dto/user';
 import {
   UserCollectionVoteBodyDto,
-  UserCollectionVoteDto, UserCollectionVotesArrayDto,
+  UserCollectionVoteDto,
+  UserCollectionVotesArrayDto,
   UserCollectionVotesQuery
 } from '@infinityxyz/lib/types/dto/votes';
 import {
-  BadRequestException, Body,
-  Controller, Delete, Get,
-  HttpCode, HttpStatus, Logger,
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Logger,
   NotFoundException,
   Post,
   Put,
   Query,
   UnauthorizedException,
-  UploadedFile, UploadedFiles, UseInterceptors
+  UploadedFile,
+  UploadedFiles,
+  UseInterceptors
 } from '@nestjs/common';
 import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import {
