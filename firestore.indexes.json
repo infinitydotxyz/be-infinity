@@ -92,51 +92,7 @@
         },
         {
           "fieldPath": "avgPrice",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "collectionStats",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "timestamp",
           "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "period",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "avgPrice",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "collectionStats",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "timestamp",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "period",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "avgPricePercentChange",
-          "order": "ASCENDING"
         },
         {
           "fieldPath": "collectionAddress",
@@ -180,51 +136,7 @@
         },
         {
           "fieldPath": "ceilPrice",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "collectionStats",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "timestamp",
           "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "period",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "ceilPrice",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "collectionStats",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "timestamp",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "period",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "ceilPricePercentChange",
-          "order": "ASCENDING"
         },
         {
           "fieldPath": "collectionAddress",
@@ -268,51 +180,7 @@
         },
         {
           "fieldPath": "floorPrice",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "collectionStats",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "timestamp",
           "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "period",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "floorPrice",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "collectionStats",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "timestamp",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "period",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "floorPricePercentChange",
-          "order": "ASCENDING"
         },
         {
           "fieldPath": "collectionAddress",
@@ -356,51 +224,7 @@
         },
         {
           "fieldPath": "numSales",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "collectionStats",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "timestamp",
           "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "period",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "numSales",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "collectionStats",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "timestamp",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "period",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "numSalesPercentChange",
-          "order": "ASCENDING"
         },
         {
           "fieldPath": "collectionAddress",
@@ -444,51 +268,7 @@
         },
         {
           "fieldPath": "volume",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "collectionStats",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "timestamp",
           "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "period",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "volume",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "collectionStats",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "timestamp",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "period",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "volumePercentChange",
-          "order": "ASCENDING"
         },
         {
           "fieldPath": "collectionAddress",
@@ -2328,51 +2108,7 @@
         },
         {
           "fieldPath": "avgPrice",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nftStats",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "timestamp",
           "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "period",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "avgPrice",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nftStats",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "timestamp",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "period",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "avgPricePercentChange",
-          "order": "ASCENDING"
         },
         {
           "fieldPath": "collectionAddress",
@@ -2416,51 +2152,7 @@
         },
         {
           "fieldPath": "ceilPrice",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nftStats",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "timestamp",
           "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "period",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "ceilPrice",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nftStats",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "timestamp",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "period",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "ceilPricePercentChange",
-          "order": "ASCENDING"
         },
         {
           "fieldPath": "collectionAddress",
@@ -2504,51 +2196,7 @@
         },
         {
           "fieldPath": "floorPrice",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nftStats",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "timestamp",
           "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "period",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "floorPrice",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nftStats",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "timestamp",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "period",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "floorPricePercentChange",
-          "order": "ASCENDING"
         },
         {
           "fieldPath": "collectionAddress",
@@ -2592,72 +2240,6 @@
         },
         {
           "fieldPath": "numSales",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nftStats",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "timestamp",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "period",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "numSales",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nftStats",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "timestamp",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "period",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "numSalesPercentChange",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nftStats",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "timestamp",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "period",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "numSalesPercentChange",
           "order": "DESCENDING"
         },
         {
@@ -2680,72 +2262,6 @@
         },
         {
           "fieldPath": "volume",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nftStats",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "timestamp",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "period",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "volume",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nftStats",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "timestamp",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "period",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "volumePercentChange",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nftStats",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "timestamp",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "period",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "volumePercentChange",
           "order": "DESCENDING"
         },
         {
@@ -6219,51 +5735,7 @@
     },
     {
       "collectionGroup": "nftStats",
-      "fieldPath": "numSalesPercentChange",
-      "indexes": [
-        {
-          "order": "ASCENDING",
-          "queryScope": "COLLECTION"
-        },
-        {
-          "order": "DESCENDING",
-          "queryScope": "COLLECTION"
-        },
-        {
-          "arrayConfig": "CONTAINS",
-          "queryScope": "COLLECTION"
-        },
-        {
-          "order": "ASCENDING",
-          "queryScope": "COLLECTION_GROUP"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nftStats",
       "fieldPath": "twitterFollowersPercentChange",
-      "indexes": [
-        {
-          "order": "ASCENDING",
-          "queryScope": "COLLECTION"
-        },
-        {
-          "order": "DESCENDING",
-          "queryScope": "COLLECTION"
-        },
-        {
-          "arrayConfig": "CONTAINS",
-          "queryScope": "COLLECTION"
-        },
-        {
-          "order": "ASCENDING",
-          "queryScope": "COLLECTION_GROUP"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nftStats",
-      "fieldPath": "volumePercentChange",
       "indexes": [
         {
           "order": "ASCENDING",
