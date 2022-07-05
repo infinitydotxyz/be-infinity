@@ -2797,74 +2797,6 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "orderStatus",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "tokenId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "endTimeMs",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orderItems",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "orderStatus",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "tokenId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "startPriceEth",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "endTimeMs",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orderItems",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "tokenId",
           "order": "ASCENDING"
         }
@@ -3031,20 +2963,6 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "endTimeMs",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orderItems",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "startPriceEth",
           "order": "ASCENDING"
         }
@@ -3101,20 +3019,6 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "endTimeMs",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orderItems",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "makerAddress",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "startPriceEth",
           "order": "ASCENDING"
         }
@@ -3159,20 +3063,6 @@
         {
           "fieldPath": "endTimeMs",
           "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orderItems",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "numItems",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "endTimeMs",
-          "order": "DESCENDING"
         }
       ]
     },
@@ -3249,24 +3139,6 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "endTimeMs",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orderItems",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "orderStatus",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "startPriceEth",
           "order": "ASCENDING"
         }
@@ -3291,28 +3163,6 @@
         {
           "fieldPath": "endTimeMs",
           "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orderItems",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "orderStatus",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "endTimeMs",
-          "order": "DESCENDING"
         }
       ]
     },
@@ -3419,20 +3269,6 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "endTimeMs",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orderItems",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "orderStatus",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "isSellOrder",
           "order": "ASCENDING"
         },
@@ -3443,28 +3279,6 @@
         {
           "fieldPath": "endTimeMs",
           "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orderItems",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "orderStatus",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "endTimeMs",
-          "order": "DESCENDING"
         }
       ]
     },
@@ -3513,32 +3327,6 @@
         {
           "fieldPath": "endTimeMs",
           "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orderItems",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "orderStatus",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "endTimeMs",
-          "order": "DESCENDING"
         }
       ]
     },
@@ -3685,32 +3473,6 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "endTimeMs",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orderItems",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "orderStatus",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "makerAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "startPriceEth",
           "order": "ASCENDING"
         }
@@ -3743,36 +3505,6 @@
         {
           "fieldPath": "endTimeMs",
           "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orderItems",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "orderStatus",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "makerAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "endTimeMs",
-          "order": "DESCENDING"
         }
       ]
     },
@@ -3933,32 +3665,6 @@
         {
           "fieldPath": "endTimeMs",
           "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orderItems",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "orderStatus",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "makerAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "endTimeMs",
-          "order": "DESCENDING"
         }
       ]
     },
@@ -4069,36 +3775,6 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "endTimeMs",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orderItems",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "orderStatus",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "makerAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "takerAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "startPriceEth",
           "order": "ASCENDING"
         }
@@ -4135,40 +3811,6 @@
         {
           "fieldPath": "endTimeMs",
           "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orderItems",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "orderStatus",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "makerAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "takerAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "endTimeMs",
-          "order": "DESCENDING"
         }
       ]
     },
@@ -4381,36 +4023,6 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "endTimeMs",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orderItems",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "orderStatus",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "makerAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "takerAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "startPriceEth",
           "order": "DESCENDING"
         }
@@ -4493,32 +4105,6 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "endTimeMs",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orderItems",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "orderStatus",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "numItems",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "startPriceEth",
           "order": "ASCENDING"
         }
@@ -4551,36 +4137,6 @@
         {
           "fieldPath": "endTimeMs",
           "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orderItems",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "orderStatus",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "numItems",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "endTimeMs",
-          "order": "DESCENDING"
         }
       ]
     },
@@ -4765,32 +4321,6 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "endTimeMs",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orderItems",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "orderStatus",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "numItems",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "startPriceEth",
           "order": "DESCENDING"
         }
@@ -4859,28 +4389,6 @@
         {
           "fieldPath": "endTimeMs",
           "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orderItems",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "orderStatus",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "endTimeMs",
-          "order": "DESCENDING"
         }
       ]
     },
@@ -4975,32 +4483,6 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "endTimeMs",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orderItems",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "orderStatus",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "takerAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "startPriceEth",
           "order": "ASCENDING"
         }
@@ -5033,36 +4515,6 @@
         {
           "fieldPath": "endTimeMs",
           "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orderItems",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "orderStatus",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "takerAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "endTimeMs",
-          "order": "DESCENDING"
         }
       ]
     },
@@ -5247,32 +4699,6 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "endTimeMs",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orderItems",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "orderStatus",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "takerAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "startPriceEth",
           "order": "DESCENDING"
         }
@@ -5343,28 +4769,6 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "endTimeMs",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orderItems",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "orderStatus",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "numItems",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "startPriceEth",
           "order": "ASCENDING"
         }
@@ -5393,32 +4797,6 @@
         {
           "fieldPath": "endTimeMs",
           "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orderItems",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "orderStatus",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "numItems",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "endTimeMs",
-          "order": "DESCENDING"
         }
       ]
     },
@@ -5575,28 +4953,6 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "endTimeMs",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orderItems",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "orderStatus",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "numItems",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "startPriceEth",
           "order": "DESCENDING"
         }
@@ -5653,24 +5009,6 @@
         {
           "fieldPath": "endTimeMs",
           "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orderItems",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "orderStatus",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "endTimeMs",
-          "order": "DESCENDING"
         }
       ]
     },
@@ -5749,20 +5087,6 @@
         {
           "fieldPath": "endTimeMs",
           "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orderItems",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "takerAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "endTimeMs",
-          "order": "DESCENDING"
         }
       ]
     },
