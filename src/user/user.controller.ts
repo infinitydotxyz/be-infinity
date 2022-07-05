@@ -1,22 +1,45 @@
+import { CollectionMetadata } from '@infinityxyz/lib/types/core';
+import { RankingQueryDto, UpdateCollectionDto } from '@infinityxyz/lib/types/dto/collections';
 import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  Logger,
+  ExternalNftArrayDto,
+  NftActivityArrayDto,
+  NftArrayDto
+} from '@infinityxyz/lib/types/dto/collections/nfts';
+import { CollectionStatsArrayResponseDto } from '@infinityxyz/lib/types/dto/stats';
+import {
+  DeleteUserProfileImagesDto,
+  PartialUpdateUserProfileDto,
+  UpdateUserProfileImagesDto,
+  UserActivityArrayDto,
+  UserActivityQueryDto,
+  UserCollectionPermissions,
+  UserFollowingCollectionDeletePayload,
+  UserFollowingCollectionPostPayload,
+  UserFollowingCollectionsArrayDto,
+  UserFollowingUserDeletePayload,
+  UserFollowingUserPostPayload,
+  UserFollowingUsersArrayDto, UserNftsQueryDto,
+  UserProfileDto,
+  UserProfileImagesDto,
+  ValidateUsernameResponseDto
+} from '@infinityxyz/lib/types/dto/user';
+import {
+  UserCollectionVoteBodyDto,
+  UserCollectionVoteDto, UserCollectionVotesArrayDto,
+  UserCollectionVotesQuery
+} from '@infinityxyz/lib/types/dto/votes';
+import {
+  BadRequestException, Body,
+  Controller, Delete, Get,
+  HttpCode, HttpStatus, Logger,
   NotFoundException,
   Post,
   Put,
   Query,
   UnauthorizedException,
-  UploadedFile,
-  UseInterceptors,
-  HttpStatus,
-  Delete,
-  BadRequestException,
-  UploadedFiles
+  UploadedFile, UploadedFiles, UseInterceptors
 } from '@nestjs/common';
-import { UserService } from './user.service';
+import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBadRequestResponse,
   ApiBody,
@@ -30,64 +53,29 @@ import {
   ApiOperation,
   ApiQuery
 } from '@nestjs/swagger';
-import { ApiTag } from 'common/api-tags';
-import { ResponseDescription } from 'common/response-description';
-import { CacheControlInterceptor } from 'common/interceptors/cache-control.interceptor';
-import { VotesService } from 'votes/votes.service';
 import { ApiParamUserId, ParamUserId } from 'auth/param-user-id.decorator';
-import { ParseUserIdPipe } from './parser/parse-user-id.pipe';
-import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
-import { ParseCollectionIdPipe, ParsedCollectionId } from 'collections/collection-id.pipe';
-import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param-collection-id.decorator';
-import CollectionsService from 'collections/collections.service';
-import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express';
-import { StorageService } from 'storage/storage.service';
-import { CollectionMetadata } from '@infinityxyz/lib/types/core';
-import { instanceToPlain } from 'class-transformer';
-import { StatsService } from 'stats/stats.service';
-import { InvalidUserError } from 'common/errors/invalid-user.error';
-import { ProfileService } from './profile/profile.service';
-import { InvalidProfileError } from './errors/invalid-profile.error';
-import { QueryUsername } from './profile/query-username.decorator';
-import { UsernameType } from './profile/profile.types';
-import { ErrorResponseDto } from 'common/dto/error-response.dto';
 import { UserAuth } from 'auth/user-auth.decorator';
-import { ParsedUserId } from './parser/parsed-user-id';
+import { instanceToPlain } from 'class-transformer';
+import { ParseCollectionIdPipe, ParsedCollectionId } from 'collections/collection-id.pipe';
+import CollectionsService from 'collections/collections.service';
 import { NftsService } from 'collections/nfts/nfts.service';
-import { CollectionStatsArrayResponseDto } from '@infinityxyz/lib/types/dto/stats';
-import { RankingQueryDto, UpdateCollectionDto } from '@infinityxyz/lib/types/dto/collections';
-import {
-  ExternalNftArrayDto,
-  NftActivityArrayDto,
-  NftArrayDto,
-  NftCollectionArrayDto,
-  NftCollectionDto
-} from '@infinityxyz/lib/types/dto/collections/nfts';
-import {
-  DeleteUserProfileImagesDto,
-  PartialUpdateUserProfileDto,
-  UpdateUserProfileImagesDto,
-  UserActivityArrayDto,
-  UserActivityQueryDto,
-  UserCollectionPermissions,
-  UserFollowingCollectionDeletePayload,
-  UserFollowingCollectionPostPayload,
-  UserFollowingCollectionsArrayDto,
-  UserFollowingUserDeletePayload,
-  UserFollowingUserPostPayload,
-  UserFollowingUsersArrayDto,
-  UserNftCollectionsQueryDto,
-  UserNftsQueryDto,
-  UserProfileDto,
-  UserProfileImagesDto,
-  ValidateUsernameResponseDto
-} from '@infinityxyz/lib/types/dto/user';
-import {
-  UserCollectionVotesArrayDto,
-  UserCollectionVotesQuery,
-  UserCollectionVoteBodyDto,
-  UserCollectionVoteDto
-} from '@infinityxyz/lib/types/dto/votes';
+import { ApiTag } from 'common/api-tags';
+import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param-collection-id.decorator';
+import { ErrorResponseDto } from 'common/dto/error-response.dto';
+import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
+import { InvalidUserError } from 'common/errors/invalid-user.error';
+import { CacheControlInterceptor } from 'common/interceptors/cache-control.interceptor';
+import { ResponseDescription } from 'common/response-description';
+import { StatsService } from 'stats/stats.service';
+import { StorageService } from 'storage/storage.service';
+import { VotesService } from 'votes/votes.service';
+import { InvalidProfileError } from './errors/invalid-profile.error';
+import { ParseUserIdPipe } from './parser/parse-user-id.pipe';
+import { ParsedUserId } from './parser/parsed-user-id';
+import { ProfileService } from './profile/profile.service';
+import { UsernameType } from './profile/profile.types';
+import { QueryUsername } from './profile/query-username.decorator';
+import { UserService } from './user.service';
 
 @Controller('user')
 export class UserController {
@@ -212,27 +200,6 @@ export class UserController {
     return {
       ...nfts,
       data: externalNfts
-    };
-  }
-
-  @Get('/:userId/nftCollections')
-  @ApiOperation({
-    description: "Get a user's NFT collections.",
-    tags: [ApiTag.User, ApiTag.Nft]
-  })
-  @ApiParamUserId('userId')
-  @ApiOkResponse({ description: ResponseDescription.Success, type: NftCollectionArrayDto })
-  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 3 }))
-  async getUserNftCollections(
-    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
-    @Query() query: UserNftCollectionsQueryDto
-  ): Promise<{ data: NftCollectionDto[] }> {
-    let nftCollections = await this.userService.getUserNftCollections(user, query.search);
-    nftCollections = this.collectionsService.isSupported(nftCollections);
-    return {
-      data: nftCollections
     };
   }
 

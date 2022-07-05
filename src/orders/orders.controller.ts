@@ -146,7 +146,7 @@ export class OrdersController {
   @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  public async getOrderNonce(@Param('userId') userId: string): Promise<string> {
+  public async getOrderNonce(@Param('userId') userId: string): Promise<number> {
     return await this.ordersService.getOrderNonce(userId);
   }
 }
