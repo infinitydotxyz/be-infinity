@@ -71,7 +71,6 @@ export function getOrderId(chainId: string, exchangeAddr: string, orderHashParam
     const execParams = [orderHashParams.execParams.complicationAddress, orderHashParams.execParams.currencyAddress];
     const extraParams = defaultAbiCoder.encode(['address'], [orderHashParams.extraParams.buyer || NULL_ADDRESS]);
 
-    // todo: adi constraints has new length
     const constraintsHash = keccak256(
       defaultAbiCoder.encode(['uint256', 'uint256', 'uint256', 'uint256', 'uint256', 'uint256', 'uint256'], constraints)
     );
