@@ -1,6 +1,6 @@
 /* eslint-disable no-empty */
 import { ChainId, OrderDirection } from '@infinityxyz/lib/types/core';
-import { NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
+import { EventType, NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
 import { RankingQueryDto } from '@infinityxyz/lib/types/dto/collections';
 import { NftArrayDto, NftDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import {
@@ -20,7 +20,6 @@ import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
 import { Injectable, Optional } from '@nestjs/common';
 import { AlchemyService } from 'alchemy/alchemy.service';
 import { BackfillService } from 'backfill/backfill.service';
-import { ActivityType, activityTypeToEventType } from 'collections/nfts/nft-activity.types';
 import { BadQueryError } from 'common/errors/bad-query.error';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { InvalidUserError } from 'common/errors/invalid-user.error';
@@ -253,10 +252,15 @@ export class UserService {
     const cursorObj: Cursor = { startPriceEth: price };
     const updatedCursor = this.paginationService.encodeCursor(cursorObj);
 
+    // fetch total owned
+    const response = await this.alchemyService.getUserNfts(user.userAddress, nftsQuery.chainId ?? ChainId.Mainnet, '');
+    const totalOwned = response?.totalCount ?? NaN;
+
     return {
       cursor: updatedCursor,
       hasNextPage,
-      data: nfts
+      data: nfts,
+      totalOwned
     };
   }
 
@@ -267,6 +271,8 @@ export class UserService {
     const chainId = query.chainId ?? ChainId.Mainnet;
     type Cursor = { pageKey?: string; startAtToken?: string };
     const cursor = this.paginationService.decodeCursorToObject<Cursor>(query.cursor);
+    let totalOwned = NaN;
+
     const _fetchNfts = async (
       pageKey: string,
       startAtToken?: string
@@ -278,6 +284,7 @@ export class UserService {
         pageKey,
         query.collectionAddresses
       );
+      totalOwned = response?.totalCount ?? NaN;
       const nextPageKey = response?.pageKey ?? '';
       let nfts = response?.ownedNfts ?? [];
 
@@ -327,7 +334,8 @@ export class UserService {
     return {
       data: nftsToReturn,
       cursor: updatedCursor,
-      hasNextPage
+      hasNextPage,
+      totalOwned
     };
   }
 
@@ -357,9 +365,7 @@ export class UserService {
   }
 
   async getActivity(user: ParsedUserId, query: UserActivityQueryDto): Promise<UserActivityArrayDto> {
-    const activityTypes = query.events && query?.events.length > 0 ? query.events : Object.values(ActivityType);
-
-    const events = activityTypes.map((item) => activityTypeToEventType[item]);
+    const events = query.events && query?.events.length > 0 ? query.events : Object.values(EventType);
 
     let userEventsQuery = this.firebaseService.firestore
       .collection(firestoreConstants.FEED_COLL)

@@ -11,7 +11,7 @@ import {
   OrderDirection,
   Token
 } from '@infinityxyz/lib/types/core';
-import { FeedEventType, NftListingEvent, NftOfferEvent } from '@infinityxyz/lib/types/core/feed';
+import { EventType, NftListingEvent, NftOfferEvent } from '@infinityxyz/lib/types/core/feed';
 import {
   ChainNFTsDto,
   OrderItemsOrderBy,
@@ -28,6 +28,7 @@ import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { InvalidTokenError } from 'common/errors/invalid-token-error';
 import { EthereumService } from 'ethereum/ethereum.service';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
+import { FirestoreDistributedCounter } from 'firebase/firestore-counter';
 import { FirebaseService } from '../firebase/firebase.service';
 import { CursorService } from '../pagination/cursor.service';
 import { ParsedUserId } from '../user/parser/parsed-user-id';
@@ -39,6 +40,11 @@ import { getOrderIdFromSignedOrder } from './orders.utils';
 
 @Injectable()
 export default class OrdersService {
+  private numBuyOrderItems: FirestoreDistributedCounter;
+  private numSellOrderItems: FirestoreDistributedCounter;
+  private openBuyInterest: FirestoreDistributedCounter;
+  private openSellInterest: FirestoreDistributedCounter;
+
   constructor(
     private firebaseService: FirebaseService,
     private userService: UserService,
@@ -47,7 +53,27 @@ export default class OrdersService {
     private userParser: UserParserService,
     private ethereumService: EthereumService,
     private cursorService: CursorService
-  ) {}
+  ) {
+    const ordersCounterDocRef = this.firebaseService.firestore
+      .collection(firestoreConstants.ORDERS_COLL)
+      .doc(firestoreConstants.COUNTER_DOC);
+    // num items
+    this.numBuyOrderItems = new FirestoreDistributedCounter(ordersCounterDocRef, firestoreConstants.NUM_BUY_ORDER_ITEMS_FIELD);
+    this.numSellOrderItems = new FirestoreDistributedCounter(ordersCounterDocRef, firestoreConstants.NUM_SELL_ORDER_ITEMS_FIELD);
+    // start prices
+    this.openBuyInterest = new FirestoreDistributedCounter(ordersCounterDocRef, firestoreConstants.OPEN_BUY_INTEREST_FIELD);
+    this.openSellInterest = new FirestoreDistributedCounter(ordersCounterDocRef, firestoreConstants.OPEN_SELL_INTEREST_FIELD);
+  }
+
+  private updateOrderCounters(order: SignedOBOrderDto) {
+    if (order.isSellOrder) {
+      this.numSellOrderItems.incrementBy(order.numItems);
+      this.openSellInterest.incrementBy(order.startPriceEth);
+    } else {
+      this.numBuyOrderItems.incrementBy(order.numItems);
+      this.openBuyInterest.incrementBy(order.startPriceEth);
+    }
+  }
 
   public async createOrder(maker: ParsedUserId, orders: SignedOBOrderDto[]): Promise<void> {
     try {
@@ -64,6 +90,9 @@ export default class OrdersService {
         // save
         const docRef = ordersCollectionRef.doc(orderId);
         fsBatchHandler.add(docRef, dataToStore, { merge: true });
+
+        // update counters
+        this.updateOrderCounters(order);
 
         // get order items
         const orderItemsRef = docRef.collection(firestoreConstants.ORDER_ITEMS_SUB_COLL);
@@ -581,13 +610,13 @@ export default class OrdersService {
       if (orderItem.isSellOrder) {
         event = {
           ...feedEvent,
-          type: FeedEventType.NftListing,
+          type: EventType.NftListing,
           isSellOrder: true
         };
       } else {
         event = {
           ...feedEvent,
-          type: FeedEventType.NftOffer,
+          type: EventType.NftOffer,
           isSellOrder: false
         };
       }

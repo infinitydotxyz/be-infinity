@@ -173,14 +173,14 @@ export default class CollectionsService {
       .doc(docId)
       .get();
 
-    let result = collectionSnapshot.data() as Collection | undefined;
+    let result = collectionSnapshot.data();
     if (!result) {
       result = await this.backfillService.backfillCollection(collection.chainId as ChainId, collection.address);
     }
     if (queryOptions.limitToCompleteCollections && result?.state?.create?.step !== CreationFlow.Complete) {
       return undefined;
     }
-    return result;
+    return result as Collection;
   }
 
   async getCollectionsByAddress(collections: { address: string; chainId: ChainId }[]) {

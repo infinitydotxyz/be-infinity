@@ -1,5 +1,5 @@
 import { ChainId, Collection } from '@infinityxyz/lib/types/core';
-import { FeedEventType, NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
+import { EventType, NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
 import {
   ExternalNftDto,
   NftActivity,
@@ -20,7 +20,6 @@ import CollectionsService from 'collections/collections.service';
 import { EthereumService } from 'ethereum/ethereum.service';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
-import { ActivityType, activityTypeToEventType } from './nft-activity.types';
 
 @Injectable()
 export class NftsService {
@@ -226,13 +225,14 @@ export class NftsService {
     return {
       data,
       cursor: encodedCursor,
-      hasNextPage
+      hasNextPage,
+      totalOwned: NaN
     };
   }
 
   async getNftActivity(nftQuery: NftActivityQueryDto, filter: NftActivityFiltersDto) {
     const eventTypes = typeof filter.eventType === 'string' ? [filter.eventType] : filter.eventType;
-    const events = eventTypes?.map((item) => activityTypeToEventType[item]).filter((item) => !!item);
+    const events = eventTypes?.filter((item) => !!item);
 
     let activityQuery = null;
 
@@ -269,21 +269,17 @@ export class NftsService {
 
     data.forEach((item) => {
       let activity: NftActivity | null;
-      if (
-        item.type !== FeedEventType.NftSale &&
-        item.type !== FeedEventType.NftListing &&
-        item.type !== FeedEventType.NftOffer
-      ) {
+      if (item.type !== EventType.NftSale && item.type !== EventType.NftListing && item.type !== EventType.NftOffer) {
         return null;
       }
       switch (item.type) {
-        case FeedEventType.NftSale: {
+        case EventType.NftSale: {
           const sale: NftSaleEvent = item as any;
           activity = {
             address: sale.collectionAddress,
             tokenId: sale.tokenId,
             chainId: sale.chainId as ChainId,
-            type: ActivityType.Sale,
+            type: EventType.NftSale,
             from: sale.seller,
             fromDisplayName: sale.sellerDisplayName,
             to: sale.buyer,
@@ -296,13 +292,13 @@ export class NftsService {
           };
           break;
         }
-        case FeedEventType.NftListing: {
+        case EventType.NftListing: {
           const listing: NftListingEvent = item as any;
           activity = {
             address: listing.collectionAddress,
             tokenId: listing.tokenId,
             chainId: listing.chainId as ChainId,
-            type: ActivityType.Listing,
+            type: EventType.NftListing,
             from: listing.makerAddress,
             fromDisplayName: listing.makerUsername,
             to: listing.takerAddress ?? '',
@@ -316,13 +312,13 @@ export class NftsService {
           break;
         }
 
-        case FeedEventType.NftOffer: {
+        case EventType.NftOffer: {
           const offer: NftOfferEvent = item as any;
           activity = {
             address: offer.collectionAddress,
             tokenId: offer.tokenId,
             chainId: offer.chainId as ChainId,
-            type: ActivityType.Offer,
+            type: EventType.NftOffer,
             from: offer.makerAddress,
             fromDisplayName: offer.makerUsername,
             to: offer.takerAddress ?? '',
