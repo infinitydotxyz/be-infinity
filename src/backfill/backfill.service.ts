@@ -100,6 +100,12 @@ export class BackfillService {
       // try opensea
       const openseaNfts = await this.fetchNftsFromOpensea(nfts);
       if (openseaNfts && openseaNfts.length > 0) {
+
+        // backfill alchemy cached image and attrs async
+        this.backfillAlchemyCachedImagesAndAttributes(nfts).catch((err) => {
+          console.error(err);
+        });
+
         return openseaNfts;
       }
     } catch (err) {
@@ -319,7 +325,45 @@ export class BackfillService {
       });
   }
 
-  public backfillAlchemyCachedImages(nfts: AlchemyNft[], chainId: ChainId, user?: string) {
+  private async backfillAlchemyCachedImagesAndAttributes(
+    nfts: { address: string; chainId: string; tokenId: string }[]
+  ) {
+    for (const nft of nfts) {
+      const alchemyAsset = await this.alchemyService.getNft(nft.chainId, nft.address, nft.tokenId);
+      if (alchemyAsset) {
+        const nftDto = this.transformAlchemyNftToNftDto(nft.chainId as ChainId, nft.address, nft.tokenId, alchemyAsset);
+
+        const data: Partial<Token> = {};
+        if (nftDto.alchemyCachedImage) {
+          data.alchemyCachedImage = nftDto.alchemyCachedImage;
+        }
+        if (nftDto.metadata.attributes && nftDto.metadata.attributes.length > 0) {
+          data.metadata = { attributes: nftDto.metadata.attributes };
+          data.numTraitTypes = nftDto.metadata.attributes.length;
+        }
+
+        // async save to firebase
+        const collectionDocId = getCollectionDocId({ chainId: nft.chainId, collectionAddress: nft.address });
+        const tokenDocRef = this.collectionsRef
+          .doc(collectionDocId)
+          .collection(firestoreConstants.COLLECTION_NFTS_COLL)
+          .doc(nft.tokenId);
+        this.fsBatchHandler.add(tokenDocRef, data, { merge: true });
+      }
+    }
+
+    // flush
+    this.fsBatchHandler
+      .flush()
+      .then(() => {
+        console.log('Backfilled alchemy cached images and attributes');
+      })
+      .catch((err) => {
+        console.error('Error backfilling alchemy cached images and attributes', err);
+      });
+  }
+
+  public backfillAlchemyCachedImagesForUserNfts(nfts: AlchemyNft[], chainId: ChainId, user?: string) {
     for (const nft of nfts) {
       const nftWithMetadata = nft as AlchemyNftWithMetadata;
       const collectionAddress = nftWithMetadata.contract.address;
