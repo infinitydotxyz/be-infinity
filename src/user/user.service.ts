@@ -253,10 +253,15 @@ export class UserService {
     const cursorObj: Cursor = { startPriceEth: price };
     const updatedCursor = this.paginationService.encodeCursor(cursorObj);
 
+    // fetch total owned
+    const response = await this.alchemyService.getUserNfts(user.userAddress, nftsQuery.chainId ?? ChainId.Mainnet, '');
+    const totalOwned = response?.totalCount ?? NaN;
+
     return {
       cursor: updatedCursor,
       hasNextPage,
-      data: nfts
+      data: nfts,
+      totalOwned
     };
   }
 
@@ -267,6 +272,8 @@ export class UserService {
     const chainId = query.chainId ?? ChainId.Mainnet;
     type Cursor = { pageKey?: string; startAtToken?: string };
     const cursor = this.paginationService.decodeCursorToObject<Cursor>(query.cursor);
+    let totalOwned = NaN;
+
     const _fetchNfts = async (
       pageKey: string,
       startAtToken?: string
@@ -278,6 +285,7 @@ export class UserService {
         pageKey,
         query.collectionAddresses
       );
+      totalOwned = response?.totalCount ?? NaN;
       const nextPageKey = response?.pageKey ?? '';
       let nfts = response?.ownedNfts ?? [];
 
@@ -327,7 +335,8 @@ export class UserService {
     return {
       data: nftsToReturn,
       cursor: updatedCursor,
-      hasNextPage
+      hasNextPage,
+      totalOwned
     };
   }
 

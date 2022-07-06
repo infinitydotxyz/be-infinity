@@ -226,7 +226,8 @@ export class NftsService {
     return {
       data,
       cursor: encodedCursor,
-      hasNextPage
+      hasNextPage,
+      totalOwned: NaN
     };
   }
 

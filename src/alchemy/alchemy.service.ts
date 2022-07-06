@@ -38,7 +38,12 @@ export class AlchemyService {
     this.client = axios.create();
   }
 
-  async getUserNfts(owner: string, chainId: ChainId, cursor: string, contractAddresses?: string[]) {
+  async getUserNfts(
+    owner: string,
+    chainId: ChainId,
+    cursor: string,
+    contractAddresses?: string[]
+  ): Promise<AlchemyUserNftsResponse | undefined> {
     const url = this.getBaseUrl(chainId, '/getNFTs');
     try {
       const response = await this.client.get(url.toString(), {
@@ -58,7 +63,6 @@ export class AlchemyService {
       return data;
     } catch (err) {
       console.error('failed to get user nfts from alchemy', err);
-      return null;
     }
   }
 
