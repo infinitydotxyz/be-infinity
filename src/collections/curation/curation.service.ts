@@ -24,16 +24,11 @@ export class CurationService {
 
     // write to 'users' collection
     const curatorDocRef = collection.ref.collection(firestoreConstants.COLLECTION_CURATORS_COLL).doc(user.ref.id);
+    const userData = { totalCuratedVotes: incrementVotes } as any;
     if (!(await curatorDocRef.get()).exists) {
-      batch.set(
-        user.ref,
-        {
-          totalCurated: this.firebaseService.firestoreNamespace.FieldValue.increment(1)
-        } as any,
-        { merge: true }
-      );
+      userData.totalCurated = this.firebaseService.firestoreNamespace.FieldValue.increment(1);
     }
-    batch.set(user.ref, { totalCuratedVotes: incrementVotes } as any, { merge: true });
+    batch.set(user.ref, userData, { merge: true });
 
     // write to 'collections' collection
     batch.set(collection.ref, { numCuratorVotes: incrementVotes as any }, { merge: true });
