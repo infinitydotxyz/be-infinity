@@ -1,4 +1,5 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
+import { GOERLI_INFINITY_TOKEN_ADDRESS } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { infinityTokenAbi } from 'abi/infinityContract';
 import { EthereumService } from './ethereum.service';
@@ -10,7 +11,7 @@ export class ContractService {
   getTokenContract(chainId: string | ChainId) {
     return this.ethereumService.getContract({
       abi: infinityTokenAbi,
-      address: '0x2BDB98086d47e38e3A40B42463Af005F5CF72146',
+      address: GOERLI_INFINITY_TOKEN_ADDRESS,
       chainId: chainId
     });
   }
