@@ -23,6 +23,7 @@ import { BackfillModule } from 'backfill/backfill.module';
 import { ZoraModule } from 'zora/zora.module';
 import { OpenseaModule } from 'opensea/opensea.module';
 import { ReservoirModule } from 'reservoir/reservoir.module';
+import { GemModule } from 'gem/gem.module';
 
 @Module({
   imports: [
@@ -49,7 +50,8 @@ import { ReservoirModule } from 'reservoir/reservoir.module';
     BackfillModule,
     ZoraModule,
     OpenseaModule,
-    ReservoirModule
+    ReservoirModule,
+    GemModule
   ],
   controllers: [AppController]
 })
