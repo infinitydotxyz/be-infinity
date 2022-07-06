@@ -1,25 +1,26 @@
-import { ChainId, Collection, CreationFlow } from '@infinityxyz/lib/types/core';
-import { NftActivityQueryDto, OrderType } from '@infinityxyz/lib/types/dto/collections/nfts';
+import { ChainId, Collection } from '@infinityxyz/lib/types/core';
 import { FeedEventType, NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
+import {
+  ExternalNftDto,
+  NftActivity,
+  NftActivityFiltersDto,
+  NftActivityQueryDto,
+  NftArrayDto,
+  NftDto,
+  NftQueryDto,
+  NftsOrderBy,
+  NftsQueryDto,
+  OrderType
+} from '@infinityxyz/lib/types/dto/collections/nfts';
 import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
+import { BackfillService } from 'backfill/backfill.service';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
 import CollectionsService from 'collections/collections.service';
-import { FirebaseService } from 'firebase/firebase.service';
-import { ActivityType, activityTypeToEventType } from './nft-activity.types';
-import { CursorService } from 'pagination/cursor.service';
 import { EthereumService } from 'ethereum/ethereum.service';
-import { BackfillService } from 'backfill/backfill.service';
-import {
-  NftQueryDto,
-  NftDto,
-  ExternalNftDto,
-  NftsQueryDto,
-  NftArrayDto,
-  NftsOrderBy,
-  NftActivityFiltersDto,
-  NftActivity
-} from '@infinityxyz/lib/types/dto/collections/nfts';
+import { FirebaseService } from 'firebase/firebase.service';
+import { CursorService } from 'pagination/cursor.service';
+import { ActivityType, activityTypeToEventType } from './nft-activity.types';
 
 @Injectable()
 export class NftsService {
@@ -32,25 +33,27 @@ export class NftsService {
   ) {}
 
   async getNft(nftQuery: NftQueryDto): Promise<NftDto | undefined> {
-    const collection = await this.collectionsService.getCollectionByAddress(nftQuery);
-    if (collection) {
-      const nfts = await this.getNfts([
-        { address: collection.address, chainId: collection.chainId as ChainId, tokenId: nftQuery.tokenId }
-      ]);
-      const nft = nfts?.[0];
-      if (nft && !nft.owner) {
-        const owner = await this.ethereumService.getErc721Owner({
-          address: nftQuery.address,
-          tokenId: nftQuery.tokenId,
-          chainId: nftQuery.chainId
-        });
-        if (owner) {
-          nft.owner = owner;
-          this.updateOwnershipInFirestore(nft);
-        }
+    // const collection = await this.collectionsService.getCollectionByAddress(nftQuery, {
+    //   limitToCompleteCollections: false
+    // });
+    // if (collection) {
+    const nfts = await this.getNfts([
+      { address: nftQuery.address, chainId: nftQuery.chainId, tokenId: nftQuery.tokenId }
+    ]);
+    const nft = nfts?.[0];
+    if (nft && !nft.owner) {
+      const owner = await this.ethereumService.getErc721Owner({
+        address: nftQuery.address,
+        tokenId: nftQuery.tokenId,
+        chainId: nftQuery.chainId
+      });
+      if (owner) {
+        nft.owner = owner;
+        this.updateOwnershipInFirestore(nft);
       }
-      return nft;
     }
+    return nft;
+    // }
   }
 
   updateOwnershipInFirestore(nft: NftDto): void {
@@ -73,14 +76,15 @@ export class NftsService {
       });
   }
 
-  async isSupported(nfts: NftDto[]) {
-    const { getCollection } = await this.collectionsService.getCollectionsByAddress(
-      nfts.map((nft) => ({ address: nft.collectionAddress ?? '', chainId: nft.chainId }))
-    );
+  isSupported(nfts: NftDto[]) {
+    // const { getCollection } = await this.collectionsService.getCollectionsByAddress(
+    //   nfts.map((nft) => ({ address: nft.collectionAddress ?? '', chainId: nft.chainId }))
+    // );
 
     const externalNfts: ExternalNftDto[] = nfts.map((nft) => {
-      const collection = getCollection({ address: nft.collectionAddress ?? '', chainId: nft.chainId });
-      const isSupported = collection?.state?.create?.step === CreationFlow.Complete;
+      // const collection = getCollection({ address: nft.collectionAddress ?? '', chainId: nft.chainId });
+      // const isSupported = collection?.state?.create?.step === CreationFlow.Complete;
+      const isSupported = true;
       const externalNft: ExternalNftDto = {
         ...nft,
         isSupported
@@ -110,17 +114,27 @@ export class NftsService {
 
     const snapshots = await this.firebaseService.firestore.getAll(...refs);
     const complete = snapshots.map((item) => item.exists).every((item) => item === true);
+    // backfill if the item doesn't exist
     if (!complete) {
       return this.backfillService.backfillNfts(nfts);
     }
 
-    const nftDtos = snapshots.map((snapshot, index) => {
-      const nft = snapshot.data() as NftDto | undefined;
-      if (nft) {
-        nft.collectionAddress = nfts[index].address;
+    const nftDtos = [];
+
+    for (const snapshot of snapshots) {
+      let nft = snapshot.data() as NftDto | undefined;
+
+      // backfill if the item exists but image is empty
+      if (nft && (!nft.image?.url || !nft.metadata.attributes)) {
+        const data = await this.backfillService.backfillNfts([
+          { chainId: nft.chainId, address: nft.collectionAddress ?? '', tokenId: nft.tokenId }
+        ]);
+        nft = data[0];
       }
-      return nft;
-    });
+
+      nftDtos.push(nft);
+    }
+
     return nftDtos;
   }
 
@@ -133,9 +147,9 @@ export class NftsService {
       query.orderType = OrderType.Listing;
     }
     const orderType = query.orderType || OrderType.Listing;
-    const startPriceField = `ordersSnippet.${orderType}.orderItem.startPriceEth`;
+    const startPriceField = `ordersSnippet.${query.orderType}.orderItem.startPriceEth`;
     if (query.orderType) {
-      nftsQuery = nftsQuery.where(`ordersSnippet.${orderType}.hasOrder`, '==', true);
+      nftsQuery = nftsQuery.where(`ordersSnippet.${query.orderType}.hasOrder`, '==', true);
     }
     if (query.traitTypes) {
       const traitTypes = query.traitTypes ?? [];
@@ -200,10 +214,20 @@ export class NftsService {
       }
     }
     const encodedCursor = this.paginationService.encodeCursor(cursor);
+
+    // backfill any missing data
+    this.backfillService.backfillAnyMissingNftData(data).catch((err) => {
+      console.error('Error backfilling missing nft data', err);
+    });
+    this.backfillService.backfillAnyInvalidNfts(collection.chainId, collection.address).catch((err) => {
+      console.error('Error backfilling invalid nfts', err);
+    });
+
     return {
       data,
       cursor: encodedCursor,
-      hasNextPage
+      hasNextPage,
+      totalOwned: NaN
     };
   }
 

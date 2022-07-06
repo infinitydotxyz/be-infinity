@@ -1,10 +1,12 @@
-import { ChainId, Collection, CuratedCollection } from '@infinityxyz/lib/types/core';
+import { Collection, CuratedCollection } from '@infinityxyz/lib/types/core';
 import { AlchemyNftToInfinityNft } from '../common/transformers/alchemy-nft-to-infinity-nft.pipe';
-import { AlchemyService } from 'alchemy/alchemy.service';
 import { CreationFlow, OrderDirection } from '@infinityxyz/lib/types/core';
+/* eslint-disable no-empty */
+import { ChainId } from '@infinityxyz/lib/types/core';
 import { NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
 import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
 import { Injectable, Optional } from '@nestjs/common';
+import { AlchemyService } from 'alchemy/alchemy.service';
 import { ActivityType, activityTypeToEventType } from 'collections/nfts/nft-activity.types';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { InvalidUserError } from 'common/errors/invalid-user.error';
@@ -29,11 +31,11 @@ import {
   UserActivityQueryDto,
   UserActivityArrayDto
 } from '@infinityxyz/lib/types/dto/user';
-import { NftsService } from '../collections/nfts/nfts.service';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
 import { BackfillService } from 'backfill/backfill.service';
 import { CuratedCollectionsQuery } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
 import { CuratedCollectionsDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
+import { NftsService } from '../collections/nfts/nfts.service';
 
 export type UserActivity = NftSaleEvent | NftListingEvent | NftOfferEvent;
 
@@ -115,7 +117,7 @@ export class UserService {
     if (!collection) {
       throw new InvalidCollectionError(payload.collectionAddress, payload.collectionChainId, 'Collection not found');
     }
-    if (collection?.state?.create?.step !== CreationFlow.Complete) {
+    if (!collection?.state?.create?.step) {
       throw new InvalidCollectionError(
         payload.collectionAddress,
         payload.collectionChainId,
@@ -146,7 +148,7 @@ export class UserService {
     if (!collection) {
       throw new InvalidCollectionError(payload.collectionAddress, payload.collectionChainId, 'Collection not found');
     }
-    if (collection?.state?.create?.step !== CreationFlow.Complete) {
+    if (!collection?.state?.create?.step) {
       throw new InvalidCollectionError(
         payload.collectionAddress,
         payload.collectionChainId,
@@ -294,10 +296,15 @@ export class UserService {
     const cursorObj: Cursor = { startPriceEth: price };
     const updatedCursor = this.paginationService.encodeCursor(cursorObj);
 
+    // fetch total owned
+    const response = await this.alchemyService.getUserNfts(user.userAddress, nftsQuery.chainId ?? ChainId.Mainnet, '');
+    const totalOwned = response?.totalCount ?? NaN;
+
     return {
       cursor: updatedCursor,
       hasNextPage,
-      data: nfts
+      data: nfts,
+      totalOwned
     };
   }
 
@@ -308,6 +315,8 @@ export class UserService {
     const chainId = query.chainId ?? ChainId.Mainnet;
     type Cursor = { pageKey?: string; startAtToken?: string };
     const cursor = this.paginationService.decodeCursorToObject<Cursor>(query.cursor);
+    let totalOwned = NaN;
+
     const _fetchNfts = async (
       pageKey: string,
       startAtToken?: string
@@ -319,11 +328,12 @@ export class UserService {
         pageKey,
         query.collectionAddresses
       );
+      totalOwned = response?.totalCount ?? NaN;
       const nextPageKey = response?.pageKey ?? '';
       let nfts = response?.ownedNfts ?? [];
 
       // backfill alchemy cached images in firestore
-      this.backfillService.backfillAlchemyCachedImages(nfts, chainId, user.userAddress);
+      this.backfillService.backfillAlchemyCachedImagesForUserNfts(nfts, chainId, user.userAddress);
 
       if (startAtToken) {
         const indexToStartAt = nfts.findIndex(
@@ -364,13 +374,12 @@ export class UserService {
       pageKey: continueFromCurrentPage ? pageKey : nextPageKey,
       startAtToken: nftToStartAt
     });
-    // todo: remove this
-    await this.saveUserNftCollections(user.userAddress, nfts);
 
     return {
       data: nftsToReturn,
       cursor: updatedCursor,
-      hasNextPage
+      hasNextPage,
+      totalOwned
     };
   }
 

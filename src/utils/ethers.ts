@@ -1,13 +1,10 @@
-import {
-  ALCHEMY_JSON_RPC_ETH_MAINNET,
-  ALCHEMY_JSON_RPC_POLYGON_MAINNET
-} from '../constants';
+import { ALCHEMY_JSON_RPC_ETH_MAINNET, ALCHEMY_JSON_RPC_POLYGON_MAINNET } from '../constants';
 import { ethers } from 'ethers';
 import { ETHEREUM_INFINITY_EXCHANGE_ADDRESS, POLYGON_INFINITY_EXCHANGE_ADDRESS } from '@infinityxyz/lib/utils';
 
-const ethProvider = new ethers.providers.JsonRpcProvider(ALCHEMY_JSON_RPC_ETH_MAINNET);
-const polygonProvider = new ethers.providers.JsonRpcProvider(ALCHEMY_JSON_RPC_POLYGON_MAINNET);
-const localHostProvider = new ethers.providers.JsonRpcProvider(process.env.localhostRpc);
+const ethProvider = new ethers.providers.StaticJsonRpcProvider(ALCHEMY_JSON_RPC_ETH_MAINNET);
+const polygonProvider = new ethers.providers.StaticJsonRpcProvider(ALCHEMY_JSON_RPC_POLYGON_MAINNET);
+const localHostProvider = new ethers.providers.StaticJsonRpcProvider(process.env.localhostRpc);
 
 export function getProvider(chainId: string) {
   if (chainId === '1') {

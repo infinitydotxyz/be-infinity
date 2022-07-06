@@ -1,7 +1,6 @@
 import {
   ChainId,
   Collection,
-  CreationFlow,
   Erc721Metadata,
   FirestoreOrder,
   FirestoreOrderItem,
@@ -28,7 +27,6 @@ import { BadQueryError } from 'common/errors/bad-query.error';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { InvalidTokenError } from 'common/errors/invalid-token-error';
 import { EthereumService } from 'ethereum/ethereum.service';
-import { BigNumber } from 'ethers';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
 import { FirebaseService } from '../firebase/firebase.service';
 import { CursorService } from '../pagination/cursor.service';
@@ -196,6 +194,10 @@ export default class OrdersService {
       firestoreQuery = firestoreQuery.where('collectionAddress', 'in', reqQuery.collections);
     }
 
+    if (reqQuery.tokenId) {
+      firestoreQuery = firestoreQuery.where('tokenId', '==', reqQuery.tokenId);
+    }
+
     // ordering
     let orderedBy = reqQuery.orderBy;
     if (requiresOrderByPrice) {
@@ -272,7 +274,7 @@ export default class OrdersService {
         })
       );
       const collectionsByAddress = collectionsData.reduce((acc: { [address: string]: Collection }, collection) => {
-        if (collection?.state?.create?.step !== CreationFlow.Complete) {
+        if (!collection?.state?.create?.step) {
           throw new InvalidCollectionError(
             collection?.address ?? 'Unknown',
             collection?.chainId ?? 'Unknown',
@@ -369,6 +371,7 @@ export default class OrdersService {
         endPriceEth: orderItemData.endPriceEth,
         startTimeMs: orderItemData.startTimeMs,
         endTimeMs: orderItemData.endTimeMs,
+        maxGasPriceWei: orderDocData.maxGasPriceWei,
         nonce: orderDocData.nonce,
         makerAddress: orderItemData.makerAddress,
         makerUsername: orderItemData.makerUsername,
@@ -424,7 +427,7 @@ export default class OrdersService {
     return results;
   }
 
-  public async getOrderNonce(userId: string): Promise<string> {
+  public async getOrderNonce(userId: string): Promise<number> {
     try {
       const user = trimLowerCase(userId);
       const userDocRef = this.firebaseService.firestore.collection(firestoreConstants.USERS_COLL).doc(user);
@@ -432,9 +435,9 @@ export default class OrdersService {
         const userDoc = await t.get(userDocRef);
         // todo: use a user dto or type?
         const userDocData = userDoc.data() || { address: user };
-        const nonce = BigNumber.from(userDocData.orderNonce ?? '0').add(1);
-        const minOrderNonce = BigNumber.from(userDocData.minOrderNonce ?? '0').add(1);
-        const newNonce = (nonce.gt(minOrderNonce) ? nonce : minOrderNonce).toString();
+        const nonce = parseInt(userDocData.orderNonce ?? 0) + 1;
+        const minOrderNonce = parseInt(userDocData.minOrderNonce ?? 0) + 1;
+        const newNonce = nonce > minOrderNonce ? nonce : minOrderNonce;
         userDocData.orderNonce = newNonce;
         t.set(userDocRef, userDocData, { merge: true });
         return newNonce;
@@ -463,7 +466,8 @@ export default class OrdersService {
         endPriceEth: order.endPriceEth,
         startTimeMs: order.startTimeMs,
         endTimeMs: order.endTimeMs,
-        nonce: order.nonce.toString(),
+        maxGasPriceWei: order.maxGasPriceWei,
+        nonce: order.nonce,
         complicationAddress: order.execParams.complicationAddress,
         currencyAddress: order.execParams.currencyAddress,
         makerAddress: trimLowerCase(makerAddress),
@@ -567,7 +571,7 @@ export default class OrdersService {
           type: InfinityLinkType.Asset,
           collectionAddress: orderItem.collectionAddress,
           tokenId: orderItem.tokenId,
-          chainId: orderItem.chainId as ChainId,
+          chainId: orderItem.chainId as ChainId
         }),
         image: orderItem.tokenImage,
         nftName: orderItem.tokenName,

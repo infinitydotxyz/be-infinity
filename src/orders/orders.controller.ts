@@ -1,5 +1,10 @@
 import {
-  OBOrderItemDto, OrderItemsQueryDto, OrdersDto, SignedOBOrderArrayDto, SignedOBOrderDto, UserOrderItemsQueryDto
+  OBOrderItemDto,
+  OrderItemsQueryDto,
+  OrdersDto,
+  SignedOBOrderArrayDto,
+  SignedOBOrderDto,
+  UserOrderItemsQueryDto
 } from '@infinityxyz/lib/types/dto/orders';
 import { BadRequestException, Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
@@ -141,7 +146,7 @@ export class OrdersController {
   @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  public async getOrderNonce(@Param('userId') userId: string): Promise<string> {
+  public async getOrderNonce(@Param('userId') userId: string): Promise<number> {
     return await this.ordersService.getOrderNonce(userId);
   }
 }

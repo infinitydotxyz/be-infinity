@@ -1,6 +1,8 @@
 import {
   ChainId,
   Collection,
+  CollectionPeriodStatsContent,
+  CollectionStats,
   OrderDirection,
   PreAggregatedSocialsStats,
   SocialsStats,
@@ -10,7 +12,7 @@ import {
 } from '@infinityxyz/lib/types/core';
 import { InfinityTweet, InfinityTwitterAccount } from '@infinityxyz/lib/types/services/twitter';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import { getStatsDocInfo } from 'utils/stats';
+import { getCollectionDocId, getStatsDocInfo } from 'utils/stats';
 import { Injectable } from '@nestjs/common';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
 import { VotesService } from 'votes/votes.service';
@@ -24,9 +26,14 @@ import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxy
 import {
   CollectionHistoricalStatsQueryDto,
   CollectionStatsByPeriodDto,
+  CollectionTrendingStatsQueryDto,
   RankingQueryDto
 } from '@infinityxyz/lib/types/dto/collections';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
+import { ONE_HOUR } from '../constants';
+import { MnemonicPricesForStatsPeriod, MnemonicVolumesForStatsPeriod } from 'mnemonic/mnemonic.types';
+import { ZoraService } from 'zora/zora.service';
+import { ReservoirService } from 'reservoir/reservoir.service';
 
 @Injectable()
 export class StatsService {
@@ -49,7 +56,9 @@ export class StatsService {
     private firebaseService: FirebaseService,
     private votesService: VotesService,
     private mnemonicService: MnemonicService,
-    private paginationService: CursorService
+    private paginationService: CursorService,
+    private zoraService: ZoraService,
+    private reservoirService: ReservoirService
   ) {
     this.fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
   }
@@ -127,111 +136,162 @@ export class StatsService {
     return statsByPeriod;
   }
 
-  async getMnemonicCollectionStats(query: CollectionHistoricalStatsQueryDto) {
-    // console.log('collection', collection, query)
-    const byArr = ['by_sales_volume', 'by_avg_price'];
-    const promises = [];
-    for (const byParam of byArr) {
-      promises.push(
-        this.mnemonicService.getTopCollections(byParam as mnemonicByParam, query.period, {
-          limit: query.limit,
-          offset: query.offset
-        })
-      );
+  async fetchAndStoreTopCollectionsFromMnemonic(query: CollectionTrendingStatsQueryDto) {
+    const queryBy = query.queryBy as mnemonicByParam;
+    const queryPeriod = query.period;
+    const data = await this.mnemonicService.getTopCollections(queryBy, queryPeriod, { limit: 500, offset: 0 });
+    const trendingCollectionsRef = this.firebaseService.firestore.collection(
+      firestoreConstants.TRENDING_COLLECTIONS_COLL
+    );
+    let byParamDoc = '';
+    if (queryBy === 'by_sales_volume') {
+      byParamDoc = firestoreConstants.TRENDING_BY_VOLUME_DOC;
+    } else if (queryBy === 'by_avg_price') {
+      byParamDoc = firestoreConstants.TRENDING_BY_AVG_PRICE_DOC;
     }
-    const values = await Promise.all(promises);
-    // console.log('values', values); // example [response1, response2]
+    const byParamCollectionRef = trendingCollectionsRef.doc(byParamDoc);
+    const byPeriodCollectionRef = byParamCollectionRef.collection(queryPeriod);
 
-    for (const value of values) {
-      const collections = value?.collections ?? [];
-      for (const coll of collections) {
-        // todo: remove this to save data for all contract addresses:
-        // goblin '0xbce3781ae7ca1a5e050bd9c4c77369867ebc307e'
-        // BAYC '0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d'
-        // if (coll.contractAddress === '0xbce3781ae7ca1a5e050bd9c4c77369867ebc307e') {
-        // console.log('coll', coll);
-        const collectionRef = await this.firebaseService.getCollectionRef({
-          chainId: ChainId.Mainnet,
-          address: coll.contractAddress ?? ''
-        });
-        // const docRef = collectionRef.collection('stats').doc(query.period);
-        // console.log('coll.value', coll.salesVolume, coll.avgPrice)
-        if (coll.salesVolume) {
-          this.fsBatchHandler.add(
-            collectionRef,
-            {
-              stats: {
-                daily: {
-                  salesVolume: parseFloat(`${coll.salesVolume}`)
-                }
-              }
-            },
-            { merge: true }
-          );
-        } else if (coll.avgPrice) {
-          this.fsBatchHandler.add(
-            collectionRef,
-            {
-              stats: {
-                daily: {
-                  avgPrice: parseFloat(`${coll.avgPrice}`)
-                }
-              }
-            },
-            { merge: true }
-          );
-        }
-        // }
-      }
-      await this.fsBatchHandler.flush().catch((err) => console.log('error saving mnemonic collection stats', err));
-    }
-
-    let data = null;
-    if (query.queryBy === 'by_sales_volume') {
-      data = values[0];
-    } else if (query.queryBy === 'by_avg_price') {
-      data = values[1];
-    }
-
-    // for each collection: fetch owners & current holders
     if (data && data.collections?.length > 0) {
       for (const coll of data.collections) {
-        const collectionRef = await this.firebaseService.getCollectionRef({
+        if (!coll.contractAddress) {
+          return;
+        }
+
+        const collectionDocId = getCollectionDocId({
           chainId: ChainId.Mainnet,
-          address: coll.contractAddress ?? ''
+          collectionAddress: coll.contractAddress
         });
+        const trendingCollectionDocRef = byPeriodCollectionRef.doc(collectionDocId);
+
+        // fetch prices for the period
+        const prices = await this.fetchPricesForStatsPeriod(coll.contractAddress, queryPeriod);
+
+        // fetch sales for the period
+        const sales = await this.fetchSalesForStatsPeriod(coll.contractAddress, queryPeriod);
+
+        const dataToStore: CollectionPeriodStatsContent = {
+          chainId: ChainId.Mainnet,
+          contractAddress: coll.contractAddress,
+          period: queryPeriod,
+          salesVolume: sales?.salesVolume,
+          numSales: sales.numSales,
+          minPrice: prices.minPrice,
+          maxPrice: prices.maxPrice,
+          avgPrice: prices.avgPrice,
+          updatedAt: Date.now()
+        };
+
+        if (queryBy === 'by_sales_volume') {
+          // more accurate sales volume
+          if (coll.salesVolume) {
+            dataToStore.salesVolume = parseFloat(`${coll.salesVolume}`);
+          }
+          this.fsBatchHandler.add(trendingCollectionDocRef, dataToStore, { merge: true });
+        } else if (queryBy === 'by_avg_price') {
+          // more accurate avg price
+          if (coll.avgPrice) {
+            dataToStore.avgPrice = parseFloat(`${coll.avgPrice}`);
+          }
+          this.fsBatchHandler.add(trendingCollectionDocRef, dataToStore, { merge: true });
+        } else {
+          console.error('Unknown queryBy param');
+        }
+
+        // for each collection: fetch owner count & total supply
+        // todo: could fetch from firestore instead of calling api
         const owners = await this.mnemonicService.getNumOwners(`${coll.contractAddress}`);
         const ownerCount = owners?.dataPoints[0]?.count;
         this.fsBatchHandler.add(
-          collectionRef,
+          trendingCollectionDocRef,
           {
-            stats: {
-              daily: {
-                ownerCount: parseInt(ownerCount ?? '0')
-              }
-            }
+            ownerCount: parseInt(ownerCount ?? '0')
           },
           { merge: true }
         );
-        // console.log('owners', owners?.dataPoints[0]?.count)
+
         const tokens = await this.mnemonicService.getNumTokens(`${coll.contractAddress}`);
         const tokenCount =
           parseInt(tokens?.dataPoints[0]?.totalMinted ?? '0') - parseInt(tokens?.dataPoints[0]?.totalBurned ?? '0');
         this.fsBatchHandler.add(
-          collectionRef,
+          trendingCollectionDocRef,
           {
-            stats: {
-              daily: {
-                tokenCount
-              }
-            }
+            tokenCount
           },
           { merge: true }
         );
       }
-      await this.fsBatchHandler.flush().catch((err) => console.log('error saving mnemonic collection tokens', err));
     }
+    this.fsBatchHandler.flush().catch((err) => console.error('error saving mnemonic collection tokens', err));
     return data;
+  }
+
+  async fetchPricesForStatsPeriod(
+    collectionAddress: string,
+    period: StatsPeriod
+  ): Promise<MnemonicPricesForStatsPeriod> {
+    const resp = await this.mnemonicService.getPricesByContract(collectionAddress, period);
+    const dataPoints = resp?.dataPoints ?? [];
+    let maxPrice = 0,
+      minPrice = Number.MAX_VALUE,
+      avgPrice = 0,
+      totalPrice = 0,
+      numItems = 0;
+
+    for (const dataPoint of dataPoints) {
+      if (dataPoint.max && dataPoint.min && dataPoint.avg) {
+        const max = parseFloat(dataPoint.max);
+        const min = parseFloat(dataPoint.min);
+        const avg = parseFloat(dataPoint.avg);
+        if (max > maxPrice) {
+          maxPrice = max;
+        }
+        if (min < minPrice) {
+          minPrice = min;
+        }
+        totalPrice += avg;
+        numItems++;
+      }
+    }
+
+    // check in case there is no data
+    if (minPrice == Number.MAX_VALUE) {
+      minPrice = 0;
+    }
+
+    if (numItems > 0) {
+      avgPrice = totalPrice / numItems;
+    }
+
+    return {
+      maxPrice,
+      minPrice,
+      avgPrice
+    };
+  }
+
+  async fetchSalesForStatsPeriod(
+    collectionAddress: string,
+    period: StatsPeriod
+  ): Promise<MnemonicVolumesForStatsPeriod> {
+    const resp = await this.mnemonicService.getSalesVolumeByContract(collectionAddress, period);
+    const dataPoints = resp?.dataPoints ?? [];
+    let numSales = 0,
+      salesVolume = 0;
+
+    for (const dataPoint of dataPoints) {
+      if (dataPoint.count && dataPoint.volume) {
+        const count = parseFloat(dataPoint.count);
+        const volume = parseFloat(dataPoint.volume);
+        numSales += count;
+        salesVolume += volume;
+      }
+    }
+
+    return {
+      numSales,
+      salesVolume
+    };
   }
 
   async getCollectionHistoricalStats(
@@ -308,7 +368,7 @@ export class StatsService {
       this.socialsGroup,
       options.period,
       options.date,
-      true
+      false
     );
 
     if (stats && socialStats) {
@@ -367,30 +427,120 @@ export class StatsService {
 
     const name = collectionData?.metadata?.name ?? 'Unknown';
     const profileImage = collectionData?.metadata?.profileImage ?? '';
-    const numOwners = collectionData?.numOwners ?? NaN;
-    const numNfts = collectionData?.numNfts ?? NaN;
     const hasBlueCheck = collectionData?.hasBlueCheck ?? false;
     const slug = collectionData?.slug ?? '';
+
+    let numSales = mergeStat(primary?.numSales, secondary?.numSales);
+    let numNfts = mergeStat(primary?.numNfts, secondary?.numNfts);
+    let numOwners = mergeStat(primary?.numOwners, secondary?.numOwners);
+    let floorPrice = mergeStat(primary?.floorPrice, secondary?.floorPrice);
+    let volume = mergeStat(primary?.volume, secondary?.volume);
+
+    if (Number.isNaN(floorPrice) || Number.isNaN(numOwners) || Number.isNaN(volume) || Number.isNaN(numNfts)) {
+      // fetch from reservoir
+      try {
+        console.log('mergeStats: Fetching stats from reservoir');
+        const data = await this.reservoirService.getSingleCollectionInfo(collection.chainId, collection.address);
+        if (data) {
+          const collection = data.collection;
+          if (collection?.tokenCount) {
+            numNfts = parseInt(String(collection.tokenCount));
+          }
+          if (collection?.ownerCount) {
+            numOwners = parseInt(String(collection.ownerCount));
+          }
+          if (collection?.floorAsk) {
+            floorPrice = collection.floorAsk.price;
+          }
+          if (collection?.volume) {
+            volume = collection?.volume?.allTime ?? NaN;
+          }
+        }
+      } catch (err) {
+        console.error('mergeStats: Error getting floor price from reservoir', err);
+      }
+    }
+
+    if (Number.isNaN(numNfts) || Number.isNaN(numOwners) || Number.isNaN(volume)) {
+      // fetch from zora
+      try {
+        console.log('mergeStats: Fetching stats from zora');
+        const stats = await this.zoraService.getAggregatedCollectionStats(collection.chainId, collection.address, 10);
+        if (stats) {
+          const data: Partial<CollectionStats> = {};
+
+          if (stats.aggregateStat?.salesVolume?.totalCount) {
+            numSales = stats.aggregateStat?.salesVolume?.totalCount;
+            data.numSales = numSales;
+          }
+          if (stats.aggregateStat?.nftCount) {
+            numNfts = stats.aggregateStat.nftCount;
+            data.numNfts = numNfts;
+          }
+          if (stats.aggregateStat.ownerCount) {
+            numOwners = stats.aggregateStat.ownerCount;
+            data.numOwners = numOwners;
+          }
+          if (stats.aggregateStat?.salesVolume.chainTokenPrice) {
+            volume = stats.aggregateStat.salesVolume.chainTokenPrice;
+            data.volume = volume;
+          }
+          if (stats.aggregateStat?.salesVolume.usdcPrice) {
+            data.volumeUSDC = stats.aggregateStat.salesVolume.usdcPrice;
+          }
+          if (stats.aggregateStat?.ownersByCount?.nodes && stats.aggregateStat?.ownersByCount?.nodes.length >= 10) {
+            data.topOwnersByOwnedNftsCount = stats.aggregateStat.ownersByCount.nodes;
+          }
+
+          if (data) {
+            data.updatedAt = Date.now();
+          }
+
+          // save to firestore async
+          const collectionDocId = getCollectionDocId({
+            chainId: collection.chainId,
+            collectionAddress: collection.address
+          });
+          const allTimeCollStatsDocRef = this.firebaseService.firestore
+            .collection(firestoreConstants.COLLECTIONS_COLL)
+            .doc(collectionDocId)
+            .collection(firestoreConstants.COLLECTION_STATS_COLL)
+            .doc('all');
+
+          // save
+          allTimeCollStatsDocRef.set(data, { merge: true }).catch((err) => {
+            console.error('mergeStats: Error saving zora stats', err);
+          });
+        }
+      } catch (err) {
+        console.error('mergeStats: Error getting zora data', err);
+      }
+    }
+
+    if (Number.isNaN(numNfts) || Number.isNaN(numOwners)) {
+      numNfts = collectionData?.numNfts ?? NaN;
+      numOwners = collectionData?.numOwners ?? NaN;
+    }
 
     const mergedStats: CollectionStatsDto = {
       name,
       slug,
       profileImage,
-      numOwners,
-      numNfts,
       hasBlueCheck,
+      numSales,
+      numNfts,
+      numOwners,
+      floorPrice,
+      volume,
       chainId: collection.chainId,
       collectionAddress: collection.address,
-      floorPrice: mergeStat(primary?.floorPrice, secondary?.floorPrice),
       prevFloorPrice: mergeStat(primary?.prevFloorPrice, secondary?.prevFloorPrice),
       floorPricePercentChange: mergeStat(primary?.floorPricePercentChange, secondary?.floorPricePercentChange),
       ceilPrice: mergeStat(primary?.ceilPrice, secondary?.ceilPrice),
       prevCeilPrice: mergeStat(primary?.prevCeilPrice, secondary?.prevCeilPrice),
       ceilPricePercentChange: mergeStat(primary?.ceilPricePercentChange, secondary?.ceilPricePercentChange),
-      volume: mergeStat(primary?.volume, secondary?.volume),
       prevVolume: mergeStat(primary?.prevVolume, secondary?.prevVolume),
       volumePercentChange: mergeStat(primary?.volumePercentChange, secondary?.volumePercentChange),
-      numSales: mergeStat(primary?.numSales, secondary?.numSales),
       prevNumSales: mergeStat(primary?.prevNumSales, secondary?.prevNumSales),
       numSalesPercentChange: mergeStat(primary?.numSalesPercentChange, secondary?.numSalesPercentChange),
       avgPrice: mergeStat(primary?.avgPrice, secondary?.avgPrice),
@@ -500,17 +650,19 @@ export class StatsService {
         .orderBy('timestamp', 'desc')
         .limit(1);
       const snapshot = await statsQuery.get();
-      const stats = snapshot.docs?.[0]?.data();
+      const stats: Partial<Stats> | Partial<SocialsStats> =
+        (snapshot.docs?.[0]?.data() as Stats | SocialsStats | undefined) ?? {};
       const requestedTimestamp = getStatsDocInfo(timestamp, period).timestamp;
       const currentTimestamp = getStatsDocInfo(Date.now(), period).timestamp;
       const isMostRecent = requestedTimestamp === currentTimestamp;
+      const stale = !!stats?.updatedAt || (stats?.updatedAt && stats?.updatedAt < Date.now() - ONE_HOUR);
       /**
        * Attempt to update socials stats if they're out of date
        */
-      if (isMostRecent && statsCollectionName === this.socialsGroup) {
+      if (isMostRecent && stale && statsCollectionName === this.socialsGroup) {
         if (this.areStatsStale(stats)) {
           if (waitForUpdate) {
-            const updated = await this.updateSocialsStats(collectionRef);
+            const updated = await this.updateSocialsStats(collectionRef, period);
             if (updated) {
               return updated;
             }
@@ -519,8 +671,7 @@ export class StatsService {
           }
         }
       }
-
-      return stats as Stats | SocialsStats | undefined;
+      return stats;
     } catch (err: any) {
       console.error(err);
       return undefined;
@@ -547,7 +698,8 @@ export class StatsService {
   }
 
   private async updateSocialsStats(
-    collectionRef: FirebaseFirestore.DocumentReference
+    collectionRef: FirebaseFirestore.DocumentReference,
+    period: StatsPeriod = StatsPeriod.All
   ): Promise<SocialsStats | undefined> {
     const collectionData = await collectionRef.get();
     const collection = collectionData?.data() ?? ({} as Partial<Collection>);
@@ -630,13 +782,14 @@ export class StatsService {
       updatedAt: Date.now()
     };
 
-    const allTimeStats = await this.saveSocialsStats(collectionRef, socialsStats);
+    const allTimeStats = await this.saveSocialsStats(collectionRef, socialsStats, period);
     return allTimeStats;
   }
 
   private async saveSocialsStats(
     collectionRef: FirebaseFirestore.DocumentReference,
-    preAggregatedStats: PreAggregatedSocialsStats
+    preAggregatedStats: PreAggregatedSocialsStats,
+    periodToReturn: StatsPeriod = StatsPeriod.All
   ): Promise<SocialsStats> {
     const socialsCollection = collectionRef.collection(firestoreConstants.COLLECTION_SOCIALS_STATS_COLL);
     const aggregatedStats = await this.aggregateSocialsStats(collectionRef, preAggregatedStats);
@@ -649,7 +802,7 @@ export class StatsService {
       console.error('error saving social stats', err);
     });
 
-    return aggregatedStats.all;
+    return aggregatedStats[periodToReturn];
   }
 
   private async aggregateSocialsStats(
@@ -668,7 +821,11 @@ export class StatsService {
       StatsPeriod.All
     ];
 
-    const mostRecentStats = statsPeriods.map((period) => this.getMostRecentSocialsStats(collectionRef, period));
+    const mostRecentStats = statsPeriods.map((period) => {
+      const currentTime = getStatsDocInfo(Date.now(), period).timestamp;
+      const afterDate = getStatsDocInfo(currentTime - 1000, period).timestamp;
+      return this.getMostRecentSocialsStats(collectionRef, period, afterDate);
+    });
     const mostRecentStatsResponse = await Promise.all(mostRecentStats);
 
     const socialsStatsMap: Record<StatsPeriod, SocialsStats | undefined> = {} as any;
@@ -680,16 +837,24 @@ export class StatsService {
     for (const [period, prevStats] of Object.entries(socialsStatsMap) as [StatsPeriod, SocialsStats | undefined][]) {
       const info = getStatsDocInfo(currentStats.updatedAt, period);
       const prevDiscordFollowers = prevStats?.discordFollowers || currentStats.discordFollowers;
-      const discordFollowersPercentChange = calcPercentChange(prevDiscordFollowers, currentStats.discordFollowers);
+      const currentDiscordFollowers = (currentStats.discordFollowers || prevStats?.discordFollowers) ?? NaN;
+      const currentDiscordPresence = (currentStats.discordPresence || prevStats?.discordPresence) ?? NaN;
+      const currentTwitterFollowers = (currentStats.twitterFollowers || prevStats?.twitterFollowers) ?? NaN;
+      const currentTwitterFollowing = (currentStats.twitterFollowing || prevStats?.twitterFollowing) ?? NaN;
+      const discordFollowersPercentChange = calcPercentChange(prevDiscordFollowers, currentDiscordFollowers);
       const prevDiscordPresence = prevStats?.discordPresence || currentStats.discordPresence;
-      const discordPresencePercentChange = calcPercentChange(prevDiscordPresence, currentStats.discordPresence);
+      const discordPresencePercentChange = calcPercentChange(prevDiscordPresence, currentDiscordPresence);
       const prevTwitterFollowers = prevStats?.twitterFollowers || currentStats.twitterFollowers;
-      const twitterFollowersPercentChange = calcPercentChange(prevTwitterFollowers, currentStats.twitterFollowers);
+      const twitterFollowersPercentChange = calcPercentChange(prevTwitterFollowers, currentTwitterFollowers);
       const prevTwitterFollowing = prevStats?.twitterFollowing || currentStats.twitterFollowing;
-      const twitterFollowingPercentChange = calcPercentChange(prevTwitterFollowing, currentStats.twitterFollowing);
+      const twitterFollowingPercentChange = calcPercentChange(prevTwitterFollowing, currentTwitterFollowing);
 
       const stats: SocialsStats = {
         ...currentStats,
+        discordFollowers: currentDiscordFollowers,
+        discordPresence: currentDiscordPresence,
+        twitterFollowers: currentTwitterFollowers,
+        twitterFollowing: currentTwitterFollowing,
         timestamp: info.timestamp,
         prevDiscordFollowers,
         discordFollowersPercentChange,
@@ -715,12 +880,20 @@ export class StatsService {
     return timestamp !== current;
   }
 
-  private async getMostRecentSocialsStats(collectionRef: FirebaseFirestore.DocumentReference, period: StatsPeriod) {
-    const socialStatsQuery = collectionRef
+  private async getMostRecentSocialsStats(
+    collectionRef: FirebaseFirestore.DocumentReference,
+    period: StatsPeriod,
+    beforeDate?: number
+  ) {
+    let socialStatsQuery = collectionRef
       .collection(firestoreConstants.COLLECTION_SOCIALS_STATS_COLL)
-      .where('period', '==', period)
-      .orderBy('timestamp', 'desc')
-      .limit(1);
+      .where('period', '==', period);
+
+    if (beforeDate) {
+      socialStatsQuery = socialStatsQuery.where('timestamp', '<', beforeDate);
+    }
+
+    socialStatsQuery = socialStatsQuery.orderBy('timestamp', 'desc').limit(1);
     const snapshot = await socialStatsQuery.get();
     const stats = snapshot.docs?.[0]?.data();
     return stats as SocialsStats | undefined;

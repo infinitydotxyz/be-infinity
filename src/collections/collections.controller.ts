@@ -1,5 +1,5 @@
-import { ChainId, Collection } from '@infinityxyz/lib/types/core';
-import { CollectionStatsArrayResponseDto } from '@infinityxyz/lib/types/dto/stats';
+import { ChainId, Collection, CollectionPeriodStatsContent, StatsPeriod } from '@infinityxyz/lib/types/core';
+import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
 import {
   Controller,
   Get,
@@ -7,6 +7,7 @@ import {
   NotFoundException,
   Param,
   ParseIntPipe,
+  Put,
   Query,
   UseInterceptors
 } from '@nestjs/common';
@@ -18,18 +19,11 @@ import {
   ApiOperation
 } from '@nestjs/swagger';
 
-import { ApiTag } from 'common/api-tags';
-import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param-collection-id.decorator';
-import { ErrorResponseDto } from 'common/dto/error-response.dto';
-import { PaginatedQuery } from 'common/dto/paginated-query.dto';
-import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
-import { CacheControlInterceptor } from 'common/interceptors/cache-control.interceptor';
-import { ResponseDescription } from 'common/response-description';
-import { StatsService } from 'stats/stats.service';
-import { TwitterService } from 'twitter/twitter.service';
-import { VotesService } from 'votes/votes.service';
-import { ParseCollectionIdPipe, ParsedCollectionId } from './collection-id.pipe';
-import CollectionsService from './collections.service';
+// todo: move to lib
+type CollectStatsQuery = {
+  list: string;
+};
+
 import {
   CollectionDto,
   CollectionHistoricalStatsQueryDto,
@@ -37,17 +31,35 @@ import {
   CollectionSearchQueryDto,
   CollectionStatsByPeriodDto,
   CollectionStatsQueryDto,
+  CollectionTrendingStatsQueryDto,
+  RankingQueryDto,
   TopOwnersArrayResponseDto,
   TopOwnersQueryDto,
-  RankingQueryDto,
   PaginatedCollectionsDto
 } from '@infinityxyz/lib/types/dto/collections';
+import { NftActivityArrayDto, NftActivityFiltersDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { TweetArrayDto } from '@infinityxyz/lib/types/dto/twitter';
 import { CollectionVotesDto } from '@infinityxyz/lib/types/dto/votes';
-import { CollectionStatsArrayDto } from './dto/collection-stats-array.dto';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
+import { ApiTag } from 'common/api-tags';
+import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param-collection-id.decorator';
+import { ErrorResponseDto } from 'common/dto/error-response.dto';
+import { PaginatedQuery } from 'common/dto/paginated-query.dto';
+import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
+import { CacheControlInterceptor } from 'common/interceptors/cache-control.interceptor';
+import { ResponseDescription } from 'common/response-description';
+import { FirebaseService } from 'firebase/firebase.service';
+import { mnemonicByParam } from 'mnemonic/mnemonic.service';
+import { StatsService } from 'stats/stats.service';
+import { TwitterService } from 'twitter/twitter.service';
 import { EXCLUDED_COLLECTIONS } from 'utils/stats';
+import { VotesService } from 'votes/votes.service';
+import { UPDATE_SOCIAL_STATS_INTERVAL } from '../constants';
 import { AttributesService } from './attributes/attributes.service';
-import { NftActivityArrayDto, NftActivityFiltersDto } from '@infinityxyz/lib/types/dto/collections/nfts';
+import { ParseCollectionIdPipe, ParsedCollectionId } from './collection-id.pipe';
+import CollectionsService from './collections.service';
+import { enqueueCollection } from './collections.utils';
+import { CollectionStatsArrayDto } from './dto/collection-stats-array.dto';
 import { NftsService } from './nfts/nfts.service';
 import { CuratedCollectionsQuery } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
 import { CurationService } from './curation/curation.service';
@@ -66,7 +78,8 @@ export class CollectionsController {
     private twitterService: TwitterService,
     private attributesService: AttributesService,
     private nftsService: NftsService,
-    private curationService: CurationService
+    private curationService: CurationService,
+    private firebaseService: FirebaseService
   ) {}
 
   @Get('search')
@@ -82,6 +95,36 @@ export class CollectionsController {
     return res;
   }
 
+  @Get('update-social-stats')
+  @ApiOperation({
+    description: 'A background task to collect Stats for a list of collection',
+    tags: [ApiTag.Collection]
+  })
+  @ApiOkResponse({ description: ResponseDescription.Success, type: String })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  collectStats(@Query() query: CollectStatsQuery) {
+    const idsArr = query.list.split(',');
+
+    const trigger = async (address: string) => {
+      const collectionRef = (await this.firebaseService.getCollectionRef({
+        chainId: ChainId.Mainnet,
+        address
+      })) as FirebaseFirestore.DocumentReference<Collection>;
+      this.statsService.getCurrentSocialsStats(collectionRef).catch((err) => console.error(err));
+    };
+    let triggerTimer = 0;
+    for (const address of idsArr) {
+      if (address) {
+        setTimeout(() => {
+          trigger(address).catch((err) => console.error(err));
+        }, triggerTimer);
+        triggerTimer += UPDATE_SOCIAL_STATS_INTERVAL; // todo: use the right timer
+      }
+    }
+    return query;
+  }
+
   @Get('rankings')
   @ApiOperation({
     description: 'Get stats for collections ordered by a given field',
@@ -93,7 +136,36 @@ export class CollectionsController {
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 3 }))
   async getStats(@Query() query: RankingQueryDto): Promise<CollectionStatsArrayResponseDto> {
     const res = await this.statsService.getCollectionRankings(query);
+
+    const { getCollection } = await this.collectionsService.getCollectionsByAddress(
+      res.data.map((st) => ({ address: st.collectionAddress, chainId: st.chainId }))
+    );
+
+    // get collection details and set them to the result:
+    const finalData: any[] = [];
+    for (const st of res.data) {
+      const collectionData = getCollection({ address: st.collectionAddress ?? '', chainId: st.chainId });
+      if (collectionData) {
+        st.collectionData = collectionData as Collection;
+        finalData.push(st);
+      }
+    }
+    res.data = finalData;
+
     return res;
+  }
+
+  @Put('update-trending-stats')
+  @ApiOperation({
+    tags: [ApiTag.Collection, ApiTag.Stats],
+    description: 'Update stats for top collections in firebase. Called by an external job'
+  })
+  @ApiOkResponse({ description: ResponseDescription.Success })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  async storeTrendingCollectionStats(@Query() query: CollectionTrendingStatsQueryDto) {
+    await this.statsService.fetchAndStoreTopCollectionsFromMnemonic(query);
   }
 
   @Get('stats')
@@ -105,49 +177,62 @@ export class CollectionsController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 60 * 2 })) // 2 hour cache is fine
-  async getCollectionStats(@Query() query: CollectionHistoricalStatsQueryDto): Promise<CollectionStatsArrayDto> {
-    const result = await this.statsService.getMnemonicCollectionStats(query);
-    // console.log('result', result?.collections)
-    const collections = result?.collections ?? [];
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 10 })) // 10 mins
+  async getCollectionStats(@Query() query: CollectionTrendingStatsQueryDto): Promise<CollectionStatsArrayDto> {
+    const queryBy = query.queryBy as mnemonicByParam;
+    const queryPeriod = query.period;
+    const trendingCollectionsRef = this.firebaseService.firestore.collection(
+      firestoreConstants.TRENDING_COLLECTIONS_COLL
+    );
+    let byParamDoc = '';
+    let orderBy = '';
+    if (queryBy === 'by_sales_volume') {
+      byParamDoc = firestoreConstants.TRENDING_BY_VOLUME_DOC;
+      orderBy = 'salesVolume';
+    } else if (queryBy === 'by_avg_price') {
+      byParamDoc = firestoreConstants.TRENDING_BY_AVG_PRICE_DOC;
+      orderBy = 'avgPrice';
+    }
+    const byParamCollectionRef = trendingCollectionsRef.doc(byParamDoc);
+    const byPeriodCollectionRef = byParamCollectionRef.collection(queryPeriod);
+
+    const result = await byPeriodCollectionRef.orderBy(orderBy, 'desc').get(); // default descending
+    const collections = result?.docs ?? [];
 
     const { getCollection } = await this.collectionsService.getCollectionsByAddress(
-      collections.map((coll) => ({ address: coll?.contractAddress ?? '', chainId: ChainId.Mainnet }))
+      collections.map((coll) => ({ address: coll?.data().contractAddress ?? '', chainId: coll?.data().chainId }))
     );
 
     const results: Collection[] = [];
     for (const coll of collections) {
+      const statsData = coll.data() as CollectionPeriodStatsContent;
+
       const collectionData = getCollection({
-        address: coll.contractAddress ?? '',
-        chainId: ChainId.Mainnet
+        address: statsData.contractAddress ?? '',
+        chainId: statsData.chainId ?? ChainId.Mainnet
       }) as Collection;
 
-      if (collectionData?.metadata?.name) {
+      if (collectionData?.metadata?.name && collectionData.metadata?.profileImage) {
         if (!EXCLUDED_COLLECTIONS.includes(collectionData?.address)) {
-          const newData: Collection = {
+          const resultItem: Collection = {
             ...collectionData,
             attributes: {} // don't include attributess
           };
 
-          newData.stats = newData.stats ? newData.stats : {};
-          newData.stats.daily = newData.stats.daily ? newData.stats.daily : {};
-          if (coll?.salesVolume) {
-            newData.stats.daily.salesVolume = coll?.salesVolume;
-          }
-          if (coll?.avgPrice) {
-            newData.stats.daily.avgPrice = coll?.avgPrice;
-          }
-          results.push(newData);
+          resultItem.stats = {
+            [queryPeriod]: {
+              ownerCount: statsData.ownerCount,
+              tokenCount: statsData.tokenCount,
+              salesVolume: statsData.salesVolume,
+              avgPrice: statsData.avgPrice,
+              minPrice: statsData.minPrice,
+              maxPrice: statsData.maxPrice,
+              numSales: statsData.numSales,
+              period: queryPeriod
+            }
+          };
+          results.push(resultItem);
         }
-      } else {
-        // can't get collection name (not indexed?)
-        // console.log('--- collectionData?.metadata?.name', collectionData?.metadata?.name, coll.contractAddress)
-        // disabling this until further discussion:
-        // enqueueCollection({ chainId: ChainId.Mainnet, address: coll.contractAddress ?? '' }).then((res) => {
-        //   console.log('enqueueCollection response:', res)
-        // }).catch((e) => {
-        //   console.log('enqueueCollection error', e)
-        // })
       }
     }
 
@@ -265,8 +350,29 @@ export class CollectionsController {
     @Query() query: CollectionHistoricalStatsQueryDto
   ): Promise<CollectionStatsArrayResponseDto> {
     const response = await this.statsService.getCollectionHistoricalStats(collection, query);
-
     return response;
+  }
+
+  @Get('/:id/stats/current')
+  @ApiOperation({
+    tags: [ApiTag.Collection, ApiTag.Stats],
+    description: 'Get current hourly stats for a collection'
+  })
+  @ApiParamCollectionId()
+  @ApiOkResponse({ description: ResponseDescription.Success, type: CollectionStatsByPeriodDto })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  @UseInterceptors(new CacheControlInterceptor())
+  async getCurrentStats(
+    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
+  ): Promise<CollectionStatsDto> {
+    const res = await this.statsService.getCollectionStats(collection, {
+      period: StatsPeriod.Hourly,
+      date: Date.now()
+    });
+
+    return res;
   }
 
   @Get('/:id/stats/:date')
@@ -286,7 +392,6 @@ export class CollectionsController {
     @Query() query: CollectionStatsQueryDto
   ): Promise<CollectionStatsByPeriodDto> {
     const response = await this.statsService.getCollectionStatsByPeriodAndDate(collection, date, query.periods);
-
     return response;
   }
 
@@ -330,7 +435,7 @@ export class CollectionsController {
 
   @Get(':id/activity')
   @ApiOperation({
-    description: 'Get activity for a specific nft',
+    description: 'Get activity for a collection or a specific nft activity',
     tags: [ApiTag.Nft]
   })
   @ApiParamCollectionId('id')
@@ -349,5 +454,28 @@ export class CollectionsController {
       cursor,
       hasNextPage
     };
+  }
+
+  @Get(':id/enqueue')
+  @ApiOperation({
+    description: 'Enqueue collection for indexing',
+    tags: [ApiTag.Collection]
+  })
+  @ApiParamCollectionId('id')
+  @ApiOkResponse({ description: ResponseDescription.Success, type: String })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 2 }))
+  enqueueCollectionForIndexing(
+    @ParamCollectionId('id', ParseCollectionIdPipe) { address, chainId }: ParsedCollectionId
+  ) {
+    enqueueCollection({ chainId, address })
+      .then((res) => {
+        console.log('enqueueCollection response:', res);
+      })
+      .catch((e) => {
+        console.error('enqueueCollection error', e);
+      });
+    return '';
   }
 }

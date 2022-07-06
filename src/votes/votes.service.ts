@@ -1,4 +1,4 @@
-import { CreationFlow, OrderDirection } from '@infinityxyz/lib/types/core';
+import { OrderDirection } from '@infinityxyz/lib/types/core';
 import { UserDto } from '@infinityxyz/lib/types/dto/user';
 import { DEFAULT_ITEMS_PER_PAGE, firestoreConstants } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
@@ -50,7 +50,7 @@ export class VotesService {
     });
 
     const collection = (await collectionRef.get()).data();
-    if (collection?.state?.create?.step !== CreationFlow.Complete) {
+    if (!collection?.state?.create?.step) {
       throw new InvalidCollectionError(
         vote.collectionAddress,
         vote.collectionChainId,
