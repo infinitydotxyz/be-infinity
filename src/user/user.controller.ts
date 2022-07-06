@@ -167,7 +167,9 @@ export class UserController {
         instagramUsername: '',
         facebookUsername: '',
         createdAt: NaN,
-        updatedAt: NaN
+        updatedAt: NaN,
+        totalCurated: NaN,
+        totalCuratedVotes: NaN,
       };
     }
 

@@ -98,12 +98,12 @@ export class BackfillService {
   ): Promise<(NftDto | undefined)[]> {
     try {
       // try opensea
-      const openseaNfts = await this.fetchNftsFromOpenseaAndSaveInFirestore(nfts);
+      const openseaNfts = await this.fetchNftsFromOpensea(nfts);
       if (openseaNfts && openseaNfts.length > 0) {
         return openseaNfts;
       }
     } catch (err) {
-      console.error(err);
+      console.error('backfillNfts from opensea errored', err);
     }
 
     try {
@@ -113,7 +113,7 @@ export class BackfillService {
         return alchemyNfts;
       }
     } catch (err) {
-      console.error(err);
+      console.error('backfillNfts from Alchemy errored', err);
     }
 
     return [];
@@ -361,7 +361,7 @@ export class BackfillService {
       });
   }
 
-  private async fetchNftsFromOpenseaAndSaveInFirestore(
+  private async fetchNftsFromOpensea(
     nfts: { address: string; chainId: ChainId; tokenId: string }[]
   ): Promise<(NftDto | undefined)[]> {
     const nftDtos: NftDto[] = [];
@@ -369,6 +369,7 @@ export class BackfillService {
       const osAsset = await this.openseaService.getNFT(nft.address, nft.tokenId);
       const nftDto = this.transformOpenseaNftToNftDto(nft.chainId, nft.address, osAsset);
       nftDtos.push(nftDto);
+
       // async save to firebase
       const collectionDocId = getCollectionDocId({ chainId: nft.chainId, collectionAddress: nft.address });
       const tokenDocRef = this.collectionsRef
@@ -401,8 +402,28 @@ export class BackfillService {
       if (alchemyAsset) {
         const nftDto = this.transformAlchemyNftToNftDto(nft.chainId, nft.address, nft.tokenId, alchemyAsset);
         nftDtos.push(nftDto);
+
+        // async save to firebase
+        const collectionDocId = getCollectionDocId({ chainId: nft.chainId, collectionAddress: nft.address });
+        const tokenDocRef = this.collectionsRef
+          .doc(collectionDocId)
+          .collection(firestoreConstants.COLLECTION_NFTS_COLL)
+          .doc(nft.tokenId);
+        this.fsBatchHandler.add(tokenDocRef, nftDto, { merge: true });
       }
     }
+
+    // flush
+    this.fsBatchHandler
+      .flush()
+      .then(() => {
+        console.log('Backfilled missing nfts from opensea');
+      })
+      .catch((err) => {
+        console.error('Error backfilling nfts from opensea', err);
+      });
+
+    // return
     return nftDtos;
   }
 
@@ -411,7 +432,7 @@ export class BackfillService {
       collectionAddress: collectionAddress,
       chainId: chainId,
       tokenId: nft.token_id,
-      image: { url: nft.image_url, originalUrl: nft.image_original_url, updatedAt: NaN },
+      image: { url: nft.image_url, originalUrl: nft.image_original_url, updatedAt: Date.now() },
       slug: getSearchFriendlyString(nft.name),
       minter: '',
       mintTxHash: '',
@@ -432,7 +453,7 @@ export class BackfillService {
       },
       numTraitTypes: nft.traits.length,
       tokenUri: nft.token_metadata,
-      updatedAt: NaN,
+      updatedAt: Date.now(),
       rarityRank: NaN,
       rarityScore: NaN,
       tokenStandard: nft.asset_contract.schema_name as TokenStandard
@@ -451,7 +472,13 @@ export class BackfillService {
       display_type: attr.display_type
     }));
 
-    return {
+    const cachedImage = alchemyNft?.media?.[0]?.gateway;
+    let alchemyCachedImage = '';
+    if (cachedImage && cachedImage.includes(ALCHEMY_CACHED_IMAGE_HOST)) {
+      alchemyCachedImage = cachedImage;
+    }
+
+    const data: NftDto = {
       collectionAddress,
       chainId: chainId,
       slug: getSearchFriendlyString(alchemyNft?.title ?? ''),
@@ -473,17 +500,23 @@ export class BackfillService {
         background_color: ''
       },
       numTraitTypes: attrs?.length ?? 0,
-      updatedAt: NaN,
+      updatedAt: Date.now(),
       tokenUri: alchemyNft?.tokenUri.gateway ?? alchemyNft.tokenUri?.raw ?? '',
       rarityRank: NaN,
       rarityScore: NaN,
       image: {
-        url: (alchemyNft?.media?.[0]?.gateway || alchemyNft?.metadata?.image) ?? '',
+        url: alchemyCachedImage,
         originalUrl: (alchemyNft?.media?.[0]?.raw || alchemyNft?.metadata?.image) ?? '',
-        updatedAt: NaN
+        updatedAt: Date.now()
       },
       tokenStandard: alchemyNft.id.tokenMetadata.tokenType
     };
+
+    if (alchemyCachedImage) {
+      data.alchemyCachedImage = alchemyCachedImage;
+    }
+
+    return data;
   }
 
   private transformMnemonicNftToNftDto(
