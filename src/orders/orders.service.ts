@@ -118,7 +118,8 @@ export default class OrdersService {
             const emptyToken: OrderItemTokenMetadata = {
               tokenId: '',
               numTokens: 1, // default for both ERC721 and ERC1155
-              tokenImage: '',
+              tokenImage:
+                metadata?.[order.chainId as ChainId]?.[nft.collection]?.collection?.metadata?.profileImage ?? '',
               tokenName: '',
               tokenSlug: '',
               attributes: []
@@ -149,7 +150,8 @@ export default class OrdersService {
               const orderItemTokenMetadata: OrderItemTokenMetadata = {
                 tokenId: token.tokenId,
                 numTokens: token.numTokens, // default for both ERC721 and ERC1155
-                tokenImage: tokenData?.image?.url ?? '',
+                tokenImage:
+                  tokenData?.image?.url ?? tokenData?.alchemyCachedImage ?? tokenData?.image?.originalUrl ?? '',
                 tokenName: tokenData?.metadata?.name ?? '',
                 tokenSlug: tokenData?.slug ?? '',
                 attributes: (tokenData?.metadata as Erc721Metadata)?.attributes ?? [] // todo: ERC1155?
@@ -165,7 +167,7 @@ export default class OrdersService {
                 collection
               );
               // get doc id
-              const tokenId = token.tokenId.toString();
+              const tokenId = token.tokenId;
               const orderItemDocRef = orderItemsRef.doc(
                 getDocIdHash({ collectionAddress: nft.collection, tokenId, chainId: order.chainId })
               );
