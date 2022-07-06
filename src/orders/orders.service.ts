@@ -11,7 +11,7 @@ import {
   OrderDirection,
   Token
 } from '@infinityxyz/lib/types/core';
-import { FeedEventType, NftListingEvent, NftOfferEvent } from '@infinityxyz/lib/types/core/feed';
+import { EventType, NftListingEvent, NftOfferEvent } from '@infinityxyz/lib/types/core/feed';
 import {
   ChainNFTsDto,
   OrderItemsOrderBy,
@@ -581,13 +581,13 @@ export default class OrdersService {
       if (orderItem.isSellOrder) {
         event = {
           ...feedEvent,
-          type: FeedEventType.NftListing,
+          type: EventType.NftListing,
           isSellOrder: true
         };
       } else {
         event = {
           ...feedEvent,
-          type: FeedEventType.NftOffer,
+          type: EventType.NftOffer,
           isSellOrder: false
         };
       }

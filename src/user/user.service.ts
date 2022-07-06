@@ -1,13 +1,8 @@
-import { Collection, CuratedCollection } from '@infinityxyz/lib/types/core';
+import { ChainId, Collection, CuratedCollection, OrderDirection } from '@infinityxyz/lib/types/core';
 import { AlchemyNftToInfinityNft } from '../common/transformers/alchemy-nft-to-infinity-nft.pipe';
-import { CreationFlow, OrderDirection } from '@infinityxyz/lib/types/core';
-/* eslint-disable no-empty */
-import { ChainId } from '@infinityxyz/lib/types/core';
-import { NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
 import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
 import { Injectable, Optional } from '@nestjs/common';
 import { AlchemyService } from 'alchemy/alchemy.service';
-import { ActivityType, activityTypeToEventType } from 'collections/nfts/nft-activity.types';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { InvalidUserError } from 'common/errors/invalid-user.error';
 import { BigNumber } from 'ethers/lib/ethers';
@@ -36,6 +31,7 @@ import { BackfillService } from 'backfill/backfill.service';
 import { CuratedCollectionsQuery } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
 import { CuratedCollectionsDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 import { NftsService } from '../collections/nfts/nfts.service';
+import { NftSaleEvent, NftListingEvent, NftOfferEvent, EventType } from '@infinityxyz/lib/types/core/feed';
 
 export type UserActivity = NftSaleEvent | NftListingEvent | NftOfferEvent;
 
@@ -409,9 +405,7 @@ export class UserService {
   }
 
   async getActivity(user: ParsedUserId, query: UserActivityQueryDto): Promise<UserActivityArrayDto> {
-    const activityTypes = query.events && query?.events.length > 0 ? query.events : Object.values(ActivityType);
-
-    const events = activityTypes.map((item) => activityTypeToEventType[item]);
+    const events = query.events && query?.events.length > 0 ? query.events : Object.values(EventType);
 
     let userEventsQuery = this.firebaseService.firestore
       .collection(firestoreConstants.FEED_COLL)
