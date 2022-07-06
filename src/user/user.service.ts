@@ -282,7 +282,7 @@ export class UserService {
       let nfts = response?.ownedNfts ?? [];
 
       // backfill alchemy cached images in firestore
-      this.backfillService.backfillAlchemyCachedImages(nfts, chainId, user.userAddress);
+      this.backfillService.backfillAlchemyCachedImagesForUserNfts(nfts, chainId, user.userAddress);
 
       if (startAtToken) {
         const indexToStartAt = nfts.findIndex(
