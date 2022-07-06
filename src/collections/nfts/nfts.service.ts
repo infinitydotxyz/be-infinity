@@ -33,27 +33,27 @@ export class NftsService {
   ) {}
 
   async getNft(nftQuery: NftQueryDto): Promise<NftDto | undefined> {
-    const collection = await this.collectionsService.getCollectionByAddress(nftQuery, {
-      limitToCompleteCollections: false
-    });
-    if (collection) {
-      const nfts = await this.getNfts([
-        { address: collection.address, chainId: collection.chainId as ChainId, tokenId: nftQuery.tokenId }
-      ]);
-      const nft = nfts?.[0];
-      if (nft && !nft.owner) {
-        const owner = await this.ethereumService.getErc721Owner({
-          address: nftQuery.address,
-          tokenId: nftQuery.tokenId,
-          chainId: nftQuery.chainId
-        });
-        if (owner) {
-          nft.owner = owner;
-          this.updateOwnershipInFirestore(nft);
-        }
+    // const collection = await this.collectionsService.getCollectionByAddress(nftQuery, {
+    //   limitToCompleteCollections: false
+    // });
+    // if (collection) {
+    const nfts = await this.getNfts([
+      { address: nftQuery.address, chainId: nftQuery.chainId, tokenId: nftQuery.tokenId }
+    ]);
+    const nft = nfts?.[0];
+    if (nft && !nft.owner) {
+      const owner = await this.ethereumService.getErc721Owner({
+        address: nftQuery.address,
+        tokenId: nftQuery.tokenId,
+        chainId: nftQuery.chainId
+      });
+      if (owner) {
+        nft.owner = owner;
+        this.updateOwnershipInFirestore(nft);
       }
-      return nft;
     }
+    return nft;
+    // }
   }
 
   updateOwnershipInFirestore(nft: NftDto): void {
@@ -114,17 +114,27 @@ export class NftsService {
 
     const snapshots = await this.firebaseService.firestore.getAll(...refs);
     const complete = snapshots.map((item) => item.exists).every((item) => item === true);
+    // backfill if the item doesn't exist
     if (!complete) {
       return this.backfillService.backfillNfts(nfts);
     }
 
-    const nftDtos = snapshots.map((snapshot, index) => {
-      const nft = snapshot.data() as NftDto | undefined;
-      if (nft) {
-        nft.collectionAddress = nfts[index].address;
+    const nftDtos = [];
+
+    for (const snapshot of snapshots) {
+      let nft = snapshot.data() as NftDto | undefined;
+
+      // backfill if the item exists but image is empty
+      if (nft && (!nft.image?.url || !nft.metadata.attributes)) {
+        const data = await this.backfillService.backfillNfts([
+          { chainId: nft.chainId, address: nft.collectionAddress ?? '', tokenId: nft.tokenId }
+        ]);
+        nft = data[0];
       }
-      return nft;
-    });
+
+      nftDtos.push(nft);
+    }
+
     return nftDtos;
   }
 
