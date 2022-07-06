@@ -504,7 +504,7 @@ export class UserController {
   @ApiOkResponse({ description: ResponseDescription.Success, type: CuratedCollectionsDto })
   @ApiParamUserId('userId')
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 5 }))
+  // @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 5 }))
   getCurated(@ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId, @Query() query: CuratedCollectionsQuery) {
     return this.userService.getAllCurated(user, query);
   }
@@ -518,7 +518,7 @@ export class UserController {
   @ApiParamUserId('userId')
   @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 5 }))
+  // @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 5 }))
   async getCurationQuota(@ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId): Promise<CurationQuotaDto> {
     return {
       availableVotes: await this.curationService.getAvailableVotes(user)

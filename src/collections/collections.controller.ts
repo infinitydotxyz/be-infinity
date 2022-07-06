@@ -180,7 +180,7 @@ export class CollectionsController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 5 }))
+  // @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 5 }))
   async getCurated(
     @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId
