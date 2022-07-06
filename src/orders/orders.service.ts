@@ -78,7 +78,7 @@ export default class OrdersService {
   }
 
   private updateOrderCounters(order: SignedOBOrderDto) {
-    if (order.isSellOrder) {
+    if (order.signedOrder.isSellOrder) {
       this.numSellOrderItems.incrementBy(order.numItems);
       this.openSellInterest.incrementBy(order.startPriceEth);
     } else {
