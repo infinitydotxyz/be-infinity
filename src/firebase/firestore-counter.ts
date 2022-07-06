@@ -1,4 +1,5 @@
 import * as uuid from 'uuid';
+import { FirebaseService } from './firebase.service';
 
 export class FirestoreDistributedCounter {
   
@@ -8,10 +9,12 @@ export class FirestoreDistributedCounter {
   /**
    * Constructs a sharded counter object that references to a field
    * in a document that is a counter.
+   * @param firebaseService The FirebaseService instance.
    * @param doc A reference to a document with a counter field.
    * @param field A path to a counter field in the above document.
    */
   constructor(
+    private firebaseService: FirebaseService,
     private doc: FirebaseFirestore.DocumentReference,
     private field: string
   ) {
@@ -19,7 +22,7 @@ export class FirestoreDistributedCounter {
   }
 
   public incrementBy(val: number) {
-    const increment: any = FirebaseFirestore.FieldValue.increment(val);
+    const increment: any = this.firebaseService.firestoreNamespace.FieldValue.increment(val);
     const update: { [key: string]: any } = this.field
       .split('.')
       .reverse()

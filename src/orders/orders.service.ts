@@ -58,11 +58,27 @@ export default class OrdersService {
       .collection(firestoreConstants.ORDERS_COLL)
       .doc(firestoreConstants.COUNTER_DOC);
     // num items
-    this.numBuyOrderItems = new FirestoreDistributedCounter(ordersCounterDocRef, firestoreConstants.NUM_BUY_ORDER_ITEMS_FIELD);
-    this.numSellOrderItems = new FirestoreDistributedCounter(ordersCounterDocRef, firestoreConstants.NUM_SELL_ORDER_ITEMS_FIELD);
+    this.numBuyOrderItems = new FirestoreDistributedCounter(
+      this.firebaseService,
+      ordersCounterDocRef,
+      firestoreConstants.NUM_BUY_ORDER_ITEMS_FIELD
+    );
+    this.numSellOrderItems = new FirestoreDistributedCounter(
+      this.firebaseService,
+      ordersCounterDocRef,
+      firestoreConstants.NUM_SELL_ORDER_ITEMS_FIELD
+    );
     // start prices
-    this.openBuyInterest = new FirestoreDistributedCounter(ordersCounterDocRef, firestoreConstants.OPEN_BUY_INTEREST_FIELD);
-    this.openSellInterest = new FirestoreDistributedCounter(ordersCounterDocRef, firestoreConstants.OPEN_SELL_INTEREST_FIELD);
+    this.openBuyInterest = new FirestoreDistributedCounter(
+      this.firebaseService,
+      ordersCounterDocRef,
+      firestoreConstants.OPEN_BUY_INTEREST_FIELD
+    );
+    this.openSellInterest = new FirestoreDistributedCounter(
+      this.firebaseService,
+      ordersCounterDocRef,
+      firestoreConstants.OPEN_SELL_INTEREST_FIELD
+    );
   }
 
   private updateOrderCounters(order: SignedOBOrderDto) {
@@ -92,7 +108,11 @@ export default class OrdersService {
         fsBatchHandler.add(docRef, dataToStore, { merge: true });
 
         // update counters
-        this.updateOrderCounters(order);
+        try {
+          this.updateOrderCounters(order);
+        } catch (err) {
+          console.error('Error updating order counters on post order', err);
+        }
 
         // get order items
         const orderItemsRef = docRef.collection(firestoreConstants.ORDER_ITEMS_SUB_COLL);
