@@ -1,6 +1,6 @@
 /* eslint-disable no-empty */
 import { ChainId, OrderDirection } from '@infinityxyz/lib/types/core';
-import { NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
+import { EventType, NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
 import { RankingQueryDto } from '@infinityxyz/lib/types/dto/collections';
 import { NftArrayDto, NftDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import {
@@ -20,7 +20,6 @@ import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
 import { Injectable, Optional } from '@nestjs/common';
 import { AlchemyService } from 'alchemy/alchemy.service';
 import { BackfillService } from 'backfill/backfill.service';
-import { ActivityType, activityTypeToEventType } from 'collections/nfts/nft-activity.types';
 import { BadQueryError } from 'common/errors/bad-query.error';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { InvalidUserError } from 'common/errors/invalid-user.error';
@@ -366,9 +365,7 @@ export class UserService {
   }
 
   async getActivity(user: ParsedUserId, query: UserActivityQueryDto): Promise<UserActivityArrayDto> {
-    const activityTypes = query.events && query?.events.length > 0 ? query.events : Object.values(ActivityType);
-
-    const events = activityTypes.map((item) => activityTypeToEventType[item]);
+    const events = query.events && query?.events.length > 0 ? query.events : Object.values(EventType);
 
     let userEventsQuery = this.firebaseService.firestore
       .collection(firestoreConstants.FEED_COLL)
