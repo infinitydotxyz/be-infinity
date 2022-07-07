@@ -1,4 +1,4 @@
-import { BaseCollection, ChainId, CollectionMetadata, CreationFlow, TokenStandard } from '@infinityxyz/lib/types/core';
+import { BaseCollection, ChainId, CollectionMetadata, TokenStandard } from '@infinityxyz/lib/types/core';
 import { getSearchFriendlyString, sleep } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { ethers } from 'ethers';
@@ -63,33 +63,12 @@ export class OpenseaService {
   }
 
   /**
-   * formatName takes a name from opensea and adds spaces before capital letters
-   * (e.g. BoredApeYachtClub => Bored Ape Yacht Club)
-   */
-  formatName(name: string): string {
-    let formattedName = '';
-
-    for (const char of name) {
-      const isUpperCase = /^[A-Z]$/.test(char);
-      const prevCharIsSpace = formattedName[formattedName.length - 1] === ' ';
-      const isFirstChar = formattedName.length === 0;
-
-      if (isUpperCase && !prevCharIsSpace && !isFirstChar) {
-        formattedName = `${formattedName} ${char}`;
-      } else {
-        formattedName = `${formattedName}${char}`;
-      }
-    }
-    return formattedName;
-  }
-
-  /**
    * it seems like rate limits are not an issue on this endpoint - at this time
    * (it handles ~500 requests at once using the default api key and none get rate limited)
    *
    * etherscan has a similar endpoint that seems decent if this begins to fail
    */
-  async getCollectionWithAddress(chainId: ChainId, address: string): Promise<BaseCollection> {
+  async getCollectionWithAddress(chainId: ChainId, address: string): Promise<Partial<BaseCollection>> {
     if (!ethers.utils.isAddress(address)) {
       throw new Error('Invalid address');
     }
@@ -102,16 +81,14 @@ export class OpenseaService {
     const openseaContract = response.body as OpenseaContract;
     const collection = openseaContract.collection;
 
-    /**
-     * not sure why opensea formats names like (BoredApeYachtClub)
-     */
-    const name = this.formatName(openseaContract.name ?? '');
+    const name = collection.name || openseaContract.name;
+    const hasBlueCheck = collection.safelist_request_status === this.OS_VERIFIED_STATUS;
 
     const dataInInfinityFormat: CollectionMetadata = {
       name,
-      description: openseaContract.description ?? '',
-      symbol: openseaContract.symbol ?? '',
-      profileImage: collection.image_url ?? '',
+      description: collection.description || openseaContract.description || '',
+      symbol: openseaContract.symbol || collection.primary_asset_contracts?.[0]?.symbol || '',
+      profileImage: collection.image_url || collection.featured_image_url || openseaContract.image_url || '',
       bannerImage: collection.banner_image_url ?? '',
       displayType: collection.display_data?.card_display_style,
       links: {
@@ -133,8 +110,6 @@ export class OpenseaService {
       }
     };
 
-    const hasBlueCheck = collection.safelist_request_status === this.OS_VERIFIED_STATUS;
-
     return {
       chainId,
       address,
@@ -147,22 +122,11 @@ export class OpenseaService {
       numOwners: NaN,
       numOwnersUpdatedAt: NaN,
       metadata: dataInInfinityFormat,
-      slug: getSearchFriendlyString(collection.name ?? ''),
+      slug: getSearchFriendlyString(name),
       numNfts: NaN,
       attributes: {},
       numTraitTypes: NaN,
       indexInitiator: '',
-      state: {
-        version: NaN,
-        create: {
-          step: CreationFlow.CollectionMetadata,
-          updatedAt: Date.now(),
-          progress: 0
-        },
-        export: {
-          done: false
-        }
-      }
     };
   }
 

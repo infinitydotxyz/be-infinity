@@ -28,6 +28,7 @@ import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { InvalidTokenError } from 'common/errors/invalid-token-error';
 import { EthereumService } from 'ethereum/ethereum.service';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
+import { FirestoreDistributedCounter } from 'firebase/firestore-counter';
 import { FirebaseService } from '../firebase/firebase.service';
 import { CursorService } from '../pagination/cursor.service';
 import { ParsedUserId } from '../user/parser/parsed-user-id';
@@ -39,6 +40,11 @@ import { getOrderIdFromSignedOrder } from './orders.utils';
 
 @Injectable()
 export default class OrdersService {
+  private numBuyOrderItems: FirestoreDistributedCounter;
+  private numSellOrderItems: FirestoreDistributedCounter;
+  private openBuyInterest: FirestoreDistributedCounter;
+  private openSellInterest: FirestoreDistributedCounter;
+
   constructor(
     private firebaseService: FirebaseService,
     private userService: UserService,
@@ -47,7 +53,39 @@ export default class OrdersService {
     private userParser: UserParserService,
     private ethereumService: EthereumService,
     private cursorService: CursorService
-  ) {}
+  ) {
+    const ordersCounterDocRef = this.firebaseService.firestore
+      .collection(firestoreConstants.ORDERS_COLL)
+      .doc(firestoreConstants.COUNTER_DOC);
+    // num items
+    this.numBuyOrderItems = new FirestoreDistributedCounter(
+      ordersCounterDocRef,
+      firestoreConstants.NUM_BUY_ORDER_ITEMS_FIELD
+    );
+    this.numSellOrderItems = new FirestoreDistributedCounter(
+      ordersCounterDocRef,
+      firestoreConstants.NUM_SELL_ORDER_ITEMS_FIELD
+    );
+    // start prices
+    this.openBuyInterest = new FirestoreDistributedCounter(
+      ordersCounterDocRef,
+      firestoreConstants.OPEN_BUY_INTEREST_FIELD
+    );
+    this.openSellInterest = new FirestoreDistributedCounter(
+      ordersCounterDocRef,
+      firestoreConstants.OPEN_SELL_INTEREST_FIELD
+    );
+  }
+
+  private updateOrderCounters(order: SignedOBOrderDto) {
+    if (order.signedOrder.isSellOrder) {
+      this.numSellOrderItems.incrementBy(order.numItems);
+      this.openSellInterest.incrementBy(order.startPriceEth);
+    } else {
+      this.numBuyOrderItems.incrementBy(order.numItems);
+      this.openBuyInterest.incrementBy(order.startPriceEth);
+    }
+  }
 
   public async createOrder(maker: ParsedUserId, orders: SignedOBOrderDto[]): Promise<void> {
     try {
@@ -65,6 +103,13 @@ export default class OrdersService {
         const docRef = ordersCollectionRef.doc(orderId);
         fsBatchHandler.add(docRef, dataToStore, { merge: true });
 
+        // update counters
+        try {
+          this.updateOrderCounters(order);
+        } catch (err) {
+          console.error('Error updating order counters on post order', err);
+        }
+
         // get order items
         const orderItemsRef = docRef.collection(firestoreConstants.ORDER_ITEMS_SUB_COLL);
         for (const nft of order.signedOrder.nfts) {
@@ -73,7 +118,8 @@ export default class OrdersService {
             const emptyToken: OrderItemTokenMetadata = {
               tokenId: '',
               numTokens: 1, // default for both ERC721 and ERC1155
-              tokenImage: '',
+              tokenImage:
+                metadata?.[order.chainId as ChainId]?.[nft.collection]?.collection?.metadata?.profileImage ?? '',
               tokenName: '',
               tokenSlug: '',
               attributes: []
@@ -104,7 +150,8 @@ export default class OrdersService {
               const orderItemTokenMetadata: OrderItemTokenMetadata = {
                 tokenId: token.tokenId,
                 numTokens: token.numTokens, // default for both ERC721 and ERC1155
-                tokenImage: tokenData?.image?.url ?? '',
+                tokenImage:
+                  tokenData?.image?.url ?? tokenData?.alchemyCachedImage ?? tokenData?.image?.originalUrl ?? '',
                 tokenName: tokenData?.metadata?.name ?? '',
                 tokenSlug: tokenData?.slug ?? '',
                 attributes: (tokenData?.metadata as Erc721Metadata)?.attributes ?? [] // todo: ERC1155?
@@ -120,7 +167,7 @@ export default class OrdersService {
                 collection
               );
               // get doc id
-              const tokenId = token.tokenId.toString();
+              const tokenId = token.tokenId;
               const orderItemDocRef = orderItemsRef.doc(
                 getDocIdHash({ collectionAddress: nft.collection, tokenId, chainId: order.chainId })
               );

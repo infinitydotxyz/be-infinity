@@ -19,6 +19,7 @@ import { Injectable } from '@nestjs/common';
 import { AlchemyService } from 'alchemy/alchemy.service';
 import { FirebaseService } from 'firebase/firebase.service';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
+import { GemService } from 'gem/gem.service';
 import { MnemonicService } from 'mnemonic/mnemonic.service';
 import { MnemonicTokenMetadata } from 'mnemonic/mnemonic.types';
 import { OpenseaService } from 'opensea/opensea.service';
@@ -36,19 +37,33 @@ export class BackfillService {
     private firebaseService: FirebaseService,
     private openseaService: OpenseaService,
     private mnemonicService: MnemonicService,
-    private alchemyService: AlchemyService
+    private alchemyService: AlchemyService,
+    private gemService: GemService
   ) {
     this.fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
     this.collectionsRef = this.firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL);
   }
 
-  public async backfillCollection(chainId: ChainId, collectionAddress: string): Promise<BaseCollection | undefined> {
+  public async backfillCollection(
+    chainId: ChainId,
+    collectionAddress: string
+  ): Promise<Partial<BaseCollection | undefined>> {
     console.log('backfilling collection', chainId, collectionAddress);
     try {
-      const baseCollection: BaseCollection = await this.openseaService.getCollectionWithAddress(
+      // try fetching from OS
+      let baseCollection: Partial<BaseCollection | undefined> = await this.openseaService.getCollectionWithAddress(
         chainId,
         collectionAddress
       );
+
+      // fetch from gem
+      if (!baseCollection) {
+        baseCollection = await this.gemService.getCollectionWithAddress(chainId, collectionAddress);
+      }
+
+      if (!baseCollection) {
+        return;
+      }
 
       const mintInfo = await this.mnemonicService.getContract(collectionAddress);
       if (mintInfo) {
@@ -75,6 +90,7 @@ export class BackfillService {
         const count = totalMinted - totalBurned;
         baseCollection.numNfts = count;
       }
+
       // write to firebase
       const collectionDocId = getCollectionDocId({ chainId, collectionAddress });
       this.collectionsRef
@@ -100,7 +116,6 @@ export class BackfillService {
       // try opensea
       const openseaNfts = await this.fetchNftsFromOpensea(nfts);
       if (openseaNfts && openseaNfts.length > 0) {
-
         // backfill alchemy cached image and attrs async
         this.backfillAlchemyCachedImagesAndAttributes(nfts).catch((err) => {
           console.error(err);
@@ -169,9 +184,18 @@ export class BackfillService {
       }
       const data = await this.openseaService.getGivenNFTsOfContract(collectionAddress, tokenIdsConcat);
       for (const datum of data.assets) {
+        const tokenId = datum.token_id;
+        let tokenIdNumeric = NaN;
+        try {
+          tokenIdNumeric = Number(tokenId);
+        } catch (err) {
+          console.error('Error parsing tokenId to number', err);
+        }
+
         const token: Partial<Erc721Token> = {
           updatedAt: Date.now(),
-          tokenId: datum.token_id,
+          tokenId,
+          tokenIdNumeric,
           slug: getSearchFriendlyString(datum.name),
           tokenStandard: TokenStandard.ERC721, // default
           metadata: {
@@ -196,7 +220,6 @@ export class BackfillService {
         }
 
         // update firestore if data is present
-        const tokenId = datum.token_id;
         if (!tokenId || !token.image?.url || !token.metadata?.attributes || token.numTraitTypes === 0) {
           continue;
         }
@@ -414,13 +437,21 @@ export class BackfillService {
       const nftDto = this.transformOpenseaNftToNftDto(nft.chainId, nft.address, osAsset);
       nftDtos.push(nftDto);
 
+      const tokenId = nftDto.tokenId;
+      let tokenIdNumeric = NaN;
+      try {
+        tokenIdNumeric = Number(tokenId);
+      } catch (err) {
+        console.error('Error parsing tokenId to number', err);
+      }
+
       // async save to firebase
       const collectionDocId = getCollectionDocId({ chainId: nft.chainId, collectionAddress: nft.address });
       const tokenDocRef = this.collectionsRef
         .doc(collectionDocId)
         .collection(firestoreConstants.COLLECTION_NFTS_COLL)
         .doc(nft.tokenId);
-      this.fsBatchHandler.add(tokenDocRef, nftDto, { merge: true });
+      this.fsBatchHandler.add(tokenDocRef, { ...nftDto, tokenIdNumeric }, { merge: true });
     }
 
     // flush
@@ -447,13 +478,21 @@ export class BackfillService {
         const nftDto = this.transformAlchemyNftToNftDto(nft.chainId, nft.address, nft.tokenId, alchemyAsset);
         nftDtos.push(nftDto);
 
+        const tokenId = nftDto.tokenId;
+        let tokenIdNumeric = NaN;
+        try {
+          tokenIdNumeric = Number(tokenId);
+        } catch (err) {
+          console.error('Error parsing tokenId to number', err);
+        }
+
         // async save to firebase
         const collectionDocId = getCollectionDocId({ chainId: nft.chainId, collectionAddress: nft.address });
         const tokenDocRef = this.collectionsRef
           .doc(collectionDocId)
           .collection(firestoreConstants.COLLECTION_NFTS_COLL)
           .doc(nft.tokenId);
-        this.fsBatchHandler.add(tokenDocRef, nftDto, { merge: true });
+        this.fsBatchHandler.add(tokenDocRef, { ...nftDto, tokenIdNumeric }, { merge: true });
       }
     }
 
@@ -597,7 +636,7 @@ export class BackfillService {
       updatedAt: NaN,
       rarityRank: NaN,
       rarityScore: NaN,
-      tokenStandard: TokenStandard.ERC721 // todo: adi get this from the mnemonic or add an unknown token standard
+      tokenStandard: TokenStandard.ERC721
     };
   }
 }
