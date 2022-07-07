@@ -184,9 +184,18 @@ export class BackfillService {
       }
       const data = await this.openseaService.getGivenNFTsOfContract(collectionAddress, tokenIdsConcat);
       for (const datum of data.assets) {
+        const tokenId = datum.token_id;
+        let tokenIdNumeric = NaN;
+        try {
+          tokenIdNumeric = Number(tokenId);
+        } catch (err) {
+          console.error('Error parsing tokenId to number', err);
+        }
+
         const token: Partial<Erc721Token> = {
           updatedAt: Date.now(),
-          tokenId: datum.token_id,
+          tokenId,
+          tokenIdNumeric,
           slug: getSearchFriendlyString(datum.name),
           tokenStandard: TokenStandard.ERC721, // default
           metadata: {
@@ -211,7 +220,6 @@ export class BackfillService {
         }
 
         // update firestore if data is present
-        const tokenId = datum.token_id;
         if (!tokenId || !token.image?.url || !token.metadata?.attributes || token.numTraitTypes === 0) {
           continue;
         }
@@ -429,13 +437,21 @@ export class BackfillService {
       const nftDto = this.transformOpenseaNftToNftDto(nft.chainId, nft.address, osAsset);
       nftDtos.push(nftDto);
 
+      const tokenId = nftDto.tokenId;
+      let tokenIdNumeric = NaN;
+      try {
+        tokenIdNumeric = Number(tokenId);
+      } catch (err) {
+        console.error('Error parsing tokenId to number', err);
+      }
+
       // async save to firebase
       const collectionDocId = getCollectionDocId({ chainId: nft.chainId, collectionAddress: nft.address });
       const tokenDocRef = this.collectionsRef
         .doc(collectionDocId)
         .collection(firestoreConstants.COLLECTION_NFTS_COLL)
         .doc(nft.tokenId);
-      this.fsBatchHandler.add(tokenDocRef, nftDto, { merge: true });
+      this.fsBatchHandler.add(tokenDocRef, { ...nftDto, tokenIdNumeric }, { merge: true });
     }
 
     // flush
@@ -462,13 +478,21 @@ export class BackfillService {
         const nftDto = this.transformAlchemyNftToNftDto(nft.chainId, nft.address, nft.tokenId, alchemyAsset);
         nftDtos.push(nftDto);
 
+        const tokenId = nftDto.tokenId;
+        let tokenIdNumeric = NaN;
+        try {
+          tokenIdNumeric = Number(tokenId);
+        } catch (err) {
+          console.error('Error parsing tokenId to number', err);
+        }
+
         // async save to firebase
         const collectionDocId = getCollectionDocId({ chainId: nft.chainId, collectionAddress: nft.address });
         const tokenDocRef = this.collectionsRef
           .doc(collectionDocId)
           .collection(firestoreConstants.COLLECTION_NFTS_COLL)
           .doc(nft.tokenId);
-        this.fsBatchHandler.add(tokenDocRef, nftDto, { merge: true });
+        this.fsBatchHandler.add(tokenDocRef, { ...nftDto, tokenIdNumeric }, { merge: true });
       }
     }
 
