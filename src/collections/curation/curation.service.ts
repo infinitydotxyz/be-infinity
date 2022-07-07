@@ -22,7 +22,7 @@ export class CurationService {
 
     const batch = this.firebaseService.firestore.batch();
 
-    // write to 'users' collection
+    // write to 'curators' sub-collection
     const curatorDocRef = collection.ref.collection(firestoreConstants.COLLECTION_CURATORS_COLL).doc(user.ref.id);
     const userData = { totalCuratedVotes: incrementVotes } as any;
     if (!(await curatorDocRef.get()).exists) {
