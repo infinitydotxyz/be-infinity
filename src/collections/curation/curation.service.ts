@@ -90,7 +90,7 @@ export class CurationService {
   }
 
   /**
-   * Returns information about a specific user's curated colelctions
+   * Returns information about a specific user's curated collections
    * such as the total amount of curated collections, total votes (on all collections).
    * @param user
    * @returns
