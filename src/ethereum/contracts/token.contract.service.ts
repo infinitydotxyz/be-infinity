@@ -1,19 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { ContractService } from 'ethereum/contract.service';
-import { BigNumber, Contract, utils } from 'ethers';
+import { BigNumber, utils } from 'ethers';
+import { ParsedUserId } from 'user/parser/parsed-user-id';
 
 @Injectable()
 export class TokenContractService {
-  private readonly contract: Contract;
+  constructor(private contractService: ContractService) {}
 
-  constructor(private contractService: ContractService, private configService: ConfigService) {
-    const chainId = this.configService.get<string>('contractChainId');
-    this.contract = contractService.getTokenContract(chainId!);
-  }
-
-  async getVotes(address: string): Promise<number> {
-    const balance: BigNumber = await this.contract.getVotes(address);
+  async getVotes(user: ParsedUserId): Promise<number> {
+    const contract = this.contractService.getTokenContract(user.userChainId);
+    const balance: BigNumber = await contract.getVotes(user.userAddress);
     const ether = utils.formatEther(balance);
     return +ether;
   }
