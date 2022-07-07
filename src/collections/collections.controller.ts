@@ -1,4 +1,10 @@
-import { ChainId, Collection, CollectionPeriodStatsContent, StatsPeriod } from '@infinityxyz/lib/types/core';
+import {
+  ChainId,
+  Collection,
+  CollectionPeriodStatsContent,
+  CuratedCollection,
+  StatsPeriod
+} from '@infinityxyz/lib/types/core';
 import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
 import {
   Controller,
@@ -253,6 +259,7 @@ export class CollectionsController {
   async getAllCurated(@Query() query: CuratedCollectionsQuery) {
     return this.collectionsService.getCurated(query);
   }
+
   @Get('/:id/curated/:userId')
   @UserAuth('userId')
   @ApiParamUserId('userId')
@@ -272,8 +279,7 @@ export class CollectionsController {
     const curated = await this.curationService.findUserCurated(user, collection);
 
     if (!curated) {
-      // TODO: maybe return empty object instead?
-      throw new NotFoundException('Curation details and estimations not found!');
+      return {};
     }
 
     return curated;
