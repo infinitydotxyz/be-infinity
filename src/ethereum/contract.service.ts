@@ -1,7 +1,7 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { GOERLI_INFINITY_TOKEN_ADDRESS } from '@infinityxyz/lib/utils';
+import { ETHEREUM_INFINITY_EXCHANGE_ADDRESS } from '@infinityxyz/lib/utils';
+import { ERC20ABI } from '@infinityxyz/lib/abi/erc20';
 import { Injectable } from '@nestjs/common';
-import { infinityTokenAbi } from 'abi/infinityContract';
 import { EthereumService } from './ethereum.service';
 
 @Injectable()
@@ -10,8 +10,8 @@ export class ContractService {
 
   getTokenContract(chainId: string | ChainId) {
     return this.ethereumService.getContract({
-      abi: infinityTokenAbi,
-      address: GOERLI_INFINITY_TOKEN_ADDRESS,
+      abi: ERC20ABI,
+      address: ETHEREUM_INFINITY_EXCHANGE_ADDRESS,
       chainId: chainId
     });
   }
