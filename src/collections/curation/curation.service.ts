@@ -3,13 +3,13 @@ import { UserProfileDto } from '@infinityxyz/lib/types/dto/user';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
-import { TokenContractService } from 'ethereum/contracts/token.contract.service';
+import { StakerContractService } from 'ethereum/contracts/staker.contract.service';
 import { FirebaseService } from 'firebase/firebase.service';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 
 @Injectable()
 export class CurationService {
-  constructor(private firebaseService: FirebaseService, private tokenContractService: TokenContractService) {}
+  constructor(private firebaseService: FirebaseService, private tokenContractService: StakerContractService) {}
 
   /**
    * Vote on a specific NFT collection.
@@ -53,7 +53,7 @@ export class CurationService {
    */
   async getAvailableVotes(user: ParsedUserId): Promise<number> {
     // available votes according to contract
-    const contractVotes = await this.tokenContractService.getVotes(user);
+    const contractVotes = await this.tokenContractService.getPower(user);
 
     // available votes according to record in database
     const { totalCuratedVotes: dbVotes } = await this.getUserCurationInfo(user);
