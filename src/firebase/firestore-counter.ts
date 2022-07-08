@@ -2,7 +2,6 @@ import * as uuid from 'uuid';
 import firebaseAdmin from 'firebase-admin';
 
 export class FirestoreDistributedCounter {
-  
   private shardsRef: FirebaseFirestore.CollectionReference<FirebaseFirestore.DocumentData>;
   private readonly SHARD_COLLECTION_ID = '_counter_shards_';
 
@@ -12,10 +11,7 @@ export class FirestoreDistributedCounter {
    * @param doc A reference to a document with a counter field.
    * @param field A path to a counter field in the above document.
    */
-  constructor(
-    private doc: FirebaseFirestore.DocumentReference,
-    private field: string
-  ) {
+  constructor(private doc: FirebaseFirestore.DocumentReference, private field: string) {
     this.shardsRef = this.doc.collection(this.SHARD_COLLECTION_ID);
   }
 

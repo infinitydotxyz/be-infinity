@@ -17,6 +17,7 @@ import {
   OrderItemsOrderBy,
   SignedOBOrderArrayDto,
   SignedOBOrderDto,
+  SignedOBOrderWithoutMetadataDto,
   UserOrderItemsQueryDto
 } from '@infinityxyz/lib/types/dto/orders';
 import { firestoreConstants, getInfinityLink, trimLowerCase } from '@infinityxyz/lib/utils';
@@ -77,7 +78,7 @@ export default class OrdersService {
     );
   }
 
-  private updateOrderCounters(order: SignedOBOrderDto) {
+  private updateOrderCounters(order: SignedOBOrderWithoutMetadataDto) {
     if (order.signedOrder.isSellOrder) {
       this.numSellOrderItems.incrementBy(order.numItems);
       this.openSellInterest.incrementBy(order.startPriceEth);
@@ -87,7 +88,7 @@ export default class OrdersService {
     }
   }
 
-  public async createOrder(maker: ParsedUserId, orders: SignedOBOrderDto[]): Promise<void> {
+  public async createOrder(maker: ParsedUserId, orders: SignedOBOrderWithoutMetadataDto[]): Promise<void> {
     try {
       const fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
       const ordersCollectionRef = this.firebaseService.firestore.collection(firestoreConstants.ORDERS_COLL);
@@ -298,7 +299,7 @@ export default class OrdersService {
     };
   }
 
-  private async getOrderMetadata(orders: SignedOBOrderDto[]): Promise<OrderMetadata> {
+  private async getOrderMetadata(orders: SignedOBOrderWithoutMetadataDto[]): Promise<OrderMetadata> {
     type CollectionAddress = string;
     type TokenId = string;
     const tokens: Map<ChainId, Map<CollectionAddress, Set<TokenId>>> = new Map();
@@ -504,7 +505,7 @@ export default class OrdersService {
   private getFirestoreOrderFromSignedOBOrder(
     makerAddress: string,
     makerUsername: string,
-    order: SignedOBOrderDto,
+    order: SignedOBOrderWithoutMetadataDto,
     orderId: string
   ): FirestoreOrder {
     try {
@@ -534,7 +535,7 @@ export default class OrdersService {
   }
 
   private async getFirestoreOrderItemFromSignedOBOrder(
-    order: SignedOBOrderDto,
+    order: SignedOBOrderWithoutMetadataDto,
     nft: ChainNFTsDto,
     token: OrderItemTokenMetadata,
     orderId: string,

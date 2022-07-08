@@ -126,7 +126,7 @@ export class OpenseaService {
       numNfts: NaN,
       attributes: {},
       numTraitTypes: NaN,
-      indexInitiator: '',
+      indexInitiator: ''
     };
   }
 

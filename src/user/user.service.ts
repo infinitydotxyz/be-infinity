@@ -229,7 +229,7 @@ export class UserService {
     query = query.orderBy(`${orderSnippetItem}.startPriceEth`, orderDirection);
     query = query.orderBy(`${orderSnippetItem}.startTimeMs`, OrderDirection.Descending); // to break ties
 
-    type Cursor = { startPriceEth?: number, startTimeMs?: number };
+    type Cursor = { startPriceEth?: number; startTimeMs?: number };
     const cursor = this.paginationService.decodeCursorToObject<Cursor>(nftsQuery.cursor);
     if (cursor.startPriceEth && cursor.startTimeMs) {
       query = query.startAfter(cursor.startPriceEth, cursor.startTimeMs);

@@ -169,7 +169,7 @@ export class UserController {
         createdAt: NaN,
         updatedAt: NaN,
         totalCurated: NaN,
-        totalCuratedVotes: NaN,
+        totalCuratedVotes: NaN
       };
     }
 

@@ -1,5 +1,5 @@
 import { OBOrder, OBOrderItem, OBTokenInfo } from '@infinityxyz/lib/types/core';
-import { SignedOBOrderDto } from '@infinityxyz/lib/types/dto/orders';
+import { SignedOBOrderDto, SignedOBOrderWithoutMetadataDto } from '@infinityxyz/lib/types/dto/orders';
 import { getExchangeAddress, NULL_ADDRESS, NULL_HASH, trimLowerCase } from '@infinityxyz/lib/utils';
 import { BytesLike } from 'ethers';
 import { solidityKeccak256, parseEther, defaultAbiCoder, keccak256 } from 'ethers/lib/utils';
@@ -23,13 +23,13 @@ export type OrderHashParams = Pick<
   | 'maxGasPriceWei'
 > & { nfts: OrderHashNftsParam[] };
 
-export function getOrderIdFromSignedOrder(order: SignedOBOrderDto, makerAddress: string) {
+export function getOrderIdFromSignedOrder(order: SignedOBOrderWithoutMetadataDto, makerAddress: string) {
   const params = getOrderHashParamsFromSignedOrder(order, makerAddress);
   const orderId = getOrderId(order.chainId, getExchangeAddress(order.chainId), params);
   return orderId;
 }
 
-function getOrderHashParamsFromSignedOrder(signedOrder: SignedOBOrderDto, makerAddress: string) {
+function getOrderHashParamsFromSignedOrder(signedOrder: SignedOBOrderWithoutMetadataDto, makerAddress: string) {
   const orderHashParams: OrderHashParams = {
     startPriceEth: signedOrder.startPriceEth,
     endPriceEth: signedOrder.endPriceEth,
