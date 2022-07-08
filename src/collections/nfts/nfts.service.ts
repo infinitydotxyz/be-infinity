@@ -128,7 +128,9 @@ export class NftsService {
         const data = await this.backfillService.backfillNfts([
           { chainId: nft.chainId, address: nft.collectionAddress ?? '', tokenId: nft.tokenId }
         ]);
-        nft = data[0];
+        if (data[0]) {
+          nft = data[0];
+        }
       }
 
       nftDtos.push(nft);

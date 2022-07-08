@@ -25,7 +25,6 @@ import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { InvalidUserError } from 'common/errors/invalid-user.error';
 import { BigNumber } from 'ethers/lib/ethers';
 import { FirebaseService } from 'firebase/firebase.service';
-import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
 import { CursorService } from 'pagination/cursor.service';
 import { StatsService } from 'stats/stats.service';
 import { NftsService } from '../collections/nfts/nfts.service';
@@ -37,7 +36,6 @@ export type UserActivity = NftSaleEvent | NftListingEvent | NftOfferEvent;
 @Injectable()
 export class UserService {
   private alchemyNftToInfinityNft: AlchemyNftToInfinityNft;
-  private fsBatchHandler: FirestoreBatchHandler;
   constructor(
     private firebaseService: FirebaseService,
     private alchemyService: AlchemyService,
@@ -46,8 +44,7 @@ export class UserService {
     private backfillService: BackfillService,
     @Optional() private statsService: StatsService
   ) {
-    this.fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
-    this.alchemyNftToInfinityNft = new AlchemyNftToInfinityNft(nftsService);
+    this.alchemyNftToInfinityNft = new AlchemyNftToInfinityNft(this.nftsService);
   }
 
   async getWatchlist(user: ParsedUserId, query: RankingQueryDto) {

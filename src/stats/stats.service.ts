@@ -15,7 +15,6 @@ import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { getCollectionDocId, getStatsDocInfo } from 'utils/stats';
 import { Injectable } from '@nestjs/common';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
-import { VotesService } from 'votes/votes.service';
 import { DiscordService } from '../discord/discord.service';
 import { FirebaseService } from '../firebase/firebase.service';
 import { TwitterService } from '../twitter/twitter.service';
@@ -54,7 +53,6 @@ export class StatsService {
     private discordService: DiscordService,
     private twitterService: TwitterService,
     private firebaseService: FirebaseService,
-    private votesService: VotesService,
     private mnemonicService: MnemonicService,
     private paginationService: CursorService,
     private zoraService: ZoraService,
@@ -379,6 +377,25 @@ export class StatsService {
     return new CollectionStatsDto();
   }
 
+  /**
+   * Get the current stats and update them if they are stale
+   */
+  async getCurrentSocialsStats(collectionRef: FirebaseFirestore.DocumentReference, waitForUpdate = false) {
+    const mostRecentSocialStats = await this.getMostRecentSocialsStats(collectionRef, StatsPeriod.All);
+    if (this.areStatsStale(mostRecentSocialStats)) {
+      if (waitForUpdate) {
+        const updated = await this.updateSocialsStats(collectionRef);
+        if (updated) {
+          return updated;
+        }
+      } else {
+        void this.updateSocialsStats(collectionRef);
+      }
+    }
+
+    return mostRecentSocialStats;
+  }
+
   private async getSecondaryStats(
     primaryStat: Stats | SocialsStats,
     secondaryStatsCollectionName: string,
@@ -415,15 +432,10 @@ export class StatsService {
 
     const ref = await this.firebaseService.getCollectionRef(collection);
 
-    const votesPromise = this.votesService.getCollectionVotes({
-      ...collection,
-      ref
-    });
     const collectionPromise = ref.get();
 
-    const [collectionResult, votesResult] = await Promise.allSettled([collectionPromise, votesPromise]);
+    const [collectionResult] = await Promise.allSettled([collectionPromise]);
     const collectionData = collectionResult.status === 'fulfilled' ? collectionResult.value.data() : {};
-    const votes = votesResult.status === 'fulfilled' ? votesResult.value : { votesFor: NaN, votesAgainst: NaN };
 
     const name = collectionData?.metadata?.name ?? 'Unknown';
     const profileImage = collectionData?.metadata?.profileImage ?? '';
@@ -578,14 +590,13 @@ export class StatsService {
       updatedAt: primary?.updatedAt ?? NaN,
       timestamp: primary?.timestamp ?? secondary?.timestamp ?? NaN,
       period: primary?.period ?? secondary?.period ?? StatsPeriod.All,
-      votesFor: votes?.votesFor ?? NaN,
-      votesAgainst: votes?.votesAgainst ?? NaN
+      collectionData: collectionData ?? {}
     };
 
     return mergedStats;
   }
 
-  async getPrimaryStats(queryOptions: RankingQueryDto, statsGroupName: string) {
+  private async getPrimaryStats(queryOptions: RankingQueryDto, statsGroupName: string) {
     const date = queryOptions.date;
     const { timestamp } = getStatsDocInfo(date, queryOptions.period);
     const collectionGroup = this.firebaseService.firestore.collectionGroup(statsGroupName);
@@ -635,7 +646,7 @@ export class StatsService {
     return { data: collectionStats, cursor, hasNextPage };
   }
 
-  async getCollectionStatsForPeriod(
+  private async getCollectionStatsForPeriod(
     collectionRef: FirebaseFirestore.DocumentReference,
     statsCollectionName: string,
     period: StatsPeriod,
@@ -676,25 +687,6 @@ export class StatsService {
       console.error(err);
       return undefined;
     }
-  }
-
-  /**
-   * Get the current stats and update them if they are stale
-   */
-  async getCurrentSocialsStats(collectionRef: FirebaseFirestore.DocumentReference, waitForUpdate = false) {
-    const mostRecentSocialStats = await this.getMostRecentSocialsStats(collectionRef, StatsPeriod.All);
-    if (this.areStatsStale(mostRecentSocialStats)) {
-      if (waitForUpdate) {
-        const updated = await this.updateSocialsStats(collectionRef);
-        if (updated) {
-          return updated;
-        }
-      } else {
-        void this.updateSocialsStats(collectionRef);
-      }
-    }
-
-    return mostRecentSocialStats;
   }
 
   private async updateSocialsStats(

@@ -1,5 +1,5 @@
 import { OBOrder, OBOrderItem, OBTokenInfo } from '@infinityxyz/lib/types/core';
-import { SignedOBOrderDto, SignedOBOrderWithoutMetadataDto } from '@infinityxyz/lib/types/dto/orders';
+import { SignedOBOrderWithoutMetadataDto } from '@infinityxyz/lib/types/dto/orders';
 import { getExchangeAddress, NULL_ADDRESS, NULL_HASH, trimLowerCase } from '@infinityxyz/lib/utils';
 import { BytesLike } from 'ethers';
 import { solidityKeccak256, parseEther, defaultAbiCoder, keccak256 } from 'ethers/lib/utils';

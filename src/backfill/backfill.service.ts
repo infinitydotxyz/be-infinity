@@ -169,12 +169,12 @@ export class BackfillService {
       }
     }
 
-    this.bacfillInvalidNftsFromOS(tokenIds, chainId, collectionAddress).catch((err) => {
+    this.backfillInvalidNftsFromOS(tokenIds, chainId, collectionAddress).catch((err) => {
       console.error('Error backfilling invalid nfts from OS for', collectionAddress, err);
     });
   }
 
-  private async bacfillInvalidNftsFromOS(allTokenIds: string[], chainId: string, collectionAddress: string) {
+  private async backfillInvalidNftsFromOS(allTokenIds: string[], chainId: string, collectionAddress: string) {
     const openseaLimit = 20;
     console.log('Backfilling', allTokenIds.length, 'invalid nfts from OS for', chainId, collectionAddress);
     const updateTokens = async (tokenIds: Partial<Token>[]) => {
