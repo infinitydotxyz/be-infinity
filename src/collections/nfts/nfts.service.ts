@@ -264,10 +264,11 @@ export class NftsService {
 
     const results = await activityQuery.get();
 
-    const data = results.docs.map((item) => item.data());
     const activities: FirebaseFirestore.DocumentData[] = [];
 
-    data.forEach((item) => {
+    results.docs.forEach((snap) => {
+      const item = snap.data();
+
       let activity: NftActivity | null;
       if (item.type !== EventType.NftSale && item.type !== EventType.NftListing && item.type !== EventType.NftOffer) {
         return null;
@@ -276,6 +277,7 @@ export class NftsService {
         case EventType.NftSale: {
           const sale: NftSaleEvent = item as any;
           activity = {
+            id: snap.id,
             address: sale.collectionAddress,
             tokenId: sale.tokenId,
             chainId: sale.chainId as ChainId,
@@ -295,6 +297,7 @@ export class NftsService {
         case EventType.NftListing: {
           const listing: NftListingEvent = item as any;
           activity = {
+            id: snap.id,
             address: listing.collectionAddress,
             tokenId: listing.tokenId,
             chainId: listing.chainId as ChainId,
@@ -315,6 +318,7 @@ export class NftsService {
         case EventType.NftOffer: {
           const offer: NftOfferEvent = item as any;
           activity = {
+            id: snap.id,
             address: offer.collectionAddress,
             tokenId: offer.tokenId,
             chainId: offer.chainId as ChainId,
@@ -341,7 +345,7 @@ export class NftsService {
       }
     });
 
-    const hasNextPage = data.length > filter.limit;
+    const hasNextPage = results.docs.length > filter.limit;
 
     if (hasNextPage) {
       activities.pop(); // Remove item used for pagination
