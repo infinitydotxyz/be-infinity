@@ -220,8 +220,9 @@ export class NftsService {
         }
         case NftsOrderBy.RarityRank:
         case NftsOrderBy.TokenId:
+        case NftsOrderBy.TokenIdNumeric:
           if (lastItem?.[key]) {
-            cursor[key] = lastItem[key];
+            cursor[key] = lastItem[key] ?? '';
           }
           break;
       }
