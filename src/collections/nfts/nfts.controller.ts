@@ -65,7 +65,7 @@ export class NftsController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 20 }))
+  // @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 20 })) // this causes stale '.owner' data after sending.
   async getNft(
     @ParamCollectionId('id', ParseCollectionIdPipe) { address, chainId }: ParsedCollectionId,
     @ParamTokenId('tokenId') tokenId: string
