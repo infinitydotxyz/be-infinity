@@ -36,11 +36,9 @@ export class NftsService {
     //   limitToCompleteCollections: false
     // });
     // if (collection) {
-    const nfts = await this.getNfts([
+    const [nft] = await this.getNfts([
       { address: nftQuery.address, chainId: nftQuery.chainId, tokenId: nftQuery.tokenId }
     ]);
-
-    const nft = nfts[0];
 
     if (nft && !nft.owner) {
       const owner = await this.ethereumService.getErc721Owner({
@@ -53,6 +51,7 @@ export class NftsService {
         this.updateOwnershipInFirestore(nft);
       }
     }
+
     return nft;
     // }
   }
@@ -158,7 +157,10 @@ export class NftsService {
     for (const backfilledNft of backfilledNfts) {
       const nftIndex = indexMap[backfilledIndex];
       if (backfilledNft) {
-        nftDtos[nftIndex] = backfilledNft;
+        nftDtos[nftIndex] = {
+          ...nftDtos[nftIndex],
+          ...backfilledNft
+        };
       }
       backfilledIndex += 1;
     }
