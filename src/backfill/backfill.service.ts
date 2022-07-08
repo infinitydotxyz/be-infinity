@@ -549,7 +549,7 @@ export class BackfillService {
     tokenId: string,
     alchemyNft: AlchemyNftWithMetadata
   ): NftDto {
-    const attrs = alchemyNft.metadata.attributes.map((attr) => ({
+    const attrs = alchemyNft.metadata.attributes?.map?.((attr) => ({
       trait_type: attr.trait_type,
       value: attr.value,
       display_type: attr.display_type
