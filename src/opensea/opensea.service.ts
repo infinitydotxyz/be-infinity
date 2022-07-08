@@ -232,6 +232,7 @@ export class OpenseaService {
             throw new Error(res.statusMessage);
 
           case 404:
+            attempt = maxAttempts;
             throw new Error('Not found');
 
           case 429:

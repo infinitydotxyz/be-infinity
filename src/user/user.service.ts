@@ -267,7 +267,8 @@ export class UserService {
     user: ParsedUserId,
     query: Pick<UserNftsQueryDto, 'collectionAddresses' | 'cursor' | 'limit' | 'chainId'>
   ): Promise<NftArrayDto> {
-    const chainId = query.chainId ?? ChainId.Mainnet;
+    const chainId = query.chainId || ChainId.Mainnet;
+    console.log(`ChainId: ${chainId}`);
     type Cursor = { pageKey?: string; startAtToken?: string };
     const cursor = this.paginationService.decodeCursorToObject<Cursor>(query.cursor);
     let totalOwned = NaN;
@@ -300,8 +301,9 @@ export class UserService {
       const nftsToTransform = nfts.map((item) => ({ alchemyNft: item, chainId }));
       const results = await this.alchemyNftToInfinityNft.transform(nftsToTransform);
       const validNfts = results.filter((item) => !!item) as unknown as NftDto[];
+      const hasNextPage = !!nextPageKey && validNfts.length > 0;
 
-      return { pageKey: nextPageKey, nfts: validNfts, hasNextPage: !!nextPageKey };
+      return { pageKey: nextPageKey, nfts: validNfts, hasNextPage };
     };
 
     const limit = query.limit + 1; // +1 to check if there is a next page

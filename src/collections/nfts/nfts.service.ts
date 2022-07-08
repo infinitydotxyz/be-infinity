@@ -118,25 +118,37 @@ export class NftsService {
       return this.backfillService.backfillNfts(nfts);
     }
 
+    const nftsMergedWithSnapshot = nfts.map((item, index) => {
+      const snapshot = snapshots[index];
+      const nft = snapshot.data() as NftDto;
+      return {
+        ...item,
+        ...nft
+      };
+    });
+
     const nftDtos = [];
+    const nftsToBackfill = [];
 
-    for (const snapshot of snapshots) {
-      let nft = snapshot.data() as NftDto | undefined;
-
+    for (const nft of nftsMergedWithSnapshot) {
       // backfill if the item exists but image is empty
       if (nft && (!nft.image?.url || !nft.metadata.attributes)) {
-        const data = await this.backfillService.backfillNfts([
-          { chainId: nft.chainId, address: nft.collectionAddress ?? '', tokenId: nft.tokenId }
-        ]);
-        if (data[0]) {
-          nft = data[0];
+        const address = nft.address || nft.collectionAddress;
+        if (nft.tokenId && address && nft.chainId) {
+          nftsToBackfill.push({
+            chainId: nft.chainId,
+            address,
+            tokenId: nft.tokenId
+          });
         }
+      } else {
+        nftDtos.push(nft);
       }
-
-      nftDtos.push(nft);
     }
 
-    return nftDtos;
+    const backfilledNfts = await this.backfillService.backfillNfts(nftsToBackfill);
+
+    return [...nftDtos, ...backfilledNfts];
   }
 
   async getCollectionNfts(collection: ParsedCollectionId, query: NftsQueryDto): Promise<NftArrayDto> {
