@@ -305,7 +305,9 @@ export class NftsService {
             paymentToken: sale.paymentToken,
             internalUrl: sale.internalUrl,
             externalUrl: sale.externalUrl,
-            timestamp: sale.timestamp
+            timestamp: sale.timestamp,
+            likes: sale.likes,
+            comments: sale.comments
           };
           break;
         }
@@ -325,7 +327,9 @@ export class NftsService {
             paymentToken: listing.paymentToken,
             internalUrl: listing.internalUrl,
             externalUrl: '',
-            timestamp: listing.timestamp
+            timestamp: listing.timestamp,
+            likes: listing.likes,
+            comments: listing.comments
           };
           break;
         }
@@ -346,7 +350,9 @@ export class NftsService {
             paymentToken: offer.paymentToken,
             internalUrl: offer.internalUrl,
             externalUrl: '',
-            timestamp: offer.timestamp
+            timestamp: offer.timestamp,
+            likes: offer.likes,
+            comments: offer.comments
           };
           break;
         }
