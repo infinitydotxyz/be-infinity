@@ -245,37 +245,42 @@ export default class OrdersService {
       firestoreQuery = firestoreQuery.where('tokenId', '==', reqQuery.tokenId);
     }
 
-    // ordering
-    let orderedBy = reqQuery.orderBy;
+    // ordering and pagination
+    type Cursor = Record<OrderItemsOrderBy, number>;
+    const cursor = this.cursorService.decodeCursorToObject<Cursor>(reqQuery.cursor);
     if (requiresOrderByPrice) {
       const orderDirection = reqQuery.orderByDirection ?? OrderDirection.Ascending;
       firestoreQuery = firestoreQuery.orderBy(OrderItemsOrderBy.Price, orderDirection);
-      orderedBy = OrderItemsOrderBy.Price;
+      firestoreQuery = firestoreQuery.orderBy(OrderItemsOrderBy.StartTime, OrderDirection.Descending); // to break ties
+      // orderedBy = OrderItemsOrderBy.Price;
+      const startAfterPrice = cursor[OrderItemsOrderBy.Price];
+      const startAfterTime = cursor[OrderItemsOrderBy.StartTime];
+      if (startAfterPrice && startAfterTime) {
+        firestoreQuery = firestoreQuery.startAfter(startAfterPrice, startAfterTime);
+      }
     } else if (reqQuery.orderBy) {
       firestoreQuery = firestoreQuery.orderBy(reqQuery.orderBy, reqQuery.orderByDirection);
-      orderedBy = reqQuery.orderBy;
+      const startAfterValue = cursor[reqQuery.orderBy];
+      if (startAfterValue) {
+        firestoreQuery = firestoreQuery.startAfter(startAfterValue);
+      }
     } else {
       // default order by startTimeMs desc
       firestoreQuery = firestoreQuery.orderBy(OrderItemsOrderBy.StartTime, OrderDirection.Descending);
-      orderedBy = OrderItemsOrderBy.StartTime;
+      const startAfterValue = cursor[OrderItemsOrderBy.StartTime];
+      if (startAfterValue) {
+        firestoreQuery = firestoreQuery.startAfter(startAfterValue);
+      }
     }
 
-    // pagination
-    type Cursor = Record<OrderItemsOrderBy, number>;
-    const cursor = this.cursorService.decodeCursorToObject<Cursor>(reqQuery.cursor);
-    const cursorField = cursor[orderedBy];
-    if (!Number.isNaN(cursorField) && cursorField != null) {
-      firestoreQuery = firestoreQuery.startAfter(cursorField);
-    }
     // limit
     firestoreQuery = firestoreQuery.limit(reqQuery.limit + 1); // +1 to check if there are more results
 
     // query firestore
     const data = await this.getOrders(firestoreQuery);
 
-    let hasNextPage = false;
-    if (data.length > reqQuery.limit) {
-      hasNextPage = true;
+    const hasNextPage = data.length > reqQuery.limit;
+    if (hasNextPage) {
       data.pop();
     }
 
