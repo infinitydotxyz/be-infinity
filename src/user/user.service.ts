@@ -227,11 +227,12 @@ export class UserService {
 
     const orderDirection = nftsQuery.orderDirection ?? OrderDirection.Descending;
     query = query.orderBy(`${orderSnippetItem}.startPriceEth`, orderDirection);
+    query = query.orderBy(`${orderSnippetItem}.startTimeMs`, OrderDirection.Descending); // to break ties
 
-    type Cursor = { startPriceEth?: number };
+    type Cursor = { startPriceEth?: number, startTimeMs?: number };
     const cursor = this.paginationService.decodeCursorToObject<Cursor>(nftsQuery.cursor);
-    if (cursor.startPriceEth != null) {
-      query = query.startAfter(cursor.startPriceEth);
+    if (cursor.startPriceEth && cursor.startTimeMs) {
+      query = query.startAfter(cursor.startPriceEth, cursor.startTimeMs);
     }
 
     const nftsSnapshot = await query.limit(nftsQuery.limit + 1).get();
@@ -249,7 +250,8 @@ export class UserService {
     const lastItem = nfts[nfts.length - 1];
     const orderField = nftsQuery.orderType === UserNftsOrderType.Listings ? 'listing' : 'offer';
     const price = lastItem?.ordersSnippet?.[orderField]?.orderItem?.startPriceEth;
-    const cursorObj: Cursor = { startPriceEth: price };
+    const time = lastItem?.ordersSnippet?.[orderField]?.orderItem?.startTimeMs;
+    const cursorObj: Cursor = { startPriceEth: price, startTimeMs: time };
     const updatedCursor = this.paginationService.encodeCursor(cursorObj);
 
     // fetch total owned
