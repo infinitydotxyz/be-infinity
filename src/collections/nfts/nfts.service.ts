@@ -197,7 +197,7 @@ export class NftsService {
     }
 
     nftsQuery = nftsQuery.limit(query.limit + 1); // +1 to check if there are more events
-    
+
     const results = await nftsQuery.get();
     const data = results.docs.map((item) => item.data() as NftDto);
     const hasNextPage = data.length > query.limit;
