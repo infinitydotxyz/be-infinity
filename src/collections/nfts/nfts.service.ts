@@ -36,14 +36,12 @@ export class NftsService {
     //   limitToCompleteCollections: false
     // });
     // if (collection) {
-    console.log(nftQuery);
     const nfts = await this.getNfts([
       { address: nftQuery.address, chainId: nftQuery.chainId, tokenId: nftQuery.tokenId }
     ]);
 
     const nft = nfts[0];
 
-    console.log(JSON.stringify(nft, null, 2));
     if (nft && !nft.owner) {
       const owner = await this.ethereumService.getErc721Owner({
         address: nftQuery.address,
