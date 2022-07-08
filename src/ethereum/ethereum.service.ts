@@ -1,6 +1,6 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { trimLowerCase } from '@infinityxyz/lib/utils/formatters';
-import { Injectable } from '@nestjs/common';
+import { ConsoleLogger, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config/dist/config.service';
 import { ERC721ABI } from '@infinityxyz/lib/abi/erc721';
 import { ethers } from 'ethers';
@@ -39,9 +39,14 @@ export class EthereumService {
   }
 
   async getErc721Owner(token: { address: string; tokenId: string; chainId: string }): Promise<string> {
-    const provider = this.getProvider(token.chainId as ChainId);
-    const contract = new ethers.Contract(token.address, ERC721ABI, provider);
-    const owner = trimLowerCase(await contract.ownerOf(token.tokenId));
-    return owner;
+    try {
+      const provider = this.getProvider(token.chainId as ChainId);
+      const contract = new ethers.Contract(token.address, ERC721ABI, provider);
+      const owner = trimLowerCase(await contract.ownerOf(token.tokenId));
+      return owner;
+    } catch (err) {
+      console.error(err);
+      return '';
+    }
   }
 }

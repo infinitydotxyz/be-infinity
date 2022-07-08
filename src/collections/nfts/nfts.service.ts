@@ -36,10 +36,14 @@ export class NftsService {
     //   limitToCompleteCollections: false
     // });
     // if (collection) {
+    console.log(nftQuery);
     const nfts = await this.getNfts([
       { address: nftQuery.address, chainId: nftQuery.chainId, tokenId: nftQuery.tokenId }
     ]);
-    const nft = nfts?.[0];
+
+    const nft = nfts[0];
+
+    console.log(JSON.stringify(nft, null, 2));
     if (nft && !nft.owner) {
       const owner = await this.ethereumService.getErc721Owner({
         address: nftQuery.address,
@@ -120,7 +124,7 @@ export class NftsService {
 
     const nftsMergedWithSnapshot = nfts.map((item, index) => {
       const snapshot = snapshots[index];
-      const nft = snapshot.data() as NftDto;
+      const nft = (snapshot.data() ?? {}) as NftDto;
       return {
         ...item,
         ...nft
@@ -130,7 +134,10 @@ export class NftsService {
     const nftDtos = [];
     const nftsToBackfill = [];
 
+    const indexMap: { [index: number]: number } = {};
+
     for (const nft of nftsMergedWithSnapshot) {
+      nftDtos.push(nft);
       // backfill if the item exists but image is empty
       if (nft && (!nft.image?.url || !nft.metadata.attributes)) {
         const address = nft.address || nft.collectionAddress;
@@ -140,15 +147,25 @@ export class NftsService {
             address,
             tokenId: nft.tokenId
           });
+          const nftsToBackfillIndex = nftsToBackfill.length - 1;
+          const nftDtosIndex = nftDtos.length - 1;
+          indexMap[nftsToBackfillIndex] = nftDtosIndex;
         }
-      } else {
-        nftDtos.push(nft);
       }
     }
 
     const backfilledNfts = await this.backfillService.backfillNfts(nftsToBackfill);
 
-    return [...nftDtos, ...backfilledNfts];
+    let backfilledIndex = 0;
+    for (const backfilledNft of backfilledNfts) {
+      const nftIndex = indexMap[backfilledIndex];
+      if (backfilledNft) {
+        nftDtos[nftIndex] = backfilledNft;
+      }
+      backfilledIndex += 1;
+    }
+
+    return nftDtos;
   }
 
   async getCollectionNfts(collection: ParsedCollectionId, query: NftsQueryDto): Promise<NftArrayDto> {
