@@ -236,6 +236,24 @@ export class CollectionsController {
     return this.collectionsService.getCurated(query);
   }
 
+  @Get('curated/:userId')
+  @UserAuth('userId')
+  @ApiOperation({
+    description:
+      'Fetch all curated collections. Each curated collection object that has been voted for by the current user will contain more info, like the amount of votes.',
+    tags: [ApiTag.Collection, ApiTag.Curation]
+  })
+  @ApiOkResponse({ type: PaginatedCollectionsDto })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  async getAllCuratedByUserId(
+    @Query() query: CuratedCollectionsQuery,
+    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId
+  ) {
+    return this.collectionsService.getCurated(query, user);
+  }
+
   @Get('/:id/curated/:userId')
   @UserAuth('userId')
   @ApiParamUserId('userId')

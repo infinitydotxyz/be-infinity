@@ -17,28 +17,47 @@ export class CurationService {
    * User votes are stored in the `collections` collection
    * and the total amount of votes is stored in the `users` collection for quick reads.
    */
-  async vote({ collection, user, votes }: { collection: ParsedCollectionId; user: ParsedUserId; votes: number }) {
+  async vote({
+    parsedCollectionId,
+    user,
+    votes
+  }: {
+    parsedCollectionId: ParsedCollectionId;
+    user: ParsedUserId;
+    votes: number;
+  }) {
+    const collection = (await parsedCollectionId.ref.get()).data();
+
     const incrementVotes = this.firebaseService.firestoreNamespace.FieldValue.increment(votes);
 
     const batch = this.firebaseService.firestore.batch();
 
     // write to 'curators' sub-collection
-    const curatorDocRef = collection.ref.collection(firestoreConstants.COLLECTION_CURATORS_COLL).doc(user.ref.id);
+    const curatorDocRef = parsedCollectionId.ref
+      .collection(firestoreConstants.COLLECTION_CURATORS_COLL)
+      .doc(user.ref.id);
     batch.set(
       curatorDocRef,
       {
-        votes: incrementVotes,
+        votes: incrementVotes as any,
         userAddress: user.userAddress,
         userChainId: user.userChainId,
-        collectionAddress: collection.address,
-        collectionChainId: collection.chainId,
-        timestamp: Date.now()
-      },
+        timestamp: Date.now(),
+        address: collection?.address || parsedCollectionId.address,
+        chainId: collection?.chainId || parsedCollectionId.chainId,
+        name: collection?.metadata?.name,
+        numCuratorVotes: incrementVotes as any,
+        profileImage: collection?.metadata?.profileImage,
+        slug: collection?.slug,
+        // TODO: APRs
+        fees: 0,
+        feesAPR: 0
+      } as CuratedCollectionDto,
       { merge: true }
     );
 
     // write to 'collections' collection
-    batch.set(collection.ref, { numCuratorVotes: incrementVotes as any }, { merge: true });
+    batch.set(parsedCollectionId.ref, { numCuratorVotes: incrementVotes as any }, { merge: true });
 
     // write to 'users' collection
     const userData = { totalCuratedVotes: incrementVotes } as any;
@@ -78,8 +97,8 @@ export class CurationService {
       .collectionGroup(firestoreConstants.COLLECTION_CURATORS_COLL)
       .where('userAddress', '==', user.userAddress)
       .where('userChainId', '==', user.userChainId)
-      .where('collectionAddress', '==', collection.address)
-      .where('collectionChainId', '==', collection.chainId)
+      .where('address', '==', collection.address)
+      .where('chainId', '==', collection.chainId)
       .limit(1)
       .get();
 

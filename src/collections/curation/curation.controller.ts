@@ -35,7 +35,7 @@ export class CurationController {
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   async vote(
-    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
+    @ParamCollectionId('id', ParseCollectionIdPipe) parsedCollectionId: ParsedCollectionId,
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
     @Body() vote: CurationVoteDto
   ) {
@@ -46,7 +46,7 @@ export class CurationController {
     }
 
     await this.curationService.vote({
-      collection,
+      parsedCollectionId,
       user,
       votes: vote.votes
     });

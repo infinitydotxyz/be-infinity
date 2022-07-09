@@ -1,4 +1,4 @@
-import { ChainId, Collection, OrderDirection } from '@infinityxyz/lib/types/core';
+import { ChainId, OrderDirection } from '@infinityxyz/lib/types/core';
 import { AlchemyNftToInfinityNft } from '../common/transformers/alchemy-nft-to-infinity-nft.pipe';
 import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
 import { Injectable, Optional } from '@nestjs/common';
@@ -11,7 +11,7 @@ import { CursorService } from 'pagination/cursor.service';
 import { StatsService } from 'stats/stats.service';
 import { ParsedUserId } from './parser/parsed-user-id';
 import { BadQueryError } from 'common/errors/bad-query.error';
-import { CollectionDto, RankingQueryDto } from '@infinityxyz/lib/types/dto/collections';
+import { RankingQueryDto } from '@infinityxyz/lib/types/dto/collections';
 import { NftCollectionDto, NftDto, NftArrayDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import {
   UserFollowingCollection,
@@ -26,7 +26,6 @@ import {
   UserActivityQueryDto,
   UserActivityArrayDto
 } from '@infinityxyz/lib/types/dto/user';
-import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
 import { BackfillService } from 'backfill/backfill.service';
 import { CuratedCollectionsQuery } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
 import {
@@ -442,22 +441,8 @@ export class UserService {
 
     const lastItem = curations[curations.length - 1];
 
-    const collections: Collection[] = [];
-
-    for (const curation of curations) {
-      const collectionRef = this.firebaseService.firestore
-        .collection(firestoreConstants.COLLECTIONS_COLL)
-        .doc(`${curation.collectionChainId}:${curation.collectionAddress}`);
-      // TODO: improve performance of these reads?
-      const snap = await collectionRef.get();
-      collections.push(snap.data() as Collection);
-    }
-
     return {
-      data: {
-        curations: curations,
-        collections: collections as CollectionDto[]
-      },
+      data: curations,
       cursor: hasNextPage ? this.paginationService.encodeCursor(lastItem) : undefined,
       hasNextPage
     };
