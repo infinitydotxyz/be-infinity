@@ -9,7 +9,7 @@ import { ParsedUserId } from 'user/parser/parsed-user-id';
 
 @Injectable()
 export class CurationService {
-  constructor(private firebaseService: FirebaseService, private tokenContractService: StakerContractService) {}
+  constructor(private firebaseService: FirebaseService, private stakerContractService: StakerContractService) {}
 
   /**
    * Vote on a specific NFT collection.
@@ -83,7 +83,7 @@ export class CurationService {
    */
   async getAvailableVotes(user: ParsedUserId): Promise<number> {
     // available votes according to contract
-    const contractVotes = await this.tokenContractService.getPower(user);
+    const contractVotes = await this.stakerContractService.getPower(user);
 
     // available votes according to record in database
     const { totalCuratedVotes: dbVotes } = await this.getUserCurationInfo(user);
@@ -92,6 +92,10 @@ export class CurationService {
     const availableVotes = contractVotes - dbVotes;
 
     return availableVotes > 0 ? availableVotes : 0;
+  }
+
+  async getTotalStaked(user: ParsedUserId) {
+    return this.stakerContractService.getTotalStaked(user);
   }
 
   /**

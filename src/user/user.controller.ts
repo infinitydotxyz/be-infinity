@@ -415,7 +415,8 @@ export class UserController {
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   async getCurationQuota(@ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId): Promise<CurationQuotaDto> {
     return {
-      availableVotes: await this.curationService.getAvailableVotes(user)
+      availableVotes: await this.curationService.getAvailableVotes(user),
+      totalStaked: await this.curationService.getTotalStaked(user)
     };
   }
 
