@@ -1,10 +1,4 @@
-import {
-  ChainId,
-  Collection,
-  CollectionPeriodStatsContent,
-  CuratedCollection,
-  StatsPeriod
-} from '@infinityxyz/lib/types/core';
+import { ChainId, Collection, CollectionPeriodStatsContent, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
 import {
   Controller,
@@ -73,7 +67,7 @@ import { ApiParamUserId, ParamUserId } from 'auth/param-user-id.decorator';
 import { UserAuth } from 'auth/user-auth.decorator';
 import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
-import CuratedCollectionDto from './curation/curation.dto';
+import { CuratedCollectionDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 
 @Controller('collections')
 export class CollectionsController {

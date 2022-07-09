@@ -1,4 +1,4 @@
-import { CuratedCollection } from '@infinityxyz/lib/types/core/CuratedCollection';
+import { CuratedCollectionDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 import { UserProfileDto } from '@infinityxyz/lib/types/dto/user';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
@@ -24,14 +24,6 @@ export class CurationService {
 
     // write to 'curators' sub-collection
     const curatorDocRef = collection.ref.collection(firestoreConstants.COLLECTION_CURATORS_COLL).doc(user.ref.id);
-    const userData = { totalCuratedVotes: incrementVotes } as any;
-    if (!(await curatorDocRef.get()).exists) {
-      userData.totalCurated = this.firebaseService.firestoreNamespace.FieldValue.increment(1);
-    }
-    batch.set(user.ref, userData, { merge: true });
-
-    // write to 'collections' collection
-    batch.set(collection.ref, { numCuratorVotes: incrementVotes as any }, { merge: true });
     batch.set(
       curatorDocRef,
       {
@@ -39,10 +31,21 @@ export class CurationService {
         userAddress: user.userAddress,
         userChainId: user.userChainId,
         collectionAddress: collection.address,
-        collectionChainId: collection.chainId
+        collectionChainId: collection.chainId,
+        timestamp: Date.now()
       },
       { merge: true }
     );
+
+    // write to 'collections' collection
+    batch.set(collection.ref, { numCuratorVotes: incrementVotes as any }, { merge: true });
+
+    // write to 'users' collection
+    const userData = { totalCuratedVotes: incrementVotes } as any;
+    if (!(await curatorDocRef.get()).exists) {
+      userData.totalCurated = this.firebaseService.firestoreNamespace.FieldValue.increment(1);
+    }
+    batch.set(user.ref, userData, { merge: true });
 
     return batch.commit();
   }
@@ -70,7 +73,7 @@ export class CurationService {
   async findUserCurated(
     user: Omit<ParsedUserId, 'ref'>,
     collection: Omit<ParsedCollectionId, 'ref'>
-  ): Promise<CuratedCollection | null> {
+  ): Promise<CuratedCollectionDto | null> {
     const snap = await this.firebaseService.firestore
       .collectionGroup(firestoreConstants.COLLECTION_CURATORS_COLL)
       .where('userAddress', '==', user.userAddress)
@@ -86,7 +89,7 @@ export class CurationService {
       return null;
     }
 
-    return doc.data() as CuratedCollection;
+    return doc.data() as CuratedCollectionDto;
   }
 
   /**

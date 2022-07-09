@@ -1,4 +1,4 @@
-import { ChainId, Collection, CuratedCollection, OrderDirection } from '@infinityxyz/lib/types/core';
+import { ChainId, Collection, OrderDirection } from '@infinityxyz/lib/types/core';
 import { AlchemyNftToInfinityNft } from '../common/transformers/alchemy-nft-to-infinity-nft.pipe';
 import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
 import { Injectable, Optional } from '@nestjs/common';
@@ -29,7 +29,10 @@ import {
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
 import { BackfillService } from 'backfill/backfill.service';
 import { CuratedCollectionsQuery } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
-import { CuratedCollectionsDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
+import {
+  CuratedCollectionDto,
+  CuratedCollectionsDto
+} from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 import { NftsService } from '../collections/nfts/nfts.service';
 import { NftSaleEvent, NftListingEvent, NftOfferEvent, EventType } from '@infinityxyz/lib/types/core/feed';
 
@@ -447,21 +450,16 @@ export class UserService {
       .where('userAddress', '==', user.userAddress)
       .where('userChainId', '==', user.userChainId)
       .orderBy('votes', query.orderDirection)
+      .orderBy('timestamp', 'desc')
       .limit(query.limit + 1);
 
     if (query.cursor) {
-      const decodedCursor = this.paginationService.decodeCursorToObject<CuratedCollection>(query.cursor);
-      const lastDocument = await this.firebaseService.firestore
-        .collection(firestoreConstants.COLLECTIONS_COLL)
-        .doc(`${decodedCursor.collectionChainId}:${decodedCursor.collectionAddress}`)
-        .collection(firestoreConstants.COLLECTION_CURATORS_COLL)
-        .doc(user.ref.id)
-        .get();
-      q = q.startAfter(lastDocument);
+      const { votes, timestamp } = this.paginationService.decodeCursorToObject<CuratedCollectionDto>(query.cursor);
+      q = q.startAfter({ votes, timestamp });
     }
 
     const snap = await q.get();
-    const curations = snap.docs.map((item) => item.data() as CuratedCollection);
+    const curations = snap.docs.map((item) => item.data() as CuratedCollectionDto);
 
     const hasNextPage = curations.length > query.limit;
     if (hasNextPage) {
