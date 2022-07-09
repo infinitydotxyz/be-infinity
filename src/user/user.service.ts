@@ -206,34 +206,6 @@ export class UserService {
     return nftCollections;
   }
 
-  async saveUserNftCollections(userAddress: string, nfts: NftDto[]): Promise<void> {
-    const userRef = this.firebaseService.firestore
-      .collection(firestoreConstants.USERS_COLL)
-      .doc(userAddress)
-      .collection(firestoreConstants.USER_NFTS_COLL);
-
-    for (const nft of nfts) {
-      const { chainId, collectionAddress, collectionName, collectionSlug, hasBlueCheck } = nft;
-      if (chainId && collectionAddress && collectionName && collectionSlug) {
-        const docRef = userRef.doc(`${chainId}:${collectionAddress}`);
-        this.fsBatchHandler.add(
-          docRef,
-          {
-            chainId,
-            collectionAddress,
-            collectionName,
-            collectionSlug,
-            hasBlueCheck
-          },
-          { merge: true }
-        );
-      }
-    }
-    await this.fsBatchHandler.flush().catch((err) => {
-      console.error('error saving user nft collections', err);
-    });
-  }
-
   async getUserNftsWithOrders(user: ParsedUserId, nftsQuery: UserNftsQueryDto): Promise<NftArrayDto> {
     let query: FirebaseFirestore.Query<NftDto> = this.firebaseService.firestore.collectionGroup(
       firestoreConstants.COLLECTION_NFTS_COLL
