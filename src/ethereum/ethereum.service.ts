@@ -39,10 +39,15 @@ export class EthereumService {
   }
 
   async getErc721Owner(token: { address: string; tokenId: string; chainId: string }): Promise<string> {
-    const provider = this.getProvider(token.chainId as ChainId);
-    const contract = new ethers.Contract(token.address, ERC721ABI, provider);
-    const owner = trimLowerCase(await contract.ownerOf(token.tokenId));
-    return owner;
+    try {
+      const provider = this.getProvider(token.chainId as ChainId);
+      const contract = new ethers.Contract(token.address, ERC721ABI, provider);
+      const owner = trimLowerCase(await contract.ownerOf(token.tokenId));
+      return owner;
+    } catch (err) {
+      console.error(err);
+      return '';
+    }
   }
 
   getContract(contract: { address: string; chainId: string; abi: ethers.ContractInterface }) {

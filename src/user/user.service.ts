@@ -41,7 +41,6 @@ export type UserActivity = NftSaleEvent | NftListingEvent | NftOfferEvent;
 @Injectable()
 export class UserService {
   private alchemyNftToInfinityNft: AlchemyNftToInfinityNft;
-  private fsBatchHandler: FirestoreBatchHandler;
   constructor(
     private firebaseService: FirebaseService,
     private alchemyService: AlchemyService,
@@ -50,8 +49,7 @@ export class UserService {
     private backfillService: BackfillService,
     @Optional() private statsService: StatsService
   ) {
-    this.fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
-    this.alchemyNftToInfinityNft = new AlchemyNftToInfinityNft(nftsService);
+    this.alchemyNftToInfinityNft = new AlchemyNftToInfinityNft(this.nftsService);
   }
 
   async getWatchlist(user: ParsedUserId, query: RankingQueryDto) {
@@ -270,11 +268,12 @@ export class UserService {
 
     const orderDirection = nftsQuery.orderDirection ?? OrderDirection.Descending;
     query = query.orderBy(`${orderSnippetItem}.startPriceEth`, orderDirection);
+    query = query.orderBy(`${orderSnippetItem}.startTimeMs`, OrderDirection.Descending); // to break ties
 
-    type Cursor = { startPriceEth?: number };
+    type Cursor = { startPriceEth?: number; startTimeMs?: number };
     const cursor = this.paginationService.decodeCursorToObject<Cursor>(nftsQuery.cursor);
-    if (cursor.startPriceEth != null) {
-      query = query.startAfter(cursor.startPriceEth);
+    if (cursor.startPriceEth && cursor.startTimeMs) {
+      query = query.startAfter(cursor.startPriceEth, cursor.startTimeMs);
     }
 
     const nftsSnapshot = await query.limit(nftsQuery.limit + 1).get();
@@ -292,7 +291,8 @@ export class UserService {
     const lastItem = nfts[nfts.length - 1];
     const orderField = nftsQuery.orderType === UserNftsOrderType.Listings ? 'listing' : 'offer';
     const price = lastItem?.ordersSnippet?.[orderField]?.orderItem?.startPriceEth;
-    const cursorObj: Cursor = { startPriceEth: price };
+    const time = lastItem?.ordersSnippet?.[orderField]?.orderItem?.startTimeMs;
+    const cursorObj: Cursor = { startPriceEth: price, startTimeMs: time };
     const updatedCursor = this.paginationService.encodeCursor(cursorObj);
 
     // fetch total owned
@@ -311,7 +311,8 @@ export class UserService {
     user: ParsedUserId,
     query: Pick<UserNftsQueryDto, 'collectionAddresses' | 'cursor' | 'limit' | 'chainId'>
   ): Promise<NftArrayDto> {
-    const chainId = query.chainId ?? ChainId.Mainnet;
+    const chainId = query.chainId || ChainId.Mainnet;
+    console.log(`ChainId: ${chainId}`);
     type Cursor = { pageKey?: string; startAtToken?: string };
     const cursor = this.paginationService.decodeCursorToObject<Cursor>(query.cursor);
     let totalOwned = NaN;
@@ -344,8 +345,9 @@ export class UserService {
       const nftsToTransform = nfts.map((item) => ({ alchemyNft: item, chainId }));
       const results = await this.alchemyNftToInfinityNft.transform(nftsToTransform);
       const validNfts = results.filter((item) => !!item) as unknown as NftDto[];
+      const hasNextPage = !!nextPageKey && validNfts.length > 0;
 
-      return { pageKey: nextPageKey, nfts: validNfts, hasNextPage: !!nextPageKey };
+      return { pageKey: nextPageKey, nfts: validNfts, hasNextPage };
     };
 
     const limit = query.limit + 1; // +1 to check if there is a next page

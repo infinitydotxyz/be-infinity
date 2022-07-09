@@ -1,5 +1,8 @@
 import { CollectionMetadata } from '@infinityxyz/lib/types/core';
 import { RankingQueryDto, UpdateCollectionDto } from '@infinityxyz/lib/types/dto/collections';
+import { CuratedCollectionsQuery } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
+import { CurationQuotaDto } from '@infinityxyz/lib/types/dto/collections/curation/curation-quota.dto';
+import { CuratedCollectionsDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 import { ExternalNftArrayDto, NftActivityArrayDto, NftArrayDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { CollectionStatsArrayResponseDto } from '@infinityxyz/lib/types/dto/stats';
 import {
@@ -20,16 +23,6 @@ import {
   UserProfileImagesDto,
   ValidateUsernameResponseDto
 } from '@infinityxyz/lib/types/dto/user';
-import {
-  UserCollectionVoteBodyDto,
-  UserCollectionVoteDto,
-  UserCollectionVotesArrayDto,
-  UserCollectionVotesQuery
-} from '@infinityxyz/lib/types/dto/votes';
-import { CuratedCollectionsQuery } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
-import { CuratedCollectionsDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
-import { CurationService } from 'collections/curation/curation.service';
-import { CurationQuotaDto } from '@infinityxyz/lib/types/dto/collections/curation/curation-quota.dto';
 import {
   BadRequestException,
   Body,
@@ -67,6 +60,7 @@ import { UserAuth } from 'auth/user-auth.decorator';
 import { instanceToPlain } from 'class-transformer';
 import { ParseCollectionIdPipe, ParsedCollectionId } from 'collections/collection-id.pipe';
 import CollectionsService from 'collections/collections.service';
+import { CurationService } from 'collections/curation/curation.service';
 import { NftsService } from 'collections/nfts/nfts.service';
 import { ApiTag } from 'common/api-tags';
 import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param-collection-id.decorator';
@@ -77,7 +71,6 @@ import { CacheControlInterceptor } from 'common/interceptors/cache-control.inter
 import { ResponseDescription } from 'common/response-description';
 import { StatsService } from 'stats/stats.service';
 import { StorageService } from 'storage/storage.service';
-import { VotesService } from 'votes/votes.service';
 import { InvalidProfileError } from './errors/invalid-profile.error';
 import { ParseUserIdPipe } from './parser/parse-user-id.pipe';
 import { ParsedUserId } from './parser/parsed-user-id';
@@ -92,7 +85,6 @@ export class UserController {
 
   constructor(
     private userService: UserService,
-    private votesService: VotesService,
     private collectionsService: CollectionsService,
     private storageService: StorageService,
     private statsService: StatsService,
@@ -331,74 +323,6 @@ export class UserController {
     };
 
     return response;
-  }
-
-  @Get(':userId/collectionVotes')
-  @UserAuth('userId')
-  @ApiOperation({
-    description: "Get a user's votes on collections",
-    tags: [ApiTag.User, ApiTag.Votes]
-  })
-  @ApiOkResponse({ description: ResponseDescription.Success, type: UserCollectionVotesArrayDto })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  async getUserCollectionVotes(
-    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
-    @Query() query: UserCollectionVotesQuery
-  ): Promise<UserCollectionVotesArrayDto> {
-    const userVotes = await this.votesService.getUserVotes(user, query);
-    return userVotes;
-  }
-
-  @Get(':userId/collectionVotes/:collectionId')
-  @UserAuth('userId')
-  @ApiOperation({
-    description: "Get a user's votes for a specific collection",
-    tags: [ApiTag.User, ApiTag.Votes]
-  })
-  @ApiOkResponse({ description: ResponseDescription.Success, type: UserCollectionVoteBodyDto })
-  @ApiNotFoundResponse({ description: ResponseDescription.NotFound })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  async getUserCollectionVote(
-    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
-    @ParamCollectionId('collectionId', ParseCollectionIdPipe) collection: ParsedCollectionId
-  ): Promise<UserCollectionVoteBodyDto> {
-    const userVote = await this.votesService.getUserVote(user, collection);
-    if (userVote === null) {
-      throw new NotFoundException('User vote not found');
-    }
-    return userVote;
-  }
-
-  @Post(':userId/collectionVotes/:collectionId')
-  @UserAuth('userId')
-  @ApiOperation({
-    description: "Update a user's vote on a collection",
-    tags: [ApiTag.User, ApiTag.Votes]
-  })
-  @ApiCreatedResponse({ description: ResponseDescription.Success })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  async saveUserCollectionVote(
-    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
-    @ParamCollectionId('collectionId', ParseCollectionIdPipe) collection: ParsedCollectionId,
-    @Body() vote: UserCollectionVoteBodyDto
-  ): Promise<void> {
-    const userVote: UserCollectionVoteDto = {
-      ...vote,
-      collectionAddress: collection.address,
-      collectionChainId: collection.chainId,
-      userAddress: user.userAddress,
-      userChainId: user.userChainId,
-      updatedAt: Date.now()
-    };
-
-    try {
-      await this.votesService.saveUserCollectionVote(userVote);
-    } catch (err: any) {
-      if (err instanceof InvalidCollectionError) {
-        throw new NotFoundException(err.message);
-      }
-      throw err;
-    }
   }
 
   @Put(':userId/collections/:collectionId')

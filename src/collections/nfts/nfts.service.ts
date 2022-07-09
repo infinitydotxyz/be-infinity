@@ -1,4 +1,4 @@
-import { ChainId, Collection } from '@infinityxyz/lib/types/core';
+import { ChainId, Collection, OrderDirection } from '@infinityxyz/lib/types/core';
 import { EventType, NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
 import {
   ExternalNftDto,
@@ -36,10 +36,10 @@ export class NftsService {
     //   limitToCompleteCollections: false
     // });
     // if (collection) {
-    const nfts = await this.getNfts([
+    const [nft] = await this.getNfts([
       { address: nftQuery.address, chainId: nftQuery.chainId, tokenId: nftQuery.tokenId }
     ]);
-    const nft = nfts?.[0];
+
     if (nft && !nft.owner) {
       const owner = await this.ethereumService.getErc721Owner({
         address: nftQuery.address,
@@ -51,6 +51,7 @@ export class NftsService {
         this.updateOwnershipInFirestore(nft);
       }
     }
+
     return nft;
     // }
   }
@@ -118,20 +119,50 @@ export class NftsService {
       return this.backfillService.backfillNfts(nfts);
     }
 
+    const nftsMergedWithSnapshot = nfts.map((item, index) => {
+      const snapshot = snapshots[index];
+      const nft = (snapshot.data() ?? {}) as NftDto;
+      return {
+        ...item,
+        ...nft
+      };
+    });
+
     const nftDtos = [];
+    const nftsToBackfill = [];
 
-    for (const snapshot of snapshots) {
-      let nft = snapshot.data() as NftDto | undefined;
+    const indexMap: { [index: number]: number } = {};
 
+    for (const nft of nftsMergedWithSnapshot) {
+      nftDtos.push(nft);
       // backfill if the item exists but image is empty
       if (nft && (!nft.image?.url || !nft.metadata.attributes)) {
-        const data = await this.backfillService.backfillNfts([
-          { chainId: nft.chainId, address: nft.collectionAddress ?? '', tokenId: nft.tokenId }
-        ]);
-        nft = data[0];
+        const address = nft.address || nft.collectionAddress;
+        if (nft.tokenId && address && nft.chainId) {
+          nftsToBackfill.push({
+            chainId: nft.chainId,
+            address,
+            tokenId: nft.tokenId
+          });
+          const nftsToBackfillIndex = nftsToBackfill.length - 1;
+          const nftDtosIndex = nftDtos.length - 1;
+          indexMap[nftsToBackfillIndex] = nftDtosIndex;
+        }
       }
+    }
 
-      nftDtos.push(nft);
+    const backfilledNfts = await this.backfillService.backfillNfts(nftsToBackfill);
+
+    let backfilledIndex = 0;
+    for (const backfilledNft of backfilledNfts) {
+      const nftIndex = indexMap[backfilledIndex];
+      if (backfilledNft) {
+        nftDtos[nftIndex] = {
+          ...nftDtos[nftIndex],
+          ...backfilledNft
+        };
+      }
+      backfilledIndex += 1;
     }
 
     return nftDtos;
@@ -142,14 +173,18 @@ export class NftsService {
     const nftsCollection = collection.ref.collection(firestoreConstants.COLLECTION_NFTS_COLL);
     const decodedCursor = this.paginationService.decodeCursorToObject<Cursor>(query.cursor);
     let nftsQuery: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = nftsCollection;
+
     if (query.orderBy === NftsOrderBy.Price && !query.orderType) {
       query.orderType = OrderType.Listing;
     }
     const orderType = query.orderType || OrderType.Listing;
+
     const startPriceField = `ordersSnippet.${query.orderType}.orderItem.startPriceEth`;
+
     if (query.orderType) {
       nftsQuery = nftsQuery.where(`ordersSnippet.${query.orderType}.hasOrder`, '==', true);
     }
+
     if (query.traitTypes) {
       const traitTypes = query.traitTypes ?? [];
       const traitTypesValues = query?.traitValues?.map((item) => item.split('|')) ?? [];
@@ -171,43 +206,54 @@ export class NftsService {
         nftsQuery = nftsQuery.where('metadata.attributes', 'array-contains-any', traits);
       }
     }
+
     const hasPriceFilter = query.minPrice !== undefined || query.maxPrice !== undefined;
     if (hasPriceFilter) {
       const minPrice = query.minPrice ?? 0;
       const maxPrice = query.maxPrice ?? Number.MAX_SAFE_INTEGER;
       nftsQuery = nftsQuery.where(startPriceField, '>=', minPrice);
       nftsQuery = nftsQuery.where(startPriceField, '<=', maxPrice);
+      nftsQuery = nftsQuery.orderBy(NftsOrderBy.Price, query.orderDirection);
+      nftsQuery = nftsQuery.orderBy(NftsOrderBy.TokenId, OrderDirection.Ascending); // to break ties
+      const startAfterPrice = decodedCursor?.[NftsOrderBy.Price];
+      const startAfterTokenId = decodedCursor?.[NftsOrderBy.TokenId];
+      if (startAfterPrice && startAfterTokenId) {
+        nftsQuery = nftsQuery.startAfter(startAfterPrice, startAfterTokenId);
+      }
+    } else {
+      nftsQuery = nftsQuery.orderBy(query.orderBy, query.orderDirection);
+      if (decodedCursor?.[query.orderBy]) {
+        nftsQuery = nftsQuery.startAfter(decodedCursor[query.orderBy]);
+      }
     }
-    let orderBy: string = query.orderBy;
-    if (orderBy === NftsOrderBy.Price) {
-      orderBy = startPriceField;
-    }
-    nftsQuery = nftsQuery.orderBy(orderBy, query.orderDirection);
-    if (decodedCursor?.[query.orderBy]) {
-      nftsQuery = nftsQuery.startAfter(decodedCursor[query.orderBy]);
-    }
+
     nftsQuery = nftsQuery.limit(query.limit + 1); // +1 to check if there are more events
+
     const results = await nftsQuery.get();
     const data = results.docs.map((item) => item.data() as NftDto);
     const hasNextPage = data.length > query.limit;
     if (hasNextPage) {
       data.pop();
     }
+
     const cursor: Cursor = {} as any;
     const lastItem = data[data.length - 1];
     for (const key of Object.values(NftsOrderBy)) {
       switch (key) {
         case NftsOrderBy.Price: {
           const startPrice = lastItem?.ordersSnippet?.[orderType]?.orderItem?.startPriceEth;
-          if (startPrice) {
+          const tokenId = lastItem?.tokenId;
+          if (startPrice && tokenId) {
             cursor[NftsOrderBy.Price] = startPrice;
+            cursor[NftsOrderBy.TokenId] = tokenId;
           }
           break;
         }
         case NftsOrderBy.RarityRank:
         case NftsOrderBy.TokenId:
+        case NftsOrderBy.TokenIdNumeric:
           if (lastItem?.[key]) {
-            cursor[key] = lastItem[key];
+            cursor[key] = lastItem[key] ?? '';
           }
           break;
       }
@@ -264,10 +310,11 @@ export class NftsService {
 
     const results = await activityQuery.get();
 
-    const data = results.docs.map((item) => item.data());
     const activities: FirebaseFirestore.DocumentData[] = [];
 
-    data.forEach((item) => {
+    results.docs.forEach((snap) => {
+      const item = snap.data();
+
       let activity: NftActivity | null;
       if (item.type !== EventType.NftSale && item.type !== EventType.NftListing && item.type !== EventType.NftOffer) {
         return null;
@@ -276,6 +323,7 @@ export class NftsService {
         case EventType.NftSale: {
           const sale: NftSaleEvent = item as any;
           activity = {
+            id: snap.id,
             address: sale.collectionAddress,
             tokenId: sale.tokenId,
             chainId: sale.chainId as ChainId,
@@ -288,13 +336,16 @@ export class NftsService {
             paymentToken: sale.paymentToken,
             internalUrl: sale.internalUrl,
             externalUrl: sale.externalUrl,
-            timestamp: sale.timestamp
+            timestamp: sale.timestamp,
+            likes: sale.likes,
+            comments: sale.comments
           };
           break;
         }
         case EventType.NftListing: {
           const listing: NftListingEvent = item as any;
           activity = {
+            id: snap.id,
             address: listing.collectionAddress,
             tokenId: listing.tokenId,
             chainId: listing.chainId as ChainId,
@@ -307,7 +358,9 @@ export class NftsService {
             paymentToken: listing.paymentToken,
             internalUrl: listing.internalUrl,
             externalUrl: '',
-            timestamp: listing.timestamp
+            timestamp: listing.timestamp,
+            likes: listing.likes,
+            comments: listing.comments
           };
           break;
         }
@@ -315,6 +368,7 @@ export class NftsService {
         case EventType.NftOffer: {
           const offer: NftOfferEvent = item as any;
           activity = {
+            id: snap.id,
             address: offer.collectionAddress,
             tokenId: offer.tokenId,
             chainId: offer.chainId as ChainId,
@@ -327,7 +381,9 @@ export class NftsService {
             paymentToken: offer.paymentToken,
             internalUrl: offer.internalUrl,
             externalUrl: '',
-            timestamp: offer.timestamp
+            timestamp: offer.timestamp,
+            likes: offer.likes,
+            comments: offer.comments
           };
           break;
         }
@@ -341,7 +397,7 @@ export class NftsService {
       }
     });
 
-    const hasNextPage = data.length > filter.limit;
+    const hasNextPage = results.docs.length > filter.limit;
 
     if (hasNextPage) {
       activities.pop(); // Remove item used for pagination

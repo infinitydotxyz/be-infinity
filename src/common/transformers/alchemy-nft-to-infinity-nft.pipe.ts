@@ -24,7 +24,7 @@ export class AlchemyNftToInfinityNft
     const nfts = await this.nftsService.getNfts(nftRefProps);
 
     return nfts.map((nftDto, index) => {
-      const { alchemyNft, chainId } = alchemyNfts[index];
+      const { alchemyNft, chainId } = alchemyNfts[index] ?? {};
       const tokenId = BigNumber.from(alchemyNft.id.tokenId).toString();
       let metadata = nftDto?.metadata;
       if (!('metadata' in alchemyNft)) {

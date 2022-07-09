@@ -39,7 +39,6 @@ import {
 } from '@infinityxyz/lib/types/dto/collections';
 import { NftActivityArrayDto, NftActivityFiltersDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { TweetArrayDto } from '@infinityxyz/lib/types/dto/twitter';
-import { CollectionVotesDto } from '@infinityxyz/lib/types/dto/votes';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { ApiTag } from 'common/api-tags';
 import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param-collection-id.decorator';
@@ -53,7 +52,6 @@ import { mnemonicByParam } from 'mnemonic/mnemonic.service';
 import { StatsService } from 'stats/stats.service';
 import { TwitterService } from 'twitter/twitter.service';
 import { EXCLUDED_COLLECTIONS } from 'utils/stats';
-import { VotesService } from 'votes/votes.service';
 import { UPDATE_SOCIAL_STATS_INTERVAL } from '../constants';
 import { AttributesService } from './attributes/attributes.service';
 import { ParseCollectionIdPipe, ParsedCollectionId } from './collection-id.pipe';
@@ -74,7 +72,6 @@ export class CollectionsController {
   constructor(
     private collectionsService: CollectionsService,
     private statsService: StatsService,
-    private votesService: VotesService,
     private twitterService: TwitterService,
     private attributesService: AttributesService,
     private nftsService: NftsService,
@@ -136,21 +133,6 @@ export class CollectionsController {
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 3 }))
   async getStats(@Query() query: RankingQueryDto): Promise<CollectionStatsArrayResponseDto> {
     const res = await this.statsService.getCollectionRankings(query);
-
-    const { getCollection } = await this.collectionsService.getCollectionsByAddress(
-      res.data.map((st) => ({ address: st.collectionAddress, chainId: st.chainId }))
-    );
-
-    // get collection details and set them to the result:
-    const finalData: any[] = [];
-    for (const st of res.data) {
-      const collectionData = getCollection({ address: st.collectionAddress ?? '', chainId: st.chainId });
-      if (collectionData) {
-        st.collectionData = collectionData as Collection;
-        finalData.push(st);
-      }
-    }
-    res.data = finalData;
 
     return res;
   }
@@ -216,7 +198,7 @@ export class CollectionsController {
         if (!EXCLUDED_COLLECTIONS.includes(collectionData?.address)) {
           const resultItem: Collection = {
             ...collectionData,
-            attributes: {} // don't include attributess
+            attributes: {} // don't include attributes
           };
 
           resultItem.stats = {
@@ -391,25 +373,6 @@ export class CollectionsController {
     @Query() query: CollectionStatsQueryDto
   ): Promise<CollectionStatsByPeriodDto> {
     const response = await this.statsService.getCollectionStatsByPeriodAndDate(collection, date, query.periods);
-    return response;
-  }
-
-  @Get('/:id/votes')
-  @ApiOperation({
-    tags: [ApiTag.Collection, ApiTag.Votes],
-    description: 'Get votes for a single collection'
-  })
-  @ApiParamCollectionId()
-  @ApiOkResponse({ description: ResponseDescription.Success, type: CollectionVotesDto })
-  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
-  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor())
-  async getCollectionVotes(
-    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
-  ): Promise<CollectionVotesDto> {
-    const response = await this.votesService.getCollectionVotes(collection);
-
     return response;
   }
 
