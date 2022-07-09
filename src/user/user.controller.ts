@@ -394,9 +394,8 @@ export class UserController {
   }
 
   @Get(':userId/curated')
-  @UserAuth('userId')
   @ApiOperation({
-    description: "Get the user's curated collections",
+    description: "Get the specified user's curated collections",
     tags: [ApiTag.User, ApiTag.Collection, ApiTag.Curation]
   })
   @ApiOkResponse({ description: ResponseDescription.Success, type: CuratedCollectionsDto })
@@ -407,7 +406,6 @@ export class UserController {
   }
 
   @Get(':userId/curated/quota')
-  @UserAuth('userId')
   @ApiOperation({
     description: "Get the user's available votes for curation",
     tags: [ApiTag.User, ApiTag.Collection, ApiTag.Curation]
