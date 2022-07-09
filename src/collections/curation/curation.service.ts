@@ -30,7 +30,7 @@ export class CurationService {
 
     const incrementVotes = this.firebaseService.firestoreNamespace.FieldValue.increment(votes);
 
-    const batch = this.firebaseService.firestore.batch();
+    let batch = this.firebaseService.firestore.batch();
 
     // write to 'curators' sub-collection
     const curatorDocRef = parsedCollectionId.ref
@@ -46,7 +46,6 @@ export class CurationService {
         address: collection?.address || parsedCollectionId.address,
         chainId: collection?.chainId || parsedCollectionId.chainId,
         name: collection?.metadata?.name,
-        numCuratorVotes: incrementVotes as any,
         profileImage: collection?.metadata?.profileImage,
         slug: collection?.slug,
         // TODO: APRs
@@ -66,7 +65,16 @@ export class CurationService {
     }
     batch.set(user.ref, userData, { merge: true });
 
-    return batch.commit();
+    await batch.commit();
+
+    batch = this.firebaseService.firestore.batch();
+
+    // TODO: not sure how scalable this is, but the only alternative I can think of is multiple reads of each parent collection while fetching 'my curated collections' on /user/:userId/curated ¯\_(ツ)_/¯
+    (await parsedCollectionId.ref.collection(firestoreConstants.COLLECTION_CURATORS_COLL).get()).docs.forEach((doc) => {
+      batch.set(doc.ref, { numCuratorVotes: incrementVotes }, { merge: true });
+    });
+
+    await batch.commit();
   }
 
   /**
