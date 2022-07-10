@@ -416,7 +416,8 @@ export class UserController {
   async getCurationQuota(@ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId): Promise<CurationQuotaDto> {
     return {
       availableVotes: await this.curationService.getAvailableVotes(user),
-      totalStaked: await this.curationService.getTotalStaked(user)
+      totalStaked: await this.curationService.getTotalStaked(user),
+      tokenBalance: await this.curationService.getTokenBalance(user)
     };
   }
 

@@ -4,12 +4,17 @@ import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
 import { StakerContractService } from 'ethereum/contracts/staker.contract.service';
+import { TokenContractService } from 'ethereum/contracts/token.contract.service';
 import { FirebaseService } from 'firebase/firebase.service';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 
 @Injectable()
 export class CurationService {
-  constructor(private firebaseService: FirebaseService, private stakerContractService: StakerContractService) {}
+  constructor(
+    private firebaseService: FirebaseService,
+    private stakerContractService: StakerContractService,
+    private tokenContractService: TokenContractService
+  ) {}
 
   /**
    * Vote on a specific NFT collection.
@@ -96,6 +101,10 @@ export class CurationService {
 
   async getTotalStaked(user: ParsedUserId) {
     return this.stakerContractService.getTotalStaked(user);
+  }
+
+  async getTokenBalance(user: ParsedUserId) {
+    return this.tokenContractService.getTokenBalance(user);
   }
 
   /**
