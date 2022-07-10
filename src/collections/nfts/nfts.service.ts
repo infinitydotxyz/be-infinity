@@ -36,10 +36,10 @@ export class NftsService {
     //   limitToCompleteCollections: false
     // });
     // if (collection) {
-    const nfts = await this.getNfts([
+    const [nft] = await this.getNfts([
       { address: nftQuery.address, chainId: nftQuery.chainId, tokenId: nftQuery.tokenId }
     ]);
-    const nft = nfts?.[0];
+
     if (nft && !nft.owner) {
       const owner = await this.ethereumService.getErc721Owner({
         address: nftQuery.address,
@@ -51,6 +51,7 @@ export class NftsService {
         this.updateOwnershipInFirestore(nft);
       }
     }
+
     return nft;
     // }
   }
@@ -112,27 +113,38 @@ export class NftsService {
     }
 
     const snapshots = await this.firebaseService.firestore.getAll(...refs);
-    const complete = snapshots.map((item) => item.exists).every((item) => item === true);
-    // backfill if the item doesn't exist
-    if (!complete) {
-      return this.backfillService.backfillNfts(nfts);
-    }
+
+    const nftsMergedWithSnapshot = nfts.map((item, index) => {
+      const snapshot = snapshots[index];
+      const nft = (snapshot.data() ?? {}) as NftDto;
+      return {
+        ...item,
+        ...nft
+      };
+    });
 
     const nftDtos = [];
+    const nftsToBackfill = [];
 
-    for (const snapshot of snapshots) {
-      let nft = snapshot.data() as NftDto | undefined;
-
-      // backfill if the item exists but image is empty
-      if (nft && (!nft.image?.url || !nft.metadata.attributes)) {
-        const data = await this.backfillService.backfillNfts([
-          { chainId: nft.chainId, address: nft.collectionAddress ?? '', tokenId: nft.tokenId }
-        ]);
-        nft = data[0];
+    for (const nft of nftsMergedWithSnapshot) {
+      if (nft && (nft.image?.url || nft.image?.originalUrl)) {
+        nftDtos.push(nft);
+      } else {
+        const address = nft.address || nft.collectionAddress;
+        if (nft.tokenId && address && nft.chainId) {
+          nftsToBackfill.push({
+            chainId: nft.chainId,
+            address,
+            tokenId: nft.tokenId
+          });
+        }
       }
-
-      nftDtos.push(nft);
     }
+
+    // async backfill
+    this.backfillService.backfillNfts(nftsToBackfill).catch((err) => {
+      console.error(err);
+    });
 
     return nftDtos;
   }

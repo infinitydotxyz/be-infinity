@@ -169,12 +169,12 @@ export class BackfillService {
       }
     }
 
-    this.bacfillInvalidNftsFromOS(tokenIds, chainId, collectionAddress).catch((err) => {
+    this.backfillInvalidNftsFromOS(tokenIds, chainId, collectionAddress).catch((err) => {
       console.error('Error backfilling invalid nfts from OS for', collectionAddress, err);
     });
   }
 
-  private async bacfillInvalidNftsFromOS(allTokenIds: string[], chainId: string, collectionAddress: string) {
+  private async backfillInvalidNftsFromOS(allTokenIds: string[], chainId: string, collectionAddress: string) {
     const openseaLimit = 20;
     console.log('Backfilling', allTokenIds.length, 'invalid nfts from OS for', chainId, collectionAddress);
     const updateTokens = async (tokenIds: Partial<Token>[]) => {
@@ -549,7 +549,7 @@ export class BackfillService {
     tokenId: string,
     alchemyNft: AlchemyNftWithMetadata
   ): NftDto {
-    const attrs = alchemyNft.metadata.attributes.map((attr) => ({
+    const attrs = alchemyNft.metadata.attributes?.map?.((attr) => ({
       trait_type: attr.trait_type,
       value: attr.value,
       display_type: attr.display_type

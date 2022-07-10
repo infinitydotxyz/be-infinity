@@ -6,7 +6,7 @@ import {
   SignedOBOrderDto,
   UserOrderItemsQueryDto
 } from '@infinityxyz/lib/types/dto/orders';
-import { BadRequestException, Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, NotFoundException, Param, Post, Query } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { ParamUserId } from 'auth/param-user-id.decorator';
 import { UserAuth } from 'auth/user-auth.decorator';
@@ -119,6 +119,28 @@ export class OrdersController {
       cursor: '',
       hasNextPage: false
     };
+  }
+
+  @Get('id/:orderId')
+  @ApiOperation({
+    description: 'Get a signed order with the given id.',
+    tags: [ApiTag.Orders, ApiTag.User]
+  })
+  @ApiOkResponse({ description: ResponseDescription.Success, type: SignedOBOrderArrayDto })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  public async getUserSignedOrder(
+    @Param('orderId') orderId: string,
+    @Query() reqQuery: UserOrderItemsQueryDto
+  ): Promise<SignedOBOrderDto | undefined> {
+    if (!reqQuery.id) {
+      reqQuery.id = orderId;
+    }
+    const results = await this.ordersService.getSignedOBOrders(reqQuery, undefined);
+    if (results?.data && results.data[0]) {
+      return results.data[0];
+    }
+    throw new NotFoundException('Failed to find order');
   }
 
   @Get(':userId')
