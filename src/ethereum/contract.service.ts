@@ -21,14 +21,14 @@ export class ContractService {
 
   getStakerContract(chainId: string | ChainId) {
     // TODO: return correct contract based on specified chain id
-    if (chainId != ChainId.Goerli && chainId != ChainId.Mainnet) {
+    if (chainId != ChainId.Goerli) {
       throw new BadRequestException(`Chain id '${chainId}' is currently not supported!`);
     }
 
     return this.ethereumService.getContract({
       abi: InfinityStakerABI,
       address: GOERLI_STAKER_CONTRACT_ADDRESS,
-      chainId: ChainId.Goerli // TODO: FE should send corrct chain id (atm this is always 1 mainnet, not sure why)
+      chainId: chainId
     });
   }
 }
