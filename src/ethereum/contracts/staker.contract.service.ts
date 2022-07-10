@@ -14,7 +14,7 @@ export class StakerContractService {
   async getPower(user: ParsedUserId): Promise<number> {
     const contract = this.contractService.getStakerContract(user.userChainId);
     const balance = await contract.getUserStakePower(user.userAddress);
-    return this.contractService.toEther(balance);
+    return balance;
   }
 
   /**
