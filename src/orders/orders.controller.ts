@@ -121,9 +121,9 @@ export class OrdersController {
     };
   }
 
-  @Get(':orderId/fromUser/:userId')
+  @Get('id/:orderId')
   @ApiOperation({
-    description: 'Get a signed order of an user.',
+    description: 'Get a signed order with the given id.',
     tags: [ApiTag.Orders, ApiTag.User]
   })
   @ApiOkResponse({ description: ResponseDescription.Success, type: SignedOBOrderArrayDto })
@@ -131,13 +131,12 @@ export class OrdersController {
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   public async getUserSignedOrder(
     @Param('orderId') orderId: string,
-    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
     @Query() reqQuery: UserOrderItemsQueryDto
   ): Promise<SignedOBOrderDto | undefined> {
     if (!reqQuery.id) {
       reqQuery.id = orderId;
     }
-    const results = await this.ordersService.getSignedOBOrders(reqQuery, user);
+    const results = await this.ordersService.getSignedOBOrders(reqQuery, undefined);
     if (results?.data && results.data[0]) {
       return results.data[0];
     }

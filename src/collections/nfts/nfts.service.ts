@@ -113,11 +113,6 @@ export class NftsService {
     }
 
     const snapshots = await this.firebaseService.firestore.getAll(...refs);
-    const complete = snapshots.map((item) => item.exists).every((item) => item === true);
-    // backfill if the item doesn't exist
-    if (!complete) {
-      return this.backfillService.backfillNfts(nfts);
-    }
 
     const nftsMergedWithSnapshot = nfts.map((item, index) => {
       const snapshot = snapshots[index];
@@ -131,12 +126,10 @@ export class NftsService {
     const nftDtos = [];
     const nftsToBackfill = [];
 
-    const indexMap: { [index: number]: number } = {};
-
     for (const nft of nftsMergedWithSnapshot) {
-      nftDtos.push(nft);
-      // backfill if the item exists but image is empty
-      if (nft && (!nft.image?.url || !nft.metadata.attributes)) {
+      if (nft && (nft.image?.url || nft.image?.originalUrl)) {
+        nftDtos.push(nft);
+      } else {
         const address = nft.address || nft.collectionAddress;
         if (nft.tokenId && address && nft.chainId) {
           nftsToBackfill.push({
@@ -144,26 +137,14 @@ export class NftsService {
             address,
             tokenId: nft.tokenId
           });
-          const nftsToBackfillIndex = nftsToBackfill.length - 1;
-          const nftDtosIndex = nftDtos.length - 1;
-          indexMap[nftsToBackfillIndex] = nftDtosIndex;
         }
       }
     }
 
-    const backfilledNfts = await this.backfillService.backfillNfts(nftsToBackfill);
-
-    let backfilledIndex = 0;
-    for (const backfilledNft of backfilledNfts) {
-      const nftIndex = indexMap[backfilledIndex];
-      if (backfilledNft) {
-        nftDtos[nftIndex] = {
-          ...nftDtos[nftIndex],
-          ...backfilledNft
-        };
-      }
-      backfilledIndex += 1;
-    }
+    // async backfill
+    this.backfillService.backfillNfts(nftsToBackfill).catch((err) => {
+      console.error(err);
+    });
 
     return nftDtos;
   }
