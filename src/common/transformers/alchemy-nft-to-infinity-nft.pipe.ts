@@ -51,7 +51,13 @@ export class AlchemyNftToInfinityNft
 
     return nfts.map((nftDto, index) => {
       const { alchemyNft, chainId } = alchemyNfts[index] ?? {};
-      const tokenId = BigNumber.from(alchemyNft.id.tokenId).toString();
+      // skip non erc721
+      const alchemyNftWithMetadata = alchemyNft as AlchemyNftWithMetadata;
+      if (alchemyNftWithMetadata.id.tokenMetadata.tokenType !== TokenStandard.ERC721) {
+        return null;
+      }
+
+      const tokenId = BigNumber.from(alchemyNft.id.tokenId).toBigInt().toString();
       let metadata = nftDto?.metadata;
       if (!('metadata' in alchemyNft)) {
         return nftDto || null;
