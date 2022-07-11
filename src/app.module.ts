@@ -23,6 +23,10 @@ import { ZoraModule } from 'zora/zora.module';
 import { OpenseaModule } from 'opensea/opensea.module';
 import { ReservoirModule } from 'reservoir/reservoir.module';
 import { GemModule } from 'gem/gem.module';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { ApiKeyThrottlerGuard } from 'throttler/throttler.guard';
+import { ApiUserModule } from './api-user/api-user.module';
 
 @Module({
   imports: [
@@ -49,7 +53,18 @@ import { GemModule } from 'gem/gem.module';
     ZoraModule,
     OpenseaModule,
     ReservoirModule,
-    GemModule
+    GemModule,
+    ThrottlerModule.forRoot({
+      ttl: 60,
+      limit: 5
+    }),
+    ApiUserModule
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ApiKeyThrottlerGuard
+    }
   ],
   controllers: [AppController]
 })
