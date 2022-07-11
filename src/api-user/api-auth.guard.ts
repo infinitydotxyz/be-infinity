@@ -1,6 +1,7 @@
 import { CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { API_AUTH_ROLE, API_KEY_HEADER, API_SECRET_HEADER } from './api-auth.constants';
+import { ApiAuthException } from './api-auth.exception';
 import { ApiUserService } from './api-user.service';
 import { ApiUserRole, RoleHierarchy } from './api-user.types';
 
@@ -27,18 +28,17 @@ export class ApiAuthGuard implements CanActivate {
     const apiSecret = req.headers[API_SECRET_HEADER];
 
     if (!apiKey || !apiSecret) {
-      // TODO custom error
-      throw new Error('Missing api key or api secret');
+      throw new ApiAuthException('Missing api key or api secret');
     }
 
     const result = await this.apiUserService.verifyAndGetUserConfig(apiKey, apiSecret);
     if (!result.isValid) {
-      throw new Error(result.reason);
+      throw new ApiAuthException(result.reason);
     }
 
     const userRole = result.userConfig.role;
     if (!this.userAtLeastRole(userRole, rolesRequired)) {
-      throw new Error('User does not have the required role');
+      throw new ApiAuthException('User does not have the required role');
     }
 
     return true;
