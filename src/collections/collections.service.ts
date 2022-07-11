@@ -1,13 +1,22 @@
 import { ChainId, Collection, CollectionMetadata, CreationFlow, TopOwner } from '@infinityxyz/lib/types/core';
-import { CollectionSearchQueryDto, TopOwnerDto, TopOwnersQueryDto } from '@infinityxyz/lib/types/dto/collections';
 import { ExternalNftCollectionDto, NftCollectionDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { firestoreConstants, getCollectionDocId, getEndCode, getSearchFriendlyString } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { BackfillService } from 'backfill/backfill.service';
+import { TopOwnersQueryDto, TopOwnerDto, CollectionSearchQueryDto } from '@infinityxyz/lib/types/dto/collections';
+import {
+  CuratedCollectionsOrderBy,
+  CuratedCollectionsQuery
+} from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
 import { FirebaseService } from 'firebase/firebase.service';
 import { MnemonicService } from 'mnemonic/mnemonic.service';
 import { CursorService } from 'pagination/cursor.service';
 import { ParsedCollectionId } from './collection-id.pipe';
+import {
+  CuratedCollectionDto,
+  CuratedCollectionsDto
+} from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
+import { ParsedUserId } from 'user/parser/parsed-user-id';
 
 interface CollectionQueryOptions {
   /**
@@ -289,5 +298,93 @@ export default class CollectionsService {
     });
 
     return externalCollection;
+  }
+
+  /**
+   * Fetch all curated collections.
+   * @param query Filter and pagination.
+   * @param user Optional user object. If specified, more info like user votes will be included in each curated collection DTO that matches.
+   */
+  async getCurated(query: CuratedCollectionsQuery, user?: ParsedUserId): Promise<CuratedCollectionsDto> {
+    const collectionsRef = this.firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL);
+
+    type Cursor = Record<'address' | 'chainId', string | number>;
+
+    const mapOrderByQuery = {
+      [CuratedCollectionsOrderBy.Votes]: 'numCuratorVotes',
+      [CuratedCollectionsOrderBy.AprHighToLow]: 'numCuratorVotes', // TODO: APRs
+      [CuratedCollectionsOrderBy.AprLowToHigh]: 'numCuratorVotes'
+    };
+
+    let q = collectionsRef.orderBy(mapOrderByQuery[query.orderBy], query.orderDirection).limit(query.limit + 1);
+
+    if (query.cursor) {
+      const decodedCursor = this.paginationService.decodeCursorToObject<Cursor>(query.cursor);
+      const lastDocument = await collectionsRef.doc(`${decodedCursor.chainId}:${decodedCursor.address}`).get();
+      q = q.startAfter(lastDocument);
+    }
+
+    const snap = await q.get();
+    const collections = snap.docs.map((item) => item.data() as Collection);
+
+    const hasNextPage = collections.length > query.limit;
+    if (hasNextPage) {
+      collections.pop();
+    }
+
+    const lastItem = collections[collections.length - 1];
+    const cursor = hasNextPage
+      ? this.paginationService.encodeCursor({ address: lastItem.address, chainId: lastItem.chainId } as Cursor)
+      : undefined;
+    let curatedCollections: CuratedCollectionDto[] = collections.map((collection) => ({
+      address: collection.address,
+      chainId: collection.chainId as ChainId,
+      name: collection.metadata.name,
+      numCuratorVotes: collection.numCuratorVotes || 0,
+      profileImage: collection.metadata.profileImage,
+      slug: collection.slug,
+      timestamp: 0,
+      userAddress: '',
+      userChainId: '' as ChainId,
+      fees: 0,
+      feesAPR: 0,
+      votes: 0
+    }));
+
+    // If a user was specified, merge curated collections with user curated collections.
+    // Keep in mind that this changes nothing in regards to the order of the returned curated collections.
+    if (user && collections.length > 0) {
+      const collectionAdresses = collections.map((c) => c.address);
+
+      const curatorsSnap = await this.firebaseService.firestore
+        .collectionGroup(firestoreConstants.COLLECTION_CURATORS_COLL)
+        .where('address', 'in', collectionAdresses)
+        .where('userAddress', '==', user.userAddress)
+        .where('userChainId', '==', user.userChainId)
+        .get();
+      const curators = curatorsSnap.docs.map((cs) => cs.data() as CuratedCollectionDto);
+
+      curatedCollections = curatedCollections.map((curatedCollection) => {
+        const userCurated = curators.find(
+          (c) => c.address === curatedCollection.address && c.chainId === curatedCollection.chainId
+        );
+
+        return {
+          ...curatedCollection,
+          timestamp: userCurated?.timestamp || curatedCollection.timestamp,
+          userAddress: userCurated?.userAddress || curatedCollection.userAddress,
+          userChainId: userCurated?.userChainId || curatedCollection.userChainId,
+          fees: userCurated?.fees || curatedCollection.fees,
+          feesAPR: userCurated?.feesAPR || curatedCollection.feesAPR,
+          votes: userCurated?.votes || curatedCollection.votes
+        };
+      });
+    }
+
+    return {
+      data: curatedCollections,
+      cursor,
+      hasNextPage
+    };
   }
 }

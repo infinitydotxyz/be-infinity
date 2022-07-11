@@ -8,6 +8,7 @@ import {
   UserOrderItemsQueryDto,
   UserOrderCollectionsQueryDto
 } from '@infinityxyz/lib/types/dto/orders';
+import { trimLowerCase, getDigest, orderHash, verifySig } from '@infinityxyz/lib/utils';
 import { BadRequestException, Body, Controller, Get, NotFoundException, Param, Post, Query } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { ParamUserId } from 'auth/param-user-id.decorator';
@@ -32,21 +33,37 @@ class OBOrderCollectionsArrayDto {
 export class OrdersController {
   constructor(private ordersService: OrdersService) {}
 
-  @Post(':userId')
+  @Post()
   @ApiOperation({
     description: 'Post orders',
     tags: [ApiTag.Orders]
   })
-  @UserAuth('userId')
   @ApiOkResponse({ description: ResponseDescription.Success, type: String })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  public async postOrders(
-    @ParamUserId('userId', ParseUserIdPipe) maker: ParsedUserId,
-    @Body() body: OrdersDto
-  ): Promise<void> {
+  public async postOrders(@Body() body: OrdersDto): Promise<void> {
     try {
       const orders = (body.orders ?? []).map((item: any) => instanceToPlain(item)) as SignedOBOrderDto[];
+      const maker = trimLowerCase(orders[0].signedOrder.signer);
+      if (!maker) {
+        throw new Error('Invalid maker');
+      }
+
+      // check signatures
+      const valid = orders.every((order) => {
+        const { signedOrder } = order;
+        const { signer, sig } = signedOrder;
+        const hashOfOrder = orderHash(signedOrder);
+        const digest = getDigest(order.chainId, order.execParams.complicationAddress, hashOfOrder);
+        const isSigValid = verifySig(digest, signer, sig);
+        return isSigValid;
+      });
+
+      if (!valid) {
+        throw new Error('Invalid signatures');
+      }
+
+      // call service
       await this.ordersService.createOrder(maker, orders);
     } catch (err) {
       if (err instanceof InvalidCollectionError) {
@@ -152,6 +169,7 @@ export class OrdersController {
     description: 'Get order nonce for user',
     tags: [ApiTag.Orders]
   })
+  @UserAuth('userId')
   @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
