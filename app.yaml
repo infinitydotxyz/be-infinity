@@ -1,4 +1,4 @@
-service: sv
+service: api
 runtime: nodejs16
 env: standard
 instance_class: F4_1G
