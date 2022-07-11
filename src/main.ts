@@ -3,7 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
-import { auth, INFINITY_EMAIL, INFINITY_URL, ORIGIN } from './constants';
+import { auth, INFINITY_EMAIL, INFINITY_URL } from './constants';
 import { HttpExceptionFilter } from './http-exception.filter';
 import { NestExpressApplication } from '@nestjs/platform-express';
 // This is a hack to make Multer available in the Express namespace
@@ -12,7 +12,7 @@ import { Multer } from 'multer';
 
 function setup(app: INestApplication) {
   app.enableCors({
-    origin: ORIGIN,
+    origin: '*',
     optionsSuccessStatus: 200
   });
   app.use(helmet());
