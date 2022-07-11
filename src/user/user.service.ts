@@ -88,6 +88,24 @@ export class UserService {
     return profile;
   }
 
+  async getProfileForUserAdress(user: string) {
+    const profileSnapshot = await this.firebaseService.firestore
+      .collection(firestoreConstants.USERS_COLL)
+      .where('username', '==', trimLowerCase(user))
+      .limit(1)
+      .get();
+
+    const doc = profileSnapshot.docs[0];
+
+    const profile = doc?.data() as UserProfileDto;
+
+    if (!profile) {
+      return null;
+    }
+
+    return profile;
+  }
+
   async getCollectionsBeingFollowed(user: ParsedUserId) {
     const collectionFollows = user.ref.collection(firestoreConstants.COLLECTION_FOLLOWS_COLL);
 
