@@ -1,7 +1,7 @@
 import { sleep } from '@infinityxyz/lib/utils';
 import { FirebaseService } from './firebase.service';
 
-const MAX_SIZE = 500;
+const MAX_SIZE = 300;
 
 interface Batch {
   batch: FirebaseFirestore.WriteBatch;
@@ -32,6 +32,18 @@ export default class FirestoreBatchHandler {
     }
 
     this.currentBatch.batch.set(doc, object, options);
+    this.currentBatch.size += 1;
+  }
+
+  delete(doc: FirebaseFirestore.DocumentReference): void {
+    if (this.currentBatch.size >= MAX_SIZE) {
+      this.flush().catch((err) => {
+        console.error(err);
+        throw err;
+      });
+    }
+
+    this.currentBatch.batch.delete(doc);
     this.currentBatch.size += 1;
   }
 

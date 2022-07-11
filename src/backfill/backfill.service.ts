@@ -1,4 +1,14 @@
-import { BaseCollection, ChainId, TokenStandard } from '@infinityxyz/lib/types/core';
+import {
+  BaseCollection,
+  ChainId,
+  Erc721Attribute,
+  Erc721Metadata,
+  Erc721Token,
+  Token,
+  TokenStandard
+} from '@infinityxyz/lib/types/core';
+import { NftDto } from '@infinityxyz/lib/types/dto/collections/nfts';
+import { AlchemyNft, AlchemyNftWithMetadata } from '@infinityxyz/lib/types/services/alchemy';
 import {
   firestoreConstants,
   getCollectionDocId,
@@ -7,14 +17,16 @@ import {
 } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { AlchemyService } from 'alchemy/alchemy.service';
-import { NftDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { FirebaseService } from 'firebase/firebase.service';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
+import { GemService } from 'gem/gem.service';
 import { MnemonicService } from 'mnemonic/mnemonic.service';
 import { MnemonicTokenMetadata } from 'mnemonic/mnemonic.types';
 import { OpenseaService } from 'opensea/opensea.service';
 import { OpenseaAsset } from 'opensea/opensea.types';
-import { AlchemyNft, AlchemyNftWithMetadata } from '@infinityxyz/lib/types/services/alchemy';
+import { Readable } from 'stream';
+import { pageStream } from 'utils/streams';
+import { ALCHEMY_CACHED_IMAGE_HOST, TEN_MINS } from '../constants';
 
 @Injectable()
 export class BackfillService {
@@ -25,19 +37,33 @@ export class BackfillService {
     private firebaseService: FirebaseService,
     private openseaService: OpenseaService,
     private mnemonicService: MnemonicService,
-    private alchemyService: AlchemyService
+    private alchemyService: AlchemyService,
+    private gemService: GemService
   ) {
     this.fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
     this.collectionsRef = this.firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL);
   }
 
-  public async backfillCollection(chainId: ChainId, collectionAddress: string): Promise<BaseCollection | undefined> {
+  public async backfillCollection(
+    chainId: ChainId,
+    collectionAddress: string
+  ): Promise<Partial<BaseCollection | undefined>> {
     console.log('backfilling collection', chainId, collectionAddress);
     try {
-      const baseCollection: BaseCollection = await this.openseaService.getCollectionWithAddress(
+      // try fetching from OS
+      let baseCollection: Partial<BaseCollection | undefined> = await this.openseaService.getCollectionWithAddress(
         chainId,
         collectionAddress
       );
+
+      // fetch from gem
+      if (!baseCollection) {
+        baseCollection = await this.gemService.getCollectionWithAddress(chainId, collectionAddress);
+      }
+
+      if (!baseCollection) {
+        return;
+      }
 
       const mintInfo = await this.mnemonicService.getContract(collectionAddress);
       if (mintInfo) {
@@ -64,6 +90,7 @@ export class BackfillService {
         const count = totalMinted - totalBurned;
         baseCollection.numNfts = count;
       }
+
       // write to firebase
       const collectionDocId = getCollectionDocId({ chainId, collectionAddress });
       this.collectionsRef
@@ -86,44 +113,289 @@ export class BackfillService {
     nfts: { address: string; chainId: ChainId; tokenId: string }[]
   ): Promise<(NftDto | undefined)[]> {
     try {
+      // try opensea
+      const openseaNfts = await this.fetchNftsFromOpensea(nfts);
+      if (openseaNfts && openseaNfts.length > 0) {
+        // backfill alchemy cached image and attrs async
+        this.backfillAlchemyCachedImagesAndAttributes(nfts).catch((err) => {
+          console.error(err);
+        });
+
+        return openseaNfts;
+      }
+    } catch (err) {
+      console.error('backfillNfts from opensea errored', err);
+    }
+
+    try {
       // try alchemy
       const alchemyNfts = await this.fetchNftsFromAlchemy(nfts);
       if (alchemyNfts && alchemyNfts.length > 0) {
         return alchemyNfts;
       }
     } catch (err) {
-      console.error(err);
-    }
-
-    try {
-      // try mnemonic
-      const mnemonicNfts = await this.fetchNftsFromMnemonic(nfts);
-      if (mnemonicNfts && mnemonicNfts.length > 0) {
-        return mnemonicNfts;
-      }
-    } catch (err) {
-      console.error(err);
-    }
-
-    try {
-      // try opensea
-      const openseaNfts = await this.fetchNftsFromOpensea(nfts);
-      if (openseaNfts && openseaNfts.length > 0) {
-        return openseaNfts;
-      }
-    } catch (err) {
-      console.error(err);
+      console.error('backfillNfts from Alchemy errored', err);
     }
 
     return [];
   }
 
-  public backfillAlchemyCachedImages(nfts: AlchemyNft[], chainId: ChainId, user?: string) {
+  public async backfillAnyInvalidNfts(chainId: string, collectionAddress: string) {
+    console.log('Backfilling any invalid nfts for', chainId, collectionAddress);
+
+    const collectionDocId = getCollectionDocId({ chainId, collectionAddress });
+    const invalidNftsRef = this.collectionsRef
+      .doc(collectionDocId)
+      .collection(firestoreConstants.COLLECTION_INVALID_NFTS_COLL);
+
+    const now = Date.now();
+    const staleIfUpdatedBefore = now - TEN_MINS;
+    const invalidNfts = (await invalidNftsRef.where('updatedAt', '<', staleIfUpdatedBefore).limit(1000).get()).docs;
+    console.log('Found', invalidNfts.length, 'invalid nfts');
+
+    const tokenIds: string[] = [];
+    for (const invalidNft of invalidNfts) {
+      const nft = invalidNft.data() as Token;
+      if (!nft.collectionAddress || !nft.tokenId) {
+        continue;
+      }
+
+      // image and attributes
+      const imageUrl = nft.image?.url;
+      const metadata = nft.metadata as Erc721Metadata;
+      const hasAttributes = metadata?.attributes && metadata?.attributes.length > 0;
+      if (!imageUrl || !hasAttributes) {
+        tokenIds.push(nft.tokenId);
+      }
+    }
+
+    this.backfillInvalidNftsFromOS(tokenIds, chainId, collectionAddress).catch((err) => {
+      console.error('Error backfilling invalid nfts from OS for', collectionAddress, err);
+    });
+  }
+
+  private async backfillInvalidNftsFromOS(allTokenIds: string[], chainId: string, collectionAddress: string) {
+    const openseaLimit = 20;
+    console.log('Backfilling', allTokenIds.length, 'invalid nfts from OS for', chainId, collectionAddress);
+    const updateTokens = async (tokenIds: Partial<Token>[]) => {
+      let tokenIdsConcat = '';
+      for (const tokenId of tokenIds) {
+        tokenIdsConcat += `token_ids=${tokenId}&`;
+      }
+      const data = await this.openseaService.getGivenNFTsOfContract(collectionAddress, tokenIdsConcat);
+      for (const datum of data.assets) {
+        const tokenId = datum.token_id;
+        let tokenIdNumeric = NaN;
+        try {
+          tokenIdNumeric = Number(tokenId);
+        } catch (err) {
+          console.error('Error parsing tokenId to number', err);
+        }
+
+        const token: Partial<Erc721Token> = {
+          updatedAt: Date.now(),
+          tokenId,
+          tokenIdNumeric,
+          slug: getSearchFriendlyString(datum.name),
+          tokenStandard: TokenStandard.ERC721, // default
+          metadata: {
+            name: datum.name ?? null,
+            title: datum.name ?? null,
+            image: datum.image_url ?? '',
+            external_url: datum?.external_link ?? '',
+            description: datum.description ?? '',
+            background_color: datum.background_color ?? '',
+            animation_url: datum?.animation_url ?? ''
+          },
+          image: { originalUrl: datum.image_original_url, updatedAt: Date.now() }
+        };
+
+        if (datum.image_url && token.image) {
+          token.image.url = datum.image_url;
+        }
+
+        if (datum.traits && datum.traits.length > 0 && token.metadata) {
+          token.metadata.attributes = datum.traits;
+          token.numTraitTypes = datum.traits.length;
+        }
+
+        // update firestore if data is present
+        if (!tokenId || !token.image?.url || !token.metadata?.attributes || token.numTraitTypes === 0) {
+          continue;
+        }
+
+        // set nft data
+        const collectionDocId = getCollectionDocId({ chainId, collectionAddress });
+        const nftDocRef = this.collectionsRef
+          .doc(collectionDocId)
+          .collection(firestoreConstants.COLLECTION_NFTS_COLL)
+          .doc(tokenId);
+        this.fsBatchHandler.add(nftDocRef, token, { merge: true });
+
+        // remove from invalid nfts
+        const invalidNftDocRef = this.collectionsRef
+          .doc(collectionDocId)
+          .collection(firestoreConstants.COLLECTION_INVALID_NFTS_COLL)
+          .doc(tokenId);
+        this.fsBatchHandler.delete(invalidNftDocRef);
+      }
+    };
+
+    const metadataLessTokenPages = Readable.from(allTokenIds).pipe(pageStream(openseaLimit));
+    let tokensUpdated = 0;
+    for await (const tokens of metadataLessTokenPages) {
+      tokensUpdated += tokens.length;
+      await updateTokens(tokens as Partial<Token>[]);
+    }
+
+    // flush
+    this.fsBatchHandler
+      .flush()
+      .then(() => {
+        console.log('Backfilled', tokensUpdated, 'invalid nfts for', collectionAddress);
+      })
+      .catch((err) => {
+        console.error('Error backfilling invalid nfts from OS for', collectionAddress, err);
+      });
+  }
+
+  public async backfillAnyMissingNftData(nfts: NftDto[]) {
+    for (const nft of nfts) {
+      if (!nft.collectionAddress || !nft.tokenId) {
+        continue;
+      }
+
+      const dataToSave: Partial<Token> = {};
+      let attributes: Erc721Attribute[] = [];
+
+      // image
+      if (!nft.image?.url) {
+        const openseaData = await this.openseaService.getNFT(nft.collectionAddress, nft.tokenId);
+        if (openseaData.image_url) {
+          dataToSave.image = { url: openseaData.image_url };
+        }
+
+        if (openseaData.traits && openseaData.traits.length > 0) {
+          attributes = openseaData.traits;
+        }
+      }
+
+      // alchemy cached image
+      const alchemyCachedImage = nft?.alchemyCachedImage;
+      const hasAlchemyCachedImage = alchemyCachedImage && alchemyCachedImage.includes(ALCHEMY_CACHED_IMAGE_HOST);
+      if (!hasAlchemyCachedImage) {
+        const alchemyData = await this.alchemyService.getNft(
+          nft.chainId ?? ChainId.Mainnet,
+          nft.collectionAddress,
+          nft.tokenId
+        );
+        const cachedImage = alchemyData?.media?.[0]?.gateway;
+        if (cachedImage && cachedImage.includes(ALCHEMY_CACHED_IMAGE_HOST)) {
+          dataToSave.alchemyCachedImage = cachedImage;
+        }
+
+        if (alchemyData?.metadata?.attributes && alchemyData?.metadata?.attributes.length > 0) {
+          attributes = alchemyData.metadata.attributes;
+        }
+      }
+
+      // attributes
+      const metadata = nft.metadata as Erc721Metadata;
+      const hasAttributes = metadata?.attributes && metadata?.attributes.length > 0;
+      if (!hasAttributes) {
+        if (attributes.length === 0) {
+          const openseaData = await this.openseaService.getNFT(nft.collectionAddress, nft.tokenId);
+          if (openseaData.traits && openseaData.traits.length > 0) {
+            attributes = openseaData.traits;
+          } else {
+            const alchemyData = await this.alchemyService.getNft(
+              nft.chainId ?? ChainId.Mainnet,
+              nft.collectionAddress,
+              nft.tokenId
+            );
+            if (alchemyData?.metadata?.attributes && alchemyData?.metadata?.attributes.length > 0) {
+              attributes = alchemyData.metadata.attributes;
+            }
+          }
+        } else {
+          if (attributes.length > 0) {
+            dataToSave.metadata = { attributes };
+            dataToSave.numTraitTypes = attributes.length;
+          }
+        }
+      }
+
+      // save to firestore
+      const collectionDocId = getCollectionDocId({
+        chainId: nft.chainId ?? ChainId.Mainnet,
+        collectionAddress: nft.collectionAddress
+      });
+      const docRef = this.collectionsRef
+        .doc(collectionDocId)
+        .collection(firestoreConstants.COLLECTION_NFTS_COLL)
+        .doc(nft.tokenId);
+      this.fsBatchHandler.add(docRef, dataToSave, { merge: true });
+    }
+
+    // flush
+    this.fsBatchHandler
+      .flush()
+      .then(() => {
+        console.log('Backfilled missing nft data');
+      })
+      .catch((err) => {
+        console.error('Error backfilling missing nft data', err);
+      });
+  }
+
+  private async backfillAlchemyCachedImagesAndAttributes(
+    nfts: { address: string; chainId: string; tokenId: string }[]
+  ) {
+    for (const nft of nfts) {
+      const alchemyAsset = await this.alchemyService.getNft(nft.chainId, nft.address, nft.tokenId);
+      if (alchemyAsset) {
+        const nftDto = this.transformAlchemyNftToNftDto(nft.chainId as ChainId, nft.address, nft.tokenId, alchemyAsset);
+
+        const data: Partial<Token> = {};
+        if (nftDto.alchemyCachedImage) {
+          data.alchemyCachedImage = nftDto.alchemyCachedImage;
+        }
+        if (nftDto.metadata.attributes && nftDto.metadata.attributes.length > 0) {
+          data.metadata = { attributes: nftDto.metadata.attributes };
+          data.numTraitTypes = nftDto.metadata.attributes.length;
+        }
+
+        // async save to firebase
+        const collectionDocId = getCollectionDocId({ chainId: nft.chainId, collectionAddress: nft.address });
+        const tokenDocRef = this.collectionsRef
+          .doc(collectionDocId)
+          .collection(firestoreConstants.COLLECTION_NFTS_COLL)
+          .doc(nft.tokenId);
+        this.fsBatchHandler.add(tokenDocRef, data, { merge: true });
+      }
+    }
+
+    // flush
+    this.fsBatchHandler
+      .flush()
+      .then(() => {
+        console.log('Backfilled alchemy cached images and attributes');
+      })
+      .catch((err) => {
+        console.error('Error backfilling alchemy cached images and attributes', err);
+      });
+  }
+
+  public backfillAlchemyCachedImagesForUserNfts(nfts: AlchemyNft[], chainId: ChainId, user?: string) {
     for (const nft of nfts) {
       const nftWithMetadata = nft as AlchemyNftWithMetadata;
       const collectionAddress = nftWithMetadata.contract.address;
       const tokenId = hexToDecimalTokenId(nftWithMetadata.id.tokenId);
       const alchemyCachedImage = nftWithMetadata.media?.[0]?.gateway;
+      if (!alchemyCachedImage.includes(ALCHEMY_CACHED_IMAGE_HOST)) {
+        // skip if not cached image
+        continue;
+      }
       const collectionDocId = getCollectionDocId({ chainId, collectionAddress });
       // save in collections/nfts
       const tokenDocRef = this.collectionsRef
@@ -149,7 +421,7 @@ export class BackfillService {
     this.fsBatchHandler
       .flush()
       .then(() => {
-        console.log('backfilled alchemy cached images');
+        console.log('Backfilled alchemy cached images');
       })
       .catch((e) => {
         console.error('Error backfilling alchemy cached images', e);
@@ -164,23 +436,32 @@ export class BackfillService {
       const osAsset = await this.openseaService.getNFT(nft.address, nft.tokenId);
       const nftDto = this.transformOpenseaNftToNftDto(nft.chainId, nft.address, osAsset);
       nftDtos.push(nftDto);
+
+      const tokenId = nftDto.tokenId;
+      let tokenIdNumeric = NaN;
+      try {
+        tokenIdNumeric = Number(tokenId);
+      } catch (err) {
+        console.error('Error parsing tokenId to number', err);
+      }
+
       // async save to firebase
       const collectionDocId = getCollectionDocId({ chainId: nft.chainId, collectionAddress: nft.address });
       const tokenDocRef = this.collectionsRef
         .doc(collectionDocId)
         .collection(firestoreConstants.COLLECTION_NFTS_COLL)
         .doc(nft.tokenId);
-      this.fsBatchHandler.add(tokenDocRef, nftDto, { merge: true });
+      this.fsBatchHandler.add(tokenDocRef, { ...nftDto, tokenIdNumeric }, { merge: true });
     }
 
     // flush
     this.fsBatchHandler
       .flush()
       .then(() => {
-        console.log('backfilled missing nfts from opensea');
+        console.log('Backfilled missing nfts from opensea');
       })
       .catch((err) => {
-        console.error('error backfilling nfts', err);
+        console.error('Error backfilling nfts from opensea', err);
       });
 
     // return
@@ -196,22 +477,36 @@ export class BackfillService {
       if (alchemyAsset) {
         const nftDto = this.transformAlchemyNftToNftDto(nft.chainId, nft.address, nft.tokenId, alchemyAsset);
         nftDtos.push(nftDto);
-      }
-    }
-    return nftDtos;
-  }
 
-  private async fetchNftsFromMnemonic(
-    nfts: { address: string; chainId: ChainId; tokenId: string }[]
-  ): Promise<(NftDto | undefined)[]> {
-    const nftDtos: NftDto[] = [];
-    for (const nft of nfts) {
-      const mnemonicAsset = await this.mnemonicService.getNft(nft.address, nft.tokenId);
-      if (mnemonicAsset) {
-        const nftDto = this.transformMnemonicNftToNftDto(nft.chainId, nft.address, nft.tokenId, mnemonicAsset);
-        nftDtos.push(nftDto);
+        const tokenId = nftDto.tokenId;
+        let tokenIdNumeric = NaN;
+        try {
+          tokenIdNumeric = Number(tokenId);
+        } catch (err) {
+          console.error('Error parsing tokenId to number', err);
+        }
+
+        // async save to firebase
+        const collectionDocId = getCollectionDocId({ chainId: nft.chainId, collectionAddress: nft.address });
+        const tokenDocRef = this.collectionsRef
+          .doc(collectionDocId)
+          .collection(firestoreConstants.COLLECTION_NFTS_COLL)
+          .doc(nft.tokenId);
+        this.fsBatchHandler.add(tokenDocRef, { ...nftDto, tokenIdNumeric }, { merge: true });
       }
     }
+
+    // flush
+    this.fsBatchHandler
+      .flush()
+      .then(() => {
+        console.log('Backfilled missing nfts from opensea');
+      })
+      .catch((err) => {
+        console.error('Error backfilling nfts from opensea', err);
+      });
+
+    // return
     return nftDtos;
   }
 
@@ -220,7 +515,7 @@ export class BackfillService {
       collectionAddress: collectionAddress,
       chainId: chainId,
       tokenId: nft.token_id,
-      image: { url: nft.image_url, originalUrl: nft.image_original_url, updatedAt: NaN },
+      image: { url: nft.image_url, originalUrl: nft.image_original_url, updatedAt: Date.now() },
       slug: getSearchFriendlyString(nft.name),
       minter: '',
       mintTxHash: '',
@@ -241,7 +536,7 @@ export class BackfillService {
       },
       numTraitTypes: nft.traits.length,
       tokenUri: nft.token_metadata,
-      updatedAt: NaN,
+      updatedAt: Date.now(),
       rarityRank: NaN,
       rarityScore: NaN,
       tokenStandard: nft.asset_contract.schema_name as TokenStandard
@@ -254,13 +549,19 @@ export class BackfillService {
     tokenId: string,
     alchemyNft: AlchemyNftWithMetadata
   ): NftDto {
-    const attrs = alchemyNft.metadata.attributes.map((attr) => ({
+    const attrs = alchemyNft.metadata.attributes?.map?.((attr) => ({
       trait_type: attr.trait_type,
       value: attr.value,
       display_type: attr.display_type
     }));
 
-    return {
+    const cachedImage = alchemyNft?.media?.[0]?.gateway;
+    let alchemyCachedImage = '';
+    if (cachedImage && cachedImage.includes(ALCHEMY_CACHED_IMAGE_HOST)) {
+      alchemyCachedImage = cachedImage;
+    }
+
+    const data: NftDto = {
       collectionAddress,
       chainId: chainId,
       slug: getSearchFriendlyString(alchemyNft?.title ?? ''),
@@ -282,17 +583,23 @@ export class BackfillService {
         background_color: ''
       },
       numTraitTypes: attrs?.length ?? 0,
-      updatedAt: NaN,
+      updatedAt: Date.now(),
       tokenUri: alchemyNft?.tokenUri.gateway ?? alchemyNft.tokenUri?.raw ?? '',
       rarityRank: NaN,
       rarityScore: NaN,
       image: {
-        url: (alchemyNft?.media?.[0]?.gateway || alchemyNft?.metadata?.image) ?? '',
+        url: alchemyCachedImage,
         originalUrl: (alchemyNft?.media?.[0]?.raw || alchemyNft?.metadata?.image) ?? '',
-        updatedAt: NaN
+        updatedAt: Date.now()
       },
       tokenStandard: alchemyNft.id.tokenMetadata.tokenType
     };
+
+    if (alchemyCachedImage) {
+      data.alchemyCachedImage = alchemyCachedImage;
+    }
+
+    return data;
   }
 
   private transformMnemonicNftToNftDto(
@@ -329,7 +636,7 @@ export class BackfillService {
       updatedAt: NaN,
       rarityRank: NaN,
       rarityScore: NaN,
-      tokenStandard: TokenStandard.ERC721 // todo: adi get this from the mnemonic or add an unknown token standard
+      tokenStandard: TokenStandard.ERC721
     };
   }
 }

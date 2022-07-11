@@ -1,12 +1,15 @@
+import { OBOrderItem } from '@infinityxyz/lib/types/core';
 import {
   OBOrderItemDto,
   OrderItemsQueryDto,
   OrdersDto,
   SignedOBOrderArrayDto,
   SignedOBOrderDto,
-  UserOrderItemsQueryDto
+  UserOrderItemsQueryDto,
+  UserOrderCollectionsQueryDto
 } from '@infinityxyz/lib/types/dto/orders';
-import { BadRequestException, Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { trimLowerCase, getDigest, orderHash, verifySig } from '@infinityxyz/lib/utils';
+import { BadRequestException, Body, Controller, Get, NotFoundException, Param, Post, Query } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { ParamUserId } from 'auth/param-user-id.decorator';
 import { UserAuth } from 'auth/user-auth.decorator';
@@ -20,12 +23,8 @@ import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 import OrdersService from './orders.service';
 
-type UserOrderCollectionsQueryDto = UserOrderItemsQueryDto & {
-  name?: string;
-};
-
 class OBOrderCollectionsArrayDto {
-  data: OBOrderItemDto[];
+  data: Array<Omit<OBOrderItem, 'tokens'>>;
   cursor: string;
   hasNextPage: boolean;
 }
@@ -34,21 +33,37 @@ class OBOrderCollectionsArrayDto {
 export class OrdersController {
   constructor(private ordersService: OrdersService) {}
 
-  @Post(':userId')
+  @Post()
   @ApiOperation({
     description: 'Post orders',
     tags: [ApiTag.Orders]
   })
-  @UserAuth('userId')
   @ApiOkResponse({ description: ResponseDescription.Success, type: String })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  public async postOrders(
-    @ParamUserId('userId', ParseUserIdPipe) maker: ParsedUserId,
-    @Body() body: OrdersDto
-  ): Promise<void> {
+  public async postOrders(@Body() body: OrdersDto): Promise<void> {
     try {
       const orders = (body.orders ?? []).map((item: any) => instanceToPlain(item)) as SignedOBOrderDto[];
+      const maker = trimLowerCase(orders[0].signedOrder.signer);
+      if (!maker) {
+        throw new Error('Invalid maker');
+      }
+
+      // check signatures
+      const valid = orders.every((order) => {
+        const { signedOrder } = order;
+        const { signer, sig } = signedOrder;
+        const hashOfOrder = orderHash(signedOrder);
+        const digest = getDigest(order.chainId, order.execParams.complicationAddress, hashOfOrder);
+        const isSigValid = verifySig(digest, signer, sig);
+        return isSigValid;
+      });
+
+      if (!valid) {
+        throw new Error('Invalid signatures');
+      }
+
+      // call service
       await this.ordersService.createOrder(maker, orders);
     } catch (err) {
       if (err instanceof InvalidCollectionError) {
@@ -82,43 +97,54 @@ export class OrdersController {
   @ApiOkResponse({ description: ResponseDescription.Success, type: SignedOBOrderArrayDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  public async getUserOrdersCollections(
+  public async getUserOrderCollections(
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
     @Query() reqQuery: UserOrderCollectionsQueryDto
   ): Promise<OBOrderCollectionsArrayDto> {
-    reqQuery.limit = 999999; // get all user's orders (todo: Number.MAX_SAFE_INTEGER doesn't work here)
-    const results = await this.ordersService.getSignedOBOrders(reqQuery, user);
+    const results = await this.ordersService.getUserOrderCollections(reqQuery, user);
 
     // dedup and normalize (make sure name & slug exist) collections:
     const colls: any = {};
-    results?.data.forEach((order) => {
-      order.nfts.forEach((nft) => {
-        if (nft.collectionName && nft.collectionSlug) {
-          colls[nft.collectionAddress] = {
-            ...nft
-          };
-        }
-      });
+    results?.data.forEach((item) => {
+      if (item.collectionName && item.collectionSlug) {
+        colls[item.collectionAddress] = {
+          ...item
+        };
+      }
     });
 
-    const data: OBOrderItemDto[] = [];
-    const nameSearch = (reqQuery.name ?? '').toLowerCase();
+    const data: Array<Omit<OBOrderItem, 'tokens'>> = [];
     for (const address of Object.keys(colls)) {
-      const collData = colls[address] as OBOrderItemDto;
-      collData.tokens = []; // not needed for this response.
-      if (nameSearch) {
-        if (collData.collectionName.toLowerCase().indexOf(nameSearch) >= 0) {
-          data.push(collData);
-        }
-      } else {
-        data.push(collData);
-      }
+      const collData = colls[address] as Omit<OBOrderItemDto, 'tokens'>;
+      data.push(collData);
     }
     return {
       data,
       cursor: '',
       hasNextPage: false
     };
+  }
+
+  @Get('id/:orderId')
+  @ApiOperation({
+    description: 'Get a signed order with the given id.',
+    tags: [ApiTag.Orders, ApiTag.User]
+  })
+  @ApiOkResponse({ description: ResponseDescription.Success, type: SignedOBOrderArrayDto })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  public async getUserSignedOrder(
+    @Param('orderId') orderId: string,
+    @Query() reqQuery: UserOrderItemsQueryDto
+  ): Promise<SignedOBOrderDto | undefined> {
+    if (!reqQuery.id) {
+      reqQuery.id = orderId;
+    }
+    const results = await this.ordersService.getSignedOBOrders(reqQuery, undefined);
+    if (results?.data && results.data[0]) {
+      return results.data[0];
+    }
+    throw new NotFoundException('Failed to find order');
   }
 
   @Get(':userId')
@@ -143,10 +169,11 @@ export class OrdersController {
     description: 'Get order nonce for user',
     tags: [ApiTag.Orders]
   })
+  @UserAuth('userId')
   @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  public async getOrderNonce(@Param('userId') userId: string): Promise<string> {
+  public async getOrderNonce(@Param('userId') userId: string): Promise<number> {
     return await this.ordersService.getOrderNonce(userId);
   }
 }

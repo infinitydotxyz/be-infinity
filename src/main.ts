@@ -48,6 +48,13 @@ function setupSwagger(app: INestApplication, path: string) {
       in: 'header',
       description: `Pass the message that was signed in the ${auth.message} header`
     })
+    .addSecurity(auth.nonce, {
+      type: 'apiKey',
+      scheme: `${auth.nonce}: <numeric nonce>`,
+      name: auth.nonce,
+      in: 'header',
+      description: `The expiration nonce that's visible in the ${auth.nonce} header`
+    })
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

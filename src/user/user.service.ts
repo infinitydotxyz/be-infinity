@@ -1,18 +1,8 @@
-/* eslint-disable no-empty */
-import { ChainId } from '@infinityxyz/lib/types/core';
+import { ChainId, OrderDirection } from '@infinityxyz/lib/types/core';
 import { AlchemyNftToInfinityNft } from '../common/transformers/alchemy-nft-to-infinity-nft.pipe';
-import { AlchemyService } from 'alchemy/alchemy.service';
-import { CreationFlow, OrderDirection } from '@infinityxyz/lib/types/core';
-import { NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
-import {
-  DEFAULT_ITEMS_PER_PAGE,
-  firestoreConstants,
-  getEndCode,
-  getSearchFriendlyString,
-  trimLowerCase
-} from '@infinityxyz/lib/utils';
+import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
 import { Injectable, Optional } from '@nestjs/common';
-import { ActivityType, activityTypeToEventType } from 'collections/nfts/nft-activity.types';
+import { AlchemyService } from 'alchemy/alchemy.service';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { InvalidUserError } from 'common/errors/invalid-user.error';
 import { BigNumber } from 'ethers/lib/ethers';
@@ -36,16 +26,20 @@ import {
   UserActivityQueryDto,
   UserActivityArrayDto
 } from '@infinityxyz/lib/types/dto/user';
-import { NftsService } from '../collections/nfts/nfts.service';
-import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
 import { BackfillService } from 'backfill/backfill.service';
+import { CuratedCollectionsQuery } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
+import {
+  CuratedCollectionDto,
+  CuratedCollectionsDto
+} from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
+import { NftsService } from '../collections/nfts/nfts.service';
+import { NftSaleEvent, NftListingEvent, NftOfferEvent, EventType } from '@infinityxyz/lib/types/core/feed';
 
 export type UserActivity = NftSaleEvent | NftListingEvent | NftOfferEvent;
 
 @Injectable()
 export class UserService {
   private alchemyNftToInfinityNft: AlchemyNftToInfinityNft;
-  private fsBatchHandler: FirestoreBatchHandler;
   constructor(
     private firebaseService: FirebaseService,
     private alchemyService: AlchemyService,
@@ -54,8 +48,7 @@ export class UserService {
     private backfillService: BackfillService,
     @Optional() private statsService: StatsService
   ) {
-    this.fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
-    this.alchemyNftToInfinityNft = new AlchemyNftToInfinityNft(nftsService);
+    this.alchemyNftToInfinityNft = new AlchemyNftToInfinityNft(this.nftsService);
   }
 
   async getWatchlist(user: ParsedUserId, query: RankingQueryDto) {
@@ -99,6 +92,24 @@ export class UserService {
     return profile;
   }
 
+  async getProfileForUserAdress(user: string) {
+    const profileSnapshot = await this.firebaseService.firestore
+      .collection(firestoreConstants.USERS_COLL)
+      .where('username', '==', trimLowerCase(user))
+      .limit(1)
+      .get();
+
+    const doc = profileSnapshot.docs[0];
+
+    const profile = doc?.data() as UserProfileDto;
+
+    if (!profile) {
+      return null;
+    }
+
+    return profile;
+  }
+
   async getCollectionsBeingFollowed(user: ParsedUserId) {
     const collectionFollows = user.ref.collection(firestoreConstants.COLLECTION_FOLLOWS_COLL);
 
@@ -120,7 +131,7 @@ export class UserService {
     if (!collection) {
       throw new InvalidCollectionError(payload.collectionAddress, payload.collectionChainId, 'Collection not found');
     }
-    if (collection?.state?.create?.step !== CreationFlow.Complete) {
+    if (!collection?.state?.create?.step) {
       throw new InvalidCollectionError(
         payload.collectionAddress,
         payload.collectionChainId,
@@ -151,7 +162,7 @@ export class UserService {
     if (!collection) {
       throw new InvalidCollectionError(payload.collectionAddress, payload.collectionChainId, 'Collection not found');
     }
-    if (collection?.state?.create?.step !== CreationFlow.Complete) {
+    if (!collection?.state?.create?.step) {
       throw new InvalidCollectionError(
         payload.collectionAddress,
         payload.collectionChainId,
@@ -201,58 +212,15 @@ export class UserService {
     return {};
   }
 
-  async getUserNftCollections(user: ParsedUserId, search = '') {
-    const collRef = user.ref.collection(firestoreConstants.USER_NFT_COLLECTION_COLL);
+  async getUserNftCollections(user: ParsedUserId) {
+    const collRef = user.ref.collection(firestoreConstants.USER_NFTS_COLL);
 
-    let snap = undefined;
-    if (!search) {
-      snap = await collRef.limit(DEFAULT_ITEMS_PER_PAGE).get();
-    } else {
-      // search by name (collectionSlug)
-      const startsWith = getSearchFriendlyString(search);
-      const endCode = getEndCode(startsWith);
-      if (startsWith && endCode) {
-        snap = await collRef
-          .where('collectionSlug', '>=', startsWith)
-          .where('collectionSlug', '<', endCode)
-          .limit(DEFAULT_ITEMS_PER_PAGE)
-          .get();
-      }
-    }
-
-    const nftCollections: NftCollectionDto[] = (snap?.docs ?? []).map((doc) => {
+    const snap = await collRef.get();
+    const nftCollections: NftCollectionDto[] = snap.docs.map((doc) => {
       const docData = doc.data() as NftCollectionDto;
       return docData;
     });
     return nftCollections;
-  }
-
-  saveUserNftCollections(userAddress: string, nfts: NftDto[]) {
-    const userRef = this.firebaseService.firestore
-      .collection(firestoreConstants.USERS_COLL)
-      .doc(userAddress)
-      .collection(firestoreConstants.USER_NFT_COLLECTION_COLL);
-
-    for (const nft of nfts) {
-      const { chainId, collectionAddress, collectionName, collectionSlug, hasBlueCheck } = nft;
-      if (chainId && collectionAddress && collectionName && collectionSlug) {
-        const docRef = userRef.doc(`${chainId}:${collectionAddress}`);
-        this.fsBatchHandler.add(
-          docRef,
-          {
-            chainId,
-            collectionAddress,
-            collectionName,
-            collectionSlug,
-            hasBlueCheck
-          },
-          { merge: true }
-        );
-      }
-    }
-    this.fsBatchHandler.flush().catch((err) => {
-      console.error('error saving user nft collections', err);
-    });
   }
 
   async getUserNftsWithOrders(user: ParsedUserId, nftsQuery: UserNftsQueryDto): Promise<NftArrayDto> {
@@ -289,11 +257,12 @@ export class UserService {
 
     const orderDirection = nftsQuery.orderDirection ?? OrderDirection.Descending;
     query = query.orderBy(`${orderSnippetItem}.startPriceEth`, orderDirection);
+    query = query.orderBy(`${orderSnippetItem}.startTimeMs`, OrderDirection.Descending); // to break ties
 
-    type Cursor = { startPriceEth?: number };
+    type Cursor = { startPriceEth?: number; startTimeMs?: number };
     const cursor = this.paginationService.decodeCursorToObject<Cursor>(nftsQuery.cursor);
-    if (cursor.startPriceEth != null) {
-      query = query.startAfter(cursor.startPriceEth);
+    if (cursor.startPriceEth && cursor.startTimeMs) {
+      query = query.startAfter(cursor.startPriceEth, cursor.startTimeMs);
     }
 
     const nftsSnapshot = await query.limit(nftsQuery.limit + 1).get();
@@ -311,13 +280,19 @@ export class UserService {
     const lastItem = nfts[nfts.length - 1];
     const orderField = nftsQuery.orderType === UserNftsOrderType.Listings ? 'listing' : 'offer';
     const price = lastItem?.ordersSnippet?.[orderField]?.orderItem?.startPriceEth;
-    const cursorObj: Cursor = { startPriceEth: price };
+    const time = lastItem?.ordersSnippet?.[orderField]?.orderItem?.startTimeMs;
+    const cursorObj: Cursor = { startPriceEth: price, startTimeMs: time };
     const updatedCursor = this.paginationService.encodeCursor(cursorObj);
+
+    // fetch total owned
+    const response = await this.alchemyService.getUserNfts(user.userAddress, nftsQuery.chainId ?? ChainId.Mainnet, '');
+    const totalOwned = response?.totalCount ?? NaN;
 
     return {
       cursor: updatedCursor,
       hasNextPage,
-      data: nfts
+      data: nfts,
+      totalOwned
     };
   }
 
@@ -325,9 +300,11 @@ export class UserService {
     user: ParsedUserId,
     query: Pick<UserNftsQueryDto, 'collectionAddresses' | 'cursor' | 'limit' | 'chainId'>
   ): Promise<NftArrayDto> {
-    const chainId = query.chainId ?? ChainId.Mainnet;
+    const chainId = query.chainId || ChainId.Mainnet;
     type Cursor = { pageKey?: string; startAtToken?: string };
     const cursor = this.paginationService.decodeCursorToObject<Cursor>(query.cursor);
+    let totalOwned = NaN;
+
     const _fetchNfts = async (
       pageKey: string,
       startAtToken?: string
@@ -339,11 +316,12 @@ export class UserService {
         pageKey,
         query.collectionAddresses
       );
+      totalOwned = response?.totalCount ?? NaN;
       const nextPageKey = response?.pageKey ?? '';
       let nfts = response?.ownedNfts ?? [];
 
       // backfill alchemy cached images in firestore
-      this.backfillService.backfillAlchemyCachedImages(nfts, chainId, user.userAddress);
+      this.backfillService.backfillAlchemyCachedImagesForUserNfts(nfts, chainId, user.userAddress);
 
       if (startAtToken) {
         const indexToStartAt = nfts.findIndex(
@@ -355,8 +333,9 @@ export class UserService {
       const nftsToTransform = nfts.map((item) => ({ alchemyNft: item, chainId }));
       const results = await this.alchemyNftToInfinityNft.transform(nftsToTransform);
       const validNfts = results.filter((item) => !!item) as unknown as NftDto[];
+      const hasNextPage = !!nextPageKey && validNfts.length > 0;
 
-      return { pageKey: nextPageKey, nfts: validNfts, hasNextPage: !!nextPageKey };
+      return { pageKey: nextPageKey, nfts: validNfts, hasNextPage };
     };
 
     const limit = query.limit + 1; // +1 to check if there is a next page
@@ -385,13 +364,11 @@ export class UserService {
       startAtToken: nftToStartAt
     });
 
-    // save user's collections to be used in /:userId/nftCollections
-    this.saveUserNftCollections(user.userAddress, nfts);
-
     return {
       data: nftsToReturn,
       cursor: updatedCursor,
-      hasNextPage
+      hasNextPage,
+      totalOwned
     };
   }
 
@@ -421,9 +398,7 @@ export class UserService {
   }
 
   async getActivity(user: ParsedUserId, query: UserActivityQueryDto): Promise<UserActivityArrayDto> {
-    const activityTypes = query.events && query?.events.length > 0 ? query.events : Object.values(ActivityType);
-
-    const events = activityTypes.map((item) => activityTypeToEventType[item]);
+    const events = query.events && query?.events.length > 0 ? query.events : Object.values(EventType);
 
     let userEventsQuery = this.firebaseService.firestore
       .collection(firestoreConstants.FEED_COLL)
@@ -453,6 +428,40 @@ export class UserService {
       data: data,
       hasNextPage,
       cursor: nextCursor
+    };
+  }
+
+  /**
+   * Fetch all user-curated collections.
+   */
+  async getAllCurated(user: ParsedUserId, query: CuratedCollectionsQuery): Promise<CuratedCollectionsDto> {
+    let q = this.firebaseService.firestore
+      .collectionGroup(firestoreConstants.COLLECTION_CURATORS_COLL)
+      .where('userAddress', '==', user.userAddress)
+      .where('userChainId', '==', user.userChainId)
+      .orderBy('votes', query.orderDirection)
+      .orderBy('timestamp', 'desc')
+      .limit(query.limit + 1);
+
+    if (query.cursor) {
+      const { votes, timestamp } = this.paginationService.decodeCursorToObject<CuratedCollectionDto>(query.cursor);
+      q = q.startAfter({ votes, timestamp });
+    }
+
+    const snap = await q.get();
+    const curations = snap.docs.map((item) => item.data() as CuratedCollectionDto);
+
+    const hasNextPage = curations.length > query.limit;
+    if (hasNextPage) {
+      curations.pop();
+    }
+
+    const lastItem = curations[curations.length - 1];
+
+    return {
+      data: curations,
+      cursor: hasNextPage ? this.paginationService.encodeCursor(lastItem) : undefined,
+      hasNextPage
     };
   }
 }

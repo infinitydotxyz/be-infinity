@@ -1,10 +1,4 @@
-import {
-  ChainId,
-  Collection,
-  CollectionPeriodStatsContent,
-  CreationFlow,
-  StatsPeriod
-} from '@infinityxyz/lib/types/core';
+import { ChainId, Collection, CollectionPeriodStatsContent, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
 import {
   Controller,
@@ -36,12 +30,15 @@ import {
   CollectionSearchArrayDto,
   CollectionSearchQueryDto,
   CollectionStatsByPeriodDto,
-  CollectionStatsQueryDto, CollectionTrendingStatsQueryDto, RankingQueryDto, TopOwnersArrayResponseDto,
-  TopOwnersQueryDto
+  CollectionStatsQueryDto,
+  CollectionTrendingStatsQueryDto,
+  RankingQueryDto,
+  TopOwnersArrayResponseDto,
+  TopOwnersQueryDto,
+  PaginatedCollectionsDto
 } from '@infinityxyz/lib/types/dto/collections';
 import { NftActivityArrayDto, NftActivityFiltersDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { TweetArrayDto } from '@infinityxyz/lib/types/dto/twitter';
-import { CollectionVotesDto } from '@infinityxyz/lib/types/dto/votes';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { ApiTag } from 'common/api-tags';
 import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param-collection-id.decorator';
@@ -55,7 +52,6 @@ import { mnemonicByParam } from 'mnemonic/mnemonic.service';
 import { StatsService } from 'stats/stats.service';
 import { TwitterService } from 'twitter/twitter.service';
 import { EXCLUDED_COLLECTIONS } from 'utils/stats';
-import { VotesService } from 'votes/votes.service';
 import { UPDATE_SOCIAL_STATS_INTERVAL } from '../constants';
 import { AttributesService } from './attributes/attributes.service';
 import { ParseCollectionIdPipe, ParsedCollectionId } from './collection-id.pipe';
@@ -63,16 +59,23 @@ import CollectionsService from './collections.service';
 import { enqueueCollection } from './collections.utils';
 import { CollectionStatsArrayDto } from './dto/collection-stats-array.dto';
 import { NftsService } from './nfts/nfts.service';
+import { CuratedCollectionsQuery } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
+import { CurationService } from './curation/curation.service';
+import { ApiParamUserId, ParamUserId } from 'auth/param-user-id.decorator';
+import { UserAuth } from 'auth/user-auth.decorator';
+import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
+import { ParsedUserId } from 'user/parser/parsed-user-id';
+import { CuratedCollectionDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 
 @Controller('collections')
 export class CollectionsController {
   constructor(
     private collectionsService: CollectionsService,
     private statsService: StatsService,
-    private votesService: VotesService,
     private twitterService: TwitterService,
     private attributesService: AttributesService,
     private nftsService: NftsService,
+    private curationService: CurationService,
     private firebaseService: FirebaseService
   ) {}
 
@@ -130,21 +133,6 @@ export class CollectionsController {
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 3 }))
   async getStats(@Query() query: RankingQueryDto): Promise<CollectionStatsArrayResponseDto> {
     const res = await this.statsService.getCollectionRankings(query);
-
-    const { getCollection } = await this.collectionsService.getCollectionsByAddress(
-      res.data.map((st) => ({ address: st.collectionAddress, chainId: st.chainId }))
-    );
-
-    // get collection details and set them to the result:
-    const finalData: any[] = [];
-    for (const st of res.data) {
-      const collectionData = getCollection({ address: st.collectionAddress ?? '', chainId: st.chainId });
-      if (collectionData && collectionData.state?.create.step === CreationFlow.Complete) {
-        st.collectionData = collectionData as Collection;
-        finalData.push(st);
-      }
-    }
-    res.data = finalData;
 
     return res;
   }
@@ -210,7 +198,7 @@ export class CollectionsController {
         if (!EXCLUDED_COLLECTIONS.includes(collectionData?.address)) {
           const resultItem: Collection = {
             ...collectionData,
-            attributes: {} // don't include attributess
+            attributes: {} // don't include attributes
           };
 
           resultItem.stats = {
@@ -233,6 +221,62 @@ export class CollectionsController {
     return {
       data: results
     };
+  }
+
+  @Get('curated')
+  @ApiOperation({
+    description: 'Fetch all curated collections',
+    tags: [ApiTag.Collection, ApiTag.Curation]
+  })
+  @ApiOkResponse({ type: PaginatedCollectionsDto })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  async getAllCurated(@Query() query: CuratedCollectionsQuery) {
+    return this.collectionsService.getCurated(query);
+  }
+
+  @Get('curated/:userId')
+  @UserAuth('userId')
+  @ApiOperation({
+    description:
+      'Fetch all curated collections. Each curated collection object that has been voted for by the current user will contain more info, like the amount of votes.',
+    tags: [ApiTag.Collection, ApiTag.Curation]
+  })
+  @ApiOkResponse({ type: PaginatedCollectionsDto })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  async getAllCuratedByUserId(
+    @Query() query: CuratedCollectionsQuery,
+    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId
+  ) {
+    return this.collectionsService.getCurated(query, user);
+  }
+
+  @Get('/:id/curated/:userId')
+  @UserAuth('userId')
+  @ApiParamUserId('userId')
+  @ApiParamCollectionId('collectionId')
+  @ApiOperation({
+    description: 'Fetch curation details and estimations of the collection',
+    tags: [ApiTag.Collection, ApiTag.Curation]
+  })
+  @ApiOkResponse({ type: CuratedCollectionDto })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  async getCurated(
+    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
+    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId
+  ) {
+    const curated = await this.curationService.findUserCurated(user, collection);
+
+    if (!curated) {
+      return {};
+    }
+
+    return curated;
   }
 
   @Get('/:id')
@@ -326,6 +370,7 @@ export class CollectionsController {
       period: StatsPeriod.Hourly,
       date: Date.now()
     });
+
     return res;
   }
 
@@ -346,25 +391,6 @@ export class CollectionsController {
     @Query() query: CollectionStatsQueryDto
   ): Promise<CollectionStatsByPeriodDto> {
     const response = await this.statsService.getCollectionStatsByPeriodAndDate(collection, date, query.periods);
-    return response;
-  }
-
-  @Get('/:id/votes')
-  @ApiOperation({
-    tags: [ApiTag.Collection, ApiTag.Votes],
-    description: 'Get votes for a single collection'
-  })
-  @ApiParamCollectionId()
-  @ApiOkResponse({ description: ResponseDescription.Success, type: CollectionVotesDto })
-  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
-  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor())
-  async getCollectionVotes(
-    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
-  ): Promise<CollectionVotesDto> {
-    const response = await this.votesService.getCollectionVotes(collection);
-
     return response;
   }
 
@@ -389,7 +415,7 @@ export class CollectionsController {
 
   @Get(':id/activity')
   @ApiOperation({
-    description: 'Get activity for a specific nft',
+    description: 'Get activity for a collection or a specific nft activity',
     tags: [ApiTag.Nft]
   })
   @ApiParamCollectionId('id')

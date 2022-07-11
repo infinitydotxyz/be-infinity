@@ -1,7 +1,6 @@
 import {
   ChainId,
   Collection,
-  CreationFlow,
   Erc721Metadata,
   FirestoreOrder,
   FirestoreOrderItem,
@@ -12,15 +11,24 @@ import {
   OrderDirection,
   Token
 } from '@infinityxyz/lib/types/core';
-import { FeedEventType, NftListingEvent, NftOfferEvent } from '@infinityxyz/lib/types/core/feed';
+import { EventType, NftListingEvent, NftOfferEvent } from '@infinityxyz/lib/types/core/feed';
 import {
   ChainNFTsDto,
   OrderItemsOrderBy,
   SignedOBOrderArrayDto,
   SignedOBOrderDto,
+  SignedOBOrderWithoutMetadataDto,
+  UserOrderCollectionsQueryDto,
   UserOrderItemsQueryDto
 } from '@infinityxyz/lib/types/dto/orders';
-import { firestoreConstants, getInfinityLink, trimLowerCase } from '@infinityxyz/lib/utils';
+import {
+  firestoreConstants,
+  getEndCode,
+  getInfinityLink,
+  getSearchFriendlyString,
+  orderHash,
+  trimLowerCase
+} from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import CollectionsService from 'collections/collections.service';
 import { NftsService } from 'collections/nfts/nfts.service';
@@ -28,8 +36,8 @@ import { BadQueryError } from 'common/errors/bad-query.error';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { InvalidTokenError } from 'common/errors/invalid-token-error';
 import { EthereumService } from 'ethereum/ethereum.service';
-import { BigNumber } from 'ethers';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
+import { FirestoreDistributedCounter } from 'firebase/firestore-counter';
 import { FirebaseService } from '../firebase/firebase.service';
 import { CursorService } from '../pagination/cursor.service';
 import { ParsedUserId } from '../user/parser/parsed-user-id';
@@ -37,10 +45,14 @@ import { UserParserService } from '../user/parser/parser.service';
 import { UserService } from '../user/user.service';
 import { getDocIdHash } from '../utils';
 import { OrderItemTokenMetadata, OrderMetadata } from './order.types';
-import { getOrderIdFromSignedOrder } from './orders.utils';
 
 @Injectable()
 export default class OrdersService {
+  private numBuyOrderItems: FirestoreDistributedCounter;
+  private numSellOrderItems: FirestoreDistributedCounter;
+  private openBuyInterest: FirestoreDistributedCounter;
+  private openSellInterest: FirestoreDistributedCounter;
+
   constructor(
     private firebaseService: FirebaseService,
     private userService: UserService,
@@ -49,23 +61,62 @@ export default class OrdersService {
     private userParser: UserParserService,
     private ethereumService: EthereumService,
     private cursorService: CursorService
-  ) {}
+  ) {
+    const ordersCounterDocRef = this.firebaseService.firestore
+      .collection(firestoreConstants.ORDERS_COLL)
+      .doc(firestoreConstants.COUNTER_DOC);
+    // num items
+    this.numBuyOrderItems = new FirestoreDistributedCounter(
+      ordersCounterDocRef,
+      firestoreConstants.NUM_BUY_ORDER_ITEMS_FIELD
+    );
+    this.numSellOrderItems = new FirestoreDistributedCounter(
+      ordersCounterDocRef,
+      firestoreConstants.NUM_SELL_ORDER_ITEMS_FIELD
+    );
+    // start prices
+    this.openBuyInterest = new FirestoreDistributedCounter(
+      ordersCounterDocRef,
+      firestoreConstants.OPEN_BUY_INTEREST_FIELD
+    );
+    this.openSellInterest = new FirestoreDistributedCounter(
+      ordersCounterDocRef,
+      firestoreConstants.OPEN_SELL_INTEREST_FIELD
+    );
+  }
 
-  public async createOrder(maker: ParsedUserId, orders: SignedOBOrderDto[]): Promise<void> {
+  private updateOrderCounters(order: SignedOBOrderWithoutMetadataDto) {
+    if (order.signedOrder.isSellOrder) {
+      this.numSellOrderItems.incrementBy(order.numItems);
+      this.openSellInterest.incrementBy(order.startPriceEth);
+    } else {
+      this.numBuyOrderItems.incrementBy(order.numItems);
+      this.openBuyInterest.incrementBy(order.startPriceEth);
+    }
+  }
+
+  public async createOrder(maker: string, orders: SignedOBOrderWithoutMetadataDto[]): Promise<void> {
     try {
       const fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
       const ordersCollectionRef = this.firebaseService.firestore.collection(firestoreConstants.ORDERS_COLL);
       const metadata = await this.getOrderMetadata(orders);
-      const makerProfile = await this.userService.getProfile(maker);
+      const makerProfile = await this.userService.getProfileForUserAdress(maker);
       const makerUsername = makerProfile?.username ?? '';
 
       for (const order of orders) {
         // get data
-        const orderId = getOrderIdFromSignedOrder(order, maker.userAddress);
-        const dataToStore = this.getFirestoreOrderFromSignedOBOrder(maker.userAddress, makerUsername, order, orderId);
+        const orderId = orderHash(order.signedOrder);
+        const dataToStore = this.getFirestoreOrderFromSignedOBOrder(maker, makerUsername, order, orderId);
         // save
         const docRef = ordersCollectionRef.doc(orderId);
         fsBatchHandler.add(docRef, dataToStore, { merge: true });
+
+        // update counters
+        try {
+          this.updateOrderCounters(order);
+        } catch (err) {
+          console.error('Error updating order counters on post order', err);
+        }
 
         // get order items
         const orderItemsRef = docRef.collection(firestoreConstants.ORDER_ITEMS_SUB_COLL);
@@ -75,7 +126,8 @@ export default class OrdersService {
             const emptyToken: OrderItemTokenMetadata = {
               tokenId: '',
               numTokens: 1, // default for both ERC721 and ERC1155
-              tokenImage: '',
+              tokenImage:
+                metadata?.[order.chainId as ChainId]?.[nft.collection]?.collection?.metadata?.profileImage ?? '',
               tokenName: '',
               tokenSlug: '',
               attributes: []
@@ -86,7 +138,7 @@ export default class OrdersService {
               nft,
               emptyToken,
               orderId,
-              maker.userAddress,
+              maker,
               makerUsername,
               collection
             );
@@ -106,7 +158,8 @@ export default class OrdersService {
               const orderItemTokenMetadata: OrderItemTokenMetadata = {
                 tokenId: token.tokenId,
                 numTokens: token.numTokens, // default for both ERC721 and ERC1155
-                tokenImage: tokenData?.image?.url ?? '',
+                tokenImage:
+                  tokenData?.image?.url ?? tokenData?.alchemyCachedImage ?? tokenData?.image?.originalUrl ?? '',
                 tokenName: tokenData?.metadata?.name ?? '',
                 tokenSlug: tokenData?.slug ?? '',
                 attributes: (tokenData?.metadata as Erc721Metadata)?.attributes ?? [] // todo: ERC1155?
@@ -117,12 +170,12 @@ export default class OrdersService {
                 nft,
                 orderItemTokenMetadata,
                 orderId,
-                maker.userAddress,
+                maker,
                 makerUsername,
                 collection
               );
               // get doc id
-              const tokenId = token.tokenId.toString();
+              const tokenId = token.tokenId;
               const orderItemDocRef = orderItemsRef.doc(
                 getDocIdHash({ collectionAddress: nft.collection, tokenId, chainId: order.chainId })
               );
@@ -139,6 +192,75 @@ export default class OrdersService {
       console.error('Failed to create order(s)', err);
       throw err;
     }
+  }
+
+  public async getUserOrderCollections(
+    reqQuery: UserOrderCollectionsQueryDto,
+    user?: ParsedUserId
+  ): Promise<{ data: OBOrderItem[]; hasNextPage: boolean; cursor: string }> {
+    let firestoreQuery: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> =
+      this.firebaseService.firestore.collectionGroup(firestoreConstants.ORDER_ITEMS_SUB_COLL);
+
+    // ordering and pagination
+    type Cursor = Record<OrderItemsOrderBy, number>;
+    const cursor = this.cursorService.decodeCursorToObject<Cursor>(reqQuery.cursor);
+
+    firestoreQuery = firestoreQuery.where('orderStatus', '==', OBOrderStatus.ValidActive);
+
+    if (user?.userAddress) {
+      firestoreQuery = firestoreQuery.where('makerAddress', '==', user.userAddress); // search for orders made by user
+    }
+
+    if (reqQuery.collectionName) {
+      const startsWith = getSearchFriendlyString(reqQuery.collectionName);
+      const endCode = getEndCode(startsWith);
+
+      if (startsWith && endCode) {
+        firestoreQuery = firestoreQuery.where('collectionSlug', '>=', startsWith).where('collectionSlug', '<', endCode);
+        firestoreQuery = firestoreQuery.orderBy(OrderItemsOrderBy.CollectionSlug, OrderDirection.Ascending);
+      }
+    } else {
+      // default order by startTimeMs desc
+      firestoreQuery = firestoreQuery.orderBy(OrderItemsOrderBy.StartTime, OrderDirection.Descending);
+      const startAfterValue = cursor[OrderItemsOrderBy.StartTime];
+      if (startAfterValue) {
+        firestoreQuery = firestoreQuery.startAfter(startAfterValue);
+      }
+    }
+
+    // limit
+    firestoreQuery = firestoreQuery.limit(reqQuery.limit + 1); // +1 to check if there are more results
+
+    // query firestore
+    const data = (await firestoreQuery.get()).docs;
+
+    const hasNextPage = data.length > reqQuery.limit;
+    if (hasNextPage) {
+      data.pop();
+    }
+
+    const lastItem = data[data.length - 1] ?? {};
+    const cursorObj: Cursor = {} as Cursor;
+    for (const orderBy of Object.values(OrderItemsOrderBy)) {
+      cursorObj[orderBy] = lastItem.get(orderBy);
+    }
+    const nextCursor = this.cursorService.encodeCursor(cursorObj);
+
+    const collections = data.map((doc) => {
+      return {
+        chainId: doc.get('chainId') as ChainId,
+        collectionName: doc.get('collectionName'),
+        collectionSlug: doc.get('collectionSlug'),
+        collectionAddress: doc.get('collectionAddress'),
+        collectionImage: doc.get('collectionImage'),
+        hasBlueCheck: doc.get('hasBlueCheck')
+      } as OBOrderItem;
+    });
+    return {
+      data: collections,
+      cursor: nextCursor,
+      hasNextPage
+    };
   }
 
   public async getSignedOBOrders(
@@ -200,44 +322,51 @@ export default class OrdersService {
       firestoreQuery = firestoreQuery.where('tokenId', '==', reqQuery.tokenId);
     }
 
-    // ordering
-    let orderedBy = reqQuery.orderBy;
+    // ordering and pagination
+    type Cursor = Record<OrderItemsOrderBy, number>;
+    const cursor = this.cursorService.decodeCursorToObject<Cursor>(reqQuery.cursor);
     if (requiresOrderByPrice) {
       const orderDirection = reqQuery.orderByDirection ?? OrderDirection.Ascending;
       firestoreQuery = firestoreQuery.orderBy(OrderItemsOrderBy.Price, orderDirection);
-      orderedBy = OrderItemsOrderBy.Price;
+      firestoreQuery = firestoreQuery.orderBy(OrderItemsOrderBy.StartTime, OrderDirection.Descending); // to break ties
+      // orderedBy = OrderItemsOrderBy.Price;
+      const startAfterPrice = cursor[OrderItemsOrderBy.Price];
+      const startAfterTime = cursor[OrderItemsOrderBy.StartTime];
+      if (startAfterPrice && startAfterTime) {
+        firestoreQuery = firestoreQuery.startAfter(startAfterPrice, startAfterTime);
+      }
     } else if (reqQuery.orderBy) {
       firestoreQuery = firestoreQuery.orderBy(reqQuery.orderBy, reqQuery.orderByDirection);
-      orderedBy = reqQuery.orderBy;
+      const startAfterValue = cursor[reqQuery.orderBy];
+      if (startAfterValue) {
+        firestoreQuery = firestoreQuery.startAfter(startAfterValue);
+      }
     } else {
       // default order by startTimeMs desc
       firestoreQuery = firestoreQuery.orderBy(OrderItemsOrderBy.StartTime, OrderDirection.Descending);
-      orderedBy = OrderItemsOrderBy.StartTime;
+      const startAfterValue = cursor[OrderItemsOrderBy.StartTime];
+      if (startAfterValue) {
+        firestoreQuery = firestoreQuery.startAfter(startAfterValue);
+      }
     }
 
-    // pagination
-    type Cursor = Record<OrderItemsOrderBy, number>;
-    const cursor = this.cursorService.decodeCursorToObject<Cursor>(reqQuery.cursor);
-    const cursorField = cursor[orderedBy];
-    if (!Number.isNaN(cursorField) && cursorField != null) {
-      firestoreQuery = firestoreQuery.startAfter(cursorField);
-    }
     // limit
     firestoreQuery = firestoreQuery.limit(reqQuery.limit + 1); // +1 to check if there are more results
 
     // query firestore
     const data = await this.getOrders(firestoreQuery);
 
-    let hasNextPage = false;
-    if (data.length > reqQuery.limit) {
-      hasNextPage = true;
+    const hasNextPage = data.length > reqQuery.limit;
+    if (hasNextPage) {
       data.pop();
     }
 
     const lastItem = data[data.length - 1] ?? {};
     const cursorObj: Cursor = {} as Cursor;
     for (const orderBy of Object.values(OrderItemsOrderBy)) {
-      cursorObj[orderBy] = lastItem[orderBy];
+      if (orderBy !== OrderItemsOrderBy.CollectionSlug) {
+        cursorObj[orderBy] = lastItem[orderBy];
+      }
     }
     const nextCursor = this.cursorService.encodeCursor(cursorObj);
 
@@ -248,7 +377,7 @@ export default class OrdersService {
     };
   }
 
-  private async getOrderMetadata(orders: SignedOBOrderDto[]): Promise<OrderMetadata> {
+  private async getOrderMetadata(orders: SignedOBOrderWithoutMetadataDto[]): Promise<OrderMetadata> {
     type CollectionAddress = string;
     type TokenId = string;
     const tokens: Map<ChainId, Map<CollectionAddress, Set<TokenId>>> = new Map();
@@ -276,7 +405,7 @@ export default class OrdersService {
         })
       );
       const collectionsByAddress = collectionsData.reduce((acc: { [address: string]: Collection }, collection) => {
-        if (collection?.state?.create?.step !== CreationFlow.Complete) {
+        if (!collection?.state?.create?.step) {
           throw new InvalidCollectionError(
             collection?.address ?? 'Unknown',
             collection?.chainId ?? 'Unknown',
@@ -429,7 +558,7 @@ export default class OrdersService {
     return results;
   }
 
-  public async getOrderNonce(userId: string): Promise<string> {
+  public async getOrderNonce(userId: string): Promise<number> {
     try {
       const user = trimLowerCase(userId);
       const userDocRef = this.firebaseService.firestore.collection(firestoreConstants.USERS_COLL).doc(user);
@@ -437,9 +566,9 @@ export default class OrdersService {
         const userDoc = await t.get(userDocRef);
         // todo: use a user dto or type?
         const userDocData = userDoc.data() || { address: user };
-        const nonce = BigNumber.from(userDocData.orderNonce ?? '0').add(1);
-        const minOrderNonce = BigNumber.from(userDocData.minOrderNonce ?? '0').add(1);
-        const newNonce = (nonce.gt(minOrderNonce) ? nonce : minOrderNonce).toString();
+        const nonce = parseInt(userDocData.orderNonce ?? 0) + 1;
+        const minOrderNonce = parseInt(userDocData.minOrderNonce ?? 0) + 1;
+        const newNonce = nonce > minOrderNonce ? nonce : minOrderNonce;
         userDocData.orderNonce = newNonce;
         t.set(userDocRef, userDocData, { merge: true });
         return newNonce;
@@ -454,7 +583,7 @@ export default class OrdersService {
   private getFirestoreOrderFromSignedOBOrder(
     makerAddress: string,
     makerUsername: string,
-    order: SignedOBOrderDto,
+    order: SignedOBOrderWithoutMetadataDto,
     orderId: string
   ): FirestoreOrder {
     try {
@@ -469,7 +598,7 @@ export default class OrdersService {
         startTimeMs: order.startTimeMs,
         endTimeMs: order.endTimeMs,
         maxGasPriceWei: order.maxGasPriceWei,
-        nonce: order.nonce.toString(),
+        nonce: order.nonce,
         complicationAddress: order.execParams.complicationAddress,
         currencyAddress: order.execParams.currencyAddress,
         makerAddress: trimLowerCase(makerAddress),
@@ -484,7 +613,7 @@ export default class OrdersService {
   }
 
   private async getFirestoreOrderItemFromSignedOBOrder(
-    order: SignedOBOrderDto,
+    order: SignedOBOrderWithoutMetadataDto,
     nft: ChainNFTsDto,
     token: OrderItemTokenMetadata,
     orderId: string,
@@ -583,13 +712,13 @@ export default class OrdersService {
       if (orderItem.isSellOrder) {
         event = {
           ...feedEvent,
-          type: FeedEventType.NftListing,
+          type: EventType.NftListing,
           isSellOrder: true
         };
       } else {
         event = {
           ...feedEvent,
-          type: FeedEventType.NftOffer,
+          type: EventType.NftOffer,
           isSellOrder: false
         };
       }

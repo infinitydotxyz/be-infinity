@@ -10,7 +10,6 @@ import { TwitterModule } from './twitter/twitter.module';
 import { DiscordModule } from './discord/discord.module';
 import { UserModule } from './user/user.module';
 import { CollectionsModule } from 'collections/collections.module';
-import { VotesModule } from './votes/votes.module';
 import { OrdersModule } from 'orders/orders.module';
 import { AuthModule } from 'auth/auth.module';
 import { MnemonicModule } from 'mnemonic/mnemonic.module';
@@ -23,6 +22,7 @@ import { BackfillModule } from 'backfill/backfill.module';
 import { ZoraModule } from 'zora/zora.module';
 import { OpenseaModule } from 'opensea/opensea.module';
 import { ReservoirModule } from 'reservoir/reservoir.module';
+import { GemModule } from 'gem/gem.module';
 
 @Module({
   imports: [
@@ -39,7 +39,6 @@ import { ReservoirModule } from 'reservoir/reservoir.module';
     DiscordModule,
     StatsModule,
     UserModule,
-    VotesModule,
     StorageModule,
     OrdersModule,
     MnemonicModule,
@@ -49,7 +48,8 @@ import { ReservoirModule } from 'reservoir/reservoir.module';
     BackfillModule,
     ZoraModule,
     OpenseaModule,
-    ReservoirModule
+    ReservoirModule,
+    GemModule
   ],
   controllers: [AppController]
 })
