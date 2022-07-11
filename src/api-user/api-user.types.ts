@@ -1,17 +1,18 @@
-export type ApiUserConfig = {
-  global: {
-    limit?: number;
-    ttl?: number;
-  };
-
-  hmac: string;
-};
-
 export interface ApiUserCreds {
   apiKey: string;
 
   apiSecret: string;
 }
+
+export enum ApiUserRole {
+  User = 'user',
+  Admin = 'admin'
+}
+
+export const RoleHierarchy = {
+  [ApiUserRole.User]: 1,
+  [ApiUserRole.Admin]: 100
+};
 
 export interface ApiUser {
   id: string;
@@ -24,3 +25,14 @@ export interface ApiUser {
 
   updatedAt: number;
 }
+
+export type ApiUserConfig = {
+  global: {
+    limit?: number;
+    ttl?: number;
+  };
+
+  hmac: string;
+
+  role: ApiUserRole;
+};

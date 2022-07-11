@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { FirebaseService } from 'firebase/firebase.service';
 import { ApiUserConfigStorageRedisService } from './api-user-config-storage.service';
-import { ApiUser, ApiUserCreds } from './api-user.types';
+import { ApiUser, ApiUserConfig, ApiUserCreds } from './api-user.types';
 import { getHmac } from './api-user.utils';
 
 @Injectable()
@@ -15,6 +15,21 @@ export class ApiUserService {
       return data;
     }
     return undefined;
+  }
+
+  async verifyAndGetUserConfig(
+    apiKey: string,
+    apiSecret: string
+  ): Promise<{ isValid: true; userConfig: ApiUserConfig } | { isValid: false; reason: string }> {
+    const userConfig = await this.configStorage.getUser(apiKey);
+    if (!userConfig) {
+      return { isValid: false, reason: 'Invalid api key or api secret' };
+    }
+    const hmac = getHmac({ apiKey, apiSecret });
+    if (hmac !== userConfig.hmac) {
+      return { isValid: false, reason: 'Invalid api key or api secret' };
+    }
+    return { isValid: true, userConfig };
   }
 
   async createApiUser(
