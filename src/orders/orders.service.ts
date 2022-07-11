@@ -18,9 +18,16 @@ import {
   SignedOBOrderArrayDto,
   SignedOBOrderDto,
   SignedOBOrderWithoutMetadataDto,
+  UserOrderCollectionsQueryDto,
   UserOrderItemsQueryDto
 } from '@infinityxyz/lib/types/dto/orders';
-import { firestoreConstants, getInfinityLink, trimLowerCase } from '@infinityxyz/lib/utils';
+import {
+  firestoreConstants,
+  getEndCode,
+  getInfinityLink,
+  getSearchFriendlyString,
+  trimLowerCase
+} from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import CollectionsService from 'collections/collections.service';
 import { NftsService } from 'collections/nfts/nfts.service';
@@ -187,6 +194,75 @@ export default class OrdersService {
     }
   }
 
+  public async getUserOrderCollections(
+    reqQuery: UserOrderCollectionsQueryDto,
+    user?: ParsedUserId
+  ): Promise<{ data: OBOrderItem[]; hasNextPage: boolean; cursor: string }> {
+    let firestoreQuery: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> =
+      this.firebaseService.firestore.collectionGroup(firestoreConstants.ORDER_ITEMS_SUB_COLL);
+
+    // ordering and pagination
+    type Cursor = Record<OrderItemsOrderBy, number>;
+    const cursor = this.cursorService.decodeCursorToObject<Cursor>(reqQuery.cursor);
+
+    firestoreQuery = firestoreQuery.where('orderStatus', '==', OBOrderStatus.ValidActive);
+
+    if (user?.userAddress) {
+      firestoreQuery = firestoreQuery.where('makerAddress', '==', user.userAddress); // search for orders made by user
+    }
+
+    if (reqQuery.collectionName) {
+      const startsWith = getSearchFriendlyString(reqQuery.collectionName);
+      const endCode = getEndCode(startsWith);
+
+      if (startsWith && endCode) {
+        firestoreQuery = firestoreQuery.where('collectionSlug', '>=', startsWith).where('collectionSlug', '<', endCode);
+        firestoreQuery = firestoreQuery.orderBy(OrderItemsOrderBy.CollectionSlug, OrderDirection.Ascending);
+      }
+    } else {
+      // default order by startTimeMs desc
+      firestoreQuery = firestoreQuery.orderBy(OrderItemsOrderBy.StartTime, OrderDirection.Descending);
+      const startAfterValue = cursor[OrderItemsOrderBy.StartTime];
+      if (startAfterValue) {
+        firestoreQuery = firestoreQuery.startAfter(startAfterValue);
+      }
+    }
+
+    // limit
+    firestoreQuery = firestoreQuery.limit(reqQuery.limit + 1); // +1 to check if there are more results
+
+    // query firestore
+    const data = (await firestoreQuery.get()).docs;
+
+    const hasNextPage = data.length > reqQuery.limit;
+    if (hasNextPage) {
+      data.pop();
+    }
+
+    const lastItem = data[data.length - 1] ?? {};
+    const cursorObj: Cursor = {} as Cursor;
+    for (const orderBy of Object.values(OrderItemsOrderBy)) {
+      cursorObj[orderBy] = lastItem.get(orderBy);
+    }
+    const nextCursor = this.cursorService.encodeCursor(cursorObj);
+
+    const collections = data.map((doc) => {
+      return {
+        chainId: doc.get('chainId') as ChainId,
+        collectionName: doc.get('collectionName'),
+        collectionSlug: doc.get('collectionSlug'),
+        collectionAddress: doc.get('collectionAddress'),
+        collectionImage: doc.get('collectionImage'),
+        hasBlueCheck: doc.get('hasBlueCheck')
+      } as OBOrderItem;
+    });
+    return {
+      data: collections,
+      cursor: nextCursor,
+      hasNextPage
+    };
+  }
+
   public async getSignedOBOrders(
     reqQuery: UserOrderItemsQueryDto,
     user?: ParsedUserId
@@ -288,7 +364,9 @@ export default class OrdersService {
     const lastItem = data[data.length - 1] ?? {};
     const cursorObj: Cursor = {} as Cursor;
     for (const orderBy of Object.values(OrderItemsOrderBy)) {
-      cursorObj[orderBy] = lastItem[orderBy];
+      if (orderBy !== OrderItemsOrderBy.CollectionSlug) {
+        cursorObj[orderBy] = lastItem[orderBy];
+      }
     }
     const nextCursor = this.cursorService.encodeCursor(cursorObj);
 
