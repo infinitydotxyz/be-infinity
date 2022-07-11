@@ -1,10 +1,12 @@
+import { OBOrderItem } from '@infinityxyz/lib/types/core';
 import {
   OBOrderItemDto,
   OrderItemsQueryDto,
   OrdersDto,
   SignedOBOrderArrayDto,
   SignedOBOrderDto,
-  UserOrderItemsQueryDto
+  UserOrderItemsQueryDto,
+  UserOrderCollectionsQueryDto
 } from '@infinityxyz/lib/types/dto/orders';
 import { BadRequestException, Body, Controller, Get, NotFoundException, Param, Post, Query } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
@@ -20,12 +22,8 @@ import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 import OrdersService from './orders.service';
 
-type UserOrderCollectionsQueryDto = UserOrderItemsQueryDto & {
-  name?: string;
-};
-
 class OBOrderCollectionsArrayDto {
-  data: OBOrderItemDto[];
+  data: Array<Omit<OBOrderItem, 'tokens'>>;
   cursor: string;
   hasNextPage: boolean;
 }
@@ -82,37 +80,26 @@ export class OrdersController {
   @ApiOkResponse({ description: ResponseDescription.Success, type: SignedOBOrderArrayDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  public async getUserOrdersCollections(
+  public async getUserOrderCollections(
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
     @Query() reqQuery: UserOrderCollectionsQueryDto
   ): Promise<OBOrderCollectionsArrayDto> {
-    reqQuery.limit = 999999; // get all user's orders (todo: Number.MAX_SAFE_INTEGER doesn't work here)
-    const results = await this.ordersService.getSignedOBOrders(reqQuery, user);
+    const results = await this.ordersService.getUserOrderCollections(reqQuery, user);
 
     // dedup and normalize (make sure name & slug exist) collections:
     const colls: any = {};
-    results?.data.forEach((order) => {
-      order.nfts.forEach((nft) => {
-        if (nft.collectionName && nft.collectionSlug) {
-          colls[nft.collectionAddress] = {
-            ...nft
-          };
-        }
-      });
+    results?.data.forEach((item) => {
+      if (item.collectionName && item.collectionSlug) {
+        colls[item.collectionAddress] = {
+          ...item
+        };
+      }
     });
 
-    const data: OBOrderItemDto[] = [];
-    const nameSearch = (reqQuery.name ?? '').toLowerCase();
+    const data: Array<Omit<OBOrderItem, 'tokens'>> = [];
     for (const address of Object.keys(colls)) {
-      const collData = colls[address] as OBOrderItemDto;
-      collData.tokens = []; // not needed for this response.
-      if (nameSearch) {
-        if (collData.collectionName.toLowerCase().indexOf(nameSearch) >= 0) {
-          data.push(collData);
-        }
-      } else {
-        data.push(collData);
-      }
+      const collData = colls[address] as Omit<OBOrderItemDto, 'tokens'>;
+      data.push(collData);
     }
     return {
       data,
