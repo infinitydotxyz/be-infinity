@@ -1,35 +1,39 @@
-/* eslint-disable no-empty */
 import { ChainId, OrderDirection } from '@infinityxyz/lib/types/core';
-import { EventType, NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
-import { RankingQueryDto } from '@infinityxyz/lib/types/dto/collections';
-import { NftArrayDto, NftDto } from '@infinityxyz/lib/types/dto/collections/nfts';
-import {
-  UserActivityArrayDto,
-  UserActivityQueryDto,
-  UserFollowingCollection,
-  UserFollowingCollectionDeletePayload,
-  UserFollowingCollectionPostPayload,
-  UserFollowingUser,
-  UserFollowingUserDeletePayload,
-  UserFollowingUserPostPayload,
-  UserNftsOrderType,
-  UserNftsQueryDto,
-  UserProfileDto
-} from '@infinityxyz/lib/types/dto/user';
+import { AlchemyNftToInfinityNft } from '../common/transformers/alchemy-nft-to-infinity-nft.pipe';
 import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
 import { Injectable, Optional } from '@nestjs/common';
 import { AlchemyService } from 'alchemy/alchemy.service';
-import { BackfillService } from 'backfill/backfill.service';
-import { BadQueryError } from 'common/errors/bad-query.error';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { InvalidUserError } from 'common/errors/invalid-user.error';
 import { BigNumber } from 'ethers/lib/ethers';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
 import { StatsService } from 'stats/stats.service';
-import { NftsService } from '../collections/nfts/nfts.service';
-import { AlchemyNftToInfinityNft } from '../common/transformers/alchemy-nft-to-infinity-nft.pipe';
 import { ParsedUserId } from './parser/parsed-user-id';
+import { BadQueryError } from 'common/errors/bad-query.error';
+import { RankingQueryDto } from '@infinityxyz/lib/types/dto/collections';
+import { NftCollectionDto, NftDto, NftArrayDto } from '@infinityxyz/lib/types/dto/collections/nfts';
+import {
+  UserFollowingCollection,
+  UserFollowingCollectionPostPayload,
+  UserFollowingCollectionDeletePayload,
+  UserFollowingUser,
+  UserFollowingUserPostPayload,
+  UserFollowingUserDeletePayload,
+  UserNftsQueryDto,
+  UserNftsOrderType,
+  UserProfileDto,
+  UserActivityQueryDto,
+  UserActivityArrayDto
+} from '@infinityxyz/lib/types/dto/user';
+import { BackfillService } from 'backfill/backfill.service';
+import { CuratedCollectionsQuery } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
+import {
+  CuratedCollectionDto,
+  CuratedCollectionsDto
+} from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
+import { NftsService } from '../collections/nfts/nfts.service';
+import { NftSaleEvent, NftListingEvent, NftOfferEvent, EventType } from '@infinityxyz/lib/types/core/feed';
 
 export type UserActivity = NftSaleEvent | NftListingEvent | NftOfferEvent;
 
@@ -188,6 +192,17 @@ export class UserService {
 
     await user.ref.collection(firestoreConstants.USER_FOLLOWS_COLL).doc(payload.userAddress).delete();
     return {};
+  }
+
+  async getUserNftCollections(user: ParsedUserId) {
+    const collRef = user.ref.collection(firestoreConstants.USER_NFTS_COLL);
+
+    const snap = await collRef.get();
+    const nftCollections: NftCollectionDto[] = snap.docs.map((doc) => {
+      const docData = doc.data() as NftCollectionDto;
+      return docData;
+    });
+    return nftCollections;
   }
 
   async getUserNftsWithOrders(user: ParsedUserId, nftsQuery: UserNftsQueryDto): Promise<NftArrayDto> {
@@ -395,6 +410,40 @@ export class UserService {
       data: data,
       hasNextPage,
       cursor: nextCursor
+    };
+  }
+
+  /**
+   * Fetch all user-curated collections.
+   */
+  async getAllCurated(user: ParsedUserId, query: CuratedCollectionsQuery): Promise<CuratedCollectionsDto> {
+    let q = this.firebaseService.firestore
+      .collectionGroup(firestoreConstants.COLLECTION_CURATORS_COLL)
+      .where('userAddress', '==', user.userAddress)
+      .where('userChainId', '==', user.userChainId)
+      .orderBy('votes', query.orderDirection)
+      .orderBy('timestamp', 'desc')
+      .limit(query.limit + 1);
+
+    if (query.cursor) {
+      const { votes, timestamp } = this.paginationService.decodeCursorToObject<CuratedCollectionDto>(query.cursor);
+      q = q.startAfter({ votes, timestamp });
+    }
+
+    const snap = await q.get();
+    const curations = snap.docs.map((item) => item.data() as CuratedCollectionDto);
+
+    const hasNextPage = curations.length > query.limit;
+    if (hasNextPage) {
+      curations.pop();
+    }
+
+    const lastItem = curations[curations.length - 1];
+
+    return {
+      data: curations,
+      cursor: hasNextPage ? this.paginationService.encodeCursor(lastItem) : undefined,
+      hasNextPage
     };
   }
 }

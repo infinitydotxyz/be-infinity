@@ -34,7 +34,8 @@ import {
   CollectionTrendingStatsQueryDto,
   RankingQueryDto,
   TopOwnersArrayResponseDto,
-  TopOwnersQueryDto
+  TopOwnersQueryDto,
+  PaginatedCollectionsDto
 } from '@infinityxyz/lib/types/dto/collections';
 import { NftActivityArrayDto, NftActivityFiltersDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { TweetArrayDto } from '@infinityxyz/lib/types/dto/twitter';
@@ -58,6 +59,13 @@ import CollectionsService from './collections.service';
 import { enqueueCollection } from './collections.utils';
 import { CollectionStatsArrayDto } from './dto/collection-stats-array.dto';
 import { NftsService } from './nfts/nfts.service';
+import { CuratedCollectionsQuery } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
+import { CurationService } from './curation/curation.service';
+import { ApiParamUserId, ParamUserId } from 'auth/param-user-id.decorator';
+import { UserAuth } from 'auth/user-auth.decorator';
+import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
+import { ParsedUserId } from 'user/parser/parsed-user-id';
+import { CuratedCollectionDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 
 @Controller('collections')
 export class CollectionsController {
@@ -67,6 +75,7 @@ export class CollectionsController {
     private twitterService: TwitterService,
     private attributesService: AttributesService,
     private nftsService: NftsService,
+    private curationService: CurationService,
     private firebaseService: FirebaseService
   ) {}
 
@@ -212,6 +221,62 @@ export class CollectionsController {
     return {
       data: results
     };
+  }
+
+  @Get('curated')
+  @ApiOperation({
+    description: 'Fetch all curated collections',
+    tags: [ApiTag.Collection, ApiTag.Curation]
+  })
+  @ApiOkResponse({ type: PaginatedCollectionsDto })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  async getAllCurated(@Query() query: CuratedCollectionsQuery) {
+    return this.collectionsService.getCurated(query);
+  }
+
+  @Get('curated/:userId')
+  @UserAuth('userId')
+  @ApiOperation({
+    description:
+      'Fetch all curated collections. Each curated collection object that has been voted for by the current user will contain more info, like the amount of votes.',
+    tags: [ApiTag.Collection, ApiTag.Curation]
+  })
+  @ApiOkResponse({ type: PaginatedCollectionsDto })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  async getAllCuratedByUserId(
+    @Query() query: CuratedCollectionsQuery,
+    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId
+  ) {
+    return this.collectionsService.getCurated(query, user);
+  }
+
+  @Get('/:id/curated/:userId')
+  @UserAuth('userId')
+  @ApiParamUserId('userId')
+  @ApiParamCollectionId('collectionId')
+  @ApiOperation({
+    description: 'Fetch curation details and estimations of the collection',
+    tags: [ApiTag.Collection, ApiTag.Curation]
+  })
+  @ApiOkResponse({ type: CuratedCollectionDto })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  async getCurated(
+    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
+    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId
+  ) {
+    const curated = await this.curationService.findUserCurated(user, collection);
+
+    if (!curated) {
+      return {};
+    }
+
+    return curated;
   }
 
   @Get('/:id')

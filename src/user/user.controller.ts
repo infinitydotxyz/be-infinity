@@ -1,5 +1,8 @@
 import { CollectionMetadata } from '@infinityxyz/lib/types/core';
 import { RankingQueryDto, UpdateCollectionDto } from '@infinityxyz/lib/types/dto/collections';
+import { CuratedCollectionsQuery } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
+import { CurationQuotaDto } from '@infinityxyz/lib/types/dto/collections/curation/curation-quota.dto';
+import { CuratedCollectionsDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 import { ExternalNftArrayDto, NftActivityArrayDto, NftArrayDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { CollectionStatsArrayResponseDto } from '@infinityxyz/lib/types/dto/stats';
 import {
@@ -57,6 +60,7 @@ import { UserAuth } from 'auth/user-auth.decorator';
 import { instanceToPlain } from 'class-transformer';
 import { ParseCollectionIdPipe, ParsedCollectionId } from 'collections/collection-id.pipe';
 import CollectionsService from 'collections/collections.service';
+import { CurationService } from 'collections/curation/curation.service';
 import { NftsService } from 'collections/nfts/nfts.service';
 import { ApiTag } from 'common/api-tags';
 import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param-collection-id.decorator';
@@ -85,7 +89,8 @@ export class UserController {
     private storageService: StorageService,
     private statsService: StatsService,
     private profileService: ProfileService,
-    private nftsService: NftsService
+    private nftsService: NftsService,
+    private curationService: CurationService
   ) {}
 
   @Get('/:userId/checkUsername')
@@ -160,8 +165,8 @@ export class UserController {
         facebookUsername: '',
         createdAt: NaN,
         updatedAt: NaN,
-        totalCurated: NaN,
-        totalCuratedVotes: NaN
+        totalCurated: 0,
+        totalCuratedVotes: 0
       };
     }
 
@@ -386,6 +391,34 @@ export class UserController {
     @ParamCollectionId('collectionId', ParseCollectionIdPipe) collection: ParsedCollectionId
   ): Promise<UserCollectionPermissions> {
     return { canModify: await this.collectionsService.canModify(userAddress, collection) };
+  }
+
+  @Get(':userId/curated')
+  @ApiOperation({
+    description: "Get the specified user's curated collections",
+    tags: [ApiTag.User, ApiTag.Collection, ApiTag.Curation]
+  })
+  @ApiOkResponse({ description: ResponseDescription.Success, type: CuratedCollectionsDto })
+  @ApiParamUserId('userId')
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  getCurated(@ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId, @Query() query: CuratedCollectionsQuery) {
+    return this.userService.getAllCurated(user, query);
+  }
+
+  @Get(':userId/curated/quota')
+  @ApiOperation({
+    description: "Get the user's available votes for curation",
+    tags: [ApiTag.User, ApiTag.Collection, ApiTag.Curation]
+  })
+  @ApiParamUserId('userId')
+  @ApiOkResponse({ description: ResponseDescription.Success })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  async getCurationQuota(@ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId): Promise<CurationQuotaDto> {
+    return {
+      availableVotes: await this.curationService.getAvailableVotes(user),
+      totalStaked: await this.curationService.getTotalStaked(user),
+      tokenBalance: await this.curationService.getTokenBalance(user)
+    };
   }
 
   @Get(':userId/followingCollections')
