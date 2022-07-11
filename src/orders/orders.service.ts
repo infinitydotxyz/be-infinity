@@ -26,6 +26,7 @@ import {
   getEndCode,
   getInfinityLink,
   getSearchFriendlyString,
+  orderHash,
   trimLowerCase
 } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
@@ -44,7 +45,6 @@ import { UserParserService } from '../user/parser/parser.service';
 import { UserService } from '../user/user.service';
 import { getDocIdHash } from '../utils';
 import { OrderItemTokenMetadata, OrderMetadata } from './order.types';
-import { getOrderIdFromSignedOrder } from './orders.utils';
 
 @Injectable()
 export default class OrdersService {
@@ -95,18 +95,18 @@ export default class OrdersService {
     }
   }
 
-  public async createOrder(maker: ParsedUserId, orders: SignedOBOrderWithoutMetadataDto[]): Promise<void> {
+  public async createOrder(maker: string, orders: SignedOBOrderWithoutMetadataDto[]): Promise<void> {
     try {
       const fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
       const ordersCollectionRef = this.firebaseService.firestore.collection(firestoreConstants.ORDERS_COLL);
       const metadata = await this.getOrderMetadata(orders);
-      const makerProfile = await this.userService.getProfile(maker);
+      const makerProfile = await this.userService.getProfileForUserAdress(maker);
       const makerUsername = makerProfile?.username ?? '';
 
       for (const order of orders) {
         // get data
-        const orderId = getOrderIdFromSignedOrder(order, maker.userAddress);
-        const dataToStore = this.getFirestoreOrderFromSignedOBOrder(maker.userAddress, makerUsername, order, orderId);
+        const orderId = orderHash(order.signedOrder);
+        const dataToStore = this.getFirestoreOrderFromSignedOBOrder(maker, makerUsername, order, orderId);
         // save
         const docRef = ordersCollectionRef.doc(orderId);
         fsBatchHandler.add(docRef, dataToStore, { merge: true });
@@ -138,7 +138,7 @@ export default class OrdersService {
               nft,
               emptyToken,
               orderId,
-              maker.userAddress,
+              maker,
               makerUsername,
               collection
             );
@@ -170,7 +170,7 @@ export default class OrdersService {
                 nft,
                 orderItemTokenMetadata,
                 orderId,
-                maker.userAddress,
+                maker,
                 makerUsername,
                 collection
               );
