@@ -434,9 +434,12 @@ export default class OrdersService {
           throw new InvalidTokenError('Unknown', chainId, 'Unknown', `Failed to find token`);
         }
         metadata[chainId] = {
+          ...metadata[chainId],
           [token.collectionAddress]: {
+            ...(metadata[chainId]?.[token.collectionAddress] ?? {}),
             collection: collectionsByAddress[token.collectionAddress],
             nfts: {
+              ...(metadata[chainId]?.[token.collectionAddress]?.nfts ?? {}),
               [token.tokenId]: token as Token
             }
           }
