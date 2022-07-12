@@ -1,7 +1,25 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
+import { ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { ResponseDescription } from 'common/response-description';
+import { ApiUserAuth } from './api-user-auth.decorator';
+import { ApiUser } from './api-user.decorator';
 import { ApiUserService } from './api-user.service';
+import { ApiUserConfig, ApiUserRole } from './api-user.types';
 
 @Controller('api-user')
 export class ApiUserController {
   constructor(private apiUserService: ApiUserService) {}
+
+  @Get('/')
+  @ApiOperation({
+    description: 'Get user info'
+  })
+  @ApiUserAuth(ApiUserRole.User)
+  @ApiOkResponse({ description: ResponseDescription.Success }) // TODO add type
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  async getUser(@ApiUser() apiUser: ApiUserConfig) {
+    console.log(apiUser);
+    await new Promise<void>((resolve, reject) => resolve());
+    return {};
+  }
 }

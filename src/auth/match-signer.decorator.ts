@@ -1,6 +1,6 @@
 import { SetMetadata } from '@nestjs/common';
 
-export const metadataKey = 'params';
+export const MATCH_SIGNER_METADATA_KEY = 'MATCH-SIGNER:PARAMS';
 
 /**
  * Verify that the specified addresses in the url query parameters match the signing address (i.e the wallet that's currently authenticated).
@@ -22,4 +22,4 @@ export const metadataKey = 'params';
  * @param param Name of the url query parameter.
  * @returns
  */
-export const MatchSigner = (param: string) => SetMetadata(metadataKey, param);
+export const MatchSigner = (param: string) => SetMetadata(MATCH_SIGNER_METADATA_KEY, param);

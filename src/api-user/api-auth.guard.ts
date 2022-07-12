@@ -37,10 +37,16 @@ export class ApiAuthGuard implements CanActivate {
     }
 
     const userRole = result.userConfig.role;
+    if (userRole == null) {
+      throw new ApiAuthException('User does not have the required role');
+    }
+
     if (!this.userAtLeastRole(userRole, rolesRequired)) {
       throw new ApiAuthException('User does not have the required role');
     }
 
+    // attach the user config to the request
+    req.apiUser = result.userConfig;
     return true;
   }
 

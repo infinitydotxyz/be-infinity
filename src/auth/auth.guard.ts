@@ -3,7 +3,7 @@ import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { auth } from '../constants';
 import { ethers } from 'ethers';
 import { Reflector } from '@nestjs/core';
-import { metadataKey } from 'auth/match-signer.decorator';
+import { MATCH_SIGNER_METADATA_KEY } from 'auth/match-signer.decorator';
 import { UserParserService } from 'user/parser/parser.service';
 import { base64Decode, base64Encode } from 'utils';
 
@@ -13,7 +13,7 @@ export class AuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext) {
     const request = context.switchToHttp().getRequest();
-    const paramName = this.reflector.get<string>(metadataKey, context.getHandler());
+    const paramName = this.reflector.get<string>(MATCH_SIGNER_METADATA_KEY, context.getHandler());
     const nonce = request.headers?.[auth.nonce];
     const messageHeader = request.headers?.[auth.message];
     const signatureHeader = request.headers?.[auth.signature];

@@ -1,4 +1,5 @@
 import { OrderDirection } from '@infinityxyz/lib/types/core';
+import { AUTH_MESSAGE_HEADER, AUTH_NONCE_HEADER, AUTH_SIGNATURE_HEADER } from 'auth/auth.constants';
 import 'dotenv/config';
 
 const getEnvironmentVariable = (name: string, required = true) => {
@@ -44,9 +45,9 @@ export const ALCHEMY_JSON_RPC_ETH_MAINNET = getEnvironmentVariable('alchemyJsonR
 export const ALCHEMY_JSON_RPC_POLYGON_MAINNET = getEnvironmentVariable('alchemyJsonRpcPolygonMainnet');
 
 export const auth = {
-  nonce: 'x-auth-nonce',
-  signature: 'x-auth-signature',
-  message: 'x-auth-message'
+  nonce: AUTH_NONCE_HEADER,
+  signature: AUTH_SIGNATURE_HEADER,
+  message: AUTH_MESSAGE_HEADER
 };
 
 export const API_BASE = 'http://localhost:9090';

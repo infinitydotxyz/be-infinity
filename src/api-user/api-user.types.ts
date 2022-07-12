@@ -1,18 +1,20 @@
+import { ApiRole } from 'auth-v2/auth.constants';
+
 export interface ApiUserCreds {
   apiKey: string;
 
   apiSecret: string;
 }
 
-export enum ApiUserRole {
-  User = 'user',
-  Admin = 'admin'
-}
+// export enum ApiUserRole {
+//   User = 'user',
+//   Admin = 'admin'
+// }
 
-export const RoleHierarchy = {
-  [ApiUserRole.User]: 1,
-  [ApiUserRole.Admin]: 100
-};
+// export const RoleHierarchy = {
+//   [ApiUserRole.User]: 1,
+//   [ApiUserRole.Admin]: 100
+// };
 
 export interface ApiUser {
   id: string;
@@ -34,5 +36,7 @@ export type ApiUserConfig = {
 
   hmac: string;
 
-  role: ApiUserRole;
+  role: ApiRole;
 };
+
+export type ApiUserConfigKeys = keyof ApiUserConfig;

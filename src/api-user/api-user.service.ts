@@ -116,7 +116,9 @@ export class ApiUserService {
   }
 
   protected generateId() {
-    const id = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('base64');
+    const id = Buffer.from(crypto.getRandomValues(new Uint8Array(32)))
+      .toString('base64')
+      .toLowerCase();
     return id;
   }
 }
