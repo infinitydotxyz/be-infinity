@@ -11,7 +11,7 @@ import {
   OrderDirection,
   Token
 } from '@infinityxyz/lib/types/core';
-import { EventType, NftListingEvent, NftOfferEvent } from '@infinityxyz/lib/types/core/feed';
+import { EventType, MultiOrderEvent, OrderBookEvent, OrderItemData } from '@infinityxyz/lib/types/core/feed';
 import {
   ChainNFTsDto,
   OrderItemsOrderBy,
@@ -99,9 +99,11 @@ export default class OrdersService {
     try {
       const fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
       const ordersCollectionRef = this.firebaseService.firestore.collection(firestoreConstants.ORDERS_COLL);
-      const metadata = await this.getOrderMetadata(orders);
       const makerProfile = await this.userService.getProfileForUserAdress(maker);
       const makerUsername = makerProfile?.username ?? '';
+
+      // fill order with metadata
+      const metadata = await this.getOrderMetadata(orders);
 
       for (const order of orders) {
         // get data
@@ -120,6 +122,7 @@ export default class OrdersService {
 
         // get order items
         const orderItemsRef = docRef.collection(firestoreConstants.ORDER_ITEMS_SUB_COLL);
+        const orderItems: (FirestoreOrderItem & { orderItemId: string })[] = [];
         for (const nft of order.signedOrder.nfts) {
           if (nft.tokens.length === 0) {
             // to support any tokens from a collection type orders
@@ -149,7 +152,8 @@ export default class OrdersService {
             );
             // add to batch
             fsBatchHandler.add(orderItemDocRef, orderItemData, { merge: true });
-            this.writeOrderItemsToFeed([{ ...orderItemData, orderItemId: orderItemDocRef.id }], fsBatchHandler);
+
+            orderItems.push({ ...orderItemData, orderItemId: orderItemDocRef.id });
           } else {
             for (const token of nft.tokens) {
               const orderItemMetadata = metadata?.[order.chainId as ChainId]?.[nft.collection];
@@ -181,10 +185,14 @@ export default class OrdersService {
               );
               // add to batch
               fsBatchHandler.add(orderItemDocRef, orderItemData, { merge: true });
-              this.writeOrderItemsToFeed([{ ...orderItemData, orderItemId: orderItemDocRef.id }], fsBatchHandler);
+
+              orderItems.push({ ...orderItemData, orderItemId: orderItemDocRef.id });
             }
           }
         }
+
+        // write order to feed
+        this.writeOrderToFeed(makerUsername, order, orderItems, fsBatchHandler);
       }
       // commit batch
       await fsBatchHandler.flush();
@@ -434,9 +442,12 @@ export default class OrdersService {
           throw new InvalidTokenError('Unknown', chainId, 'Unknown', `Failed to find token`);
         }
         metadata[chainId] = {
+          ...metadata[chainId],
           [token.collectionAddress]: {
+            ...(metadata[chainId]?.[token.collectionAddress] ?? {}),
             collection: collectionsByAddress[token.collectionAddress],
             nfts: {
+              ...(metadata[chainId]?.[token.collectionAddress]?.nfts ?? {}),
               [token.tokenId]: token as Token
             }
           }
@@ -667,32 +678,87 @@ export default class OrdersService {
     return data;
   }
 
-  private writeOrderItemsToFeed(
+  private writeOrderToFeed(
+    makerUsername: string,
+    order: SignedOBOrderWithoutMetadataDto,
     orderItems: (FirestoreOrderItem & { orderItemId: string })[],
-    batch: FirebaseFirestore.WriteBatch | FirestoreBatchHandler
+    batchHandler: FirestoreBatchHandler
+  ) {
+    // multi/any order type
+    if (orderItems.length === 0 || orderItems.length > 1) {
+      this.writeMultiOrderToFeed(makerUsername, order, orderItems, batchHandler);
+    } else {
+      this.writeSingleOrderToFeed(makerUsername, order, orderItems[0], batchHandler);
+    }
+  }
+
+  private writeSingleOrderToFeed(
+    makerUsername: string,
+    order: SignedOBOrderWithoutMetadataDto,
+    orderItem: FirestoreOrderItem & { orderItemId: string },
+    batchHandler: FirestoreBatchHandler
   ) {
     const feedCollection = this.firebaseService.firestore.collection(firestoreConstants.FEED_COLL);
+    const usersInvolved = [orderItem.makerAddress, orderItem.takerAddress].filter((address) => !!address);
+    const feedEvent: OrderBookEvent = {
+      orderId: orderItem.id,
+      isSellOrder: order.signedOrder.isSellOrder,
+      type: order.signedOrder.isSellOrder ? EventType.NftListing : EventType.NftOffer,
+      orderItemId: orderItem.orderItemId,
+      paymentToken: orderItem.currencyAddress,
+      quantity: orderItem.numTokens,
+      startPriceEth: orderItem.startPriceEth,
+      endPriceEth: orderItem.endPriceEth,
+      startTimeMs: orderItem.startTimeMs,
+      endTimeMs: orderItem.endTimeMs,
+      makerUsername: orderItem.makerUsername,
+      makerAddress: orderItem.makerAddress,
+      takerUsername: orderItem.takerUsername,
+      takerAddress: orderItem.takerAddress,
+      usersInvolved,
+      tokenId: orderItem.tokenId,
+      chainId: orderItem.chainId,
+      likes: 0,
+      comments: 0,
+      timestamp: Date.now(),
+      collectionAddress: orderItem.collectionAddress,
+      collectionName: orderItem.collectionName,
+      collectionSlug: orderItem.collectionSlug,
+      collectionProfileImage: orderItem.collectionImage,
+      hasBlueCheck: orderItem.hasBlueCheck,
+      internalUrl: getInfinityLink({
+        type: InfinityLinkType.Asset,
+        collectionAddress: orderItem.collectionAddress,
+        tokenId: orderItem.tokenId,
+        chainId: orderItem.chainId as ChainId
+      }),
+      image: orderItem.tokenImage,
+      nftName: orderItem.tokenName,
+      nftSlug: orderItem.tokenSlug
+    };
+
+    const newDoc = feedCollection.doc();
+    batchHandler.add(newDoc, feedEvent, { merge: false });
+  }
+
+  private writeMultiOrderToFeed(
+    makerUsername: string,
+    order: SignedOBOrderWithoutMetadataDto,
+    orderItems: (FirestoreOrderItem & { orderItemId: string })[],
+    batchHandler: FirestoreBatchHandler
+  ) {
+    const feedCollection = this.firebaseService.firestore.collection(firestoreConstants.FEED_COLL);
+
+    const augmentedOrderItems = [];
     for (const orderItem of orderItems) {
       const usersInvolved = [orderItem.makerAddress, orderItem.takerAddress].filter((address) => !!address);
-      const feedEvent: Omit<NftListingEvent, 'isSellOrder' | 'type'> = {
-        orderId: orderItem.id,
+      const orderItemData: OrderItemData = {
         orderItemId: orderItem.orderItemId,
-        paymentToken: orderItem.currencyAddress,
-        quantity: orderItem.numTokens,
-        startPriceEth: orderItem.startPriceEth,
-        endPriceEth: orderItem.endPriceEth,
-        startTimeMs: orderItem.startTimeMs,
-        endTimeMs: orderItem.endTimeMs,
-        makerUsername: orderItem.makerUsername,
-        makerAddress: orderItem.makerAddress,
         takerUsername: orderItem.takerUsername,
         takerAddress: orderItem.takerAddress,
         usersInvolved,
         tokenId: orderItem.tokenId,
         chainId: orderItem.chainId,
-        likes: 0,
-        comments: 0,
-        timestamp: Date.now(),
         collectionAddress: orderItem.collectionAddress,
         collectionName: orderItem.collectionName,
         collectionSlug: orderItem.collectionSlug,
@@ -708,26 +774,33 @@ export default class OrdersService {
         nftName: orderItem.tokenName,
         nftSlug: orderItem.tokenSlug
       };
-      let event: NftListingEvent | NftOfferEvent;
-      if (orderItem.isSellOrder) {
-        event = {
-          ...feedEvent,
-          type: EventType.NftListing,
-          isSellOrder: true
-        };
-      } else {
-        event = {
-          ...feedEvent,
-          type: EventType.NftOffer,
-          isSellOrder: false
-        };
-      }
-      const newDoc = feedCollection.doc();
-      if ('add' in batch) {
-        batch.add(newDoc, event, { merge: false });
-      } else {
-        batch.create(newDoc, event);
-      }
+
+      augmentedOrderItems.push(orderItemData);
     }
+
+    const sampleImages = orderItems.map((orderItem) => orderItem.tokenImage);
+    const orderData: MultiOrderEvent = {
+      title: 'Multi Order',
+      orderId: order.id,
+      chainId: order.chainId,
+      isSellOrder: order.signedOrder.isSellOrder,
+      paymentToken: order.execParams.currencyAddress,
+      quantity: order.numItems,
+      startPriceEth: order.startPriceEth,
+      endPriceEth: order.endPriceEth,
+      startTimeMs: order.startTimeMs,
+      endTimeMs: order.endTimeMs,
+      makerAddress: order.signedOrder.signer,
+      makerUsername,
+      likes: 0,
+      comments: 0,
+      timestamp: Date.now(),
+      type: order.isSellOrder ? EventType.NftListing : EventType.NftOffer,
+      orderItems: augmentedOrderItems,
+      sampleImages: sampleImages.slice(0, 3)
+    };
+
+    const newDoc = feedCollection.doc();
+    batchHandler.add(newDoc, orderData, { merge: false });
   }
 }
