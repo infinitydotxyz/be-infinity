@@ -123,7 +123,8 @@ export class TwitterService {
         return { account, tweets: formattedTweets };
       }
     } catch (err: any) {
-      console.log(err);
+      // commenting this out because it's too noisy - usually verfied mentions fails for old/suspended accounts or accounts with no activity
+      // console.log(err);
     }
 
     try {
