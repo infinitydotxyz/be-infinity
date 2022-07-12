@@ -436,7 +436,7 @@ export class CollectionsController {
     };
   }
 
-  @Get(':id/enqueue')
+  @Put(':id/enqueue')
   @ApiOperation({
     description: 'Enqueue collection for indexing',
     tags: [ApiTag.Collection]
