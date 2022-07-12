@@ -159,7 +159,7 @@ export default class OrdersService {
                 tokenId: token.tokenId,
                 numTokens: token.numTokens, // default for both ERC721 and ERC1155
                 tokenImage:
-                  tokenData?.image?.url ?? tokenData?.alchemyCachedImage ?? tokenData?.image?.originalUrl ?? '',
+                  tokenData?.image?.url || tokenData?.alchemyCachedImage || tokenData?.image?.originalUrl || '',
                 tokenName: tokenData?.metadata?.name ?? '',
                 tokenSlug: tokenData?.slug ?? '',
                 attributes: (tokenData?.metadata as Erc721Metadata)?.attributes ?? [] // todo: ERC1155?
