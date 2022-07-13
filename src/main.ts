@@ -12,7 +12,7 @@ import { Multer } from 'multer';
 
 function setup(app: INestApplication) {
   app.enableCors({
-    origin: ORIGIN,
+    origin: '*', // ORIGIN, // todo: use '*' for testing
     optionsSuccessStatus: 200
   });
   app.use(helmet());
