@@ -89,6 +89,10 @@ export class UserService {
       return null;
     }
 
+    if (!profile.address) {
+      profile.address = user.userAddress;
+    }
+
     return profile;
   }
 
