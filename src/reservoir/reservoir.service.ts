@@ -5,7 +5,8 @@ import got, { Got, Response } from 'got/dist/source';
 import { sleep } from '@infinityxyz/lib/utils';
 import {
   ReservoirDetailedTokensResponse,
-  ReservoirSingleCollectionResponse
+  ReservoirSingleCollectionResponse,
+  ReservoirTopCollectionOwnersResponse
 } from '@infinityxyz/lib/types/services/reservoir';
 
 @Injectable()
@@ -72,6 +73,26 @@ export class ReservoirService {
           searchParams.continuation = continuation;
         }
         return this.client.get(`tokens/details/v4`, {
+          searchParams,
+          responseType: 'json'
+        });
+      });
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return res.body;
+    } catch (e) {
+      console.error('failed to get detailed tokens info from reservoir', chainId, collectionAddress, e);
+    }
+  }
+
+  public async getCollectionTopOwners(chainId: string, collectionAddress: string, offset: number, limit: number) {
+    try {
+      const res: Response<ReservoirTopCollectionOwnersResponse> = await this.errorHandler(() => {
+        const searchParams: any = {
+          contract: collectionAddress,
+          offset,
+          limit
+        };
+        return this.client.get(`owners/v1`, {
           searchParams,
           responseType: 'json'
         });

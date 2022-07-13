@@ -20,8 +20,6 @@ import { AlchemyService } from 'alchemy/alchemy.service';
 import { FirebaseService } from 'firebase/firebase.service';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
 import { GemService } from 'gem/gem.service';
-import { MnemonicService } from 'mnemonic/mnemonic.service';
-import { MnemonicTokenMetadata } from 'mnemonic/mnemonic.types';
 import { OpenseaService } from 'opensea/opensea.service';
 import { OpenseaAsset } from 'opensea/opensea.types';
 import { Readable } from 'stream';
@@ -36,7 +34,6 @@ export class BackfillService {
   constructor(
     private firebaseService: FirebaseService,
     private openseaService: OpenseaService,
-    private mnemonicService: MnemonicService,
     private alchemyService: AlchemyService,
     private gemService: GemService
   ) {
@@ -63,32 +60,6 @@ export class BackfillService {
 
       if (!baseCollection) {
         return;
-      }
-
-      const mintInfo = await this.mnemonicService.getContract(collectionAddress);
-      if (mintInfo) {
-        const timestampString = mintInfo.mintEvent.blockTimestamp;
-        const minterAddress = mintInfo.mintEvent.minterAddress;
-        const timestampMs = new Date(timestampString).getTime();
-        baseCollection.deployedAt = timestampMs;
-        baseCollection.deployer = minterAddress;
-      }
-
-      const numOwners = await this.mnemonicService.getNumOwners(collectionAddress);
-      if (numOwners && numOwners.dataPoints && numOwners.dataPoints.length > 0) {
-        const timestampString = numOwners.dataPoints[0].timestamp;
-        const count = numOwners.dataPoints[0].count;
-        const timestampMs = new Date(timestampString).getTime();
-        baseCollection.numOwners = parseInt(count);
-        baseCollection.numOwnersUpdatedAt = timestampMs;
-      }
-
-      const numNfts = await this.mnemonicService.getNumTokens(collectionAddress);
-      if (numNfts && numNfts.dataPoints && numNfts.dataPoints.length > 0) {
-        const totalMinted = parseInt(numNfts.dataPoints[0].totalMinted);
-        const totalBurned = parseInt(numNfts.dataPoints[0].totalBurned);
-        const count = totalMinted - totalBurned;
-        baseCollection.numNfts = count;
       }
 
       // write to firebase
@@ -600,43 +571,5 @@ export class BackfillService {
     }
 
     return data;
-  }
-
-  private transformMnemonicNftToNftDto(
-    chainId: ChainId,
-    collectionAddress: string,
-    tokenId: string,
-    nft: MnemonicTokenMetadata
-  ): NftDto {
-    return {
-      collectionAddress: collectionAddress,
-      chainId: chainId,
-      tokenId,
-      image: { url: nft.image.uri, originalUrl: nft.image.uri, updatedAt: NaN },
-      slug: getSearchFriendlyString(nft.name),
-      minter: '',
-      mintTxHash: '',
-      owner: '',
-      mintedAt: NaN,
-      mintPrice: NaN,
-      metadata: {
-        attributes: [],
-        name: nft.name,
-        title: nft.name,
-        description: nft.description,
-        external_url: '',
-        image: nft.image.uri,
-        image_data: '',
-        youtube_url: '',
-        animation_url: '',
-        background_color: ''
-      },
-      numTraitTypes: NaN,
-      tokenUri: nft.metadataUri.uri,
-      updatedAt: NaN,
-      rarityRank: NaN,
-      rarityScore: NaN,
-      tokenStandard: TokenStandard.ERC721
-    };
   }
 }
