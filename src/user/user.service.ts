@@ -89,10 +89,14 @@ export class UserService {
       return null;
     }
 
+    if (!profile.address) {
+      profile.address = user.userAddress;
+    }
+
     return profile;
   }
 
-  async getProfileForUserAdress(user: string) {
+  async getProfileForUserAddress(user: string) {
     const profileSnapshot = await this.firebaseService.firestore
       .collection(firestoreConstants.USERS_COLL)
       .where('username', '==', trimLowerCase(user))
