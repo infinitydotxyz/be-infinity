@@ -24,7 +24,6 @@ import { OpenseaService } from 'opensea/opensea.service';
 import { OpenseaAsset } from 'opensea/opensea.types';
 import { Readable } from 'stream';
 import { pageStream } from 'utils/streams';
-import { ZoraService } from 'zora/zora.service';
 import { ALCHEMY_CACHED_IMAGE_HOST, TEN_MINS } from '../constants';
 
 @Injectable()
@@ -36,8 +35,7 @@ export class BackfillService {
     private firebaseService: FirebaseService,
     private openseaService: OpenseaService,
     private alchemyService: AlchemyService,
-    private gemService: GemService,
-    private zoraService: ZoraService
+    private gemService: GemService
   ) {
     this.fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
     this.collectionsRef = this.firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL);
