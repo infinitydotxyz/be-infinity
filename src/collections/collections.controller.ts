@@ -48,7 +48,7 @@ import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { CacheControlInterceptor } from 'common/interceptors/cache-control.interceptor';
 import { ResponseDescription } from 'common/response-description';
 import { FirebaseService } from 'firebase/firebase.service';
-import { mnemonicByParam } from 'mnemonic/mnemonic.service';
+import { trendingByParam } from 'mnemonic/mnemonic.service';
 import { StatsService } from 'stats/stats.service';
 import { TwitterService } from 'twitter/twitter.service';
 import { EXCLUDED_COLLECTIONS } from 'utils/stats';
@@ -147,7 +147,7 @@ export class CollectionsController {
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   async storeTrendingCollectionStats(@Query() query: CollectionTrendingStatsQueryDto) {
-    await this.statsService.fetchAndStoreTopCollectionsFromMnemonic(query);
+    await this.statsService.fetchAndStoreTopCollectionsFromGem(query);
   }
 
   @Get('stats')
@@ -161,7 +161,7 @@ export class CollectionsController {
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 10 })) // 10 mins
   async getCollectionStats(@Query() query: CollectionTrendingStatsQueryDto): Promise<CollectionStatsArrayDto> {
-    const queryBy = query.queryBy as mnemonicByParam;
+    const queryBy = query.queryBy as trendingByParam;
     const queryPeriod = query.period;
     const trendingCollectionsRef = this.firebaseService.firestore.collection(
       firestoreConstants.TRENDING_COLLECTIONS_COLL

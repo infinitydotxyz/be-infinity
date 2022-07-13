@@ -19,7 +19,7 @@ type TopCollectionsApiResponse = {
   collections: CollectionPeriodStatsContent[];
 };
 
-export type mnemonicByParam = 'by_sales_volume' | 'by_avg_price';
+export type trendingByParam = 'by_sales_volume' | 'by_avg_price';
 
 @Injectable()
 export class MnemonicService {
@@ -169,7 +169,7 @@ export class MnemonicService {
   }
 
   async getTopCollections(
-    by: mnemonicByParam,
+    by: trendingByParam,
     period: StatsPeriod,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     options?: {

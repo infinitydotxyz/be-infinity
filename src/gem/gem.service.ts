@@ -1,4 +1,4 @@
-import { BaseCollection, ChainId, CollectionMetadata, TokenStandard } from '@infinityxyz/lib/types/core';
+import { BaseCollection, ChainId, CollectionMetadata, StatsPeriod, TokenStandard } from '@infinityxyz/lib/types/core';
 import { getSearchFriendlyString, sleep } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { ethers } from 'ethers';
@@ -36,7 +36,52 @@ export class GemService {
     });
   }
 
-  async getCollectionWithAddress(chainId: ChainId, address: string): Promise<Partial<BaseCollection | undefined>> {
+  public async getTopCollections(period: StatsPeriod, limit: number): Promise<GemCollectionResponse> {
+    let sort = {};
+    if (period === StatsPeriod.Daily) {
+      sort = {
+        oneDayVolume: 1
+      };
+    } else if (period === StatsPeriod.Weekly) {
+      sort = {
+        sevenDayVolume: 1
+      };
+    } else {
+      sort = {
+        thirtyDayVolume: 1
+      };
+    }
+
+    const response = await this.errorHandler(() => {
+      return this.client.post(`collections`, {
+        json: {
+          sort,
+          limit,
+          fields: {
+            name: 1,
+            symbol: 1,
+            slug: 1,
+            standard: 1,
+            address: 1,
+            addresses: 1,
+            imageUrl: 1,
+            totalSupply: 1,
+            stats: 1,
+            isVerified: 1
+          }
+        },
+        responseType: 'json'
+      });
+    });
+
+    const gemCollectionResp = response.body as GemCollectionResponse;
+    return gemCollectionResp;
+  }
+
+  public async getCollectionWithAddress(
+    chainId: ChainId,
+    address: string
+  ): Promise<Partial<BaseCollection | undefined>> {
     if (!ethers.utils.isAddress(address)) {
       throw new Error('Invalid address');
     }

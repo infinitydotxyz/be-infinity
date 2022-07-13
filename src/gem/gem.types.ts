@@ -2,12 +2,19 @@ export interface GemCollectionResponse {
   data: GemCollection[];
 }
 
+export interface GemCollectionAddress {
+  address: string;
+  standard: string;
+}
+
 export interface GemCollection {
   name: string;
+  slug: string;
   symbol: string;
   standard: string;
   description: string;
   address: string;
+  addresses: GemCollectionAddress[],
   createdDate: string;
   externalUrl: string;
   imageUrl: string;
