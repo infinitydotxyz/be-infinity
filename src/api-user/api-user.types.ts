@@ -6,16 +6,6 @@ export interface ApiUserCreds {
   apiSecret: string;
 }
 
-// export enum ApiUserRole {
-//   User = 'user',
-//   Admin = 'admin'
-// }
-
-// export const RoleHierarchy = {
-//   [ApiUserRole.User]: 1,
-//   [ApiUserRole.Admin]: 100
-// };
-
 export interface ApiUser {
   id: string;
 

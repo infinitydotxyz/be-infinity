@@ -2,7 +2,6 @@ import { LOGIN_NONCE_EXPIRY_TIME, trimLowerCase } from '@infinityxyz/lib/utils';
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ApiUserService } from 'api-user/api-user.service';
-import { AUTH_MESSAGE_HEADER, AUTH_NONCE_HEADER, AUTH_SIGNATURE_HEADER } from 'auth/auth.constants';
 import { MATCH_SIGNER_METADATA_KEY } from 'auth/match-signer.decorator';
 import { ethers } from 'ethers';
 import { UserParserService } from 'user/parser/parser.service';
@@ -13,6 +12,9 @@ import {
   API_KEY_HEADER,
   API_SECRET_HEADER,
   AUTH_API_ROLES,
+  AUTH_MESSAGE_HEADER,
+  AUTH_NONCE_HEADER,
+  AUTH_SIGNATURE_HEADER,
   AUTH_SITE_ROLES,
   SiteRole,
   SiteRoleHierarchy
@@ -45,8 +47,8 @@ export class AuthGuard implements CanActivate {
   }
 
   protected async handleRequest(context: ExecutionContext, siteRolesRequired: SiteRole[], apiRolesRequired: ApiRole[]) {
-    const siteRolesValid = await this.checkSiteRoles(context, siteRolesRequired);
     const apiRolesValid = await this.checkApiRoles(context, apiRolesRequired);
+    const siteRolesValid = await this.checkSiteRoles(context, siteRolesRequired);
 
     return siteRolesValid && apiRolesValid;
   }

@@ -1,10 +1,9 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { ResponseDescription } from 'common/response-description';
-import { ApiUserAuth } from './api-user-auth.decorator';
 import { ApiUser } from './api-user.decorator';
 import { ApiUserService } from './api-user.service';
-import { ApiUserConfig, ApiUserRole } from './api-user.types';
+import { ApiUserConfig } from './api-user.types';
 
 @Controller('api-user')
 export class ApiUserController {
@@ -14,7 +13,7 @@ export class ApiUserController {
   @ApiOperation({
     description: 'Get user info'
   })
-  @ApiUserAuth(ApiUserRole.User)
+  // TODO add auth
   @ApiOkResponse({ description: ResponseDescription.Success }) // TODO add type
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   async getUser(@ApiUser() apiUser: ApiUserConfig) {

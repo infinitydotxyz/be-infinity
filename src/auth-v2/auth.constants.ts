@@ -44,8 +44,13 @@ export const ApiRoleHierarchy = {
   [ApiRole.ApiSuperAdmin]: 3
 };
 
-export const AUTH_SITE_ROLES = 'AUTH:SITE_ROLES';
-export const AUTH_API_ROLES = 'AUTH:API_ROLES';
+export const AUTH_SITE_ROLES = 'AUTH:SITE_ROLE';
+export const AUTH_API_ROLES = 'AUTH:API_ROLE';
+export const MATCH_SIGNER_METADATA_KEY = 'MATCH-SIGNER:PARAMS';
 
 export const API_KEY_HEADER = 'x-api-key';
 export const API_SECRET_HEADER = 'x-api-secret';
+
+export const AUTH_NONCE_HEADER = 'x-auth-nonce';
+export const AUTH_MESSAGE_HEADER = 'x-auth-message';
+export const AUTH_SIGNATURE_HEADER = 'x-auth-signature';
