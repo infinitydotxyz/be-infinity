@@ -1,6 +1,7 @@
-import { ZoraAggregateCollectionStatsResponse, ZoraTokensResponse } from '@infinityxyz/lib/types/services/zora';
+import { ZoraAggregateCollectionStatsResponse } from '@infinityxyz/lib/types/services/zora';
+import { sleep } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
-import { gql, GraphQLClient } from 'graphql-request';
+import { ClientError, gql, GraphQLClient } from 'graphql-request';
 import { ZORA_API_KEY } from '../constants';
 
 @Injectable()
@@ -21,6 +22,21 @@ export class ZoraService {
     collectionAddress: string,
     topOwnersLimit: number
   ): Promise<ZoraAggregateCollectionStatsResponse | undefined> {
+    const numRetries = 3;
+    const data = await this.tryFetchStats(chainId, collectionAddress, topOwnersLimit, numRetries);
+    return data as ZoraAggregateCollectionStatsResponse;
+  }
+
+  private async tryFetchStats(
+    chainId: string,
+    collectionAddress: string,
+    topOwnersLimit: number,
+    numRetries: number
+  ): Promise<ZoraAggregateCollectionStatsResponse | undefined> {
+    if (numRetries === 0) {
+      throw Error('Retries exceeded');
+    }
+
     try {
       const query = gql`
         query MyQuery {
@@ -45,65 +61,18 @@ export class ZoraService {
         }
       `;
 
-      const data = await this.client.request(query);
-      return data as ZoraAggregateCollectionStatsResponse;
+      return await this.client.request(query);
     } catch (e) {
-      console.error('failed to get aggregated collection stats info from zora', chainId, collectionAddress, e);
-    }
-  }
-
-  // default sorting by tokenId ascending
-  public async getTokenMintInfo(
-    chainId: string,
-    collectionAddress: string,
-    after: string,
-    limit: number
-  ): Promise<ZoraTokensResponse | undefined> {
-    try {
-      const query = gql`
-        query MyQuery {
-          tokens(where: { collectionAddresses: "${collectionAddress}"}, networks: {network: ETHEREUM, chain: MAINNET}, pagination: {after: "${after}", limit: ${limit}}, sort: {sortKey: TOKEN_ID, sortDirection: ASC}) {
-            nodes {
-              token {
-                tokenId
-                tokenUrl
-                image {
-                  url
-                }
-                mintInfo {
-                  toAddress
-                  originatorAddress
-                  price {
-                    chainTokenPrice {
-                      decimal
-                      currency {
-                        address
-                        decimals
-                        name
-                      }
-                    }
-                  }
-                  mintContext {
-                    blockNumber
-                    transactionHash
-                    blockTimestamp
-                  }
-                }
-              }
-            }
-            pageInfo {
-              endCursor
-              hasNextPage
-              limit
-            }
-          }
+      if (e instanceof ClientError) {
+        const status = e.response.status;
+        if (status === 429) {
+          // too many requests
+          await sleep(1000);
+          return this.tryFetchStats(chainId, collectionAddress, topOwnersLimit, --numRetries);
         }
-      `;
-
-      const data = await this.client.request(query);
-      return data as ZoraTokensResponse;
-    } catch (e) {
-      console.error('failed to get token mint info from zora', chainId, collectionAddress, e);
+      } else {
+        console.error('failed to get aggregated collection stats info from zora', chainId, collectionAddress, e);
+      }
     }
   }
 }
