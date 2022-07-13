@@ -163,6 +163,7 @@ export class NftsService {
     const startPriceField = `ordersSnippet.${query.orderType}.orderItem.startPriceEth`;
 
     if (query.orderType) {
+      console.log(`Requires order type: ${query.orderType}`);
       nftsQuery = nftsQuery.where(`ordersSnippet.${query.orderType}.hasOrder`, '==', true);
     }
 
@@ -202,7 +203,11 @@ export class NftsService {
         nftsQuery = nftsQuery.startAfter(startAfterPrice, startAfterTokenId);
       }
     } else {
-      nftsQuery = nftsQuery.orderBy(query.orderBy, query.orderDirection);
+      if (query.orderBy === NftsOrderBy.Price) {
+        nftsQuery = nftsQuery.orderBy(startPriceField, query.orderDirection);
+      } else {
+        nftsQuery = nftsQuery.orderBy(query.orderBy, query.orderDirection);
+      }
       if (decodedCursor?.[query.orderBy]) {
         nftsQuery = nftsQuery.startAfter(decodedCursor[query.orderBy]);
       }
