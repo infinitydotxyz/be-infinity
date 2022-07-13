@@ -1,22 +1,23 @@
 import { ChainId, Collection, CollectionMetadata, CreationFlow, TopOwner } from '@infinityxyz/lib/types/core';
-import { ExternalNftCollectionDto, NftCollectionDto } from '@infinityxyz/lib/types/dto/collections/nfts';
-import { firestoreConstants, getCollectionDocId, getEndCode, getSearchFriendlyString } from '@infinityxyz/lib/utils';
-import { Injectable } from '@nestjs/common';
-import { BackfillService } from 'backfill/backfill.service';
-import { TopOwnersQueryDto, TopOwnerDto, CollectionSearchQueryDto } from '@infinityxyz/lib/types/dto/collections';
+import { CollectionSearchQueryDto, TopOwnerDto, TopOwnersQueryDto } from '@infinityxyz/lib/types/dto/collections';
 import {
   CuratedCollectionsOrderBy,
   CuratedCollectionsQuery
 } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
-import { FirebaseService } from 'firebase/firebase.service';
-import { MnemonicService } from 'mnemonic/mnemonic.service';
-import { CursorService } from 'pagination/cursor.service';
-import { ParsedCollectionId } from './collection-id.pipe';
 import {
   CuratedCollectionDto,
   CuratedCollectionsDto
 } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
+import { ExternalNftCollectionDto, NftCollectionDto } from '@infinityxyz/lib/types/dto/collections/nfts';
+import { firestoreConstants, getCollectionDocId, getEndCode, getSearchFriendlyString } from '@infinityxyz/lib/utils';
+import { Injectable } from '@nestjs/common';
+import { BackfillService } from 'backfill/backfill.service';
+import { FirebaseService } from 'firebase/firebase.service';
+import { CursorService } from 'pagination/cursor.service';
+import { ReservoirService } from 'reservoir/reservoir.service';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
+import { ZoraService } from 'zora/zora.service';
+import { ParsedCollectionId } from './collection-id.pipe';
 
 interface CollectionQueryOptions {
   /**
@@ -31,7 +32,8 @@ interface CollectionQueryOptions {
 export default class CollectionsService {
   constructor(
     private firebaseService: FirebaseService,
-    private mnemonicService: MnemonicService,
+    private zoraService: ZoraService,
+    private reservoirService: ReservoirService,
     private paginationService: CursorService,
     private backfillService: BackfillService
   ) {}
@@ -53,35 +55,56 @@ export default class CollectionsService {
     let topOwners: TopOwner[] = [];
     // check if data exists in firestore
     const collectionDocId = getCollectionDocId({ collectionAddress: collection.address, chainId: collection.chainId });
-    const allStatsDoc = await this.firebaseService.firestore
+    const allStatsDocRef = this.firebaseService.firestore
       .collection(firestoreConstants.COLLECTIONS_COLL)
       .doc(collectionDocId)
       .collection(firestoreConstants.COLLECTION_STATS_COLL)
-      .doc('all')
-      .get();
+      .doc('all');
+    const allStatsDoc = await allStatsDocRef.get();
     if (allStatsDoc.exists) {
       topOwners = allStatsDoc.data()?.topOwnersByOwnedNftsCount as TopOwner[];
     }
 
-    // if data doesn't exist in firestore, fetch from mnemonic
+    // if data doesn't exist in firestore, fetch from zora
     if (!topOwners || topOwners.length === 0) {
-      const topOwnersMnemonic = await this.mnemonicService.getTopOwners(collection.address, {
-        limit: query.limit,
-        orderDirection: query.orderDirection,
-        offset
-      });
-      const owners = topOwnersMnemonic?.owner ?? [];
+      const topOwnersZora = await this.zoraService.getAggregatedCollectionStats(
+        collection.chainId,
+        collection.address,
+        10
+      );
+      const owners = topOwnersZora?.aggregateStat.ownersByCount.nodes ?? [];
+      for (const owner of owners) {
+        topOwners.push({
+          owner: owner.owner,
+          count: owner.count
+        });
+      }
+    }
+
+    // if zora data is null, fetch from reservoir
+    if (!topOwners || topOwners.length === 0) {
+      const topOwnersReservoir = await this.reservoirService.getCollectionTopOwners(
+        collection.chainId,
+        collection.address,
+        0,
+        10
+      );
+      const owners = topOwnersReservoir?.owners ?? [];
       for (const owner of owners) {
         topOwners.push({
           owner: owner.address,
-          count: owner.ownedCount
+          count: parseInt(owner.ownership.tokenCount)
         });
       }
     }
 
     if (!topOwners || topOwners.length === 0) {
+      console.error('Error fetching top owners for collection', collection.chainId + ':' + collection.address);
       return null;
     }
+
+    // async store in firestore
+    allStatsDocRef.set({ topOwnersByOwnedNftsCount: topOwners }, { merge: true }).catch(console.error);
 
     const hasNextPage = topOwners.length > query.limit;
     const updatedOffset = topOwners.length + offset;
