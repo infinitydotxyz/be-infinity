@@ -99,7 +99,7 @@ export default class OrdersService {
     try {
       const fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
       const ordersCollectionRef = this.firebaseService.firestore.collection(firestoreConstants.ORDERS_COLL);
-      const makerProfile = await this.userService.getProfileForUserAdress(maker);
+      const makerProfile = await this.userService.getProfileForUserAddress(maker);
       const makerUsername = makerProfile?.username ?? '';
 
       // fill order with metadata
@@ -136,6 +136,8 @@ export default class OrdersService {
               attributes: []
             };
             const collection = metadata?.[order.chainId as ChainId]?.[nft.collection]?.collection ?? {};
+            console.log(`Collection`);
+            console.log(JSON.stringify(collection, null, 2));
             const orderItemData = await this.getFirestoreOrderItemFromSignedOBOrder(
               order,
               nft,
@@ -397,6 +399,9 @@ export default class OrdersService {
         for (const token of nft.tokens) {
           tokensByCollection.add(token.tokenId);
         }
+        if (nft.tokens.length === 0) {
+          tokensByCollection.add('');
+        }
         collectionsByChainId.set(nft.collection, tokensByCollection);
       }
       tokens.set(order.chainId as ChainId, collectionsByChainId);
@@ -426,14 +431,27 @@ export default class OrdersService {
         };
       }, {});
 
+      for (const [collectionAddress, collection] of Object.entries(collectionsByAddress)) {
+        metadata[collection.chainId] = {
+          ...metadata[chainId],
+          [collectionAddress]: {
+            ...(metadata[chainId]?.[collectionAddress] ?? {}),
+            collection,
+            nfts: {}
+          }
+        };
+      }
+
       const tokenProps = [...collections.entries()].flatMap(([collectionAddress, tokenIds]) => {
-        return [...tokenIds].map((tokenId) => {
-          return {
-            address: collectionAddress,
-            tokenId: tokenId,
-            chainId: chainId
-          };
-        });
+        return [...tokenIds]
+          .filter((item) => !!item)
+          .map((tokenId) => {
+            return {
+              address: collectionAddress,
+              tokenId: tokenId,
+              chainId: chainId
+            };
+          });
       });
 
       const tokens = await this.nftsService.getNfts(tokenProps);
