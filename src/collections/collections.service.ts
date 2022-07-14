@@ -63,6 +63,9 @@ export default class CollectionsService {
     const allStatsDoc = await allStatsDocRef.get();
     if (allStatsDoc.exists) {
       topOwners = allStatsDoc.data()?.topOwnersByOwnedNftsCount as TopOwner[];
+
+      // make sure not undefined from above
+      topOwners = topOwners ?? [];
     }
 
     // if data doesn't exist in firestore, fetch from zora
@@ -105,6 +108,11 @@ export default class CollectionsService {
 
     // async store in firestore
     allStatsDocRef.set({ topOwnersByOwnedNftsCount: topOwners }, { merge: true }).catch(console.error);
+
+    // don't return more than limit
+    if (topOwners.length > query.limit) {
+      topOwners = topOwners.slice(0, query.limit);
+    }
 
     const hasNextPage = topOwners.length > query.limit;
     const updatedOffset = topOwners.length + offset;
