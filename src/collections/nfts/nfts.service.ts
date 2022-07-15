@@ -158,7 +158,6 @@ export class NftsService {
     if (query.orderBy === NftsOrderBy.Price && !query.orderType) {
       query.orderType = OrderType.Listing;
     }
-    const orderType = query.orderType || OrderType.Listing;
 
     const startPriceField = `ordersSnippet.${query.orderType}.orderItem.startPriceEth`;
 
@@ -204,12 +203,19 @@ export class NftsService {
       }
     } else {
       if (query.orderBy === NftsOrderBy.Price) {
-        nftsQuery = nftsQuery.orderBy(startPriceField, query.orderDirection);
+        nftsQuery = nftsQuery
+          .orderBy(startPriceField, query.orderDirection)
+          .orderBy(NftsOrderBy.TokenId, OrderDirection.Ascending);
+        const startAfterPrice = decodedCursor?.[NftsOrderBy.Price];
+        const startAfterTokenId = decodedCursor?.[NftsOrderBy.TokenId];
+        if (startAfterPrice && startAfterTokenId) {
+          nftsQuery = nftsQuery.startAfter(startAfterPrice, startAfterTokenId);
+        }
       } else {
         nftsQuery = nftsQuery.orderBy(query.orderBy, query.orderDirection);
-      }
-      if (decodedCursor?.[query.orderBy]) {
-        nftsQuery = nftsQuery.startAfter(decodedCursor[query.orderBy]);
+        if (decodedCursor?.[query.orderBy]) {
+          nftsQuery = nftsQuery.startAfter(decodedCursor[query.orderBy]);
+        }
       }
     }
 
@@ -227,7 +233,7 @@ export class NftsService {
     for (const key of Object.values(NftsOrderBy)) {
       switch (key) {
         case NftsOrderBy.Price: {
-          const startPrice = lastItem?.ordersSnippet?.[orderType]?.orderItem?.startPriceEth;
+          const startPrice = lastItem?.ordersSnippet?.[query.orderType as OrderType]?.orderItem?.startPriceEth;
           const tokenId = lastItem?.tokenId;
           if (startPrice && tokenId) {
             cursor[NftsOrderBy.Price] = startPrice;
