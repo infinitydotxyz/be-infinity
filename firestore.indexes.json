@@ -937,202 +937,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "metadata.attributes",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.attributes",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.attributes",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.attributes",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.attributes",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "rarityRank",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.attributes",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "rarityRank",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.attributes",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "tokenId",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.attributes",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "tokenId",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.listing.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.attributes",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.listing.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.attributes",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.listing.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.attributes",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.listing.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.attributes",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
           "fieldPath": "ordersSnippet.listing.hasOrder",
           "order": "ASCENDING"
         },
@@ -1163,266 +967,6 @@
           "arrayConfig": "CONTAINS"
         },
         {
-          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "rarityRank",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.listing.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.attributes",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "tokenId",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.listing.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.attributes",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "tokenId",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.listing.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.attributes",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.listing.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.attributes",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.listing.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.attributes",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.listing.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.attributes",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "rarityRank",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.listing.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.attributes",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "rarityRank",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.listing.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.attributes",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "tokenId",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.listing.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.attributes",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "tokenId",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.listing.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.listing.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.listing.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.listing.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.listing.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "rarityRank",
           "order": "ASCENDING"
         }
@@ -1442,98 +986,6 @@
         },
         {
           "fieldPath": "rarityRank",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.listing.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "tokenId",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.listing.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "tokenId",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.listing.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.listing.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.listing.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.listing.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "rarityRank",
           "order": "ASCENDING"
         }
       ]
@@ -1548,155 +1000,7 @@
         },
         {
           "fieldPath": "rarityRank",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.listing.hasOrder",
           "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "tokenId",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.listing.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "tokenId",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.offer.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.attributes",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.offer.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.attributes",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.offer.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.attributes",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.offer.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.attributes",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.offer.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.attributes",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.offer.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.attributes",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
-          "order": "DESCENDING"
         }
       ]
     },
@@ -1735,7 +1039,121 @@
           "arrayConfig": "CONTAINS"
         },
         {
+          "fieldPath": "rarityRank",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.offer.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
           "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "rarityRank",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.offer.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "rarityRank",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "metadata.attributes",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "rarityRank",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.listing.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.attributes",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "rarityRank",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.listing.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.attributes",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "rarityRank",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.listing.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "rarityRank",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.listing.hasOrder",
           "order": "ASCENDING"
         },
         {
@@ -1758,6 +1176,408 @@
         },
         {
           "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "rarityRank",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.offer.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.attributes",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "rarityRank",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.offer.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "rarityRank",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.offer.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "rarityRank",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "metadata.attributes",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "rarityRank",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.listing.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.attributes",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "tokenIdNumeric",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.listing.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.attributes",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "tokenIdNumeric",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.listing.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "tokenIdNumeric",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.listing.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "tokenIdNumeric",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.offer.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.attributes",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "tokenIdNumeric",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.offer.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.attributes",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "tokenIdNumeric",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.offer.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "tokenIdNumeric",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.offer.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "tokenIdNumeric",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "metadata.attributes",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "tokenIdNumeric",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.listing.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.attributes",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "tokenIdNumeric",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.listing.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.attributes",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "tokenIdNumeric",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.listing.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "tokenIdNumeric",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.listing.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "tokenIdNumeric",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.offer.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.attributes",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "tokenIdNumeric",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.offer.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.attributes",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "tokenIdNumeric",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.offer.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "tokenIdNumeric",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.offer.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "tokenIdNumeric",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "metadata.attributes",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "tokenIdNumeric",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.listing.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.attributes",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
           "order": "ASCENDING"
         },
         {
@@ -1771,7 +1591,25 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "ordersSnippet.offer.hasOrder",
+          "fieldPath": "ordersSnippet.listing.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "tokenId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.listing.hasOrder",
           "order": "ASCENDING"
         },
         {
@@ -1779,7 +1617,7 @@
           "arrayConfig": "CONTAINS"
         },
         {
-          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
+          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
           "order": "ASCENDING"
         },
         {
@@ -1793,15 +1631,15 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "ordersSnippet.offer.hasOrder",
+          "fieldPath": "ordersSnippet.listing.hasOrder",
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "metadata.attributes",
-          "arrayConfig": "CONTAINS"
+          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
+          "order": "ASCENDING"
         },
         {
-          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
+          "fieldPath": "tokenId",
           "order": "DESCENDING"
         }
       ]
@@ -1811,7 +1649,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "ordersSnippet.offer.hasOrder",
+          "fieldPath": "ordersSnippet.listing.hasOrder",
           "order": "ASCENDING"
         },
         {
@@ -1819,40 +1657,12 @@
           "arrayConfig": "CONTAINS"
         },
         {
-          "fieldPath": "rarityRank",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.offer.hasOrder",
+          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "metadata.attributes",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "rarityRank",
+          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
           "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.offer.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.attributes",
-          "arrayConfig": "CONTAINS"
         },
         {
           "fieldPath": "tokenId",
@@ -1865,12 +1675,144 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "ordersSnippet.offer.hasOrder",
+          "fieldPath": "ordersSnippet.listing.hasOrder",
           "order": "ASCENDING"
         },
         {
           "fieldPath": "metadata.attributes",
           "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "tokenId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.listing.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "tokenId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.listing.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "tokenId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.listing.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.attributes",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "tokenId",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.listing.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.attributes",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "tokenId",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.listing.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "tokenId",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.listing.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
+          "order": "DESCENDING"
         },
         {
           "fieldPath": "tokenId",
@@ -1887,126 +1829,16 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.offer.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.offer.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.offer.hasOrder",
-          "order": "ASCENDING"
+          "fieldPath": "metadata.attributes",
+          "arrayConfig": "CONTAINS"
         },
         {
           "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
+          "fieldPath": "tokenId",
           "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.offer.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "ordersSnippet.listing.orderItem.startPriceEth",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.offer.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.offer.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "rarityRank",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.offer.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "rarityRank",
-          "order": "DESCENDING"
         }
       ]
     },
@@ -2025,6 +1857,28 @@
         {
           "fieldPath": "tokenId",
           "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.offer.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.attributes",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "tokenId",
+          "order": "DESCENDING"
         }
       ]
     },
@@ -2055,46 +1909,16 @@
           "order": "ASCENDING"
         },
         {
+          "fieldPath": "metadata.attributes",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
+          "order": "ASCENDING"
+        },
+        {
           "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
           "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.offer.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "rarityRank",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.offer.hasOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "rarityRank",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nfts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "ordersSnippet.offer.hasOrder",
-          "order": "ASCENDING"
         },
         {
           "fieldPath": "tokenId",
@@ -2109,6 +1933,142 @@
         {
           "fieldPath": "ordersSnippet.offer.hasOrder",
           "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.attributes",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "tokenId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.offer.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "tokenId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.offer.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "tokenId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.offer.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.attributes",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "tokenId",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.offer.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.attributes",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "tokenId",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.offer.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "tokenId",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "nfts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ordersSnippet.offer.hasOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "ordersSnippet.offer.orderItem.startPriceEth",
+          "order": "DESCENDING"
         },
         {
           "fieldPath": "tokenId",

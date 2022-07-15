@@ -136,8 +136,6 @@ export default class OrdersService {
               attributes: []
             };
             const collection = metadata?.[order.chainId as ChainId]?.[nft.collection]?.collection ?? {};
-            console.log(`Collection`);
-            console.log(JSON.stringify(collection, null, 2));
             const orderItemData = await this.getFirestoreOrderItemFromSignedOBOrder(
               order,
               nft,
@@ -277,6 +275,14 @@ export default class OrdersService {
     reqQuery: UserOrderItemsQueryDto,
     user?: ParsedUserId
   ): Promise<SignedOBOrderArrayDto> {
+    if (reqQuery.makerAddress && reqQuery.makerAddress !== user?.userAddress) {
+      throw new BadQueryError('Maker address must match user address');
+    }
+
+    if (reqQuery.takerAddress && reqQuery.takerAddress !== user?.userAddress) {
+      throw new BadQueryError('Taker address must match user address');
+    }
+
     let firestoreQuery: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> =
       this.firebaseService.firestore.collectionGroup(firestoreConstants.ORDER_ITEMS_SUB_COLL);
     let requiresOrderByPrice = false;
@@ -290,24 +296,8 @@ export default class OrdersService {
       firestoreQuery = firestoreQuery.where('isSellOrder', '==', reqQuery.isSellOrder);
     }
 
-    if (reqQuery.makerAddress && reqQuery.makerAddress !== user?.userAddress) {
-      throw new BadQueryError('Maker address must match user address');
-    }
-
-    if (reqQuery.makerAddress) {
-      firestoreQuery = firestoreQuery.where('makerAddress', '==', reqQuery.makerAddress);
-    }
-
-    if (reqQuery.takerAddress && reqQuery.takerAddress !== user?.userAddress) {
-      throw new BadQueryError('Taker address must match user address');
-    }
-
     if (reqQuery.id) {
       firestoreQuery = firestoreQuery.where('id', '==', reqQuery.id);
-    }
-
-    if (reqQuery.takerAddress) {
-      firestoreQuery = firestoreQuery.where('takerAddress', '==', reqQuery.takerAddress);
     }
 
     if (reqQuery.minPrice !== undefined) {
@@ -330,6 +320,14 @@ export default class OrdersService {
 
     if (reqQuery.tokenId) {
       firestoreQuery = firestoreQuery.where('tokenId', '==', reqQuery.tokenId);
+    }
+
+    if (reqQuery.makerAddress) {
+      firestoreQuery = firestoreQuery.where('makerAddress', '==', reqQuery.makerAddress);
+    }
+
+    if (reqQuery.takerAddress) {
+      firestoreQuery = firestoreQuery.where('takerAddress', '==', reqQuery.takerAddress);
     }
 
     // ordering and pagination
