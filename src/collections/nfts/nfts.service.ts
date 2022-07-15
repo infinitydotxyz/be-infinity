@@ -155,15 +155,16 @@ export class NftsService {
     const decodedCursor = this.paginationService.decodeCursorToObject<Cursor>(query.cursor);
     let nftsQuery: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = nftsCollection;
 
+    const orderType = query.orderType ?? OrderType.Listing;
     if (query.orderBy === NftsOrderBy.Price && !query.orderType) {
       query.orderType = OrderType.Listing;
     }
 
-    const startPriceField = `ordersSnippet.${query.orderType}.orderItem.startPriceEth`;
+    const startPriceField = `ordersSnippet.${orderType}.orderItem.startPriceEth`;
 
-    if (query.orderType) {
-      console.log(`Requires order type: ${query.orderType}`);
-      nftsQuery = nftsQuery.where(`ordersSnippet.${query.orderType}.hasOrder`, '==', true);
+    const hasPriceFilter = query.minPrice !== undefined || query.maxPrice !== undefined;
+    if (query.orderType || hasPriceFilter) {
+      nftsQuery = nftsQuery.where(`ordersSnippet.${orderType}.hasOrder`, '==', true);
     }
 
     if (query.traitTypes) {
@@ -188,7 +189,6 @@ export class NftsService {
       }
     }
 
-    const hasPriceFilter = query.minPrice !== undefined || query.maxPrice !== undefined;
     if (hasPriceFilter) {
       const minPrice = query.minPrice ?? 0;
       const maxPrice = query.maxPrice ?? Number.MAX_SAFE_INTEGER;
@@ -233,7 +233,7 @@ export class NftsService {
     for (const key of Object.values(NftsOrderBy)) {
       switch (key) {
         case NftsOrderBy.Price: {
-          const startPrice = lastItem?.ordersSnippet?.[query.orderType as OrderType]?.orderItem?.startPriceEth;
+          const startPrice = lastItem?.ordersSnippet?.[orderType]?.orderItem?.startPriceEth;
           const tokenId = lastItem?.tokenId;
           if (startPrice && tokenId) {
             cursor[NftsOrderBy.Price] = startPrice;
