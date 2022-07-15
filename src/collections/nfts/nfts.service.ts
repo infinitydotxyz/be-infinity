@@ -195,7 +195,7 @@ export class NftsService {
       const maxPrice = query.maxPrice ?? Number.MAX_SAFE_INTEGER;
       nftsQuery = nftsQuery.where(startPriceField, '>=', minPrice);
       nftsQuery = nftsQuery.where(startPriceField, '<=', maxPrice);
-      nftsQuery = nftsQuery.orderBy(NftsOrderBy.Price, query.orderDirection);
+      nftsQuery = nftsQuery.orderBy(startPriceField, query.orderDirection);
       nftsQuery = nftsQuery.orderBy(NftsOrderBy.TokenId, OrderDirection.Ascending); // to break ties
       const startAfterPrice = decodedCursor?.[NftsOrderBy.Price];
       const startAfterTokenId = decodedCursor?.[NftsOrderBy.TokenId];

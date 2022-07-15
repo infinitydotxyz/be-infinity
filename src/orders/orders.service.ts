@@ -136,8 +136,6 @@ export default class OrdersService {
               attributes: []
             };
             const collection = metadata?.[order.chainId as ChainId]?.[nft.collection]?.collection ?? {};
-            console.log(`Collection`);
-            console.log(JSON.stringify(collection, null, 2));
             const orderItemData = await this.getFirestoreOrderItemFromSignedOBOrder(
               order,
               nft,
