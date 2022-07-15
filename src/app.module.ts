@@ -23,6 +23,7 @@ import { ZoraModule } from 'zora/zora.module';
 import { OpenseaModule } from 'opensea/opensea.module';
 import { ReservoirModule } from 'reservoir/reservoir.module';
 import { GemModule } from 'gem/gem.module';
+import { FeedModule } from 'feed/feed.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { GemModule } from 'gem/gem.module';
       storageBucket: FB_STORAGE_BUCKET
     }),
     CollectionsModule,
+    FeedModule,
     TwitterModule,
     DiscordModule,
     StatsModule,
