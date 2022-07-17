@@ -490,7 +490,6 @@ export class BackfillService {
       slug: getSearchFriendlyString(nft.name),
       minter: '',
       mintTxHash: '',
-      owner: nft.owner,
       mintedAt: NaN,
       mintPrice: NaN,
       metadata: {
