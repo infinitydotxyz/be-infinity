@@ -18,12 +18,18 @@ export interface OpenseaAsset {
   description: string;
   permalink: string;
   decimals?: number;
-  owner?: string;
+  owner?: OpenseaAssetOwner;
   asset_contract: OpenseaContract;
   /**
    * link to the token metadata
    */
   token_metadata: string;
+}
+
+export interface OpenseaAssetOwner {
+  address: string;
+  profile_img_url: string;
+  config: string;
 }
 
 export interface OpenseaAssetTrait {

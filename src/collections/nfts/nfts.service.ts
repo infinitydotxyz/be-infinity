@@ -40,7 +40,7 @@ export class NftsService {
       { address: nftQuery.address, chainId: nftQuery.chainId, tokenId: nftQuery.tokenId }
     ]);
 
-    if (nft && !nft.owner) {
+    if (nft && (!nft.owner || typeof nft.owner !== 'string')) { // to handle stale opensea ownership data
       const owner = await this.ethereumService.getErc721Owner({
         address: nftQuery.address,
         tokenId: nftQuery.tokenId,
@@ -56,7 +56,7 @@ export class NftsService {
     // }
   }
 
-  updateOwnershipInFirestore(nft: NftDto): void {
+  private updateOwnershipInFirestore(nft: NftDto): void {
     const chainId = nft.chainId;
     const collectionAddress = nft.collectionAddress ?? '';
     const tokenId = nft.tokenId;
