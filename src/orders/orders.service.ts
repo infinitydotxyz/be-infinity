@@ -1,6 +1,7 @@
 import {
   ChainId,
   Collection,
+  CreationFlow,
   Erc721Metadata,
   FirestoreOrder,
   FirestoreOrderItem,
@@ -38,6 +39,7 @@ import { InvalidTokenError } from 'common/errors/invalid-token-error';
 import { EthereumService } from 'ethereum/ethereum.service';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
 import { FirestoreDistributedCounter } from 'firebase/firestore-counter';
+import { attemptToIndexCollection } from 'utils/collection-indexing';
 import { FirebaseService } from '../firebase/firebase.service';
 import { CursorService } from '../pagination/cursor.service';
 import { ParsedUserId } from '../user/parser/parsed-user-id';
@@ -416,7 +418,15 @@ export default class OrdersService {
         })
       );
       const collectionsByAddress = collectionsData.reduce((acc: { [address: string]: Collection }, collection) => {
-        if (!collection?.state?.create?.step) {
+        if (!collection?.state?.create?.step || collection?.state?.create?.step === CreationFlow.CollectionMetadata) {
+          // initiate indexing
+          if (collection?.address && collection?.chainId) {
+            attemptToIndexCollection({ collectionAddress: collection?.address, chainId: collection?.chainId }).catch(
+              (err) => console.error(err)
+            );
+          }
+
+          // return error
           throw new InvalidCollectionError(
             collection?.address ?? 'Unknown',
             collection?.chainId ?? 'Unknown',
