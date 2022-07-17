@@ -34,6 +34,8 @@ import {
 } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 import { NftsService } from '../collections/nfts/nfts.service';
 import { NftSaleEvent, NftListingEvent, NftOfferEvent, EventType } from '@infinityxyz/lib/types/core/feed';
+import { AlchemyNft } from '@infinityxyz/lib/types/services/alchemy';
+import { attemptToIndexCollection } from 'utils/collection-indexing';
 
 export type UserActivity = NftSaleEvent | NftListingEvent | NftOfferEvent;
 
@@ -327,6 +329,9 @@ export class UserService {
       // backfill alchemy cached images in firestore
       this.backfillService.backfillAlchemyCachedImagesForUserNfts(nfts, chainId, user.userAddress);
 
+      // async initiate indexing of collections that are not indexed yet
+      this.initMissingCollectionsIndexing(nfts, chainId);
+
       if (startAtToken) {
         const indexToStartAt = nfts.findIndex(
           (item) => BigNumber.from(item.id.tokenId).toString() === cursor.startAtToken
@@ -374,6 +379,15 @@ export class UserService {
       hasNextPage,
       totalOwned
     };
+  }
+
+  private initMissingCollectionsIndexing(nfts: AlchemyNft[], chainId: ChainId) {
+    const collections = new Set<string>(nfts.map((item) => item.contract.address));
+    for (const collection of collections) {
+      attemptToIndexCollection({ collectionAddress: collection, chainId }).catch((err) => {
+        console.error(err);
+      });
+    }
   }
 
   async getByUsername(username: string) {
