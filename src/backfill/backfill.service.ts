@@ -186,7 +186,10 @@ export class BackfillService {
         }
 
         if (datum.traits && datum.traits.length > 0 && token.metadata) {
-          token.metadata.attributes = datum.traits;
+          token.metadata.attributes = datum.traits.map((trait) => ({
+            trait_type: trait.trait_type,
+            value: trait.value
+          }));
           token.numTraitTypes = datum.traits.length;
         }
 
@@ -247,7 +250,7 @@ export class BackfillService {
         }
 
         if (openseaData.traits && openseaData.traits.length > 0) {
-          attributes = openseaData.traits;
+          attributes = openseaData.traits.map((trait) => ({ trait_type: trait.trait_type, value: trait.value }));
         }
       }
 
@@ -266,7 +269,10 @@ export class BackfillService {
         }
 
         if (alchemyData?.metadata?.attributes && alchemyData?.metadata?.attributes.length > 0) {
-          attributes = alchemyData.metadata.attributes;
+          attributes = alchemyData.metadata.attributes.map((trait) => ({
+            trait_type: trait.trait_type,
+            value: trait.value
+          }));
         }
       }
 
@@ -277,7 +283,7 @@ export class BackfillService {
         if (attributes.length === 0) {
           const openseaData = await this.openseaService.getNFT(nft.collectionAddress, nft.tokenId);
           if (openseaData.traits && openseaData.traits.length > 0) {
-            attributes = openseaData.traits;
+            attributes = openseaData.traits.map((trait) => ({ trait_type: trait.trait_type, value: trait.value }));
           } else {
             const alchemyData = await this.alchemyService.getNft(
               nft.chainId ?? ChainId.Mainnet,
@@ -285,7 +291,10 @@ export class BackfillService {
               nft.tokenId
             );
             if (alchemyData?.metadata?.attributes && alchemyData?.metadata?.attributes.length > 0) {
-              attributes = alchemyData.metadata.attributes;
+              attributes = alchemyData.metadata.attributes.map((trait) => ({
+                trait_type: trait.trait_type,
+                value: trait.value
+              }));
             }
           }
         } else {
@@ -493,7 +502,7 @@ export class BackfillService {
       mintedAt: NaN,
       mintPrice: NaN,
       metadata: {
-        attributes: nft.traits,
+        attributes: nft.traits.map((trait) => ({ trait_type: trait.trait_type, value: trait.value })),
         name: nft.name,
         title: nft.name,
         description: nft.description,
@@ -521,8 +530,7 @@ export class BackfillService {
   ): NftDto {
     const attrs = alchemyNft.metadata.attributes?.map?.((attr) => ({
       trait_type: attr.trait_type,
-      value: attr.value,
-      display_type: attr.display_type
+      value: attr.value
     }));
 
     const cachedImage = alchemyNft?.media?.[0]?.gateway;
