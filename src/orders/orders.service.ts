@@ -249,10 +249,12 @@ export default class OrdersService {
       data.pop();
     }
 
-    const lastItem = data[data.length - 1] ?? {};
     const cursorObj: Cursor = {} as Cursor;
-    for (const orderBy of Object.values(OrderItemsOrderBy)) {
-      cursorObj[orderBy] = lastItem.get(orderBy);
+    const lastItem = data[data.length - 1];
+    if (lastItem) {
+      for (const orderBy of Object.values(OrderItemsOrderBy)) {
+        cursorObj[orderBy] = lastItem.get(orderBy);
+      }
     }
     const nextCursor = this.cursorService.encodeCursor(cursorObj);
 
