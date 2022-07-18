@@ -14,8 +14,7 @@ import { OrdersModule } from 'orders/orders.module';
 import { AuthModule } from 'auth/auth.module';
 import { MnemonicModule } from 'mnemonic/mnemonic.module';
 
-// import * as serviceAccount from './creds/nftc-dev-firebase-creds.json';
-import * as serviceAccount from './creds/nftc-infinity-firebase-creds.json';
+import * as serviceAccount from './creds/nftc-dev-firebase-creds.json';
 import { FB_STORAGE_BUCKET } from './constants';
 import { AlchemyModule } from './alchemy/alchemy.module';
 import { EthereumModule } from './ethereum/ethereum.module';
