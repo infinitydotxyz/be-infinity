@@ -531,18 +531,18 @@ export default class OrdersService {
         obOrderItemMap[orderItemData.id] = { [orderItemData.collectionAddress]: obOrderItem };
       }
       const signedOBOrder: SignedOBOrderDto = {
-        id: orderItemData.id,
-        chainId: orderItemData.chainId,
-        isSellOrder: orderItemData.isSellOrder,
-        numItems: orderItemData.numItems,
-        startPriceEth: orderItemData.startPriceEth,
-        endPriceEth: orderItemData.endPriceEth,
-        startTimeMs: orderItemData.startTimeMs,
-        endTimeMs: orderItemData.endTimeMs,
+        id: orderDocData.id,
+        chainId: orderDocData.chainId,
+        isSellOrder: orderDocData.isSellOrder,
+        numItems: orderDocData.numItems,
+        startPriceEth: orderDocData.startPriceEth,
+        endPriceEth: orderDocData.endPriceEth,
+        startTimeMs: orderDocData.startTimeMs,
+        endTimeMs: orderDocData.endTimeMs,
         maxGasPriceWei: orderDocData.maxGasPriceWei,
         nonce: orderDocData.nonce,
-        makerAddress: orderItemData.makerAddress,
-        makerUsername: orderItemData.makerUsername,
+        makerAddress: orderDocData.makerAddress,
+        makerUsername: orderDocData.makerUsername,
         nfts: Object.values(obOrderItemMap[orderItemData.id]),
         signedOrder: orderDocData.signedOrder,
         execParams: {
@@ -555,28 +555,53 @@ export default class OrdersService {
     };
 
     const orderDocsToGet: { [docId: string]: FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData> } = {};
-    const orderItems = firestoreOrderItems.docs.map((item) => {
-      const orderDocId = item.ref.parent.parent?.id;
+    const orderItems = new Map<string, { orderDocId: string; orderItem: FirestoreOrderItem }>();
+    for (const orderItem of firestoreOrderItems.docs) {
+      const orderItemData = orderItem.data() as FirestoreOrderItem;
+      const orderDocId = orderItem.ref.parent.parent?.id;
       if (orderDocId) {
-        orderDocsToGet[orderDocId] = item.ref.parent.parent;
+        orderDocsToGet[orderDocId] = orderItem.ref.parent.parent;
+        orderItems.set(orderItem.id, { orderDocId, orderItem: orderItemData });
       }
-      return {
-        orderItem: item.data() as FirestoreOrderItem,
-        orderDocId: item.ref.parent.parent?.id
-      };
-    });
+    }
+    // const orderItems = firestoreOrderItems.docs.map((item) => {
+    //   const orderDocId = item.ref.parent.parent?.id;
+    //   if (orderDocId) {
+    //     orderDocsToGet[orderDocId] = item.ref.parent.parent;
+    //   }
+    //   return {
+    //     orderItem: item.data() as FirestoreOrderItem,
+    //     orderDocId: item.ref.parent.parent?.id
+    //   };
+    // });
 
     const docRefs = Object.values(orderDocsToGet);
     if (docRefs.length === 0) {
       return [];
     }
+
     const orderDocs = await this.firebaseService.firestore.getAll(...docRefs);
     const orderDocsById: { [key: string]: FirestoreOrder } = {};
     for (const doc of orderDocs) {
       orderDocsById[doc.id] = doc.data() as FirestoreOrder;
     }
 
-    for (const { orderDocId, orderItem } of orderItems) {
+    // get all other orderItems for orders
+    for (const docId in orderDocsById) {
+      const otherOrderItems = this.firebaseService.firestore
+        .collection(firestoreConstants.ORDERS_COLL)
+        .doc(docId)
+        .collection(firestoreConstants.ORDER_ITEMS_SUB_COLL);
+      const otherOrderItemsSnapshot = await otherOrderItems.get();
+      for (const otherOrderItemDoc of otherOrderItemsSnapshot.docs) {
+        orderItems.set(otherOrderItemDoc.id, {
+          orderItem: otherOrderItemDoc.data() as FirestoreOrderItem,
+          orderDocId: docId
+        });
+      }
+    }
+
+    for (const { orderDocId, orderItem } of orderItems.values()) {
       if (!orderDocId) {
         console.error('Cannot fetch order data from firestore for order item', orderItem.id);
         continue;
