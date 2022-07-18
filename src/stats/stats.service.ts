@@ -182,12 +182,6 @@ export class StatsService {
             dataToStore.salesVolume = parseFloat(`${coll.salesVolume}`);
           }
           this.fsBatchHandler.add(trendingCollectionDocRef, dataToStore, { merge: true });
-        } else if (queryBy === 'by_avg_price') {
-          // more accurate avg price
-          if (coll.avgPrice) {
-            dataToStore.avgPrice = parseFloat(`${coll.avgPrice}`);
-          }
-          this.fsBatchHandler.add(trendingCollectionDocRef, dataToStore, { merge: true });
         } else {
           console.error('Unknown queryBy param');
         }
