@@ -277,13 +277,15 @@ export default class OrdersService {
     reqQuery: UserOrderItemsQueryDto,
     user?: ParsedUserId
   ): Promise<SignedOBOrderArrayDto> {
-    if (reqQuery.makerAddress && reqQuery.makerAddress !== user?.userAddress) {
-      throw new BadQueryError('Maker address must match user address');
-    }
 
-    if (reqQuery.takerAddress && reqQuery.takerAddress !== user?.userAddress) {
-      throw new BadQueryError('Taker address must match user address');
-    }
+    // removed these checks to get offers for any user:
+    // if (reqQuery.makerAddress && reqQuery.makerAddress !== user?.userAddress) {
+    //   throw new BadQueryError('Maker address must match user address');
+    // }
+
+    // if (reqQuery.takerAddress && reqQuery.takerAddress !== user?.userAddress) {
+    //   throw new BadQueryError('Taker address must match user address');
+    // }
 
     let firestoreQuery: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> =
       this.firebaseService.firestore.collectionGroup(firestoreConstants.ORDER_ITEMS_SUB_COLL);

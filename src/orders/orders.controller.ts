@@ -152,7 +152,7 @@ export class OrdersController {
     description: 'Get orders for a user',
     tags: [ApiTag.Orders, ApiTag.User]
   })
-  @UserAuth('userId')
+  // @UserAuth('userId') // removed auth to get offers for any user
   @ApiOkResponse({ description: ResponseDescription.Success, type: SignedOBOrderArrayDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
