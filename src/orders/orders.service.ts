@@ -490,7 +490,7 @@ export default class OrdersService {
     // fetch query snapshot
     const firestoreOrderItems = await firestoreQuery.get();
     const obOrderItemMap: { [key: string]: { [key: string]: OBOrderItem } } = {};
-    const results: SignedOBOrderDto[] = [];
+    const resultsMap: { [key: string]: SignedOBOrderDto } = {};
 
     const getSignedOBOrder = (orderItemData: FirestoreOrderItem, orderDocData: FirestoreOrder) => {
       const token: OBTokenInfo = {
@@ -589,10 +589,10 @@ export default class OrdersService {
       }
 
       const signedOBOrder = getSignedOBOrder(orderItem, orderDocData);
-      results.push(signedOBOrder);
+      resultsMap[orderDocId] = signedOBOrder;
     }
 
-    return results;
+    return Object.values(resultsMap);
   }
 
   public async getOrderNonce(userId: string): Promise<number> {
