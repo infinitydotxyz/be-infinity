@@ -124,7 +124,6 @@ export class OpenseaService {
       metadata: dataInInfinityFormat,
       slug: getSearchFriendlyString(name),
       numNfts: NaN,
-      attributes: {},
       numTraitTypes: NaN,
       indexInitiator: ''
     };
