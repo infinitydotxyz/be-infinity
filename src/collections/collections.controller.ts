@@ -299,8 +299,6 @@ export class CollectionsController {
       throw new NotFoundException();
     }
 
-    collection.attributes = await this.attributesService.getAttributes(parsedCollection);
-
     return collection;
   }
 
