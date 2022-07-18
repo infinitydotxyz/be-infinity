@@ -121,7 +121,6 @@ export class GemService {
         metadata: dataInInfinityFormat,
         slug: getSearchFriendlyString(gemCollection.name),
         numNfts: gemCollection.totalSupply,
-        attributes: {},
         numTraitTypes: NaN,
         indexInitiator: ''
       };

@@ -196,12 +196,7 @@ export class CollectionsController {
 
       if (collectionData?.metadata?.name && collectionData.metadata?.profileImage) {
         if (!EXCLUDED_COLLECTIONS.includes(collectionData?.address)) {
-          const resultItem: Collection = {
-            ...collectionData,
-            attributes: {} // don't include attributes
-          };
-
-          resultItem.stats = {
+          collectionData.stats = {
             [queryPeriod]: {
               ownerCount: statsData.ownerCount,
               tokenCount: statsData.tokenCount,
@@ -213,7 +208,7 @@ export class CollectionsController {
               period: queryPeriod
             }
           };
-          results.push(resultItem);
+          results.push(collectionData);
         }
       }
     }
