@@ -1,4 +1,4 @@
-import { DisplayType, TokenStandard } from '@infinityxyz/lib/types/core';
+import { TokenStandard } from '@infinityxyz/lib/types/core';
 
 export interface OpenseaAsset {
   /**
@@ -34,8 +34,7 @@ export interface OpenseaAssetOwner {
 
 export interface OpenseaAssetTrait {
   trait_type: string;
-  value: string | number;
-  display_type: DisplayType;
+  value: string;
 }
 
 export interface OpenseaAssetsResponse {
