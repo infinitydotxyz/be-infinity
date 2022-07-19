@@ -177,9 +177,10 @@ export class NftsService {
         const traitValues = traitTypesValues[index];
         for (const traitValue of traitValues) {
           if (traitValue) {
+            const isTraitValueNumeric = !isNaN(Number(traitValue));
             const traitTypeObj = traitType ? { trait_type: traitType } : {};
             traits.push({
-              value: traitValue,
+              value: isTraitValueNumeric ? Number(traitValue) : traitValue,
               ...traitTypeObj
             });
           }
