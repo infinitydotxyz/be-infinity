@@ -1,7 +1,7 @@
-import { ApiUserConfig } from './api-user.types';
+import { ApiUser } from './api-user.types';
 
-export interface ApiUserConfigStorage {
-  getUser(userId: string): Promise<ApiUserConfig | undefined>;
+export interface ApiUserStorage {
+  getUser(userId: string): Promise<ApiUser | undefined>;
 
-  setUser(userId: string, config: ApiUserConfig): Promise<void>;
+  setUser(user: ApiUser): Promise<void>;
 }

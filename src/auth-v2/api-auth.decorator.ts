@@ -1,5 +1,5 @@
 import { applyDecorators, UseGuards } from '@nestjs/common';
-import { ApiParam, ApiPropertyOptions, ApiSecurity, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import { ApiParam, ApiSecurity, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { ResponseDescription } from 'common/response-description';
 import { ApiRole, AUTH_MESSAGE_HEADER, AUTH_NONCE_HEADER, AUTH_SIGNATURE_HEADER, SiteRole } from './auth.constants';
 import { RequireAuth } from './auth.decorator';

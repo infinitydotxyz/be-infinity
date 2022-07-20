@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
-import { ApiUserConfigStorageRedisService } from './api-user-config-storage.service';
+import { ApiUserConfigStorageFirebase } from './api-user-config-storage-firebase.service';
 import { ApiUserController } from './api-user.controller';
 import { ApiUserService } from './api-user.service';
 
 @Module({
   controllers: [ApiUserController],
-  providers: [ApiUserConfigStorageRedisService, ApiUserService],
+  providers: [ApiUserService, ApiUserConfigStorageFirebase],
   exports: [ApiUserService]
 })
 export class ApiUserModule {}

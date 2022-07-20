@@ -18,7 +18,7 @@ export class ApiUserController {
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   async getUser(@ApiUser() apiUser: ApiUserConfig) {
     console.log(apiUser);
-    await new Promise<void>((resolve, reject) => resolve());
+    await new Promise<void>((resolve) => resolve());
     return {};
   }
 }

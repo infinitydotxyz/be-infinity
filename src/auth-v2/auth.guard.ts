@@ -2,7 +2,6 @@ import { LOGIN_NONCE_EXPIRY_TIME, trimLowerCase } from '@infinityxyz/lib/utils';
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ApiUserService } from 'api-user/api-user.service';
-import { MATCH_SIGNER_METADATA_KEY } from 'auth/match-signer.decorator';
 import { ethers } from 'ethers';
 import { UserParserService } from 'user/parser/parser.service';
 import { base64Decode, base64Encode } from 'utils';
@@ -16,6 +15,7 @@ import {
   AUTH_NONCE_HEADER,
   AUTH_SIGNATURE_HEADER,
   AUTH_SITE_ROLES,
+  MATCH_SIGNER_METADATA_KEY,
   SiteRole,
   SiteRoleHierarchy
 } from './auth.constants';
@@ -58,7 +58,7 @@ export class AuthGuard implements CanActivate {
       const accRoleValue = ApiRoleHierarchy[acc];
       const currRoleValue = ApiRoleHierarchy[role];
       return accRoleValue < currRoleValue ? acc : role;
-    }, apiRolesRequired[0]);
+    }, apiRolesRequired[0] ?? ApiRole.ApiGuest);
 
     if (minRole && minRole !== ApiRole.ApiGuest) {
       const { req } = this.getRequestResponse(context);
@@ -74,7 +74,7 @@ export class AuthGuard implements CanActivate {
         throw new AuthException(result.reason);
       }
 
-      const userRole = result.userConfig.role;
+      const userRole = result.user.config.role;
       if (!userRole) {
         throw new AuthException('User does not have the required role');
       }
@@ -82,7 +82,7 @@ export class AuthGuard implements CanActivate {
       if (ApiRoleHierarchy[userRole] < ApiRoleHierarchy[minRole]) {
         throw new AuthException('User does not have the required role');
       }
-      req.apiUser = result.userConfig;
+      req.apiUser = result.user.config.role;
     }
     return true;
   }
@@ -94,7 +94,7 @@ export class AuthGuard implements CanActivate {
       const accRoleValue = SiteRoleHierarchy[acc];
       const currRoleValue = SiteRoleHierarchy[role];
       return accRoleValue < currRoleValue ? acc : role;
-    }, siteRolesRequired[0]);
+    }, siteRolesRequired[0] ?? SiteRole.Guest);
 
     if (minRole && minRole !== SiteRole.Guest) {
       const isValid = await this.validateSignature(context, request);

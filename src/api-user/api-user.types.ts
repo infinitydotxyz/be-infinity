@@ -13,6 +13,8 @@ export interface ApiUser {
 
   config: ApiUserConfig;
 
+  hmac: string;
+
   createdAt: number;
 
   updatedAt: number;
@@ -23,8 +25,6 @@ export type ApiUserConfig = {
     limit?: number;
     ttl?: number;
   };
-
-  hmac: string;
 
   role: ApiRole;
 };

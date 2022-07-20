@@ -1,16 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { FirebaseService } from 'firebase/firebase.service';
-import { ApiUserConfigStorageRedisService } from './api-user-config-storage.service';
-import { ApiUser, ApiUserConfig, ApiUserCreds } from './api-user.types';
+import { ApiUserConfigStorageFirebase } from './api-user-config-storage-firebase.service';
+import { ApiUser, ApiUserCreds } from './api-user.types';
 import { getHmac } from './api-user.utils';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class ApiUserService {
-  constructor(private firestoreService: FirebaseService, private configStorage: ApiUserConfigStorageRedisService) {}
+  constructor(private storage: ApiUserConfigStorageFirebase) {}
 
-  async getUser(id: string): Promise<ApiUser | undefined> {
-    const user = await this.getUserRef(id).get();
-    const data = user.data();
+  async getUser(apiKey: string): Promise<ApiUser | undefined> {
+    const data = await this.storage.getUser(apiKey);
     if (data) {
       return data;
     }
@@ -20,16 +19,16 @@ export class ApiUserService {
   async verifyAndGetUserConfig(
     apiKey: string,
     apiSecret: string
-  ): Promise<{ isValid: true; userConfig: ApiUserConfig } | { isValid: false; reason: string }> {
-    const userConfig = await this.configStorage.getUser(apiKey);
-    if (!userConfig) {
+  ): Promise<{ isValid: true; user: ApiUser } | { isValid: false; reason: string }> {
+    const user = await this.getUser(apiKey);
+    if (!user) {
       return { isValid: false, reason: 'Invalid api key or api secret' };
     }
     const hmac = getHmac({ apiKey, apiSecret });
-    if (hmac !== userConfig.hmac) {
+    if (hmac !== user.hmac) {
       return { isValid: false, reason: 'Invalid api key or api secret' };
     }
-    return { isValid: true, userConfig };
+    return { isValid: true, user };
   }
 
   async createApiUser(
@@ -41,9 +40,9 @@ export class ApiUserService {
       id,
       name: userProps.name,
       config: {
-        ...userProps.config,
-        hmac: creds.hmac
-      }
+        ...userProps.config
+      },
+      hmac: creds.hmac
     };
     const user = await this.setApiUser(userToCreate);
     return {
@@ -63,12 +62,13 @@ export class ApiUserService {
         id: userProps.id,
         name: userProps.name,
         config: userProps.config,
+        hmac: userProps.hmac,
         createdAt,
         updatedAt
       };
 
-      await this.configStorage.setUser(userProps.id, userProps.config);
-      await this.getUserRef(user.id).set({ ...user }, { merge: true });
+      await this.storage.setUser(user);
+
       return user;
     } catch (err) {
       console.error(`Failed to update api user: ${userProps.id}`, err);
@@ -84,12 +84,12 @@ export class ApiUserService {
     }
 
     const creds = this.generateCreds({ id });
-    const updatedUser = {
+    const updatedUser: ApiUser = {
       ...currentUser,
       config: {
-        ...currentUser.config,
-        hmac: creds.hmac
-      }
+        ...currentUser.config
+      },
+      hmac: creds.hmac
     };
 
     await this.setApiUser({ ...currentUser });
@@ -101,13 +101,6 @@ export class ApiUserService {
     };
   }
 
-  protected getUserRef(id: string): FirebaseFirestore.DocumentReference<ApiUser | undefined> {
-    const user = this.firestoreService.firestore.collection('api-users').doc(id) as FirebaseFirestore.DocumentReference<
-      ApiUser | undefined
-    >;
-    return user;
-  }
-
   protected generateCreds(user: Pick<ApiUser, 'id'>): ApiUserCreds & { hmac: string } {
     const apiSecret = this.generateId();
     const hmac = getHmac({ apiKey: user.id, apiSecret });
@@ -116,9 +109,7 @@ export class ApiUserService {
   }
 
   protected generateId() {
-    const id = Buffer.from(crypto.getRandomValues(new Uint8Array(32)))
-      .toString('base64')
-      .toLowerCase();
+    const id = Buffer.from(randomBytes(32)).toString('hex').toLowerCase();
     return id;
   }
 }
