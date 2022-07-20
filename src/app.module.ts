@@ -23,10 +23,10 @@ import { ZoraModule } from 'zora/zora.module';
 import { OpenseaModule } from 'opensea/opensea.module';
 import { ReservoirModule } from 'reservoir/reservoir.module';
 import { GemModule } from 'gem/gem.module';
-import { ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { ApiKeyThrottlerGuard } from 'throttler/throttler.guard';
 import { ApiUserModule } from './api-user/api-user.module';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
