@@ -5,8 +5,8 @@ import { ThrottlerException, ThrottlerStorage } from '@nestjs/throttler';
 import { ApiUserStorage } from 'api-user/api-user-config-storage.interface';
 import { ApiUserService } from 'api-user/api-user.service';
 import { ApiUser } from 'api-user/api-user.types';
-import { ApiRole, API_KEY_HEADER, API_SECRET_HEADER } from 'auth-v2/auth.constants';
-import { AuthException } from 'auth-v2/auth.exception';
+import { ApiRole, API_KEY_HEADER, API_SECRET_HEADER } from 'auth/auth.constants';
+import { AuthException } from 'auth/auth.exception';
 import { THROTTLER_OPTIONS } from './throttler.constants';
 import { ApiKeyThrottlerGuard } from './throttler.guard';
 

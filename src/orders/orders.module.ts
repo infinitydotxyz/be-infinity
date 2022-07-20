@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { AuthModule } from 'auth-v2/auth.module';
+import { AuthModule } from 'auth/auth.module';
 import { CollectionsModule } from 'collections/collections.module';
 import { EthereumModule } from 'ethereum/ethereum.module';
 import { PaginationModule } from 'pagination/pagination.module';

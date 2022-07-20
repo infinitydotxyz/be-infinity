@@ -76,9 +76,9 @@ import { ProfileService } from './profile/profile.service';
 import { UsernameType } from './profile/profile.types';
 import { QueryUsername } from './profile/query-username.decorator';
 import { UserService } from './user.service';
-import { ParamUserId } from 'auth-v2/param-user-id.decorator';
-import { ApiRole, SiteRole } from 'auth-v2/auth.constants';
-import { ApiParamUserId, Auth } from 'auth-v2/api-auth.decorator';
+import { ParamUserId } from 'auth/param-user-id.decorator';
+import { ApiRole, SiteRole } from 'auth/auth.constants';
+import { ApiParamUserId, Auth } from 'auth/api-auth.decorator';
 
 @Controller('user')
 export class UserController {

@@ -6,8 +6,8 @@ import {
   ApiOkResponse,
   ApiOperation
 } from '@nestjs/swagger';
-import { Auth } from 'auth-v2/api-auth.decorator';
-import { ApiRole, SiteRole } from 'auth-v2/auth.constants';
+import { Auth } from 'auth/api-auth.decorator';
+import { ApiRole, SiteRole } from 'auth/auth.constants';
 import { ApiTag } from 'common/api-tags';
 import { ErrorResponseDto } from 'common/dto/error-response.dto';
 import { ResponseDescription } from 'common/response-description';

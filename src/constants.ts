@@ -1,5 +1,5 @@
 import { OrderDirection } from '@infinityxyz/lib/types/core';
-import { AUTH_MESSAGE_HEADER, AUTH_NONCE_HEADER, AUTH_SIGNATURE_HEADER } from 'auth-v2/auth.constants';
+import { AUTH_MESSAGE_HEADER, AUTH_NONCE_HEADER, AUTH_SIGNATURE_HEADER } from 'auth/auth.constants';
 import 'dotenv/config';
 
 const getEnvironmentVariable = (name: string, required = true) => {

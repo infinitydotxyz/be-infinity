@@ -10,7 +10,7 @@ import { THROTTLER_LIMIT, THROTTLER_SKIP, THROTTLER_TTL } from './throttler.cons
 import { Reflector } from '@nestjs/core';
 import { createHash } from 'crypto';
 import { ApiUserService } from 'api-user/api-user.service';
-import { AuthException } from 'auth-v2/auth.exception';
+import { AuthException } from 'auth/auth.exception';
 
 @Injectable()
 export class ApiKeyThrottlerGuard extends ThrottlerGuard {

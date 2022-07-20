@@ -64,9 +64,9 @@ import { CurationService } from './curation/curation.service';
 import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 import { CuratedCollectionDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
-import { Auth } from 'auth-v2/api-auth.decorator';
-import { ApiRole, SiteRole } from 'auth-v2/auth.constants';
-import { ParamUserId } from 'auth-v2/param-user-id.decorator';
+import { Auth } from 'auth/api-auth.decorator';
+import { ApiRole, SiteRole } from 'auth/auth.constants';
+import { ParamUserId } from 'auth/param-user-id.decorator';
 
 @Controller('collections')
 export class CollectionsController {

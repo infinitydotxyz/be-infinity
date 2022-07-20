@@ -11,9 +11,9 @@ import {
 import { trimLowerCase, getDigest, orderHash, verifySig } from '@infinityxyz/lib/utils';
 import { BadRequestException, Body, Controller, Get, NotFoundException, Param, Post, Query } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
-import { Auth } from 'auth-v2/api-auth.decorator';
-import { ApiRole, SiteRole } from 'auth-v2/auth.constants';
-import { ParamUserId } from 'auth-v2/param-user-id.decorator';
+import { Auth } from 'auth/api-auth.decorator';
+import { ApiRole, SiteRole } from 'auth/auth.constants';
+import { ParamUserId } from 'auth/param-user-id.decorator';
 import { instanceToPlain } from 'class-transformer';
 import { ApiTag } from 'common/api-tags';
 import { ErrorResponseDto } from 'common/dto/error-response.dto';

@@ -1,8 +1,8 @@
 import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
 import { ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
-import { Auth } from 'auth-v2/api-auth.decorator';
-import { ApiRole, ApiRoleHierarchy, SiteRole } from 'auth-v2/auth.constants';
-import { AuthException } from 'auth-v2/auth.exception';
+import { Auth } from 'auth/api-auth.decorator';
+import { ApiRole, ApiRoleHierarchy, SiteRole } from 'auth/auth.constants';
+import { AuthException } from 'auth/auth.exception';
 import { ResponseDescription } from 'common/response-description';
 import { ApiUser } from './api-user.decorator';
 import { ApiUserService } from './api-user.service';

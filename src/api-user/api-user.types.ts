@@ -1,4 +1,4 @@
-import { ApiRole } from 'auth-v2/auth.constants';
+import { ApiRole } from 'auth/auth.constants';
 
 export interface ApiUserCreds {
   apiKey: string;

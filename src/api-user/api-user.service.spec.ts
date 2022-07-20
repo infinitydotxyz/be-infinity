@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ApiRole } from 'auth-v2/auth.constants';
+import { ApiRole } from 'auth/auth.constants';
 import { ApiUserConfigStorageFirebase } from './api-user-config-storage-firebase.service';
 import { ApiUserModule } from './api-user.module';
 import { ApiUserService } from './api-user.service';
