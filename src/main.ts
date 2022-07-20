@@ -9,6 +9,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 // This is a hack to make Multer available in the Express namespace
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Multer } from 'multer';
+import { API_KEY_HEADER, API_SECRET_HEADER } from 'auth/auth.constants';
 
 function setup(app: INestApplication) {
   app.enableCors({
@@ -54,6 +55,20 @@ function setupSwagger(app: INestApplication, path: string) {
       name: auth.nonce,
       in: 'header',
       description: `The expiration nonce that's visible in the ${auth.nonce} header`
+    })
+    .addSecurity(API_KEY_HEADER, {
+      type: 'apiKey',
+      scheme: `${API_KEY_HEADER}: <api key>`,
+      name: API_KEY_HEADER,
+      in: 'header',
+      description: `The API key in the ${API_KEY_HEADER} header`
+    })
+    .addSecurity(API_SECRET_HEADER, {
+      type: 'apiKey',
+      scheme: `${API_SECRET_HEADER}: <api secret>`,
+      name: API_SECRET_HEADER,
+      in: 'header',
+      description: `The API secret in the ${API_SECRET_HEADER} header`
     })
     .build();
 

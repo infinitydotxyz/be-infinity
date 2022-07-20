@@ -1,7 +1,15 @@
 import { applyDecorators, UseGuards } from '@nestjs/common';
 import { ApiParam, ApiSecurity, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { ResponseDescription } from 'common/response-description';
-import { ApiRole, AUTH_MESSAGE_HEADER, AUTH_NONCE_HEADER, AUTH_SIGNATURE_HEADER, SiteRole } from './auth.constants';
+import {
+  ApiRole,
+  API_KEY_HEADER,
+  API_SECRET_HEADER,
+  AUTH_MESSAGE_HEADER,
+  AUTH_NONCE_HEADER,
+  AUTH_SIGNATURE_HEADER,
+  SiteRole
+} from './auth.constants';
 import { RequireAuth } from './auth.decorator';
 import { AuthGuard } from './auth.guard';
 import { MatchSigner } from './match-signer.decorator';
@@ -12,6 +20,10 @@ export function ApiSignatureAuth() {
     ApiSecurity(AUTH_MESSAGE_HEADER),
     ApiSecurity(AUTH_NONCE_HEADER)
   );
+}
+
+export function ApiKeyAuth() {
+  return applyDecorators(ApiSecurity(API_KEY_HEADER), ApiSecurity(API_SECRET_HEADER));
 }
 
 export const ApiParamUserId = (name = 'id') =>
@@ -50,16 +62,24 @@ export function Auth(
     throw new Error('userIdPathParam is required if a non-guest site role is used');
   }
 
-  const apiSignatureAuth = siteRoles.length > 0 ? ApiSignatureAuth() : undefined;
+  const apiSignatureAuth =
+    siteRoles.filter((item) => item !== SiteRole.Guest).length > 0 ? ApiSignatureAuth() : undefined;
+  const apiKeyAuth = apiRoles.filter((item) => item !== ApiRole.ApiGuest).length > 0 ? ApiKeyAuth() : undefined;
   const apiParamUserId = userIdPathParam ? ApiParamUserId(userIdPathParam) : undefined;
   const matchSigner = userIdPathParam ? MatchSigner(userIdPathParam) : undefined;
   const unauthorizedResponse = ApiUnauthorizedResponse({ description: ResponseDescription.Unauthorized });
   const requireAuth = RequireAuth(siteRoles, apiRoles);
   const guard = UseGuards(AuthGuard);
 
-  const decorators = [apiSignatureAuth, apiParamUserId, matchSigner, unauthorizedResponse, requireAuth, guard].filter(
-    (item) => !!item
-  ) as (ClassDecorator | MethodDecorator | PropertyDecorator)[];
+  const decorators = [
+    apiSignatureAuth,
+    apiKeyAuth,
+    apiParamUserId,
+    matchSigner,
+    unauthorizedResponse,
+    requireAuth,
+    guard
+  ].filter((item) => !!item) as (ClassDecorator | MethodDecorator | PropertyDecorator)[];
 
   return applyDecorators(...decorators);
 }
