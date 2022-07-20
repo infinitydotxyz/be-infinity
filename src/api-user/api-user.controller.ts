@@ -13,7 +13,6 @@ export class ApiUserController {
   @ApiOperation({
     description: 'Get user info'
   })
-  // TODO add auth
   @ApiOkResponse({ description: ResponseDescription.Success }) // TODO add type
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   async getUser(@ApiUser() apiUser: ApiUserConfig) {

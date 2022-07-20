@@ -4,6 +4,7 @@ import { ApiUserModule } from 'api-user/api-user.module';
 import { UserParserModule } from 'user/parser/parser.module';
 import { UserParserService } from 'user/parser/parser.service';
 import { UserModule } from 'user/user.module';
+import { AuthGuard } from './auth.guard';
 
 /**
  * Global authentication module.
@@ -12,7 +13,7 @@ import { UserModule } from 'user/user.module';
  */
 @Global()
 @Module({
-  providers: [UserParserService],
+  providers: [UserParserService, AuthGuard],
   exports: [UserParserService],
   imports: [UserParserModule, UserModule, ApiUserModule]
 })

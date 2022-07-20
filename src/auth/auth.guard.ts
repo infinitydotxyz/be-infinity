@@ -3,9 +3,9 @@ import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { auth } from '../constants';
 import { ethers } from 'ethers';
 import { Reflector } from '@nestjs/core';
-import { MATCH_SIGNER_METADATA_KEY } from 'auth/match-signer.decorator';
 import { UserParserService } from 'user/parser/parser.service';
 import { base64Decode, base64Encode } from 'utils';
+import { MATCH_SIGNER_METADATA_KEY } from 'auth-v2/auth.constants';
 
 @Injectable()
 export class AuthGuard implements CanActivate {

@@ -8,23 +8,29 @@ import {
 import { ExecutionContext, Injectable } from '@nestjs/common';
 import { THROTTLER_LIMIT, THROTTLER_SKIP, THROTTLER_TTL } from './throttler.constants';
 import { Reflector } from '@nestjs/core';
+import { createHash } from 'crypto';
+import { ApiUserService } from 'api-user/api-user.service';
+import { AuthException } from 'auth-v2/auth.exception';
 
 @Injectable()
 export class ApiKeyThrottlerGuard extends ThrottlerGuard {
   constructor(
     @InjectThrottlerOptions() protected readonly options: ThrottlerModuleOptions,
     @InjectThrottlerStorage() protected readonly storageService: ThrottlerStorage,
-    protected readonly reflector: Reflector // protected userStorage?: UserConfigStorage
+    protected readonly reflector: Reflector,
+    private apiUserService: ApiUserService
   ) {
     super(options, storageService, reflector);
   }
 
-  protected getTracker(req: Record<string, any>): string {
+  protected getTrackers(req: Record<string, any>): { ip: string } | { ip: string; apiKey: string; apiSecret: string } {
     const ip = req.ips.length ? req.ips[0] : req.ip;
     const apiKey = req.headers['x-api-key'];
-    const tracker = apiKey ?? ip;
-    console.log(`Tracker: ${tracker}`); // TODO remove
-    return tracker;
+    const apiSecret = req.headers['x-api-secret'];
+    if (apiKey && apiSecret) {
+      return { ip, apiKey, apiSecret };
+    }
+    return { ip };
   }
 
   /**
@@ -56,9 +62,15 @@ export class ApiKeyThrottlerGuard extends ThrottlerGuard {
    * @see https://tools.ietf.org/id/draft-polli-ratelimit-headers-00.html#header-specifications
    * @throws ThrottlerException
    */
-  protected async handleRequest(context: ExecutionContext, limit: number, ttl: number): Promise<boolean> {
+  protected async handleRequest(
+    context: ExecutionContext,
+    routeOrClassLimit: number,
+    routeOrClassTTL: number
+  ): Promise<boolean> {
     // Here we start to check the amount of requests being done against the ttl.
     const { req, res } = this.getRequestResponse(context);
+    let limit = routeOrClassLimit;
+    let ttl = routeOrClassTTL;
 
     // Return early if the current user agent should be ignored.
     if (Array.isArray(this.options.ignoreUserAgents)) {
@@ -68,10 +80,22 @@ export class ApiKeyThrottlerGuard extends ThrottlerGuard {
         }
       }
     }
-    const tracker = this.getTracker(req);
-    const key = this.generateKey(context, tracker);
-    // const userTtls = await this.storageService.getUser(tracker); // TODO get user
+    const trackers = this.getTrackers(req);
+
+    let key = '';
+    if ('apiKey' in trackers) {
+      key = this.generateKeyForApiKey(context, trackers.apiKey);
+      const result = await this.apiUserService.verifyAndGetUserConfig(trackers.apiKey, trackers.apiSecret);
+      if (!result.isValid) {
+        throw new AuthException('Invalid api key or api secret');
+      }
+      limit = result.user.config.global.limit || limit;
+      ttl = result.user.config.global.ttl || ttl;
+    } else {
+      key = this.generateKeyForIp(context, trackers.ip);
+    }
     const ttls = await this.storageService.getRecord(key);
+
     const nearestExpiryTime = ttls.length > 0 ? Math.ceil((ttls[0] - Date.now()) / 1000) : 0;
 
     // Throw an error when the user reached their limit.
@@ -88,5 +112,20 @@ export class ApiKeyThrottlerGuard extends ThrottlerGuard {
 
     await this.storageService.addRecord(key, ttl);
     return true;
+  }
+
+  protected generateKeyForIp(context: ExecutionContext, suffix: string): string {
+    const prefix = `${context.getClass().name}-${context.getHandler().name}`;
+    return this.hash(`${prefix}-${suffix}`);
+  }
+
+  protected generateKeyForApiKey(context: ExecutionContext, apiKey: string): string {
+    const prefix = 'api-key-global-ttl';
+    const suffix = apiKey;
+    return this.hash(`${prefix}-${suffix}`);
+  }
+
+  protected hash(data: string) {
+    return createHash('md5').update(data).digest('hex');
   }
 }

@@ -1,5 +1,5 @@
 import { LOGIN_NONCE_EXPIRY_TIME, trimLowerCase } from '@infinityxyz/lib/utils';
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { CanActivate, ConsoleLogger, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ApiUserService } from 'api-user/api-user.service';
 import { ethers } from 'ethers';
@@ -39,6 +39,8 @@ export class AuthGuard implements CanActivate {
     const hasSiteRoles = siteRolesRequired && siteRolesRequired.length > 0;
     const hasApiRoles = apiRolesRequired && apiRolesRequired.length > 0;
 
+    console.log(`Has site roles: ${hasSiteRoles} Has api roles: ${hasApiRoles}`);
+
     if (!hasSiteRoles && !hasApiRoles) {
       return true;
     }
@@ -58,7 +60,7 @@ export class AuthGuard implements CanActivate {
       const accRoleValue = ApiRoleHierarchy[acc];
       const currRoleValue = ApiRoleHierarchy[role];
       return accRoleValue < currRoleValue ? acc : role;
-    }, apiRolesRequired[0] ?? ApiRole.ApiGuest);
+    }, apiRolesRequired[0]);
 
     if (minRole && minRole !== ApiRole.ApiGuest) {
       const { req } = this.getRequestResponse(context);
@@ -94,9 +96,12 @@ export class AuthGuard implements CanActivate {
       const accRoleValue = SiteRoleHierarchy[acc];
       const currRoleValue = SiteRoleHierarchy[role];
       return accRoleValue < currRoleValue ? acc : role;
-    }, siteRolesRequired[0] ?? SiteRole.Guest);
+    }, siteRolesRequired[0]);
+
+    console.log(`Min Role: ${minRole}`);
 
     if (minRole && minRole !== SiteRole.Guest) {
+      console.log(`Checking sig`);
       const isValid = await this.validateSignature(context, request);
       return isValid;
     }

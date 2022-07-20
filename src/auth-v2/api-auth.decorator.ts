@@ -39,7 +39,7 @@ export const ApiParamUserId = (name = 'id') =>
     schema: { type: 'string' }
   });
 
-export function ApiAuth(siteRoles: SiteRole[], apiRoles: ApiRole[], userIdPathParam?: string) {
+export function Auth(siteRoles: SiteRole[], apiRoles: ApiRole[], userIdPathParam?: string) {
   if (!!siteRoles.find((item) => item !== SiteRole.Guest) && !userIdPathParam) {
     throw new Error('userIdPathParam is required if a non-guest site role is used');
   }
