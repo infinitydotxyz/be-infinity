@@ -388,5 +388,24 @@ describe('AuthGuard', () => {
       reflector.getAllAndMerge = jest.fn().mockReturnValueOnce([SiteRole.User]).mockReturnValueOnce([ApiRole.ApiGuest]);
       await expect(guard.canActivate(barelyExpiredNonceCtx)).rejects.toThrow(AuthException);
     });
+
+    it('should set the apiUser on the request object if the endpoint requires more than a guest role', async () => {
+      const { ctxMock: userCtx } = await getUserContext(SiteRole.Guest, ApiRole.ApiUser);
+      reflector.getAllAndMerge = jest.fn().mockReturnValueOnce([SiteRole.Guest]).mockReturnValueOnce([ApiRole.ApiUser]);
+      const canActivate = await guard.canActivate(userCtx);
+      expect(canActivate).toBe(true);
+      const request = userCtx.switchToHttp().getRequest();
+      expect(request.apiUser).toBeDefined();
+
+      const { ctxMock: userCtxForGuestEP } = await getUserContext(SiteRole.Guest, ApiRole.ApiUser);
+      reflector.getAllAndMerge = jest
+        .fn()
+        .mockReturnValueOnce([SiteRole.Guest])
+        .mockReturnValueOnce([ApiRole.ApiGuest]);
+      const canActivateGuestEP = await guard.canActivate(userCtxForGuestEP);
+      expect(canActivateGuestEP).toBe(true);
+      const guestRequest = userCtxForGuestEP.switchToHttp().getRequest();
+      expect(guestRequest.apiUser).not.toBeDefined();
+    });
   });
 });
