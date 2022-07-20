@@ -2,7 +2,7 @@ import { StorageModule } from './storage/storage.module';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { LoggerMiddleware } from 'logger.middleware';
 import { AppController } from './app.controller';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { FirebaseModule } from './firebase/firebase.module';
 import { StatsModule } from './stats/stats.module';
 import { join } from 'path';
@@ -26,6 +26,7 @@ import { ApiUserModule } from './api-user/api-user.module';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { FeedModule } from 'feed/feed.module';
 import * as serviceAccount from './creds/nftc-dev-firebase-creds.json';
+import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import * as serviceAccount from './creds/nftc-dev-firebase-creds.json';
     ThrottlerModule.forRoot({
       ttl: 60,
       limit: 5
+      // storage: new ThrottlerStorageRedisService('127.0.0.1:6379')
     }),
     ApiUserModule
   ],
