@@ -3,7 +3,8 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
 import {
-  MnemonicNumOwnersResponseBody, MnemonicNumTokensResponseBody,
+  MnemonicNumOwnersResponseBody,
+  MnemonicNumTokensResponseBody,
   MnemonicPricesByContractResponse,
   MnemonicSalesVolumeByContractResponse
 } from './mnemonic.types';

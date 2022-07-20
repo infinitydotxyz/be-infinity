@@ -11,7 +11,6 @@ import { DiscordModule } from './discord/discord.module';
 import { UserModule } from './user/user.module';
 import { CollectionsModule } from 'collections/collections.module';
 import { OrdersModule } from 'orders/orders.module';
-import { AuthModule } from 'auth/auth.module';
 import { MnemonicModule } from 'mnemonic/mnemonic.module';
 import { FB_STORAGE_BUCKET } from './constants';
 import { AlchemyModule } from './alchemy/alchemy.module';
@@ -47,7 +46,6 @@ import * as serviceAccount from './creds/nftc-dev-firebase-creds.json';
     StorageModule,
     OrdersModule,
     MnemonicModule,
-    AuthModule,
     AlchemyModule,
     EthereumModule,
     BackfillModule,

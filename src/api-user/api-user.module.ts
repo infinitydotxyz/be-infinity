@@ -6,6 +6,6 @@ import { ApiUserService } from './api-user.service';
 @Module({
   controllers: [ApiUserController],
   providers: [ApiUserService, ApiUserConfigStorageFirebase],
-  exports: [ApiUserService]
+  exports: [ApiUserService, ApiUserConfigStorageFirebase]
 })
 export class ApiUserModule {}

@@ -6,8 +6,8 @@ import {
   ApiOkResponse,
   ApiOperation
 } from '@nestjs/swagger';
-import { UserAuth } from 'auth/user-auth.decorator';
-
+import { Auth } from 'auth-v2/api-auth.decorator';
+import { ApiRole, SiteRole } from 'auth-v2/auth.constants';
 import { ApiTag } from 'common/api-tags';
 import { ErrorResponseDto } from 'common/dto/error-response.dto';
 import { ResponseDescription } from 'common/response-description';
@@ -19,7 +19,7 @@ export class FeedController {
   constructor(private feedService: FeedService) {}
 
   @Post('/:userId/like')
-  @UserAuth('userId')
+  @Auth(SiteRole.User, ApiRole.ApiGuest, 'userId')
   @ApiOperation({
     description: 'Increment likes',
     tags: [ApiTag.Feed]
