@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { ApiUserConfigStorageFirebase } from './api-user-config-storage-firebase.service';
-import { ApiUser, ApiUserCreds } from './api-user.types';
+import { ApiUser, ApiUserCreds, ApiUserVerifier } from './api-user.types';
 import { getHmac } from './api-user.utils';
 import { randomBytes } from 'crypto';
 
 @Injectable()
-export class ApiUserService {
+export class ApiUserService implements ApiUserVerifier {
   constructor(private storage: ApiUserConfigStorageFirebase) {}
 
   async getUser(apiKey: string): Promise<ApiUser | undefined> {

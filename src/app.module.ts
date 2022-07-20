@@ -13,8 +13,6 @@ import { CollectionsModule } from 'collections/collections.module';
 import { OrdersModule } from 'orders/orders.module';
 import { AuthModule } from 'auth/auth.module';
 import { MnemonicModule } from 'mnemonic/mnemonic.module';
-
-import * as serviceAccount from './creds/nftc-dev-firebase-creds.json';
 import { FB_STORAGE_BUCKET } from './constants';
 import { AlchemyModule } from './alchemy/alchemy.module';
 import { EthereumModule } from './ethereum/ethereum.module';
@@ -28,6 +26,7 @@ import { ApiKeyThrottlerGuard } from 'throttler/throttler.guard';
 import { ApiUserModule } from './api-user/api-user.module';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { FeedModule } from 'feed/feed.module';
+import * as serviceAccount from './creds/nftc-dev-firebase-creds.json';
 
 @Module({
   imports: [

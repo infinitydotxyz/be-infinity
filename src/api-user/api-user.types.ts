@@ -30,3 +30,10 @@ export type ApiUserConfig = {
 };
 
 export type ApiUserConfigKeys = keyof ApiUserConfig;
+
+export interface ApiUserVerifier {
+  verifyAndGetUserConfig(
+    apiKey: string,
+    apiSecret: string
+  ): Promise<{ isValid: true; user: ApiUser } | { isValid: false; reason: string }>;
+}

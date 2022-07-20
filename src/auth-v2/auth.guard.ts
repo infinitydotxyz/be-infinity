@@ -1,5 +1,5 @@
 import { LOGIN_NONCE_EXPIRY_TIME, trimLowerCase } from '@infinityxyz/lib/utils';
-import { CanActivate, ConsoleLogger, ExecutionContext, Injectable } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ApiUserService } from 'api-user/api-user.service';
 import { ethers } from 'ethers';

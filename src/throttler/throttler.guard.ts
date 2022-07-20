@@ -24,7 +24,7 @@ export class ApiKeyThrottlerGuard extends ThrottlerGuard {
   }
 
   protected getTrackers(req: Record<string, any>): { ip: string } | { ip: string; apiKey: string; apiSecret: string } {
-    const ip = req.ips.length ? req.ips[0] : req.ip;
+    const ip = req.ips?.length ? req.ips[0] : req.ip;
     const apiKey = req.headers['x-api-key'];
     const apiSecret = req.headers['x-api-secret'];
     if (apiKey && apiSecret) {
