@@ -117,11 +117,10 @@ export class GemService {
         deployedAtBlock: NaN,
         owner: '',
         numOwners: gemCollection.stats.num_owners,
-        numOwnersUpdatedAt: NaN,
+        numOwnersUpdatedAt: Date.now(),
         metadata: dataInInfinityFormat,
         slug: getSearchFriendlyString(gemCollection.name),
         numNfts: gemCollection.totalSupply,
-        attributes: {},
         numTraitTypes: NaN,
         indexInitiator: ''
       };

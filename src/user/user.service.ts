@@ -1,35 +1,41 @@
-/* eslint-disable no-empty */
 import { ChainId, OrderDirection } from '@infinityxyz/lib/types/core';
-import { EventType, NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
-import { RankingQueryDto } from '@infinityxyz/lib/types/dto/collections';
-import { NftArrayDto, NftDto } from '@infinityxyz/lib/types/dto/collections/nfts';
-import {
-  UserActivityArrayDto,
-  UserActivityQueryDto,
-  UserFollowingCollection,
-  UserFollowingCollectionDeletePayload,
-  UserFollowingCollectionPostPayload,
-  UserFollowingUser,
-  UserFollowingUserDeletePayload,
-  UserFollowingUserPostPayload,
-  UserNftsOrderType,
-  UserNftsQueryDto,
-  UserProfileDto
-} from '@infinityxyz/lib/types/dto/user';
+import { AlchemyNftToInfinityNft } from '../common/transformers/alchemy-nft-to-infinity-nft.pipe';
 import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
 import { Injectable, Optional } from '@nestjs/common';
 import { AlchemyService } from 'alchemy/alchemy.service';
-import { BackfillService } from 'backfill/backfill.service';
-import { BadQueryError } from 'common/errors/bad-query.error';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { InvalidUserError } from 'common/errors/invalid-user.error';
 import { BigNumber } from 'ethers/lib/ethers';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
 import { StatsService } from 'stats/stats.service';
-import { NftsService } from '../collections/nfts/nfts.service';
-import { AlchemyNftToInfinityNft } from '../common/transformers/alchemy-nft-to-infinity-nft.pipe';
 import { ParsedUserId } from './parser/parsed-user-id';
+import { BadQueryError } from 'common/errors/bad-query.error';
+import { RankingQueryDto } from '@infinityxyz/lib/types/dto/collections';
+import { NftCollectionDto, NftDto, NftArrayDto } from '@infinityxyz/lib/types/dto/collections/nfts';
+import {
+  UserFollowingCollection,
+  UserFollowingCollectionPostPayload,
+  UserFollowingCollectionDeletePayload,
+  UserFollowingUser,
+  UserFollowingUserPostPayload,
+  UserFollowingUserDeletePayload,
+  UserNftsQueryDto,
+  UserNftsOrderType,
+  UserProfileDto,
+  UserActivityQueryDto,
+  UserActivityArrayDto
+} from '@infinityxyz/lib/types/dto/user';
+import { BackfillService } from 'backfill/backfill.service';
+import { CuratedCollectionsQuery } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
+import {
+  CuratedCollectionDto,
+  CuratedCollectionsDto
+} from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
+import { NftsService } from '../collections/nfts/nfts.service';
+import { NftSaleEvent, NftListingEvent, NftOfferEvent, EventType } from '@infinityxyz/lib/types/core/feed';
+import { AlchemyNft } from '@infinityxyz/lib/types/services/alchemy';
+import { attemptToIndexCollection } from 'utils/collection-indexing';
 
 export type UserActivity = NftSaleEvent | NftListingEvent | NftOfferEvent;
 
@@ -80,6 +86,28 @@ export class UserService {
   async getProfile(user: ParsedUserId) {
     const profileSnapshot = await user.ref.get();
     const profile = profileSnapshot.data();
+
+    if (!profile) {
+      return null;
+    }
+
+    if (!profile.address) {
+      profile.address = user.userAddress;
+    }
+
+    return profile;
+  }
+
+  async getProfileForUserAddress(user: string) {
+    const profileSnapshot = await this.firebaseService.firestore
+      .collection(firestoreConstants.USERS_COLL)
+      .where('username', '==', trimLowerCase(user))
+      .limit(1)
+      .get();
+
+    const doc = profileSnapshot.docs[0];
+
+    const profile = doc?.data() as UserProfileDto;
 
     if (!profile) {
       return null;
@@ -190,6 +218,17 @@ export class UserService {
     return {};
   }
 
+  async getUserNftCollections(user: ParsedUserId) {
+    const collRef = user.ref.collection(firestoreConstants.USER_NFTS_COLL);
+
+    const snap = await collRef.get();
+    const nftCollections: NftCollectionDto[] = snap.docs.map((doc) => {
+      const docData = doc.data() as NftCollectionDto;
+      return docData;
+    });
+    return nftCollections;
+  }
+
   async getUserNftsWithOrders(user: ParsedUserId, nftsQuery: UserNftsQueryDto): Promise<NftArrayDto> {
     let query: FirebaseFirestore.Query<NftDto> = this.firebaseService.firestore.collectionGroup(
       firestoreConstants.COLLECTION_NFTS_COLL
@@ -268,7 +307,6 @@ export class UserService {
     query: Pick<UserNftsQueryDto, 'collectionAddresses' | 'cursor' | 'limit' | 'chainId'>
   ): Promise<NftArrayDto> {
     const chainId = query.chainId || ChainId.Mainnet;
-    console.log(`ChainId: ${chainId}`);
     type Cursor = { pageKey?: string; startAtToken?: string };
     const cursor = this.paginationService.decodeCursorToObject<Cursor>(query.cursor);
     let totalOwned = NaN;
@@ -290,6 +328,9 @@ export class UserService {
 
       // backfill alchemy cached images in firestore
       this.backfillService.backfillAlchemyCachedImagesForUserNfts(nfts, chainId, user.userAddress);
+
+      // async initiate indexing of collections that are not indexed yet
+      this.initMissingCollectionsIndexing(nfts, chainId);
 
       if (startAtToken) {
         const indexToStartAt = nfts.findIndex(
@@ -338,6 +379,15 @@ export class UserService {
       hasNextPage,
       totalOwned
     };
+  }
+
+  private initMissingCollectionsIndexing(nfts: AlchemyNft[], chainId: ChainId) {
+    const collections = new Set<string>(nfts.map((item) => item.contract.address));
+    for (const collection of collections) {
+      attemptToIndexCollection({ collectionAddress: collection, chainId }).catch((err) => {
+        console.error(err);
+      });
+    }
   }
 
   async getByUsername(username: string) {
@@ -396,6 +446,40 @@ export class UserService {
       data: data,
       hasNextPage,
       cursor: nextCursor
+    };
+  }
+
+  /**
+   * Fetch all user-curated collections.
+   */
+  async getAllCurated(user: ParsedUserId, query: CuratedCollectionsQuery): Promise<CuratedCollectionsDto> {
+    let q = this.firebaseService.firestore
+      .collectionGroup(firestoreConstants.COLLECTION_CURATORS_COLL)
+      .where('userAddress', '==', user.userAddress)
+      .where('userChainId', '==', user.userChainId)
+      .orderBy('votes', query.orderDirection)
+      .orderBy('timestamp', 'desc')
+      .limit(query.limit + 1);
+
+    if (query.cursor) {
+      const { votes, timestamp } = this.paginationService.decodeCursorToObject<CuratedCollectionDto>(query.cursor);
+      q = q.startAfter({ votes, timestamp });
+    }
+
+    const snap = await q.get();
+    const curations = snap.docs.map((item) => item.data() as CuratedCollectionDto);
+
+    const hasNextPage = curations.length > query.limit;
+    if (hasNextPage) {
+      curations.pop();
+    }
+
+    const lastItem = curations[curations.length - 1];
+
+    return {
+      data: curations,
+      cursor: hasNextPage ? this.paginationService.encodeCursor(lastItem) : undefined,
+      hasNextPage
     };
   }
 }

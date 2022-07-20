@@ -137,18 +137,14 @@ export class StatsService {
   async fetchAndStoreTopCollectionsFromMnemonic(query: CollectionTrendingStatsQueryDto) {
     const queryBy = query.queryBy as mnemonicByParam;
     const queryPeriod = query.period;
-    const data = await this.mnemonicService.getTopCollections(queryBy, queryPeriod, { limit: 500, offset: 0 });
     const trendingCollectionsRef = this.firebaseService.firestore.collection(
       firestoreConstants.TRENDING_COLLECTIONS_COLL
     );
-    let byParamDoc = '';
-    if (queryBy === 'by_sales_volume') {
-      byParamDoc = firestoreConstants.TRENDING_BY_VOLUME_DOC;
-    } else if (queryBy === 'by_avg_price') {
-      byParamDoc = firestoreConstants.TRENDING_BY_AVG_PRICE_DOC;
-    }
-    const byParamCollectionRef = trendingCollectionsRef.doc(byParamDoc);
-    const byPeriodCollectionRef = byParamCollectionRef.collection(queryPeriod);
+    const byParamDoc = firestoreConstants.TRENDING_BY_VOLUME_DOC;
+    const byParamDocRef = trendingCollectionsRef.doc(byParamDoc);
+    const byPeriodCollectionRef = byParamDocRef.collection(queryPeriod);
+
+    const data = await this.mnemonicService.getTopCollections(queryBy, queryPeriod, { limit: 70, offset: 0 });
 
     if (data && data.collections?.length > 0) {
       for (const coll of data.collections) {
@@ -186,18 +182,12 @@ export class StatsService {
             dataToStore.salesVolume = parseFloat(`${coll.salesVolume}`);
           }
           this.fsBatchHandler.add(trendingCollectionDocRef, dataToStore, { merge: true });
-        } else if (queryBy === 'by_avg_price') {
-          // more accurate avg price
-          if (coll.avgPrice) {
-            dataToStore.avgPrice = parseFloat(`${coll.avgPrice}`);
-          }
-          this.fsBatchHandler.add(trendingCollectionDocRef, dataToStore, { merge: true });
         } else {
           console.error('Unknown queryBy param');
         }
 
         // for each collection: fetch owner count & total supply
-        // todo: could fetch from firestore instead of calling api
+        // todo: adi could fetch from firestore instead of calling api
         const owners = await this.mnemonicService.getNumOwners(`${coll.contractAddress}`);
         const ownerCount = owners?.dataPoints[0]?.count;
         this.fsBatchHandler.add(

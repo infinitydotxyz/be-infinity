@@ -1,4 +1,4 @@
-import { DisplayType, TokenStandard } from '@infinityxyz/lib/types/core';
+import { TokenStandard } from '@infinityxyz/lib/types/core';
 
 export interface OpenseaAsset {
   /**
@@ -18,7 +18,7 @@ export interface OpenseaAsset {
   description: string;
   permalink: string;
   decimals?: number;
-  owner?: string;
+  owner?: OpenseaAssetOwner;
   asset_contract: OpenseaContract;
   /**
    * link to the token metadata
@@ -26,10 +26,15 @@ export interface OpenseaAsset {
   token_metadata: string;
 }
 
+export interface OpenseaAssetOwner {
+  address: string;
+  profile_img_url: string;
+  config: string;
+}
+
 export interface OpenseaAssetTrait {
   trait_type: string;
-  value: string | number;
-  display_type: DisplayType;
+  value: string;
 }
 
 export interface OpenseaAssetsResponse {

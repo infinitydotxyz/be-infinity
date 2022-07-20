@@ -2,20 +2,34 @@ import { CollectionAttribute, CollectionAttributes, TraitValueMetadata } from '@
 import { firestoreConstants } from '@infinityxyz/lib/utils/constants';
 import { Injectable } from '@nestjs/common';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
+import PQueue from 'p-queue';
 
 @Injectable()
 export class AttributesService {
   async getAttributes(collection: ParsedCollectionId): Promise<CollectionAttributes> {
     const attributes: CollectionAttributes = {};
+    const stream = collection.ref.collection(firestoreConstants.COLLECTION_ATTRIBUTES).stream() as AsyncIterable<
+      FirebaseFirestore.DocumentSnapshot<CollectionAttribute>
+    >;
 
-    const snapshot = await collection.ref.collection(firestoreConstants.COLLECTION_ATTRIBUTES).get();
+    const queue = new PQueue({ concurrency: 10 });
 
-    for (const doc of snapshot.docs) {
-      const values = await this.getAttributeValues(collection, doc.id);
-      const data = doc.data() as CollectionAttribute;
-      attributes[data.attributeType] = { ...data, values };
+    const promises: Promise<void>[] = [];
+    for await (const snap of stream) {
+      const data = snap.data() as CollectionAttribute;
+      const promise = queue
+        .add(async () => {
+          const values = await this.getAttributeValues(collection, snap.id);
+          attributes[data.attributeType] = { ...data, values };
+        })
+        .catch((err) => {
+          console.error(err);
+        });
+
+      promises.push(promise);
     }
 
+    await Promise.allSettled(promises);
     return attributes;
   }
 
@@ -29,6 +43,7 @@ export class AttributesService {
       .collection(firestoreConstants.COLLECTION_ATTRIBUTES)
       .doc(attributeDocId)
       .collection(firestoreConstants.COLLECTION_ATTRIBUTES_VALUES)
+      .limit(100)
       .get();
     snapshot.forEach((doc) => {
       const data = doc.data() as TraitValueMetadata;

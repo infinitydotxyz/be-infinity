@@ -5,5 +5,7 @@ export enum ApiTag {
   User = 'User',
   Votes = 'Votes',
   Orders = 'Orders',
-  Auth = 'Auth'
+  Auth = 'Auth',
+  Curation = 'Curation',
+  Feed = 'Feed'
 }

@@ -40,7 +40,8 @@ export class NftsService {
       { address: nftQuery.address, chainId: nftQuery.chainId, tokenId: nftQuery.tokenId }
     ]);
 
-    if (nft && !nft.owner) {
+    if (nft && (!nft.owner || typeof nft.owner !== 'string')) {
+      // to handle stale opensea ownership data
       const owner = await this.ethereumService.getErc721Owner({
         address: nftQuery.address,
         tokenId: nftQuery.tokenId,
@@ -56,7 +57,7 @@ export class NftsService {
     // }
   }
 
-  updateOwnershipInFirestore(nft: NftDto): void {
+  private updateOwnershipInFirestore(nft: NftDto): void {
     const chainId = nft.chainId;
     const collectionAddress = nft.collectionAddress ?? '';
     const tokenId = nft.tokenId;
@@ -113,11 +114,6 @@ export class NftsService {
     }
 
     const snapshots = await this.firebaseService.firestore.getAll(...refs);
-    const complete = snapshots.map((item) => item.exists).every((item) => item === true);
-    // backfill if the item doesn't exist
-    if (!complete) {
-      return this.backfillService.backfillNfts(nfts);
-    }
 
     const nftsMergedWithSnapshot = nfts.map((item, index) => {
       const snapshot = snapshots[index];
@@ -131,12 +127,10 @@ export class NftsService {
     const nftDtos = [];
     const nftsToBackfill = [];
 
-    const indexMap: { [index: number]: number } = {};
-
     for (const nft of nftsMergedWithSnapshot) {
-      nftDtos.push(nft);
-      // backfill if the item exists but image is empty
-      if (nft && (!nft.image?.url || !nft.metadata.attributes)) {
+      if (nft && (nft.image?.url || nft.image?.originalUrl)) {
+        nftDtos.push(nft);
+      } else {
         const address = nft.address || nft.collectionAddress;
         if (nft.tokenId && address && nft.chainId) {
           nftsToBackfill.push({
@@ -144,26 +138,14 @@ export class NftsService {
             address,
             tokenId: nft.tokenId
           });
-          const nftsToBackfillIndex = nftsToBackfill.length - 1;
-          const nftDtosIndex = nftDtos.length - 1;
-          indexMap[nftsToBackfillIndex] = nftDtosIndex;
         }
       }
     }
 
-    const backfilledNfts = await this.backfillService.backfillNfts(nftsToBackfill);
-
-    let backfilledIndex = 0;
-    for (const backfilledNft of backfilledNfts) {
-      const nftIndex = indexMap[backfilledIndex];
-      if (backfilledNft) {
-        nftDtos[nftIndex] = {
-          ...nftDtos[nftIndex],
-          ...backfilledNft
-        };
-      }
-      backfilledIndex += 1;
-    }
+    // async backfill
+    this.backfillService.backfillNfts(nftsToBackfill).catch((err) => {
+      console.error(err);
+    });
 
     return nftDtos;
   }
@@ -174,15 +156,16 @@ export class NftsService {
     const decodedCursor = this.paginationService.decodeCursorToObject<Cursor>(query.cursor);
     let nftsQuery: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = nftsCollection;
 
+    const orderType = query.orderType ?? OrderType.Listing;
     if (query.orderBy === NftsOrderBy.Price && !query.orderType) {
       query.orderType = OrderType.Listing;
     }
-    const orderType = query.orderType || OrderType.Listing;
 
-    const startPriceField = `ordersSnippet.${query.orderType}.orderItem.startPriceEth`;
+    const startPriceField = `ordersSnippet.${orderType}.orderItem.startPriceEth`;
 
-    if (query.orderType) {
-      nftsQuery = nftsQuery.where(`ordersSnippet.${query.orderType}.hasOrder`, '==', true);
+    const hasPriceFilter = query.minPrice !== undefined || query.maxPrice !== undefined;
+    if (query.orderType || hasPriceFilter) {
+      nftsQuery = nftsQuery.where(`ordersSnippet.${orderType}.hasOrder`, '==', true);
     }
 
     if (query.traitTypes) {
@@ -194,9 +177,10 @@ export class NftsService {
         const traitValues = traitTypesValues[index];
         for (const traitValue of traitValues) {
           if (traitValue) {
+            const isTraitValueNumeric = !isNaN(Number(traitValue));
             const traitTypeObj = traitType ? { trait_type: traitType } : {};
             traits.push({
-              value: traitValue,
+              value: isTraitValueNumeric ? Number(traitValue) : traitValue,
               ...traitTypeObj
             });
           }
@@ -207,13 +191,12 @@ export class NftsService {
       }
     }
 
-    const hasPriceFilter = query.minPrice !== undefined || query.maxPrice !== undefined;
     if (hasPriceFilter) {
       const minPrice = query.minPrice ?? 0;
       const maxPrice = query.maxPrice ?? Number.MAX_SAFE_INTEGER;
       nftsQuery = nftsQuery.where(startPriceField, '>=', minPrice);
       nftsQuery = nftsQuery.where(startPriceField, '<=', maxPrice);
-      nftsQuery = nftsQuery.orderBy(NftsOrderBy.Price, query.orderDirection);
+      nftsQuery = nftsQuery.orderBy(startPriceField, query.orderDirection);
       nftsQuery = nftsQuery.orderBy(NftsOrderBy.TokenId, OrderDirection.Ascending); // to break ties
       const startAfterPrice = decodedCursor?.[NftsOrderBy.Price];
       const startAfterTokenId = decodedCursor?.[NftsOrderBy.TokenId];
@@ -221,9 +204,20 @@ export class NftsService {
         nftsQuery = nftsQuery.startAfter(startAfterPrice, startAfterTokenId);
       }
     } else {
-      nftsQuery = nftsQuery.orderBy(query.orderBy, query.orderDirection);
-      if (decodedCursor?.[query.orderBy]) {
-        nftsQuery = nftsQuery.startAfter(decodedCursor[query.orderBy]);
+      if (query.orderBy === NftsOrderBy.Price) {
+        nftsQuery = nftsQuery
+          .orderBy(startPriceField, query.orderDirection)
+          .orderBy(NftsOrderBy.TokenId, OrderDirection.Ascending);
+        const startAfterPrice = decodedCursor?.[NftsOrderBy.Price];
+        const startAfterTokenId = decodedCursor?.[NftsOrderBy.TokenId];
+        if (startAfterPrice && startAfterTokenId) {
+          nftsQuery = nftsQuery.startAfter(startAfterPrice, startAfterTokenId);
+        }
+      } else {
+        nftsQuery = nftsQuery.orderBy(query.orderBy, query.orderDirection);
+        if (decodedCursor?.[query.orderBy]) {
+          nftsQuery = nftsQuery.startAfter(decodedCursor[query.orderBy]);
+        }
       }
     }
 

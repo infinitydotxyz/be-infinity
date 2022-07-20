@@ -27,6 +27,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ApiKeyThrottlerGuard } from 'throttler/throttler.guard';
 import { ApiUserModule } from './api-user/api-user.module';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { FeedModule } from 'feed/feed.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
       storageBucket: FB_STORAGE_BUCKET
     }),
     CollectionsModule,
+    FeedModule,
     TwitterModule,
     DiscordModule,
     StatsModule,

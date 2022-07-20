@@ -3,7 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
-import { auth, INFINITY_EMAIL, INFINITY_URL } from './constants';
+import { auth, INFINITY_EMAIL, INFINITY_URL, ORIGIN } from './constants';
 import { HttpExceptionFilter } from './http-exception.filter';
 import { NestExpressApplication } from '@nestjs/platform-express';
 // This is a hack to make Multer available in the Express namespace
@@ -11,9 +11,8 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { Multer } from 'multer';
 
 function setup(app: INestApplication) {
-  // todo: allow connection from localhost temporarily - revert back to ORIGIN after prod release:
   app.enableCors({
-    origin: '*', // ORIGIN,
+    origin: '*', // ORIGIN, // todo: use '*' for testing
     optionsSuccessStatus: 200
   });
   app.use(helmet());
@@ -48,6 +47,13 @@ function setupSwagger(app: INestApplication, path: string) {
       name: auth.message,
       in: 'header',
       description: `Pass the message that was signed in the ${auth.message} header`
+    })
+    .addSecurity(auth.nonce, {
+      type: 'apiKey',
+      scheme: `${auth.nonce}: <numeric nonce>`,
+      name: auth.nonce,
+      in: 'header',
+      description: `The expiration nonce that's visible in the ${auth.nonce} header`
     })
     .build();
 

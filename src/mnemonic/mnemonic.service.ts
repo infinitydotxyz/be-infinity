@@ -1,16 +1,9 @@
-import { CollectionPeriodStatsContent, OrderDirection, StatsPeriod } from '@infinityxyz/lib/types/core';
+import { CollectionPeriodStatsContent, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
-import { getSortDirection } from './mnemonic.constants';
 import {
-  MnemonicContractDetails,
-  MnemonicTokenMetadata,
-  MnemonicTokenType,
-  MnemonicNumOwnersResponseBody,
-  TopOwnersResponseBody,
-  UserNftsResponseBody,
-  MnemonicNumTokensResponseBody,
+  MnemonicNumOwnersResponseBody, MnemonicNumTokensResponseBody,
   MnemonicPricesByContractResponse,
   MnemonicSalesVolumeByContractResponse
 } from './mnemonic.types';
@@ -19,7 +12,7 @@ type TopCollectionsApiResponse = {
   collections: CollectionPeriodStatsContent[];
 };
 
-export type mnemonicByParam = 'by_sales_volume' | 'by_avg_price';
+export type mnemonicByParam = 'by_sales_volume';
 
 @Injectable()
 export class MnemonicService {
@@ -39,98 +32,98 @@ export class MnemonicService {
     });
   }
 
-  async getTopOwners(
-    collectionAddress: string,
-    options?: {
-      limit?: number;
-      offset?: number;
-      orderDirection?: OrderDirection;
-    }
-  ): Promise<TopOwnersResponseBody | null> {
-    const sortDirection = getSortDirection(options?.orderDirection ?? OrderDirection.Descending);
-    const limit = options?.limit ?? 50;
-    const offset = options?.offset ?? 0;
-    const url = new URL(
-      `https://ethereum-analytics.rest.mnemonichq.com/collections/v1beta1/current_owners/${collectionAddress}`
-    );
-    url.searchParams.append('limit', limit.toString());
-    url.searchParams.append('offset', offset.toString());
-    url.searchParams.append('sortDirection', sortDirection);
-    try {
-      const response = await this.client.get(url.toString());
-      if (response.status === 200) {
-        return response.data as TopOwnersResponseBody;
-      }
-      throw new Error(`Unexpected mnemonic response status: ${response.status}`);
-    } catch (err) {
-      console.error(err);
-      return null;
-    }
-  }
+  // async getTopOwners(
+  //   collectionAddress: string,
+  //   options?: {
+  //     limit?: number;
+  //     offset?: number;
+  //     orderDirection?: OrderDirection;
+  //   }
+  // ): Promise<TopOwnersResponseBody | null> {
+  //   const sortDirection = getSortDirection(options?.orderDirection ?? OrderDirection.Descending);
+  //   const limit = options?.limit ?? 50;
+  //   const offset = options?.offset ?? 0;
+  //   const url = new URL(
+  //     `https://ethereum-analytics.rest.mnemonichq.com/collections/v1beta1/current_owners/${collectionAddress}`
+  //   );
+  //   url.searchParams.append('limit', limit.toString());
+  //   url.searchParams.append('offset', offset.toString());
+  //   url.searchParams.append('sortDirection', sortDirection);
+  //   try {
+  //     const response = await this.client.get(url.toString());
+  //     if (response.status === 200) {
+  //       return response.data as TopOwnersResponseBody;
+  //     }
+  //     throw new Error(`Unexpected mnemonic response status: ${response.status}`);
+  //   } catch (err) {
+  //     console.error(err);
+  //     return null;
+  //   }
+  // }
 
-  async getUserNfts(
-    userAddress: string,
-    options?: {
-      limit?: number;
-      offset?: number;
-      contractAddress?: string;
-      tokenTypes?: MnemonicTokenType[];
-    }
-  ) {
-    const limit = options?.limit ?? 50;
-    const offset = options?.offset ?? 0;
-    const url = new URL(`https://canary-ethereum.rest.mnemonichq.com/tokens/v1beta1/by_owner/${userAddress}`);
-    url.searchParams.append('limit', limit.toString());
-    url.searchParams.append('offset', offset.toString());
-    if (options?.contractAddress) {
-      url.searchParams.append('contractAddress', options.contractAddress);
-    }
-    if (options?.tokenTypes?.length) {
-      url.searchParams.append('tokenTypes', options.tokenTypes.join(','));
-    }
-    try {
-      const response = await this.client.get(url.toString());
-      if (response.status === 200) {
-        return response.data as UserNftsResponseBody;
-      }
-      throw new Error(`Unexpected mnemonic response status: ${response.status}`);
-    } catch (err) {
-      console.error(err);
-      return null;
-    }
-  }
+  // async getUserNfts(
+  //   userAddress: string,
+  //   options?: {
+  //     limit?: number;
+  //     offset?: number;
+  //     contractAddress?: string;
+  //     tokenTypes?: MnemonicTokenType[];
+  //   }
+  // ) {
+  //   const limit = options?.limit ?? 50;
+  //   const offset = options?.offset ?? 0;
+  //   const url = new URL(`https://canary-ethereum.rest.mnemonichq.com/tokens/v1beta1/by_owner/${userAddress}`);
+  //   url.searchParams.append('limit', limit.toString());
+  //   url.searchParams.append('offset', offset.toString());
+  //   if (options?.contractAddress) {
+  //     url.searchParams.append('contractAddress', options.contractAddress);
+  //   }
+  //   if (options?.tokenTypes?.length) {
+  //     url.searchParams.append('tokenTypes', options.tokenTypes.join(','));
+  //   }
+  //   try {
+  //     const response = await this.client.get(url.toString());
+  //     if (response.status === 200) {
+  //       return response.data as UserNftsResponseBody;
+  //     }
+  //     throw new Error(`Unexpected mnemonic response status: ${response.status}`);
+  //   } catch (err) {
+  //     console.error(err);
+  //     return null;
+  //   }
+  // }
 
-  async getNft(collectionAddress: string, tokenId: string): Promise<MnemonicTokenMetadata | undefined> {
-    const url = new URL(
-      `https://canary-ethereum.rest.mnemonichq.com/tokens/v1beta1/token/${collectionAddress}/${tokenId}/metadata`
-    );
-    try {
-      const response = await this.client.get(url.toString());
-      if (response.status === 200) {
-        return response.data as MnemonicTokenMetadata;
-      }
-      throw new Error(`Unexpected mnemonic response status: ${response.status}`);
-    } catch (err) {
-      console.error(err);
-      return undefined;
-    }
-  }
+  // async getNft(collectionAddress: string, tokenId: string): Promise<MnemonicTokenMetadata | undefined> {
+  //   const url = new URL(
+  //     `https://canary-ethereum.rest.mnemonichq.com/tokens/v1beta1/token/${collectionAddress}/${tokenId}/metadata`
+  //   );
+  //   try {
+  //     const response = await this.client.get(url.toString());
+  //     if (response.status === 200) {
+  //       return response.data as MnemonicTokenMetadata;
+  //     }
+  //     throw new Error(`Unexpected mnemonic response status: ${response.status}`);
+  //   } catch (err) {
+  //     console.error(err);
+  //     return undefined;
+  //   }
+  // }
 
-  async getContract(collectionAddress: string): Promise<MnemonicContractDetails | undefined> {
-    const url = new URL(
-      `https://canary-ethereum.rest.mnemonichq.com/contracts/v1beta1/by_address/${collectionAddress}`
-    );
-    try {
-      const response = await this.client.get(url.toString());
-      if (response.status === 200) {
-        return response.data.contract as MnemonicContractDetails;
-      }
-      throw new Error(`Unexpected mnemonic response status: ${response.status}`);
-    } catch (err) {
-      console.error(err);
-      return undefined;
-    }
-  }
+  // async getContract(collectionAddress: string): Promise<MnemonicContractDetails | undefined> {
+  //   const url = new URL(
+  //     `https://canary-ethereum.rest.mnemonichq.com/contracts/v1beta1/by_address/${collectionAddress}`
+  //   );
+  //   try {
+  //     const response = await this.client.get(url.toString());
+  //     if (response.status === 200) {
+  //       return response.data.contract as MnemonicContractDetails;
+  //     }
+  //     throw new Error(`Unexpected mnemonic response status: ${response.status}`);
+  //   } catch (err) {
+  //     console.error(err);
+  //     return undefined;
+  //   }
+  // }
 
   async getNumOwners(collectionAddress: string): Promise<MnemonicNumOwnersResponseBody | undefined> {
     const url = new URL(
