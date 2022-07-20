@@ -29,7 +29,7 @@ export type ApiUserConfig = {
   role: ApiRole;
 };
 
-export type ApiUserConfigKeys = keyof ApiUserConfig;
+export type ApiUserKeys = keyof ApiUser;
 
 export interface ApiUserVerifier {
   verifyAndGetUserConfig(

@@ -1,12 +1,12 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { ApiUserConfig, ApiUserConfigKeys } from './api-user.types';
+import { ApiUser as ApiUserType, ApiUserKeys } from './api-user.types';
 
 export const ApiUser = createParamDecorator<
-  ApiUserConfigKeys | undefined,
+  ApiUserKeys | undefined,
   ExecutionContext,
-  ApiUserConfig[ApiUserConfigKeys] | ApiUserConfig
->((data: ApiUserConfigKeys | undefined, ctx: ExecutionContext) => {
+  ApiUserType[ApiUserKeys] | ApiUserType
+>((data: ApiUserKeys | undefined, ctx: ExecutionContext) => {
   const request = ctx.switchToHttp().getRequest();
-  const user = request.apiUser as ApiUserConfig;
+  const user = request.apiUser as ApiUserType;
   return data ? user[data] : user;
 });

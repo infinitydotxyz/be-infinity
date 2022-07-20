@@ -8,7 +8,7 @@ export class ApiUserConfigStorageFirebase implements ApiUserStorage {
   constructor(private firebaseService: FirebaseService) {}
 
   protected getUserRef(id: string): FirebaseFirestore.DocumentReference<ApiUser | undefined> {
-    const user = this.firebaseService.firestore.collection('api-users').doc(id) as FirebaseFirestore.DocumentReference<
+    const user = this.firebaseService.firestore.collection('apiUsers').doc(id) as FirebaseFirestore.DocumentReference<
       ApiUser | undefined
     >;
     return user;

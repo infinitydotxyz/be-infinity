@@ -39,7 +39,13 @@ export const ApiParamUserId = (name = 'id') =>
     schema: { type: 'string' }
   });
 
-export function Auth(siteRoles: SiteRole[], apiRoles: ApiRole[], userIdPathParam?: string) {
+export function Auth(
+  siteRoles: SiteRole | SiteRole[] = [],
+  apiRoles: ApiRole | ApiRole[] = [],
+  userIdPathParam?: string
+) {
+  siteRoles = Array.isArray(siteRoles) ? siteRoles : [siteRoles];
+  apiRoles = Array.isArray(apiRoles) ? apiRoles : [apiRoles];
   if (!!siteRoles.find((item) => item !== SiteRole.Guest) && !userIdPathParam) {
     throw new Error('userIdPathParam is required if a non-guest site role is used');
   }
