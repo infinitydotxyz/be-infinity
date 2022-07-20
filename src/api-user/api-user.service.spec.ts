@@ -61,7 +61,7 @@ describe('ApiUserService', () => {
             limit: 10,
             ttl: 60
           },
-          role: ApiRole.ApiUser
+          role: ApiRole.User
         }
       });
       expect(response.apiKey).toBeDefined();
@@ -82,7 +82,7 @@ describe('ApiUserService', () => {
             limit: 10,
             ttl: 60
           },
-          role: ApiRole.ApiUser
+          role: ApiRole.User
         }
       });
       expect(response.apiKey).toBe(response.user.id);
@@ -99,7 +99,7 @@ describe('ApiUserService', () => {
           limit: 10,
           ttl: 60
         },
-        role: ApiRole.ApiUser
+        role: ApiRole.User
       }
     });
 
@@ -120,7 +120,7 @@ describe('ApiUserService', () => {
           limit: 10,
           ttl: 60
         },
-        role: ApiRole.ApiUser
+        role: ApiRole.User
       }
     });
 
@@ -150,7 +150,7 @@ describe('ApiUserService', () => {
           limit: 10,
           ttl: 60
         },
-        role: ApiRole.ApiUser
+        role: ApiRole.User
       }
     });
 

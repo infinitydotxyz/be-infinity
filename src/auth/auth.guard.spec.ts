@@ -319,41 +319,38 @@ describe('AuthGuard', () => {
 
     it('should require auth for non-guest api roles', async () => {
       const { ctxMock: unauthorizedCtxMock } = await getUserContext(SiteRole.Guest, ApiRole.Guest);
-      reflector.getAllAndMerge = jest.fn().mockReturnValueOnce([SiteRole.Guest]).mockReturnValueOnce([ApiRole.ApiUser]);
+      reflector.getAllAndMerge = jest.fn().mockReturnValueOnce([SiteRole.Guest]).mockReturnValueOnce([ApiRole.User]);
       await expect(guard.canActivate(unauthorizedCtxMock)).rejects.toThrow(AuthException);
 
-      const { ctxMock: userAuthorizedCtxMock } = await getUserContext(SiteRole.Guest, ApiRole.ApiUser);
-      reflector.getAllAndMerge = jest.fn().mockReturnValueOnce([SiteRole.Guest]).mockReturnValueOnce([ApiRole.ApiUser]);
+      const { ctxMock: userAuthorizedCtxMock } = await getUserContext(SiteRole.Guest, ApiRole.User);
+      reflector.getAllAndMerge = jest.fn().mockReturnValueOnce([SiteRole.Guest]).mockReturnValueOnce([ApiRole.User]);
       await expect(guard.canActivate(userAuthorizedCtxMock)).resolves.toBe(true);
     });
 
     it('should allow higher api roles to perform all actions of lower roles', async () => {
-      const { ctxMock: adminCtx } = await getUserContext(SiteRole.Guest, ApiRole.ApiAdmin);
-      reflector.getAllAndMerge = jest.fn().mockReturnValueOnce([SiteRole.Guest]).mockReturnValueOnce([ApiRole.ApiUser]);
+      const { ctxMock: adminCtx } = await getUserContext(SiteRole.Guest, ApiRole.Admin);
+      reflector.getAllAndMerge = jest.fn().mockReturnValueOnce([SiteRole.Guest]).mockReturnValueOnce([ApiRole.User]);
       await expect(guard.canActivate(adminCtx)).resolves.toBe(true);
 
-      const { ctxMock: superAdminCtx } = await getUserContext(SiteRole.Guest, ApiRole.ApiSuperAdmin);
-      reflector.getAllAndMerge = jest.fn().mockReturnValueOnce([SiteRole.Guest]).mockReturnValueOnce([ApiRole.ApiUser]);
+      const { ctxMock: superAdminCtx } = await getUserContext(SiteRole.Guest, ApiRole.SuperAdmin);
+      reflector.getAllAndMerge = jest.fn().mockReturnValueOnce([SiteRole.Guest]).mockReturnValueOnce([ApiRole.User]);
       await expect(guard.canActivate(superAdminCtx)).resolves.toBe(true);
 
-      reflector.getAllAndMerge = jest
-        .fn()
-        .mockReturnValueOnce([SiteRole.Guest])
-        .mockReturnValueOnce([ApiRole.ApiAdmin]);
+      reflector.getAllAndMerge = jest.fn().mockReturnValueOnce([SiteRole.Guest]).mockReturnValueOnce([ApiRole.Admin]);
       await expect(guard.canActivate(superAdminCtx)).resolves.toBe(true);
     });
 
     it('should require the api user to provide a valid api key and api secret', async () => {
-      const { ctxMock: invalidApiKeyCtx } = await getUserContext(SiteRole.Guest, ApiRole.ApiUser, {
+      const { ctxMock: invalidApiKeyCtx } = await getUserContext(SiteRole.Guest, ApiRole.User, {
         reqHeaders: { [API_KEY_HEADER]: 'asdf' }
       });
-      reflector.getAllAndMerge = jest.fn().mockReturnValueOnce([SiteRole.Guest]).mockReturnValueOnce([ApiRole.ApiUser]);
+      reflector.getAllAndMerge = jest.fn().mockReturnValueOnce([SiteRole.Guest]).mockReturnValueOnce([ApiRole.User]);
       await expect(guard.canActivate(invalidApiKeyCtx)).rejects.toThrow(AuthException);
 
-      const { ctxMock: invalidApiSecretCtx } = await getUserContext(SiteRole.Guest, ApiRole.ApiUser, {
+      const { ctxMock: invalidApiSecretCtx } = await getUserContext(SiteRole.Guest, ApiRole.User, {
         reqHeaders: { [API_SECRET_HEADER]: 'asdf' }
       });
-      reflector.getAllAndMerge = jest.fn().mockReturnValueOnce([SiteRole.Guest]).mockReturnValueOnce([ApiRole.ApiUser]);
+      reflector.getAllAndMerge = jest.fn().mockReturnValueOnce([SiteRole.Guest]).mockReturnValueOnce([ApiRole.User]);
       await expect(guard.canActivate(invalidApiSecretCtx)).rejects.toThrow(AuthException);
     });
 
@@ -378,14 +375,14 @@ describe('AuthGuard', () => {
     });
 
     it('should set the apiUser on the request object if the endpoint requires more than a guest role', async () => {
-      const { ctxMock: userCtx } = await getUserContext(SiteRole.Guest, ApiRole.ApiUser);
-      reflector.getAllAndMerge = jest.fn().mockReturnValueOnce([SiteRole.Guest]).mockReturnValueOnce([ApiRole.ApiUser]);
+      const { ctxMock: userCtx } = await getUserContext(SiteRole.Guest, ApiRole.User);
+      reflector.getAllAndMerge = jest.fn().mockReturnValueOnce([SiteRole.Guest]).mockReturnValueOnce([ApiRole.User]);
       const canActivate = await guard.canActivate(userCtx);
       expect(canActivate).toBe(true);
       const request = userCtx.switchToHttp().getRequest();
       expect(request.apiUser).toBeDefined();
 
-      const { ctxMock: userCtxForGuestEP } = await getUserContext(SiteRole.Guest, ApiRole.ApiUser);
+      const { ctxMock: userCtxForGuestEP } = await getUserContext(SiteRole.Guest, ApiRole.User);
       reflector.getAllAndMerge = jest.fn().mockReturnValueOnce([SiteRole.Guest]).mockReturnValueOnce([ApiRole.Guest]);
       const canActivateGuestEP = await guard.canActivate(userCtxForGuestEP);
       expect(canActivateGuestEP).toBe(true);

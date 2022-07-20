@@ -220,7 +220,7 @@ describe('ThrottlerGuard', () => {
         user: createdUser
       } = await apiUserService.createApiUser({
         name: 'test',
-        config: { role: ApiRole.ApiUser, global: { limit: limit * 2, ttl: 60 } }
+        config: { role: ApiRole.User, global: { limit: limit * 2, ttl: 60 } }
       });
       user = createdUser;
 
