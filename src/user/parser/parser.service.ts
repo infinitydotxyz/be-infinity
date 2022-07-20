@@ -31,7 +31,7 @@ export class UserParserService {
   }
 
   protected async parseUsername(value: string) {
-    const { user, ref } = await this.userService.getByUsername(value);
+    const { user, ref } = await this.userService.getByUsername(trimLowerCase(value));
     if (!user) {
       throw new NotFoundException('Failed to find user via username');
     }
@@ -45,7 +45,9 @@ export class UserParserService {
   }
 
   protected parseChainAddress(value: string) {
-    const [chainId, address] = value.split(':').map((item) => trimLowerCase(item));
+    const [chainId, address] = trimLowerCase(value)
+      .split(':')
+      .map((item) => trimLowerCase(item));
 
     if (!Object.values(ChainId).includes(chainId as any)) {
       throw new BadRequestException('Invalid chain id');
@@ -63,6 +65,7 @@ export class UserParserService {
   }
 
   protected parseAddress(value: string) {
+    value = trimLowerCase(value);
     if (!ethers.utils.isAddress(value)) {
       throw new BadRequestException('Invalid address');
     }

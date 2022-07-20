@@ -39,8 +39,6 @@ export class AuthGuard implements CanActivate {
     const hasSiteRoles = siteRolesRequired && siteRolesRequired.length > 0;
     const hasApiRoles = apiRolesRequired && apiRolesRequired.length > 0;
 
-    console.log(`Has site roles: ${hasSiteRoles} Has api roles: ${hasApiRoles}`);
-
     if (!hasSiteRoles && !hasApiRoles) {
       return true;
     }
@@ -49,8 +47,8 @@ export class AuthGuard implements CanActivate {
   }
 
   protected async handleRequest(context: ExecutionContext, siteRolesRequired: SiteRole[], apiRolesRequired: ApiRole[]) {
-    const apiRolesValid = await this.checkApiRoles(context, apiRolesRequired);
-    const siteRolesValid = await this.checkSiteRoles(context, siteRolesRequired);
+    const apiRolesValid = await this.checkApiRoles(context, apiRolesRequired ?? []);
+    const siteRolesValid = await this.checkSiteRoles(context, siteRolesRequired ?? []);
 
     return siteRolesValid && apiRolesValid;
   }
@@ -98,12 +96,17 @@ export class AuthGuard implements CanActivate {
       return accRoleValue < currRoleValue ? acc : role;
     }, siteRolesRequired[0]);
 
-    console.log(`Min Role: ${minRole}`);
-
     if (minRole && minRole !== SiteRole.Guest) {
-      console.log(`Checking sig`);
-      const isValid = await this.validateSignature(context, request);
-      return isValid;
+      if (minRole === SiteRole.User) {
+        const isValid = await this.validateSignature(context, request);
+        if (isValid) {
+          return true;
+        }
+        throw new AuthException('Invalid signature');
+      } else {
+        // TODO handle admin roles
+        throw new AuthException('Admin roles are not yet supported');
+      }
     }
     return true;
   }
@@ -119,7 +122,7 @@ export class AuthGuard implements CanActivate {
       );
     }
 
-    const constructedMsg = this.getEncodedLoginMessage(nonce);
+    const constructedMsg = AuthGuard.getEncodedLoginMessage(nonce);
     if (constructedMsg !== messageHeader) {
       throw new AuthException('Invalid signature');
     }
@@ -137,13 +140,21 @@ export class AuthGuard implements CanActivate {
       const user = await this.userParserService.parse(paramValue);
       const isSigValid = user.userAddress === signingAddress;
       const isNonceValid = Date.now() - nonce < LOGIN_NONCE_EXPIRY_TIME;
-      return isSigValid && isNonceValid;
+      if (!isSigValid) {
+        throw new AuthException('Invalid signature');
+      } else if (!isNonceValid) {
+        throw new AuthException('Invalid nonce');
+      }
+      return true;
     } catch (err: any) {
+      if (err instanceof AuthException) {
+        throw err;
+      }
       throw new AuthException('Invalid signature');
     }
   }
 
-  getEncodedLoginMessage(nonce: number): string {
+  static getEncodedLoginMessage(nonce: number): string {
     // ignore the formatting of this multiline string
     const msg = `Welcome to Infinity. Click "Sign" to sign in. No password needed. This request will not trigger a blockchain transaction or cost any gas fees.
  
