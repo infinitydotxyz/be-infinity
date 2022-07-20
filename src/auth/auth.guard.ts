@@ -60,7 +60,7 @@ export class AuthGuard implements CanActivate {
       return accRoleValue < currRoleValue ? acc : role;
     }, apiRolesRequired[0]);
 
-    if (minRole && minRole !== ApiRole.ApiGuest) {
+    if (minRole && minRole !== ApiRole.Guest) {
       const { req } = this.getRequestResponse(context);
       const apiKey = req.headers?.[API_KEY_HEADER];
       const apiSecret = req.headers?.[API_SECRET_HEADER];

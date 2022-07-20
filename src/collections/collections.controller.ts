@@ -233,7 +233,7 @@ export class CollectionsController {
   }
 
   @Get('curated/:userId')
-  @Auth(SiteRole.User, ApiRole.ApiGuest, 'userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOperation({
     description:
       'Fetch all curated collections. Each curated collection object that has been voted for by the current user will contain more info, like the amount of votes.',
@@ -251,7 +251,7 @@ export class CollectionsController {
   }
 
   @Get('/:id/curated/:userId')
-  @Auth(SiteRole.User, ApiRole.ApiGuest, 'userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiParamCollectionId('collectionId')
   @ApiOperation({
     description: 'Fetch curation details and estimations of the collection',

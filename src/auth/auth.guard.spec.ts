@@ -275,10 +275,7 @@ describe('AuthGuard', () => {
       handler = function useReflector() {
         return 'string';
       };
-      reflector.getAllAndMerge = jest
-        .fn()
-        .mockReturnValueOnce([SiteRole.Guest])
-        .mockReturnValueOnce([ApiRole.ApiGuest]);
+      reflector.getAllAndMerge = jest.fn().mockReturnValueOnce([SiteRole.Guest]).mockReturnValueOnce([ApiRole.Guest]);
       const ctxMock = contextMockFactory('http', handler, {
         getResponse: () => resMock,
         getRequest: () => reqMock
@@ -293,10 +290,7 @@ describe('AuthGuard', () => {
         handler = function useReflector() {
           return 'string';
         };
-        reflector.getAllAndMerge = jest
-          .fn()
-          .mockReturnValueOnce([SiteRole.User])
-          .mockReturnValueOnce([ApiRole.ApiGuest]);
+        reflector.getAllAndMerge = jest.fn().mockReturnValueOnce([SiteRole.User]).mockReturnValueOnce([ApiRole.Guest]);
         const unAuthenticatedCtx = contextMockFactory('http', handler, {
           getResponse: () => resMock,
           getRequest: () => reqMock
@@ -304,24 +298,18 @@ describe('AuthGuard', () => {
 
         await expect(guard.canActivate(unAuthenticatedCtx)).rejects.toThrowError(AuthException);
 
-        reflector.getAllAndMerge = jest
-          .fn()
-          .mockReturnValueOnce([SiteRole.Admin])
-          .mockReturnValueOnce([ApiRole.ApiGuest]);
+        reflector.getAllAndMerge = jest.fn().mockReturnValueOnce([SiteRole.Admin]).mockReturnValueOnce([ApiRole.Guest]);
         await expect(guard.canActivate(unAuthenticatedCtx)).rejects.toThrowError(AuthException);
 
         reflector.getAllAndMerge = jest
           .fn()
           .mockReturnValueOnce([SiteRole.SuperAdmin])
-          .mockReturnValueOnce([ApiRole.ApiGuest]);
+          .mockReturnValueOnce([ApiRole.Guest]);
 
         await expect(guard.canActivate(unAuthenticatedCtx)).rejects.toThrowError(AuthException);
 
-        const { ctxMock } = await getUserContext(SiteRole.User, ApiRole.ApiGuest);
-        reflector.getAllAndMerge = jest
-          .fn()
-          .mockReturnValueOnce([SiteRole.User])
-          .mockReturnValueOnce([ApiRole.ApiGuest]);
+        const { ctxMock } = await getUserContext(SiteRole.User, ApiRole.Guest);
+        reflector.getAllAndMerge = jest.fn().mockReturnValueOnce([SiteRole.User]).mockReturnValueOnce([ApiRole.Guest]);
         await expect(guard.canActivate(ctxMock)).resolves.toBe(true);
       } catch (err) {
         console.error(err);
@@ -330,7 +318,7 @@ describe('AuthGuard', () => {
     });
 
     it('should require auth for non-guest api roles', async () => {
-      const { ctxMock: unauthorizedCtxMock } = await getUserContext(SiteRole.Guest, ApiRole.ApiGuest);
+      const { ctxMock: unauthorizedCtxMock } = await getUserContext(SiteRole.Guest, ApiRole.Guest);
       reflector.getAllAndMerge = jest.fn().mockReturnValueOnce([SiteRole.Guest]).mockReturnValueOnce([ApiRole.ApiUser]);
       await expect(guard.canActivate(unauthorizedCtxMock)).rejects.toThrow(AuthException);
 
@@ -370,22 +358,22 @@ describe('AuthGuard', () => {
     });
 
     it('should require the site user to have a valid nonce', async () => {
-      const { ctxMock: expiredNonceCtx } = await getUserContext(SiteRole.User, ApiRole.ApiGuest, {
+      const { ctxMock: expiredNonceCtx } = await getUserContext(SiteRole.User, ApiRole.Guest, {
         reqHeaders: { [AUTH_NONCE_HEADER]: '0' }
       });
-      reflector.getAllAndMerge = jest.fn().mockReturnValueOnce([SiteRole.User]).mockReturnValueOnce([ApiRole.ApiGuest]);
+      reflector.getAllAndMerge = jest.fn().mockReturnValueOnce([SiteRole.User]).mockReturnValueOnce([ApiRole.Guest]);
       await expect(guard.canActivate(expiredNonceCtx)).rejects.toThrow(AuthException);
 
-      const { ctxMock: missingNonceCtx } = await getUserContext(SiteRole.User, ApiRole.ApiGuest, {
+      const { ctxMock: missingNonceCtx } = await getUserContext(SiteRole.User, ApiRole.Guest, {
         reqHeaders: { [AUTH_NONCE_HEADER]: '' }
       });
-      reflector.getAllAndMerge = jest.fn().mockReturnValueOnce([SiteRole.User]).mockReturnValueOnce([ApiRole.ApiGuest]);
+      reflector.getAllAndMerge = jest.fn().mockReturnValueOnce([SiteRole.User]).mockReturnValueOnce([ApiRole.Guest]);
       await expect(guard.canActivate(missingNonceCtx)).rejects.toThrow(AuthException);
 
-      const { ctxMock: barelyExpiredNonceCtx } = await getUserContext(SiteRole.User, ApiRole.ApiGuest, {
+      const { ctxMock: barelyExpiredNonceCtx } = await getUserContext(SiteRole.User, ApiRole.Guest, {
         reqHeaders: { [AUTH_NONCE_HEADER]: `${Date.now() - 1000}` }
       });
-      reflector.getAllAndMerge = jest.fn().mockReturnValueOnce([SiteRole.User]).mockReturnValueOnce([ApiRole.ApiGuest]);
+      reflector.getAllAndMerge = jest.fn().mockReturnValueOnce([SiteRole.User]).mockReturnValueOnce([ApiRole.Guest]);
       await expect(guard.canActivate(barelyExpiredNonceCtx)).rejects.toThrow(AuthException);
     });
 
@@ -398,10 +386,7 @@ describe('AuthGuard', () => {
       expect(request.apiUser).toBeDefined();
 
       const { ctxMock: userCtxForGuestEP } = await getUserContext(SiteRole.Guest, ApiRole.ApiUser);
-      reflector.getAllAndMerge = jest
-        .fn()
-        .mockReturnValueOnce([SiteRole.Guest])
-        .mockReturnValueOnce([ApiRole.ApiGuest]);
+      reflector.getAllAndMerge = jest.fn().mockReturnValueOnce([SiteRole.Guest]).mockReturnValueOnce([ApiRole.Guest]);
       const canActivateGuestEP = await guard.canActivate(userCtxForGuestEP);
       expect(canActivateGuestEP).toBe(true);
       const guestRequest = userCtxForGuestEP.switchToHttp().getRequest();

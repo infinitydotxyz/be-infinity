@@ -105,7 +105,7 @@ export class UserController {
     required: true,
     type: String
   })
-  @Auth(SiteRole.User, ApiRole.ApiGuest, 'userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOkResponse({ description: ResponseDescription.Success, type: ValidateUsernameResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   async checkUsername(
@@ -209,7 +209,7 @@ export class UserController {
   }
 
   @Put('/:userId')
-  @Auth(SiteRole.User, ApiRole.ApiGuest, 'userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOperation({
     description: "Update a user's profile",
     tags: [ApiTag.User]
@@ -308,7 +308,7 @@ export class UserController {
     description: "Get a user's watchlist",
     tags: [ApiTag.User, ApiTag.Stats]
   })
-  @Auth(SiteRole.User, ApiRole.ApiGuest, 'userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOkResponse({ description: ResponseDescription.Success, type: CollectionStatsArrayResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   async getWatchlist(
@@ -328,7 +328,7 @@ export class UserController {
 
   @Put(':userId/collections/:collectionId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Auth(SiteRole.User, ApiRole.ApiGuest, 'userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @UseInterceptors(FileInterceptor('profileImage'))
   @ApiOperation({
     description: 'Update collection information',
@@ -377,7 +377,7 @@ export class UserController {
   }
 
   @Get(':userId/collections/:collectionId/permissions')
-  @Auth(SiteRole.User, ApiRole.ApiGuest, 'userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOperation({
     description: "Get the user's permissions for this collection",
     tags: [ApiTag.User, ApiTag.Collection]
@@ -423,7 +423,7 @@ export class UserController {
   }
 
   @Get(':userId/followingCollections')
-  @Auth(SiteRole.User, ApiRole.ApiGuest, 'userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOperation({
     description: 'Get the collections a user is following',
     tags: [ApiTag.User]
@@ -444,7 +444,7 @@ export class UserController {
   }
 
   @Post(':userId/followingCollections')
-  @Auth(SiteRole.User, ApiRole.ApiGuest, 'userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOperation({
     description: 'Follow a collection for a user',
     tags: [ApiTag.User]
@@ -468,7 +468,7 @@ export class UserController {
   }
 
   @Delete(':userId/followingCollections')
-  @Auth(SiteRole.User, ApiRole.ApiGuest, 'userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOperation({
     description: 'Unfollow a collection for a user',
     tags: [ApiTag.User]
@@ -492,7 +492,7 @@ export class UserController {
   }
 
   @Get(':userId/followingUsers')
-  @Auth(SiteRole.User, ApiRole.ApiGuest, 'userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOperation({
     description: 'Get the users that the user is following',
     tags: [ApiTag.User]
@@ -513,7 +513,7 @@ export class UserController {
   }
 
   @Post(':userId/followingUsers')
-  @Auth(SiteRole.User, ApiRole.ApiGuest, 'userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOperation({
     description: 'Follow a user for a user',
     tags: [ApiTag.User]
@@ -537,7 +537,7 @@ export class UserController {
   }
 
   @Delete(':userId/followingUsers')
-  @Auth(SiteRole.User, ApiRole.ApiGuest, 'userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOperation({
     description: 'Unfollow a user for a user',
     tags: [ApiTag.User]

@@ -24,7 +24,7 @@ export class CurationController {
   constructor(private curationService: CurationService) {}
 
   @Post('/:id/curated/:userId')
-  @Auth(SiteRole.User, ApiRole.ApiGuest, 'userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOperation({
     description: 'Vote on the collection',
     tags: [ApiTag.Collection, ApiTag.Curation]

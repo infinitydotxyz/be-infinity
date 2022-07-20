@@ -94,7 +94,7 @@ export class OrdersController {
     description: 'Get collections from user orders',
     tags: [ApiTag.Orders, ApiTag.User]
   })
-  @Auth(SiteRole.User, ApiRole.ApiGuest, 'userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOkResponse({ description: ResponseDescription.Success, type: SignedOBOrderArrayDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
@@ -153,7 +153,7 @@ export class OrdersController {
     description: 'Get orders for a user',
     tags: [ApiTag.Orders, ApiTag.User]
   })
-  @Auth(SiteRole.User, ApiRole.ApiGuest, 'userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOkResponse({ description: ResponseDescription.Success, type: SignedOBOrderArrayDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
@@ -170,7 +170,7 @@ export class OrdersController {
     description: 'Get order nonce for user',
     tags: [ApiTag.Orders]
   })
-  @Auth(SiteRole.User, ApiRole.ApiGuest, 'userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })

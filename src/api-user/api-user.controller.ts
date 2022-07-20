@@ -16,7 +16,7 @@ export class ApiUserController {
   @ApiOperation({
     description: "Get the authenticated user's account details"
   })
-  @Auth(SiteRole.Guest, ApiRole.ApiUser)
+  @Auth(SiteRole.Guest, ApiRole.User)
   @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   getUser(@ApiUser() apiUser: IApiUser) {
@@ -27,7 +27,7 @@ export class ApiUserController {
   @ApiOperation({
     description: 'Create a new user'
   })
-  @Auth(SiteRole.Guest, ApiRole.ApiAdmin)
+  @Auth(SiteRole.Guest, ApiRole.Admin)
   @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   async createUser(@ApiUser() apiUser: IApiUser, @Body() body: any) {
@@ -35,7 +35,7 @@ export class ApiUserController {
     const res = await this.apiUserService.createApiUser({
       name,
       config: {
-        role: ApiRole.ApiUser,
+        role: ApiRole.User,
         global: {
           ttl: 60,
           limit: 100
@@ -50,7 +50,7 @@ export class ApiUserController {
   @ApiOperation({
     description: "Get a specific user's account"
   })
-  @Auth(SiteRole.Guest, ApiRole.ApiAdmin)
+  @Auth(SiteRole.Guest, ApiRole.Admin)
   @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   async getUserById(@Param('id') userApiKey: string) {
@@ -62,12 +62,12 @@ export class ApiUserController {
   @ApiOperation({
     description: "Reset a user's api secret"
   })
-  @Auth(SiteRole.Guest, ApiRole.ApiUser)
+  @Auth(SiteRole.Guest, ApiRole.User)
   @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   async resetUserApiSecret(@ApiUser() authenticatedUser: IApiUser, @Param('id') userToReset: string) {
     const isResettingOwnApiKey = authenticatedUser.id === userToReset;
-    const isAdmin = ApiRoleHierarchy[authenticatedUser.config.role] >= ApiRoleHierarchy[ApiRole.ApiAdmin];
+    const isAdmin = ApiRoleHierarchy[authenticatedUser.config.role] >= ApiRoleHierarchy[ApiRole.Admin];
     if (!isResettingOwnApiKey && !isAdmin) {
       throw new AuthException('Invalid permissions');
     }

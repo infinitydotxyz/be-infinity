@@ -24,10 +24,10 @@ export enum SiteRole {
 }
 
 export enum ApiRole {
-  ApiGuest = 'api-guest',
-  ApiUser = 'api-user',
-  ApiAdmin = 'api-admin',
-  ApiSuperAdmin = 'api-super-admin'
+  Guest = 'api-guest',
+  User = 'api-user',
+  Admin = 'api-admin',
+  SuperAdmin = 'api-super-admin'
 }
 
 export const SiteRoleHierarchy = {
@@ -38,10 +38,10 @@ export const SiteRoleHierarchy = {
 };
 
 export const ApiRoleHierarchy = {
-  [ApiRole.ApiGuest]: 0,
-  [ApiRole.ApiUser]: 1,
-  [ApiRole.ApiAdmin]: 2,
-  [ApiRole.ApiSuperAdmin]: 3
+  [ApiRole.Guest]: 0,
+  [ApiRole.User]: 1,
+  [ApiRole.Admin]: 2,
+  [ApiRole.SuperAdmin]: 3
 };
 
 export const AUTH_SITE_ROLES = 'AUTH:SITE_ROLE';

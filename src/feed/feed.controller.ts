@@ -19,7 +19,7 @@ export class FeedController {
   constructor(private feedService: FeedService) {}
 
   @Post('/:userId/like')
-  @Auth(SiteRole.User, ApiRole.ApiGuest, 'userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOperation({
     description: 'Increment likes',
     tags: [ApiTag.Feed]

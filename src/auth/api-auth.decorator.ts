@@ -64,7 +64,7 @@ export function Auth(
 
   const apiSignatureAuth =
     siteRoles.filter((item) => item !== SiteRole.Guest).length > 0 ? ApiSignatureAuth() : undefined;
-  const apiKeyAuth = apiRoles.filter((item) => item !== ApiRole.ApiGuest).length > 0 ? ApiKeyAuth() : undefined;
+  const apiKeyAuth = apiRoles.filter((item) => item !== ApiRole.Guest).length > 0 ? ApiKeyAuth() : undefined;
   const apiParamUserId = userIdPathParam ? ApiParamUserId(userIdPathParam) : undefined;
   const matchSigner = userIdPathParam ? MatchSigner(userIdPathParam) : undefined;
   const unauthorizedResponse = ApiUnauthorizedResponse({ description: ResponseDescription.Unauthorized });
