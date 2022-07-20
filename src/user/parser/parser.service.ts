@@ -16,32 +16,35 @@ export class UserParserService {
    */
   async parse(value: string): Promise<ParsedUserId> {
     const usernameOrAddress = trimLowerCase(value);
-
     // username
     if (!usernameOrAddress.includes(':') && !ethers.utils.isAddress(usernameOrAddress)) {
-      const { user, ref } = await this.userService.getByUsername(usernameOrAddress);
-      if (!user) {
-        throw new NotFoundException('Failed to find user via username');
-      }
-      const userChainId = ChainId.Mainnet;
-      const userAddress = user.address;
-      return {
-        userAddress,
-        userChainId,
-        ref
-      };
+      return this.parseUsername(usernameOrAddress);
     }
 
     // address
     if (ethers.utils.isAddress(usernameOrAddress)) {
-      return {
-        userAddress: usernameOrAddress,
-        userChainId: ChainId.Mainnet,
-        ref: this.userService.getRef(usernameOrAddress) as FirebaseFirestore.DocumentReference<UserProfileDto>
-      };
+      return this.parseAddress(usernameOrAddress);
     }
 
     // chain:address
+    return this.parseChainAddress(usernameOrAddress);
+  }
+
+  protected async parseUsername(value: string) {
+    const { user, ref } = await this.userService.getByUsername(value);
+    if (!user) {
+      throw new NotFoundException('Failed to find user via username');
+    }
+    const userChainId = ChainId.Mainnet;
+    const userAddress = user.address;
+    return {
+      userAddress,
+      userChainId,
+      ref
+    };
+  }
+
+  protected parseChainAddress(value: string) {
     const [chainId, address] = value.split(':').map((item) => trimLowerCase(item));
 
     if (!Object.values(ChainId).includes(chainId as any)) {
@@ -56,6 +59,17 @@ export class UserParserService {
       userAddress: address,
       userChainId: chainId as ChainId,
       ref: this.userService.getRef(address) as FirebaseFirestore.DocumentReference<UserProfileDto>
+    };
+  }
+
+  protected parseAddress(value: string) {
+    if (!ethers.utils.isAddress(value)) {
+      throw new BadRequestException('Invalid address');
+    }
+    return {
+      userAddress: value,
+      userChainId: ChainId.Mainnet,
+      ref: this.userService.getRef(value) as FirebaseFirestore.DocumentReference<UserProfileDto>
     };
   }
 }
