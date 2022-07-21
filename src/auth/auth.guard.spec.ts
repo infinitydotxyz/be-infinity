@@ -1,15 +1,15 @@
+import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
+import { ApiUserDto } from '@infinityxyz/lib/types/dto/api-user';
 import { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import { ApiUserStorage } from 'api-user/api-user-config-storage.interface';
 import { ApiUserService } from 'api-user/api-user.service';
-import { ApiUserDto } from 'api-user/dto/api-user.dto';
 import { ethers } from 'ethers';
 import { splitSignature } from 'ethers/lib/utils';
 import { UserParserService } from 'user/parser/parser.service';
 import { base64Encode } from 'utils';
 import {
-  ApiRole,
   API_KEY_HEADER,
   API_SECRET_HEADER,
   AUTH_MESSAGE_HEADER,

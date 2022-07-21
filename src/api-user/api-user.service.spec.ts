@@ -1,9 +1,9 @@
+import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
+import { ApiUserDto } from '@infinityxyz/lib/types/dto/api-user';
 import { Test, TestingModule } from '@nestjs/testing';
-import { ApiRole } from 'auth/auth.constants';
 import { ApiUserConfigStorageFirebase } from './api-user-config-storage-firebase.service';
 import { ApiUserService } from './api-user.service';
 import { getHmac } from './api-user.utils';
-import { ApiUserDto } from './dto/api-user.dto';
 class MockApiUserStorage {
   private storage: { [key: string]: ApiUserDto } = {};
 
