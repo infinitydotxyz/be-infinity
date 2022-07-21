@@ -28,8 +28,24 @@ export class ApiUserController {
   @Auth(SiteRole.Guest, ApiRole.Admin)
   @ApiOkResponse({ description: ResponseDescription.Success, type: ApiUserPublicWithCredsDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  async createUser(@Body() body: AdminUpdateApiUserDto): Promise<ApiUserPublicWithCredsDto> {
+  async createUser(
+    @Body() body: AdminUpdateApiUserDto,
+    @ApiUser() authenticatedUser: ApiUserDto
+  ): Promise<ApiUserPublicWithCredsDto> {
     const name = body.name;
+
+    /**
+     * must be at least one role above the role to set
+     * or a super admin
+     */
+    if (
+      body.config?.role &&
+      authenticatedUser.config.role !== ApiRole.SuperAdmin &&
+      !roleAtLeast(authenticatedUser.config.role, { role: body.config.role, plus: 1 })
+    ) {
+      throw new AuthException('Invalid permissions');
+    }
+
     const res = await this.apiUserService.createApiUser({
       name,
       config: body.config
@@ -42,11 +58,17 @@ export class ApiUserController {
   @ApiOperation({
     description: "Get a specific user's account"
   })
-  @Auth(SiteRole.Guest, ApiRole.Admin)
+  @Auth(SiteRole.Guest, ApiRole.User)
   @ApiOkResponse({ description: ResponseDescription.Success, type: ApiUserPublicDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  async getUserById(@Param('id') userApiKey: string): Promise<ApiUserPublicDto> {
+  async getUserById(
+    @Param('id') userApiKey: string,
+    @ApiUser() authenticatedUser: ApiUserDto
+  ): Promise<ApiUserPublicDto> {
+    if (authenticatedUser.id !== userApiKey && !hasApiRole(authenticatedUser.config.role, ApiRole.Admin)) {
+      throw new AuthException('Invalid permissions');
+    }
     const res = await this.apiUserService.getUser(userApiKey);
     if (!res) {
       throw new NotFoundException('User not found');
