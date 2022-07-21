@@ -1,4 +1,3 @@
-import { ErrorDescription } from '@ethersproject/abi/lib/interface';
 import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
 import { ApiUserDto } from '@infinityxyz/lib/types/dto/api-user';
 import { Test, TestingModule } from '@nestjs/testing';
