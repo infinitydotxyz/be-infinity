@@ -5,4 +5,5 @@ export interface EnvironmentVariables {
   alchemyJsonRpcEthMainnet: string;
   alchemyJsonRpcPolygonMainnet: string;
   alchemyJsonRpcEthGoerli: string;
+  REDIS_URL?: string;
 }

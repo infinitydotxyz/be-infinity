@@ -2,7 +2,7 @@ import { StorageModule } from './storage/storage.module';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { LoggerMiddleware } from 'logger.middleware';
 import { AppController } from './app.controller';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { FirebaseModule } from './firebase/firebase.module';
 import { StatsModule } from './stats/stats.module';
 import { join } from 'path';
@@ -28,6 +28,7 @@ import { FeedModule } from 'feed/feed.module';
 
 // TODO adi
 import * as serviceAccount from './creds/nftc-dev-firebase-creds.json';
+import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
 // import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
 
 @Module({
@@ -56,11 +57,27 @@ import * as serviceAccount from './creds/nftc-dev-firebase-creds.json';
     OpenseaModule,
     ReservoirModule,
     GemModule,
-    ThrottlerModule.forRoot({
-      ttl: 60,
-      limit: 10
-      // storage: new ThrottlerStorageRedisService('127.0.0.1:6379')
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        const redisUrl = config.get<string>('REDIS_URL'); // TODO adi set the redis url in .env for prod
+        let storage = undefined;
+        if (redisUrl) {
+          storage = new ThrottlerStorageRedisService(redisUrl);
+        }
+        return {
+          ttl: 60,
+          limit: 10,
+          storage
+        };
+      }
     }),
+    // ThrottlerModule.forRoot({
+    //   ttl: 60,
+    //   limit: 10,
+    //   storage: process.env.REDIS_URL ? new ThrottlerStorageRedisService(process.env.REDIS_URL) : undefined
+    // }),
     ApiUserModule
   ],
   providers: [
