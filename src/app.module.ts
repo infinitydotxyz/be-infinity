@@ -25,6 +25,8 @@ import { ApiKeyThrottlerGuard } from 'throttler/throttler.guard';
 import { ApiUserModule } from './api-user/api-user.module';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { FeedModule } from 'feed/feed.module';
+
+// TODO adi
 import * as serviceAccount from './creds/nftc-dev-firebase-creds.json';
 // import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
 

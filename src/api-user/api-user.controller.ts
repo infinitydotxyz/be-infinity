@@ -19,17 +19,6 @@ import { hasApiRole, roleAtLeast } from './api-user.utils';
 export class ApiUserController {
   constructor(private apiUserService: ApiUserService) {}
 
-  @Get('/')
-  @ApiOperation({
-    description: "Get the authenticated user's account details"
-  })
-  @Auth(SiteRole.Guest, ApiRole.User)
-  @ApiOkResponse({ description: ResponseDescription.Success, type: ApiUserDto })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  getUser(@ApiUser() apiUser: ApiUserDto): ApiUserDto {
-    return apiUser;
-  }
-
   @Post('/')
   @ApiOperation({
     description: 'Create a new user'
@@ -79,6 +68,9 @@ export class ApiUserController {
       throw new AuthException('Invalid permissions');
     }
     const res = await this.apiUserService.resetApiSecret(userToReset);
+    if (!res) {
+      throw new NotFoundException('User not found');
+    }
     return res;
   }
 

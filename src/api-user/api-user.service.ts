@@ -29,7 +29,7 @@ export class ApiUserService implements ApiUserVerifier {
   ): Promise<{ isValid: true; user: ApiUserDto } | { isValid: false; reason: string }> {
     const user = await this.getUser(apiKey);
     if (!user) {
-      return { isValid: false, reason: 'Invalid api key or api secret' };
+      return { isValid: false, reason: 'User not found' };
     }
     const hmac = getHmac({ apiKey, apiSecret });
     if (hmac !== user.hmac) {
@@ -76,11 +76,11 @@ export class ApiUserService implements ApiUserVerifier {
     return user;
   }
 
-  async resetApiSecret(id: string): Promise<ApiUserWithCredsDto> {
+  async resetApiSecret(id: string): Promise<ApiUserWithCredsDto | null> {
     const currentUser = await this.getUser(id);
 
     if (!currentUser) {
-      throw new Error(`User ${id} not found`);
+      return null;
     }
 
     const creds = this.generateCreds({ id });
