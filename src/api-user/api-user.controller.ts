@@ -7,10 +7,18 @@ import {
   ApiUserPublicDto
 } from '@infinityxyz/lib/types/dto/api-user';
 import { Body, Controller, Get, NotFoundException, Param, Post, Put } from '@nestjs/common';
-import { ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiInternalServerErrorResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam
+} from '@nestjs/swagger';
 import { Auth } from 'auth/api-auth.decorator';
 import { SiteRole } from 'auth/auth.constants';
 import { AuthException } from 'auth/auth.exception';
+import { ApiTag } from 'common/api-tags';
 import { ResponseDescription } from 'common/response-description';
 import { validateAndStrip } from 'utils/strip-properties';
 import { ApiUser } from './api-user.decorator';
@@ -23,7 +31,8 @@ export class ApiUserController {
 
   @Post('/')
   @ApiOperation({
-    description: 'Create a new user'
+    description: 'Create a new user',
+    tags: [ApiTag.ApiUser]
   })
   @Auth(SiteRole.Guest, ApiRole.Admin)
   @ApiOkResponse({ description: ResponseDescription.Success, type: ApiUserPublicWithCredsDto })
@@ -56,9 +65,11 @@ export class ApiUserController {
 
   @Get('/:id')
   @ApiOperation({
-    description: "Get a specific user's account"
+    description: "Get a user's account",
+    tags: [ApiTag.ApiUser]
   })
   @Auth(SiteRole.Guest, ApiRole.User)
+  @ApiParam({ name: 'id', type: String, required: true, description: 'Api key of the user to get' })
   @ApiOkResponse({ description: ResponseDescription.Success, type: ApiUserPublicDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
@@ -79,9 +90,11 @@ export class ApiUserController {
 
   @Put('/:id/reset')
   @ApiOperation({
-    description: "Reset a user's api secret"
+    description: "Reset a user's api secret",
+    tags: [ApiTag.ApiUser]
   })
   @Auth(SiteRole.Guest, ApiRole.User)
+  @ApiParam({ name: 'id', type: String, required: true, description: 'Api key of the user to reset' })
   @ApiOkResponse({ description: ResponseDescription.Success, type: ApiUserPublicWithCredsDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   async resetUserApiSecret(
@@ -103,7 +116,8 @@ export class ApiUserController {
 
   @Put('/:id')
   @ApiOperation({
-    description: "Update a user's account as the admin"
+    description: "Update a user's account as the admin",
+    tags: [ApiTag.ApiUser]
   })
   @Auth(SiteRole.Guest, ApiRole.Admin)
   @ApiOkResponse({ description: ResponseDescription.Success, type: ApiUserPublicDto })
