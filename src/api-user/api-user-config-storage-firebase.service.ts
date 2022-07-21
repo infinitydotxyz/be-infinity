@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common/decorators/core/injectable.decorator';
+import { instanceToPlain } from 'class-transformer';
 import { FirebaseService } from 'firebase/firebase.service';
 import { ApiUserStorage } from './api-user-config-storage.interface';
 import { ApiUserDto } from './dto/api-user.dto';
@@ -26,6 +27,7 @@ export class ApiUserConfigStorageFirebase implements ApiUserStorage {
 
   async setUser(user: ApiUserDto): Promise<void> {
     const userRef = this.getUserRef(user.id);
-    await userRef.set(user, { merge: true });
+    const userPlain = instanceToPlain(user);
+    await userRef.set(userPlain, { merge: true });
   }
 }

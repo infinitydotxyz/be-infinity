@@ -1,6 +1,7 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, PartialType, PickType } from '@nestjs/swagger';
 import { ApiRole } from 'auth/auth.constants';
-import { IsEnum, IsNumber, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsEnum, IsNotEmpty, IsNumber, IsString, ValidateNested } from 'class-validator';
 
 export class RateLimitDto {
   @ApiProperty({
@@ -20,6 +21,9 @@ export class ApiUserConfigDto {
   @ApiProperty({
     description: 'A global rate limit for the user'
   })
+  @ValidateNested()
+  @Type(() => RateLimitDto)
+  @IsNotEmpty()
   global: RateLimitDto;
 
   @ApiProperty({
@@ -27,6 +31,7 @@ export class ApiUserConfigDto {
     enum: ApiRole
   })
   @IsEnum(ApiRole)
+  @IsNotEmpty()
   role: ApiRole;
 }
 
@@ -46,6 +51,9 @@ export class ApiUserDto {
   @ApiProperty({
     description: 'The configuration of the user'
   })
+  @ValidateNested()
+  @Type(() => ApiUserConfigDto)
+  @IsNotEmpty()
   config: ApiUserConfigDto;
 
   @ApiProperty({
@@ -85,5 +93,11 @@ export class ApiUserWithCredsDto extends ApiUserCredsDto {
   @ApiProperty({
     description: 'The user'
   })
+  @ValidateNested()
+  @Type(() => ApiUserDto)
+  @IsNotEmpty()
   user: ApiUserDto;
 }
+
+export class AdminUpdateApiUserDto extends PickType(ApiUserDto, ['name', 'config']) {}
+export class PartialAdminUpdateApiUserDto extends PartialType(AdminUpdateApiUserDto) {}

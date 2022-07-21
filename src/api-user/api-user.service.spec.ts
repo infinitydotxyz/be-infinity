@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ApiRole } from 'auth/auth.constants';
 import { ApiUserConfigStorageFirebase } from './api-user-config-storage-firebase.service';
-import { ApiUserModule } from './api-user.module';
 import { ApiUserService } from './api-user.service';
 import { getHmac } from './api-user.utils';
 import { ApiUserDto } from './dto/api-user.dto';
@@ -29,7 +28,6 @@ describe('ApiUserService', () => {
   beforeEach(async () => {
     const mockStorage = new MockApiUserStorage();
     const module: TestingModule = await Test.createTestingModule({
-      imports: [ApiUserModule],
       providers: [ApiUserService, ApiUserConfigStorageFirebase]
     })
       .overrideProvider(ApiUserConfigStorageFirebase)

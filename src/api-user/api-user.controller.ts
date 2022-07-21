@@ -6,8 +6,13 @@ import { AuthException } from 'auth/auth.exception';
 import { ResponseDescription } from 'common/response-description';
 import { ApiUser } from './api-user.decorator';
 import { ApiUserService } from './api-user.service';
-import { hasApiRole } from './api-user.utils';
-import { ApiUserDto, ApiUserWithCredsDto } from './dto/api-user.dto';
+import { hasApiRole, roleAtLeast } from './api-user.utils';
+import {
+  AdminUpdateApiUserDto,
+  ApiUserDto,
+  ApiUserWithCredsDto,
+  PartialAdminUpdateApiUserDto
+} from './dto/api-user.dto';
 
 @Controller('apiUser')
 export class ApiUserController {
@@ -31,19 +36,12 @@ export class ApiUserController {
   @Auth(SiteRole.Guest, ApiRole.Admin)
   @ApiOkResponse({ description: ResponseDescription.Success, type: ApiUserWithCredsDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  async createUser(@Body() body: any): Promise<ApiUserWithCredsDto> {
+  async createUser(@Body() body: AdminUpdateApiUserDto): Promise<ApiUserWithCredsDto> {
     const name = body.name;
     const res = await this.apiUserService.createApiUser({
       name,
-      config: {
-        role: ApiRole.User,
-        global: {
-          ttl: 60, // TODO take from body
-          limit: 100
-        }
-      }
+      config: body.config
     });
-
     return res;
   }
 
@@ -80,6 +78,55 @@ export class ApiUserController {
       throw new AuthException('Invalid permissions');
     }
     const res = await this.apiUserService.resetApiSecret(userToReset);
+    return res;
+  }
+
+  @Put('/:id')
+  @ApiOperation({
+    description: "Update a user's account as the admin"
+  })
+  @Auth(SiteRole.Guest, ApiRole.Admin)
+  @ApiOkResponse({ description: ResponseDescription.Success, type: ApiUserDto })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  async adminUpdateUser(
+    @Body() body: PartialAdminUpdateApiUserDto,
+    @Param('id') userId: string,
+    @ApiUser() authenticatedUser: ApiUserDto
+  ): Promise<ApiUserDto> {
+    /**
+     * must be at least one role above the role to set
+     * or a super admin
+     */
+    if (
+      body.config?.role &&
+      authenticatedUser.config.role !== ApiRole.SuperAdmin &&
+      !roleAtLeast(authenticatedUser.config.role, { role: body.config.role, plus: 1 })
+    ) {
+      throw new AuthException('Invalid permissions');
+    }
+
+    const currentUser = await this.apiUserService.getUser(userId);
+
+    if (!currentUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    /**
+     * must be at least one role above the user's role
+     * or a super admin
+     */
+    if (
+      authenticatedUser.config.role !== ApiRole.SuperAdmin &&
+      !roleAtLeast(authenticatedUser.config.role, { role: currentUser.config.role, plus: 1 })
+    ) {
+      throw new AuthException('Invalid permissions');
+    }
+
+    const res = await this.apiUserService.updateApiUser(userId, body);
+    if (!res) {
+      throw new NotFoundException('User not found');
+    }
     return res;
   }
 }

@@ -80,7 +80,7 @@ export class AuthGuard implements CanActivate {
         throw new AuthException('User does not have the required role');
       }
 
-      if (hasApiRole(userRole, minRole)) {
+      if (!hasApiRole(userRole, minRole)) {
         throw new AuthException('User does not have the required role');
       }
       req.apiUser = result.user;

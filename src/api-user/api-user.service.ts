@@ -3,7 +3,13 @@ import { ApiUserConfigStorageFirebase } from './api-user-config-storage-firebase
 import { ApiUserVerifier } from './api-user.types';
 import { getHmac } from './api-user.utils';
 import { randomBytes } from 'crypto';
-import { ApiUserCredsDto, ApiUserDto } from './dto/api-user.dto';
+import {
+  AdminUpdateApiUserDto,
+  ApiUserCredsDto,
+  ApiUserDto,
+  ApiUserWithCredsDto,
+  PartialAdminUpdateApiUserDto
+} from './dto/api-user.dto';
 
 @Injectable()
 export class ApiUserService implements ApiUserVerifier {
@@ -32,9 +38,7 @@ export class ApiUserService implements ApiUserVerifier {
     return { isValid: true, user };
   }
 
-  async createApiUser(
-    userProps: Pick<ApiUserDto, 'name' | 'config'>
-  ): Promise<{ user: ApiUserDto; apiKey: string; apiSecret: string }> {
+  async createApiUser(userProps: AdminUpdateApiUserDto): Promise<ApiUserWithCredsDto> {
     const id = this.generateId();
     const creds = this.generateCreds({ id });
     const userToCreate: Omit<ApiUserDto, 'createdAt' | 'updatedAt'> = {
@@ -51,6 +55,25 @@ export class ApiUserService implements ApiUserVerifier {
       apiKey: creds.apiKey,
       apiSecret: creds.apiSecret
     };
+  }
+
+  async updateApiUser(userId: string, userProps: PartialAdminUpdateApiUserDto): Promise<ApiUserDto | null> {
+    const currentUser = await this.getUser(userId);
+    if (!currentUser) {
+      return null;
+    }
+    const createdAt = currentUser.createdAt ?? Date.now();
+    const updatedAt = Date.now();
+
+    const user: ApiUserDto = {
+      ...currentUser,
+      name: userProps.name || currentUser.name,
+      config: userProps.config || currentUser.config,
+      createdAt,
+      updatedAt
+    };
+    await this.storage.setUser(user);
+    return user;
   }
 
   async setApiUser(userProps: Omit<ApiUserDto, 'createdAt' | 'updatedAt'>): Promise<ApiUserDto> {
@@ -77,7 +100,7 @@ export class ApiUserService implements ApiUserVerifier {
     }
   }
 
-  async resetApiSecret(id: string): Promise<{ user: ApiUserDto; apiKey: string; apiSecret: string }> {
+  async resetApiSecret(id: string): Promise<ApiUserWithCredsDto> {
     const currentUser = await this.getUser(id);
 
     if (!currentUser) {
