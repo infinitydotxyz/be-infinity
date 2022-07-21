@@ -186,10 +186,13 @@ export class BackfillService {
         }
 
         if (datum.traits && datum.traits.length > 0 && token.metadata) {
-          token.metadata.attributes = datum.traits.map((trait) => ({
-            trait_type: trait.trait_type,
-            value: trait.value
-          }));
+          token.metadata.attributes = datum.traits.map((trait) => {
+            const isTraitValueNumeric = !isNaN(Number(trait.value));
+            return {
+              trait_type: trait.trait_type,
+              value: isTraitValueNumeric ? Number(trait.value) : trait.value
+            };
+          });
           token.numTraitTypes = datum.traits.length;
         }
 
@@ -250,7 +253,10 @@ export class BackfillService {
         }
 
         if (openseaData.traits && openseaData.traits.length > 0) {
-          attributes = openseaData.traits.map((trait) => ({ trait_type: trait.trait_type, value: trait.value }));
+          attributes = openseaData.traits.map((trait) => {
+            const isTraitValueNumeric = !isNaN(Number(trait.value));
+            return { trait_type: trait.trait_type, value: isTraitValueNumeric ? Number(trait.value) : trait.value };
+          });
         }
       }
 
@@ -269,10 +275,10 @@ export class BackfillService {
         }
 
         if (alchemyData?.metadata?.attributes && alchemyData?.metadata?.attributes.length > 0) {
-          attributes = alchemyData.metadata.attributes.map((trait) => ({
-            trait_type: trait.trait_type,
-            value: trait.value
-          }));
+          attributes = alchemyData.metadata.attributes.map((trait) => {
+            const isTraitValueNumeric = !isNaN(Number(trait.value));
+            return { trait_type: trait.trait_type, value: isTraitValueNumeric ? Number(trait.value) : trait.value };
+          });
         }
       }
 
@@ -283,7 +289,10 @@ export class BackfillService {
         if (attributes.length === 0) {
           const openseaData = await this.openseaService.getNFT(nft.collectionAddress, nft.tokenId);
           if (openseaData.traits && openseaData.traits.length > 0) {
-            attributes = openseaData.traits.map((trait) => ({ trait_type: trait.trait_type, value: trait.value }));
+            attributes = openseaData.traits.map((trait) => {
+              const isTraitValueNumeric = !isNaN(Number(trait.value));
+              return { trait_type: trait.trait_type, value: isTraitValueNumeric ? Number(trait.value) : trait.value };
+            });
           } else {
             const alchemyData = await this.alchemyService.getNft(
               nft.chainId ?? ChainId.Mainnet,
@@ -291,10 +300,10 @@ export class BackfillService {
               nft.tokenId
             );
             if (alchemyData?.metadata?.attributes && alchemyData?.metadata?.attributes.length > 0) {
-              attributes = alchemyData.metadata.attributes.map((trait) => ({
-                trait_type: trait.trait_type,
-                value: trait.value
-              }));
+              attributes = alchemyData.metadata.attributes.map((trait) => {
+                const isTraitValueNumeric = !isNaN(Number(trait.value));
+                return { trait_type: trait.trait_type, value: isTraitValueNumeric ? Number(trait.value) : trait.value };
+              });
             }
           }
         } else {
@@ -502,7 +511,10 @@ export class BackfillService {
       mintedAt: NaN,
       mintPrice: NaN,
       metadata: {
-        attributes: nft.traits.map((trait) => ({ trait_type: trait.trait_type, value: trait.value })),
+        attributes: nft.traits.map((trait) => {
+          const isTraitValueNumeric = !isNaN(Number(trait.value));
+          return { trait_type: trait.trait_type, value: isTraitValueNumeric ? Number(trait.value) : trait.value };
+        }),
         name: nft.name,
         title: nft.name,
         description: nft.description,
@@ -528,10 +540,10 @@ export class BackfillService {
     tokenId: string,
     alchemyNft: AlchemyNftWithMetadata
   ): NftDto {
-    const attrs = alchemyNft.metadata.attributes?.map?.((attr) => ({
-      trait_type: attr.trait_type,
-      value: attr.value
-    }));
+    const attrs = alchemyNft.metadata.attributes?.map?.((attr) => {
+      const isTraitValueNumeric = !isNaN(Number(attr.value));
+      return { trait_type: attr.trait_type, value: isTraitValueNumeric ? Number(attr.value) : attr.value };
+    });
 
     const cachedImage = alchemyNft?.media?.[0]?.gateway;
     let alchemyCachedImage = '';
