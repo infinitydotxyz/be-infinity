@@ -56,7 +56,7 @@ import * as serviceAccount from './creds/nftc-dev-firebase-creds.json';
     GemModule,
     ThrottlerModule.forRoot({
       ttl: 60,
-      limit: 5
+      limit: 10
       // storage: new ThrottlerStorageRedisService('127.0.0.1:6379')
     }),
     ApiUserModule
