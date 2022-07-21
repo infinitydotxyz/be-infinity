@@ -1,14 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { ApiUserConfigStorageFirebase } from './api-user-config-storage-firebase.service';
-import { ApiUser, ApiUserCreds, ApiUserVerifier } from './api-user.types';
+import { ApiUserVerifier } from './api-user.types';
 import { getHmac } from './api-user.utils';
 import { randomBytes } from 'crypto';
+import { ApiUserCredsDto, ApiUserDto } from './dto/api-user.dto';
 
 @Injectable()
 export class ApiUserService implements ApiUserVerifier {
   constructor(private storage: ApiUserConfigStorageFirebase) {}
 
-  async getUser(apiKey: string): Promise<ApiUser | undefined> {
+  async getUser(apiKey: string): Promise<ApiUserDto | undefined> {
     const data = await this.storage.getUser(apiKey);
     if (data) {
       return data;
@@ -19,7 +20,7 @@ export class ApiUserService implements ApiUserVerifier {
   async verifyAndGetUserConfig(
     apiKey: string,
     apiSecret: string
-  ): Promise<{ isValid: true; user: ApiUser } | { isValid: false; reason: string }> {
+  ): Promise<{ isValid: true; user: ApiUserDto } | { isValid: false; reason: string }> {
     const user = await this.getUser(apiKey);
     if (!user) {
       return { isValid: false, reason: 'Invalid api key or api secret' };
@@ -32,11 +33,11 @@ export class ApiUserService implements ApiUserVerifier {
   }
 
   async createApiUser(
-    userProps: Pick<ApiUser, 'name' | 'config'>
-  ): Promise<{ user: ApiUser; apiKey: string; apiSecret: string }> {
+    userProps: Pick<ApiUserDto, 'name' | 'config'>
+  ): Promise<{ user: ApiUserDto; apiKey: string; apiSecret: string }> {
     const id = this.generateId();
     const creds = this.generateCreds({ id });
-    const userToCreate: Omit<ApiUser, 'createdAt' | 'updatedAt'> = {
+    const userToCreate: Omit<ApiUserDto, 'createdAt' | 'updatedAt'> = {
       id,
       name: userProps.name,
       config: {
@@ -52,13 +53,13 @@ export class ApiUserService implements ApiUserVerifier {
     };
   }
 
-  async setApiUser(userProps: Omit<ApiUser, 'createdAt' | 'updatedAt'>): Promise<ApiUser> {
+  async setApiUser(userProps: Omit<ApiUserDto, 'createdAt' | 'updatedAt'>): Promise<ApiUserDto> {
     try {
       const currentUser = await this.getUser(userProps.id);
       const createdAt = currentUser?.createdAt ?? Date.now();
       const updatedAt = Date.now();
 
-      const user: ApiUser = {
+      const user: ApiUserDto = {
         id: userProps.id,
         name: userProps.name,
         config: userProps.config,
@@ -76,7 +77,7 @@ export class ApiUserService implements ApiUserVerifier {
     }
   }
 
-  async resetApiSecret(id: string): Promise<{ user: ApiUser; apiKey: string; apiSecret: string }> {
+  async resetApiSecret(id: string): Promise<{ user: ApiUserDto; apiKey: string; apiSecret: string }> {
     const currentUser = await this.getUser(id);
 
     if (!currentUser) {
@@ -84,7 +85,7 @@ export class ApiUserService implements ApiUserVerifier {
     }
 
     const creds = this.generateCreds({ id });
-    const updatedUser: ApiUser = {
+    const updatedUser: ApiUserDto = {
       ...currentUser,
       config: {
         ...currentUser.config
@@ -101,7 +102,7 @@ export class ApiUserService implements ApiUserVerifier {
     };
   }
 
-  protected generateCreds(user: Pick<ApiUser, 'id'>): ApiUserCreds & { hmac: string } {
+  protected generateCreds(user: Pick<ApiUserDto, 'id'>): ApiUserCredsDto & { hmac: string } {
     const apiSecret = this.generateId();
     const hmac = getHmac({ apiKey: user.id, apiSecret });
 

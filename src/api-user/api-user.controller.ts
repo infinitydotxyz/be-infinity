@@ -1,12 +1,13 @@
-import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
-import { ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { Body, Controller, Get, NotFoundException, Param, Post, Put } from '@nestjs/common';
+import { ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { Auth } from 'auth/api-auth.decorator';
-import { ApiRole, ApiRoleHierarchy, SiteRole } from 'auth/auth.constants';
+import { ApiRole, SiteRole } from 'auth/auth.constants';
 import { AuthException } from 'auth/auth.exception';
 import { ResponseDescription } from 'common/response-description';
 import { ApiUser } from './api-user.decorator';
 import { ApiUserService } from './api-user.service';
-import { ApiUser as IApiUser } from './api-user.types';
+import { hasApiRole } from './api-user.utils';
+import { ApiUserDto, ApiUserWithCredsDto } from './dto/api-user.dto';
 
 @Controller('apiUser')
 export class ApiUserController {
@@ -17,9 +18,9 @@ export class ApiUserController {
     description: "Get the authenticated user's account details"
   })
   @Auth(SiteRole.Guest, ApiRole.User)
-  @ApiOkResponse({ description: ResponseDescription.Success })
+  @ApiOkResponse({ description: ResponseDescription.Success, type: ApiUserDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  getUser(@ApiUser() apiUser: IApiUser) {
+  getUser(@ApiUser() apiUser: ApiUserDto): ApiUserDto {
     return apiUser;
   }
 
@@ -28,16 +29,16 @@ export class ApiUserController {
     description: 'Create a new user'
   })
   @Auth(SiteRole.Guest, ApiRole.Admin)
-  @ApiOkResponse({ description: ResponseDescription.Success })
+  @ApiOkResponse({ description: ResponseDescription.Success, type: ApiUserWithCredsDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  async createUser(@ApiUser() apiUser: IApiUser, @Body() body: any) {
+  async createUser(@Body() body: any): Promise<ApiUserWithCredsDto> {
     const name = body.name;
     const res = await this.apiUserService.createApiUser({
       name,
       config: {
         role: ApiRole.User,
         global: {
-          ttl: 60,
+          ttl: 60, // TODO take from body
           limit: 100
         }
       }
@@ -51,10 +52,14 @@ export class ApiUserController {
     description: "Get a specific user's account"
   })
   @Auth(SiteRole.Guest, ApiRole.Admin)
-  @ApiOkResponse({ description: ResponseDescription.Success })
+  @ApiOkResponse({ description: ResponseDescription.Success, type: ApiUserDto })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  async getUserById(@Param('id') userApiKey: string) {
+  async getUserById(@Param('id') userApiKey: string): Promise<ApiUserDto> {
     const res = await this.apiUserService.getUser(userApiKey);
+    if (!res) {
+      throw new NotFoundException('User not found');
+    }
     return res;
   }
 
@@ -63,11 +68,14 @@ export class ApiUserController {
     description: "Reset a user's api secret"
   })
   @Auth(SiteRole.Guest, ApiRole.User)
-  @ApiOkResponse({ description: ResponseDescription.Success })
+  @ApiOkResponse({ description: ResponseDescription.Success, type: ApiUserWithCredsDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  async resetUserApiSecret(@ApiUser() authenticatedUser: IApiUser, @Param('id') userToReset: string) {
+  async resetUserApiSecret(
+    @ApiUser() authenticatedUser: ApiUserDto,
+    @Param('id') userToReset: string
+  ): Promise<ApiUserWithCredsDto> {
     const isResettingOwnApiKey = authenticatedUser.id === userToReset;
-    const isAdmin = ApiRoleHierarchy[authenticatedUser.config.role] >= ApiRoleHierarchy[ApiRole.Admin];
+    const isAdmin = hasApiRole(authenticatedUser.config.role, ApiRole.Admin);
     if (!isResettingOwnApiKey && !isAdmin) {
       throw new AuthException('Invalid permissions');
     }

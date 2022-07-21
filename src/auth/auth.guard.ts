@@ -2,6 +2,7 @@ import { LOGIN_NONCE_EXPIRY_TIME, trimLowerCase } from '@infinityxyz/lib/utils';
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ApiUserService } from 'api-user/api-user.service';
+import { hasApiRole } from 'api-user/api-user.utils';
 import { ethers } from 'ethers';
 import { UserParserService } from 'user/parser/parser.service';
 import { base64Decode, base64Encode } from 'utils';
@@ -79,7 +80,7 @@ export class AuthGuard implements CanActivate {
         throw new AuthException('User does not have the required role');
       }
 
-      if (ApiRoleHierarchy[userRole] < ApiRoleHierarchy[minRole]) {
+      if (hasApiRole(userRole, minRole)) {
         throw new AuthException('User does not have the required role');
       }
       req.apiUser = result.user;

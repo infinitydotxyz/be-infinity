@@ -3,7 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import { ApiUserStorage } from 'api-user/api-user-config-storage.interface';
 import { ApiUserService } from 'api-user/api-user.service';
-import { ApiUser } from 'api-user/api-user.types';
+import { ApiUserDto } from 'api-user/dto/api-user.dto';
 import { ethers } from 'ethers';
 import { splitSignature } from 'ethers/lib/utils';
 import { UserParserService } from 'user/parser/parser.service';
@@ -47,14 +47,14 @@ class MockUserParser extends UserParserService {
   }
 }
 class MockApiUserStorage implements ApiUserStorage {
-  private storage: { [key: string]: ApiUser } = {};
+  private storage: { [key: string]: ApiUserDto } = {};
 
-  public getUser(userId: string): Promise<ApiUser | undefined> {
+  public getUser(userId: string): Promise<ApiUserDto | undefined> {
     const user = this.storage[userId];
     return Promise.resolve(user);
   }
 
-  public setUser(user: ApiUser): Promise<void> {
+  public setUser(user: ApiUserDto): Promise<void> {
     this.storage[user.id] = user;
     return Promise.resolve();
   }
@@ -126,7 +126,14 @@ describe('AuthGuard', () => {
     ApiRole,
     Record<
       SiteRole,
-      { user: ApiUser; apiKey: string; apiSecret: string; wallet: ethers.Wallet; apiRole: ApiRole; siteRole: SiteRole }
+      {
+        user: ApiUserDto;
+        apiKey: string;
+        apiSecret: string;
+        wallet: ethers.Wallet;
+        apiRole: ApiRole;
+        siteRole: SiteRole;
+      }
     >
   > = {} as any;
   async function getUser(apiRole: ApiRole, siteRole: SiteRole) {
@@ -156,7 +163,10 @@ describe('AuthGuard', () => {
           name: `${apiRole}-${siteRole}`,
           config: {
             role: apiRole,
-            global: {}
+            global: {
+              limit: 10,
+              ttl: 60
+            }
           }
         });
         // shuffle the private key since create random since create random takes too long

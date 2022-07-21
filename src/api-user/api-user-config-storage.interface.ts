@@ -1,7 +1,7 @@
-import { ApiUser } from './api-user.types';
+import { ApiUserDto } from './dto/api-user.dto';
 
 export interface ApiUserStorage {
-  getUser(userId: string): Promise<ApiUser | undefined>;
+  getUser(userId: string): Promise<ApiUserDto | undefined>;
 
-  setUser(user: ApiUser): Promise<void>;
+  setUser(user: ApiUserDto): Promise<void>;
 }

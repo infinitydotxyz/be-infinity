@@ -3,19 +3,19 @@ import { ApiRole } from 'auth/auth.constants';
 import { ApiUserConfigStorageFirebase } from './api-user-config-storage-firebase.service';
 import { ApiUserModule } from './api-user.module';
 import { ApiUserService } from './api-user.service';
-import { ApiUser } from './api-user.types';
 import { getHmac } from './api-user.utils';
+import { ApiUserDto } from './dto/api-user.dto';
 class MockApiUserStorage {
-  private storage: { [key: string]: ApiUser } = {};
+  private storage: { [key: string]: ApiUserDto } = {};
 
-  public getUser(userId: string): Promise<ApiUser | undefined> {
-    return new Promise<ApiUser | undefined>((resolve) => {
+  public getUser(userId: string): Promise<ApiUserDto | undefined> {
+    return new Promise<ApiUserDto | undefined>((resolve) => {
       const user = this.storage[userId];
       resolve(user);
     });
   }
 
-  public setUser(user: ApiUser): Promise<void> {
+  public setUser(user: ApiUserDto): Promise<void> {
     return new Promise<void>((resolve) => {
       this.storage[user.id] = user;
       resolve();

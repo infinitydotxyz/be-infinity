@@ -1,39 +1,10 @@
-import { ApiRole } from 'auth/auth.constants';
+import { ApiUserDto } from './dto/api-user.dto';
 
-export interface ApiUserCreds {
-  apiKey: string;
-
-  apiSecret: string;
-}
-
-export interface ApiUser {
-  id: string;
-
-  name: string;
-
-  config: ApiUserConfig;
-
-  hmac: string;
-
-  createdAt: number;
-
-  updatedAt: number;
-}
-
-export type ApiUserConfig = {
-  global: {
-    limit?: number;
-    ttl?: number;
-  };
-
-  role: ApiRole;
-};
-
-export type ApiUserKeys = keyof ApiUser;
+export type ApiUserKeys = keyof ApiUserDto;
 
 export interface ApiUserVerifier {
   verifyAndGetUserConfig(
     apiKey: string,
     apiSecret: string
-  ): Promise<{ isValid: true; user: ApiUser } | { isValid: false; reason: string }>;
+  ): Promise<{ isValid: true; user: ApiUserDto } | { isValid: false; reason: string }>;
 }
