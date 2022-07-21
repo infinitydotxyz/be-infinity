@@ -1,3 +1,4 @@
+import { ErrorDescription } from '@ethersproject/abi/lib/interface';
 import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
 import { ApiUserDto } from '@infinityxyz/lib/types/dto/api-user';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -152,11 +153,13 @@ describe('ApiUserService', () => {
       }
     });
 
-    const {
-      user: updatedUser,
-      apiKey: updatedApiKey,
-      apiSecret: updatedApiSecret
-    } = await apiUserService.resetApiSecret(apiKey);
+    const res = await apiUserService.resetApiSecret(apiKey);
+    if (!res) {
+      expect(res).toBeTruthy();
+      throw new Error('Failed to reset api secret');
+    }
+
+    const { user: updatedUser, apiKey: updatedApiKey, apiSecret: updatedApiSecret } = res;
 
     /**
      * api key should remain the same
