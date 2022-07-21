@@ -1,3 +1,4 @@
+import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
 import { LOGIN_NONCE_EXPIRY_TIME, trimLowerCase } from '@infinityxyz/lib/utils';
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
@@ -7,7 +8,6 @@ import { ethers } from 'ethers';
 import { UserParserService } from 'user/parser/parser.service';
 import { base64Decode, base64Encode } from 'utils';
 import {
-  ApiRole,
   ApiRoleHierarchy,
   API_KEY_HEADER,
   API_SECRET_HEADER,

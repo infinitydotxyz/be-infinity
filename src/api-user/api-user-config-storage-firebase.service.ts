@@ -1,8 +1,8 @@
+import { ApiUserDto } from '@infinityxyz/lib/types/dto/api-user';
 import { Injectable } from '@nestjs/common/decorators/core/injectable.decorator';
 import { instanceToPlain } from 'class-transformer';
 import { FirebaseService } from 'firebase/firebase.service';
 import { ApiUserStorage } from './api-user-config-storage.interface';
-import { ApiUserDto } from './dto/api-user.dto';
 
 @Injectable()
 export class ApiUserConfigStorageFirebase implements ApiUserStorage {

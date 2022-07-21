@@ -1,4 +1,5 @@
 import { OBOrderItem } from '@infinityxyz/lib/types/core';
+import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
 import {
   OBOrderItemDto,
   OrderItemsQueryDto,
@@ -12,7 +13,7 @@ import { trimLowerCase, getDigest, orderHash, verifySig } from '@infinityxyz/lib
 import { BadRequestException, Body, Controller, Get, NotFoundException, Param, Post, Query } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { Auth } from 'auth/api-auth.decorator';
-import { ApiRole, SiteRole } from 'auth/auth.constants';
+import { SiteRole } from 'auth/auth.constants';
 import { ParamUserId } from 'auth/param-user-id.decorator';
 import { instanceToPlain } from 'class-transformer';
 import { ApiTag } from 'common/api-tags';

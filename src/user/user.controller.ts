@@ -77,8 +77,9 @@ import { UsernameType } from './profile/profile.types';
 import { QueryUsername } from './profile/query-username.decorator';
 import { UserService } from './user.service';
 import { ParamUserId } from 'auth/param-user-id.decorator';
-import { ApiRole, SiteRole } from 'auth/auth.constants';
+import { SiteRole } from 'auth/auth.constants';
 import { ApiParamUserId, Auth } from 'auth/api-auth.decorator';
+import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
 
 @Controller('user')
 export class UserController {

@@ -1,4 +1,5 @@
-import { ApiRole, AUTH_API_ROLES, AUTH_SITE_ROLES, SiteRole } from './auth.constants';
+import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
+import { AUTH_API_ROLES, AUTH_SITE_ROLES, SiteRole } from './auth.constants';
 
 function setAuthSiteRolesMetadata(target: any, roles: SiteRole[]): void {
   Reflect.defineMetadata(AUTH_SITE_ROLES, roles, target);

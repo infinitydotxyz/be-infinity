@@ -1,3 +1,4 @@
+import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
 import { Body, Controller, Post } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -7,7 +8,7 @@ import {
   ApiOperation
 } from '@nestjs/swagger';
 import { Auth } from 'auth/api-auth.decorator';
-import { ApiRole, SiteRole } from 'auth/auth.constants';
+import { SiteRole } from 'auth/auth.constants';
 import { ApiTag } from 'common/api-tags';
 import { ErrorResponseDto } from 'common/dto/error-response.dto';
 import { ResponseDescription } from 'common/response-description';

@@ -4,12 +4,12 @@ import { ApiUserVerifier } from './api-user.types';
 import { getHmac } from './api-user.utils';
 import { randomBytes } from 'crypto';
 import {
-  AdminUpdateApiUserDto,
-  ApiUserCredsDto,
   ApiUserDto,
+  AdminUpdateApiUserDto,
   ApiUserWithCredsDto,
-  PartialAdminUpdateApiUserDto
-} from './dto/api-user.dto';
+  PartialAdminUpdateApiUserDto,
+  ApiUserCredsDto
+} from '@infinityxyz/lib/types/dto/api-user';
 
 @Injectable()
 export class ApiUserService implements ApiUserVerifier {

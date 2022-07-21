@@ -1,6 +1,7 @@
-import { ApiRole, ApiRoleHierarchy } from 'auth/auth.constants';
+import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
+import { ApiRoleHierarchy } from 'auth/auth.constants';
 import { createHmac } from 'crypto';
-import { ApiUserCredsDto } from './dto/api-user.dto';
+import { ApiUserCredsDto } from '@infinityxyz/lib/types/dto/api-user';
 
 export function getHmac(creds: ApiUserCredsDto) {
   return createHmac('sha256', creds.apiSecret.toLowerCase())

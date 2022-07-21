@@ -1,3 +1,5 @@
+import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
+
 export enum SiteRole {
   /**
    * a user that is not logged in
@@ -21,13 +23,6 @@ export enum SiteRole {
    * admin that can manage admins
    */
   SuperAdmin = 'super-admin'
-}
-
-export enum ApiRole {
-  Guest = 'api-guest',
-  User = 'api-user',
-  Admin = 'api-admin',
-  SuperAdmin = 'api-super-admin'
 }
 
 export const SiteRoleHierarchy = {

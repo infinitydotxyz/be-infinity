@@ -1,4 +1,4 @@
-import { ApiUserDto } from './dto/api-user.dto';
+import { ApiUserDto } from '@infinityxyz/lib/types/dto/api-user/api-user.dto';
 
 export type ApiUserKeys = keyof ApiUserDto;
 

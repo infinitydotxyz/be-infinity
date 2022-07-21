@@ -1,18 +1,19 @@
+import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
+import {
+  ApiUserDto,
+  ApiUserWithCredsDto,
+  AdminUpdateApiUserDto,
+  PartialAdminUpdateApiUserDto
+} from '@infinityxyz/lib/types/dto/api-user';
 import { Body, Controller, Get, NotFoundException, Param, Post, Put } from '@nestjs/common';
 import { ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { Auth } from 'auth/api-auth.decorator';
-import { ApiRole, SiteRole } from 'auth/auth.constants';
+import { SiteRole } from 'auth/auth.constants';
 import { AuthException } from 'auth/auth.exception';
 import { ResponseDescription } from 'common/response-description';
 import { ApiUser } from './api-user.decorator';
 import { ApiUserService } from './api-user.service';
 import { hasApiRole, roleAtLeast } from './api-user.utils';
-import {
-  AdminUpdateApiUserDto,
-  ApiUserDto,
-  ApiUserWithCredsDto,
-  PartialAdminUpdateApiUserDto
-} from './dto/api-user.dto';
 
 @Controller('apiUser')
 export class ApiUserController {

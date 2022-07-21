@@ -1,8 +1,8 @@
+import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
 import { applyDecorators, UseGuards } from '@nestjs/common';
 import { ApiParam, ApiSecurity, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { ResponseDescription } from 'common/response-description';
 import {
-  ApiRole,
   API_KEY_HEADER,
   API_SECRET_HEADER,
   AUTH_MESSAGE_HEADER,

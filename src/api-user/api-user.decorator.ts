@@ -1,6 +1,6 @@
+import { ApiUserDto } from '@infinityxyz/lib/types/dto/api-user';
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 import { ApiUserKeys } from './api-user.types';
-import { ApiUserDto } from './dto/api-user.dto';
 
 export const ApiUser = createParamDecorator<
   ApiUserKeys | undefined,
