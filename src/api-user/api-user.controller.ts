@@ -12,7 +12,7 @@ import { Auth } from 'auth/api-auth.decorator';
 import { SiteRole } from 'auth/auth.constants';
 import { AuthException } from 'auth/auth.exception';
 import { ResponseDescription } from 'common/response-description';
-import { stripProperties } from 'utils/strip-properties';
+import { validateAndStrip } from 'utils/strip-properties';
 import { ApiUser } from './api-user.decorator';
 import { ApiUserService } from './api-user.service';
 import { hasApiRole, roleAtLeast } from './api-user.utils';
@@ -34,7 +34,7 @@ export class ApiUserController {
       name,
       config: body.config
     });
-    const { result } = await stripProperties(ApiUserPublicWithCredsDto, res);
+    const { result } = await validateAndStrip(ApiUserPublicWithCredsDto, res);
     return result;
   }
 
@@ -51,7 +51,7 @@ export class ApiUserController {
     if (!res) {
       throw new NotFoundException('User not found');
     }
-    const { result } = await stripProperties(ApiUserPublicDto, res);
+    const { result } = await validateAndStrip(ApiUserPublicDto, res);
     return result;
   }
 
@@ -75,7 +75,7 @@ export class ApiUserController {
     if (!res) {
       throw new NotFoundException('User not found');
     }
-    const { result } = await stripProperties(ApiUserPublicWithCredsDto, res);
+    const { result } = await validateAndStrip(ApiUserPublicWithCredsDto, res);
     return result;
   }
 
@@ -125,7 +125,7 @@ export class ApiUserController {
     if (!res) {
       throw new NotFoundException('User not found');
     }
-    const { result } = await stripProperties(ApiUserPublicDto, res);
+    const { result } = await validateAndStrip(ApiUserPublicDto, res);
     return result;
   }
 }
