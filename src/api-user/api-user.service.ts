@@ -76,30 +76,6 @@ export class ApiUserService implements ApiUserVerifier {
     return user;
   }
 
-  async setApiUser(userProps: Omit<ApiUserDto, 'createdAt' | 'updatedAt'>): Promise<ApiUserDto> {
-    try {
-      const currentUser = await this.getUser(userProps.id);
-      const createdAt = currentUser?.createdAt ?? Date.now();
-      const updatedAt = Date.now();
-
-      const user: ApiUserDto = {
-        id: userProps.id,
-        name: userProps.name,
-        config: userProps.config,
-        hmac: userProps.hmac,
-        createdAt,
-        updatedAt
-      };
-
-      await this.storage.setUser(user);
-
-      return user;
-    } catch (err) {
-      console.error(`Failed to update api user: ${userProps.id}`, err);
-      throw err;
-    }
-  }
-
   async resetApiSecret(id: string): Promise<ApiUserWithCredsDto> {
     const currentUser = await this.getUser(id);
 
@@ -123,6 +99,30 @@ export class ApiUserService implements ApiUserVerifier {
       apiKey: creds.apiKey,
       apiSecret: creds.apiSecret
     };
+  }
+
+  protected async setApiUser(userProps: Omit<ApiUserDto, 'createdAt' | 'updatedAt'>): Promise<ApiUserDto> {
+    try {
+      const currentUser = await this.getUser(userProps.id);
+      const createdAt = currentUser?.createdAt ?? Date.now();
+      const updatedAt = Date.now();
+
+      const user: ApiUserDto = {
+        id: userProps.id,
+        name: userProps.name,
+        config: userProps.config,
+        hmac: userProps.hmac,
+        createdAt,
+        updatedAt
+      };
+
+      await this.storage.setUser(user);
+
+      return user;
+    } catch (err) {
+      console.error(`Failed to update api user: ${userProps.id}`, err);
+      throw err;
+    }
   }
 
   protected generateCreds(user: Pick<ApiUserDto, 'id'>): ApiUserCredsDto & { hmac: string } {
