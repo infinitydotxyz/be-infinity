@@ -1,11 +1,12 @@
+import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
+import { ApiUserDto } from '@infinityxyz/lib/types/dto/api-user';
 import { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import { ThrottlerException, ThrottlerStorage } from '@nestjs/throttler';
 import { ApiUserStorage } from 'api-user/api-user-config-storage.interface';
 import { ApiUserService } from 'api-user/api-user.service';
-import { ApiUser } from 'api-user/api-user.types';
-import { ApiRole, API_KEY_HEADER, API_SECRET_HEADER } from 'auth/auth.constants';
+import { API_KEY_HEADER, API_SECRET_HEADER } from 'auth/auth.constants';
 import { AuthException } from 'auth/auth.exception';
 import { THROTTLER_OPTIONS } from './throttler.constants';
 import { ApiKeyThrottlerGuard } from './throttler.guard';
@@ -32,14 +33,14 @@ class ThrottlerStorageServiceMock implements ThrottlerStorage {
 }
 
 class MockApiUserStorage implements ApiUserStorage {
-  private storage: { [key: string]: ApiUser } = {};
+  private storage: { [key: string]: ApiUserDto } = {};
 
-  public getUser(userId: string): Promise<ApiUser | undefined> {
+  public getUser(userId: string): Promise<ApiUserDto | undefined> {
     const user = this.storage[userId];
     return Promise.resolve(user);
   }
 
-  public setUser(user: ApiUser): Promise<void> {
+  public setUser(user: ApiUserDto): Promise<void> {
     this.storage[user.id] = user;
     return Promise.resolve();
   }
@@ -211,7 +212,7 @@ describe('ThrottlerGuard', () => {
     let resMock: { header: jest.Mock<any, any> };
     let headerSettingMock: jest.Mock;
 
-    let user: ApiUser;
+    let user: ApiUserDto;
 
     beforeEach(async () => {
       const {
