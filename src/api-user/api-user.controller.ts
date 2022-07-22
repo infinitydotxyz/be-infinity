@@ -46,7 +46,7 @@ export class ApiUserController {
      * must be at least one role above the role to set
      * or a super admin
      */
-    if (body.config?.role && canUpdateOtherUser(authenticatedUser.config.role, body.config.role)) {
+    if (body.config?.role && !canUpdateOtherUser(authenticatedUser.config.role, body.config.role)) {
       throw new AuthException('Invalid permissions');
     }
 

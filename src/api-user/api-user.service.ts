@@ -10,6 +10,7 @@ import {
   ApiUserCredsDto
 } from '@infinityxyz/lib/types/dto/api-user';
 import { generateUUID } from 'utils';
+import { validateAndStrip } from 'utils/strip-properties';
 
 @Injectable()
 export class ApiUserService implements ApiUserVerifier {
@@ -49,13 +50,15 @@ export class ApiUserService implements ApiUserVerifier {
     } while (existingUser);
 
     const creds = this.generateCreds({ id });
-    const userToCreate: Omit<ApiUserDto, 'createdAt' | 'updatedAt'> = {
+    const userToCreate: ApiUserDto = {
       id,
       name: userProps.name,
       config: {
         ...userProps.config
       },
-      hmac: creds.hmac
+      hmac: creds.hmac,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
     };
     const user = await this.setApiUser(userToCreate);
     return {
@@ -104,31 +107,20 @@ export class ApiUserService implements ApiUserVerifier {
     };
   }
 
-  protected async setApiUser({
-    id,
-    name,
-    config,
-    hmac
-  }: Omit<ApiUserDto, 'createdAt' | 'updatedAt'>): Promise<ApiUserDto> {
+  /**
+   * @param update - a full user object to update
+   * @returns the updated user
+   */
+  protected async setApiUser(update: ApiUserDto): Promise<ApiUserDto> {
     try {
-      const currentUser = await this.getUser(id);
-      const createdAt = currentUser?.createdAt ?? Date.now();
-      const updatedAt = Date.now();
-
-      const user: ApiUserDto = {
-        id,
-        name,
-        config,
-        hmac,
-        createdAt,
-        updatedAt
-      };
-
-      await this.storage.setUser(user);
-
-      return user;
+      const { result, errors } = await validateAndStrip(ApiUserDto, update);
+      if (errors.length > 0) {
+        throw new Error(`Invalid user: ${JSON.stringify(errors)}`);
+      }
+      await this.storage.setUser(result);
+      return result;
     } catch (err) {
-      console.error(`Failed to update api user: ${id}`, err);
+      console.error(`Failed to update api user: ${update.id}`, err);
       throw err;
     }
   }
