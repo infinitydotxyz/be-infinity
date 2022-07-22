@@ -8,7 +8,6 @@ import {
 } from '@infinityxyz/lib/types/dto/api-user';
 import { Body, Controller, Get, NotFoundException, Param, Post, Put } from '@nestjs/common';
 import {
-  ApiBody,
   ApiInternalServerErrorResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -23,7 +22,7 @@ import { ResponseDescription } from 'common/response-description';
 import { validateAndStrip } from 'utils/strip-properties';
 import { ApiUser } from './api-user.decorator';
 import { ApiUserService } from './api-user.service';
-import { hasApiRole, roleAtLeast } from './api-user.utils';
+import { canUpdateOtherUser, hasApiRole } from './api-user.utils';
 
 @Controller('apiUser')
 export class ApiUserController {
@@ -47,11 +46,7 @@ export class ApiUserController {
      * must be at least one role above the role to set
      * or a super admin
      */
-    if (
-      body.config?.role &&
-      authenticatedUser.config.role !== ApiRole.SuperAdmin &&
-      !roleAtLeast(authenticatedUser.config.role, { role: body.config.role, plus: 1 })
-    ) {
+    if (body.config?.role && canUpdateOtherUser(authenticatedUser.config.role, body.config.role)) {
       throw new AuthException('Invalid permissions');
     }
 
@@ -101,15 +96,22 @@ export class ApiUserController {
     @ApiUser() authenticatedUser: ApiUserDto,
     @Param('id') userToReset: string
   ): Promise<ApiUserPublicWithCredsDto> {
+    const user = await this.apiUserService.getUser(userToReset);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
     const isResettingOwnApiKey = authenticatedUser.id === userToReset;
-    const isAdmin = hasApiRole(authenticatedUser.config.role, ApiRole.Admin);
-    if (!isResettingOwnApiKey && !isAdmin) {
+    const canUpdateUser = canUpdateOtherUser(authenticatedUser.config.role, user.config.role);
+    if (!isResettingOwnApiKey && !canUpdateUser) {
       throw new AuthException('Invalid permissions');
     }
+
     const res = await this.apiUserService.resetApiSecret(userToReset);
     if (!res) {
       throw new NotFoundException('User not found');
     }
+
     const { result } = await validateAndStrip(ApiUserPublicWithCredsDto, res);
     return result;
   }
@@ -128,32 +130,15 @@ export class ApiUserController {
     @Param('id') userId: string,
     @ApiUser() authenticatedUser: ApiUserDto
   ): Promise<ApiUserPublicDto> {
-    /**
-     * must be at least one role above the role to set
-     * or a super admin
-     */
-    if (
-      body.config?.role &&
-      authenticatedUser.config.role !== ApiRole.SuperAdmin &&
-      !roleAtLeast(authenticatedUser.config.role, { role: body.config.role, plus: 1 })
-    ) {
-      throw new AuthException('Invalid permissions');
-    }
-
     const currentUser = await this.apiUserService.getUser(userId);
 
     if (!currentUser) {
       throw new NotFoundException('User not found');
     }
 
-    /**
-     * must be at least one role above the user's role
-     * or a super admin
-     */
-    if (
-      authenticatedUser.config.role !== ApiRole.SuperAdmin &&
-      !roleAtLeast(authenticatedUser.config.role, { role: currentUser.config.role, plus: 1 })
-    ) {
+    const canUpdateToRole = !body.config?.role || canUpdateOtherUser(authenticatedUser.config.role, body.config.role);
+    const canUpdateUser = canUpdateOtherUser(authenticatedUser.config.role, currentUser.config.role);
+    if (!canUpdateToRole || !canUpdateUser) {
       throw new AuthException('Invalid permissions');
     }
 

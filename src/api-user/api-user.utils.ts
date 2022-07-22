@@ -20,3 +20,11 @@ export function roleAtLeast(role: ApiRole, atLeast: ApiRole | { role: ApiRole; p
   }
   return ApiRoleHierarchy[role] >= ApiRoleHierarchy[atLeast];
 }
+
+export function canUpdateOtherUser(authenticatedUserRole: ApiRole, userToUpdate: ApiRole) {
+  return (
+    authenticatedUserRole === ApiRole.SuperAdmin ||
+    (roleAtLeast(authenticatedUserRole, ApiRole.Admin) &&
+      roleAtLeast(authenticatedUserRole, { role: userToUpdate, plus: 1 }))
+  );
+}

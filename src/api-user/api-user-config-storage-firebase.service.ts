@@ -15,14 +15,11 @@ export class ApiUserConfigStorageFirebase implements ApiUserStorage {
     return user;
   }
 
-  async getUser(userId: string): Promise<ApiUserDto | undefined> {
+  async getUser(userId: string): Promise<ApiUserDto | null> {
     const userRef = this.getUserRef(userId);
     const userSnap = await userRef.get();
     const user = userSnap.data();
-    if (user) {
-      return user;
-    }
-    return undefined;
+    return user ?? null;
   }
 
   async setUser(user: ApiUserDto): Promise<void> {

@@ -15,12 +15,9 @@ import { generateUUID } from 'utils';
 export class ApiUserService implements ApiUserVerifier {
   constructor(private storage: ApiUserConfigStorageFirebase) {}
 
-  async getUser(apiKey: string): Promise<ApiUserDto | undefined> {
-    const data = await this.storage.getUser(apiKey);
-    if (data) {
-      return data;
-    }
-    return undefined;
+  async getUser(apiKey: string): Promise<ApiUserDto | null> {
+    const user = await this.storage.getUser(apiKey);
+    return user;
   }
 
   async verifyAndGetUserConfig(
@@ -39,7 +36,7 @@ export class ApiUserService implements ApiUserVerifier {
   }
 
   async createApiUser(userProps: AdminUpdateApiUserDto): Promise<ApiUserWithCredsDto> {
-    let existingUser: ApiUserDto | undefined;
+    let existingUser: ApiUserDto | null;
     let attempts = 0;
     let id: string;
     do {
@@ -112,17 +109,22 @@ export class ApiUserService implements ApiUserVerifier {
     };
   }
 
-  protected async setApiUser(userProps: Omit<ApiUserDto, 'createdAt' | 'updatedAt'>): Promise<ApiUserDto> {
+  protected async setApiUser({
+    id,
+    name,
+    config,
+    hmac
+  }: Omit<ApiUserDto, 'createdAt' | 'updatedAt'>): Promise<ApiUserDto> {
     try {
-      const currentUser = await this.getUser(userProps.id);
+      const currentUser = await this.getUser(id);
       const createdAt = currentUser?.createdAt ?? Date.now();
       const updatedAt = Date.now();
 
       const user: ApiUserDto = {
-        id: userProps.id,
-        name: userProps.name,
-        config: userProps.config,
-        hmac: userProps.hmac,
+        id,
+        name,
+        config,
+        hmac,
         createdAt,
         updatedAt
       };
@@ -131,7 +133,7 @@ export class ApiUserService implements ApiUserVerifier {
 
       return user;
     } catch (err) {
-      console.error(`Failed to update api user: ${userProps.id}`, err);
+      console.error(`Failed to update api user: ${id}`, err);
       throw err;
     }
   }
