@@ -2,11 +2,13 @@ import { ApiUserDto } from '@infinityxyz/lib/types/dto/api-user';
 import { Injectable } from '@nestjs/common/decorators/core/injectable.decorator';
 import { instanceToPlain } from 'class-transformer';
 import { FirebaseService } from 'firebase/firebase.service';
-import { ApiUserStorage } from './api-user-config-storage.interface';
+import { ApiUserStorage } from './api-user-storage.abstract';
 
 @Injectable()
-export class ApiUserConfigStorageFirebase implements ApiUserStorage {
-  constructor(private firebaseService: FirebaseService) {}
+export class ApiUserConfigStorageFirebase extends ApiUserStorage {
+  constructor(private firebaseService: FirebaseService) {
+    super();
+  }
 
   protected getUserRef(id: string): FirebaseFirestore.DocumentReference<ApiUserDto | undefined> {
     const user = this.firebaseService.firestore.collection('apiUsers').doc(id) as FirebaseFirestore.DocumentReference<
@@ -15,16 +17,17 @@ export class ApiUserConfigStorageFirebase implements ApiUserStorage {
     return user;
   }
 
-  async getUser(userId: string): Promise<ApiUserDto | null> {
+  protected async _getUser(userId: string): Promise<ApiUserDto | null> {
     const userRef = this.getUserRef(userId);
     const userSnap = await userRef.get();
     const user = userSnap.data();
     return user ?? null;
   }
 
-  async setUser(user: ApiUserDto): Promise<void> {
+  protected async _setUser(user: ApiUserDto): Promise<ApiUserDto> {
     const userRef = this.getUserRef(user.id);
     const userPlain = instanceToPlain(user);
     await userRef.set(userPlain, { merge: true });
+    return user;
   }
 }
