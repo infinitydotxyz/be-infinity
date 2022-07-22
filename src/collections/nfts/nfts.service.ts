@@ -1,4 +1,4 @@
-import { ChainId, Collection, OrderDirection } from '@infinityxyz/lib/types/core';
+import { ChainId, OrderDirection } from '@infinityxyz/lib/types/core';
 import { EventType, NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
 import {
   ExternalNftDto,
@@ -319,6 +319,9 @@ export class NftsService {
           activity = {
             id: snap.id,
             address: sale.collectionAddress,
+            collectionName: sale.collectionName,
+            collectionSlug: sale.collectionSlug,
+            image: sale.image,
             tokenId: sale.tokenId,
             chainId: sale.chainId as ChainId,
             type: EventType.NftSale,
@@ -341,6 +344,9 @@ export class NftsService {
           activity = {
             id: snap.id,
             address: listing.collectionAddress,
+            collectionName: listing.collectionName,
+            collectionSlug: listing.collectionSlug,
+            image: listing.image,
             tokenId: listing.tokenId,
             chainId: listing.chainId as ChainId,
             type: EventType.NftListing,
@@ -364,6 +370,9 @@ export class NftsService {
           activity = {
             id: snap.id,
             address: offer.collectionAddress,
+            collectionName: offer.collectionName,
+            collectionSlug: offer.collectionSlug,
+            image: offer.image,
             tokenId: offer.tokenId,
             chainId: offer.chainId as ChainId,
             type: EventType.NftOffer,
@@ -397,16 +406,17 @@ export class NftsService {
       activities.pop(); // Remove item used for pagination
     }
 
+    // commenting since not sure why its needed
     // fill in collection data
-    const activitiesCollAddresses = activities.map((act) => ({ address: act?.address ?? '', chainId: act.chainId }));
-    const { getCollection } = await this.collectionsService.getCollectionsByAddress(activitiesCollAddresses);
-    for (const act of activities) {
-      const collectionData = getCollection({
-        address: act.address ?? '',
-        chainId: act.chainId
-      }) as Collection;
-      act.collectionData = collectionData;
-    }
+    // const activitiesCollAddresses = activities.map((act) => ({ address: act?.address ?? '', chainId: act.chainId }));
+    // const { getCollection } = await this.collectionsService.getCollectionsByAddress(activitiesCollAddresses);
+    // for (const act of activities) {
+    //   const collectionData = getCollection({
+    //     address: act.address ?? '',
+    //     chainId: act.chainId
+    //   }) as Collection;
+    //   act.collectionData = collectionData;
+    // }
 
     const rawCursor = `${activities?.[activities?.length - 1]?.timestamp ?? ''}`;
     const cursor = this.paginationService.encodeCursor(rawCursor);
