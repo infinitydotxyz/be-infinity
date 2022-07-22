@@ -8,6 +8,7 @@ import {
 } from '@infinityxyz/lib/types/dto/api-user';
 import { Body, Controller, Get, NotFoundException, Param, Post, Put } from '@nestjs/common';
 import {
+  ApiCreatedResponse,
   ApiInternalServerErrorResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -34,7 +35,7 @@ export class ApiUserController {
     tags: [ApiTag.ApiUser]
   })
   @Auth(SiteRole.Guest, ApiRole.Admin)
-  @ApiOkResponse({ description: ResponseDescription.Success, type: ApiUserPublicWithCredsDto })
+  @ApiCreatedResponse({ description: ResponseDescription.Success, type: ApiUserPublicWithCredsDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   async createUser(
     @Body() body: AdminUpdateApiUserDto,
@@ -136,8 +137,12 @@ export class ApiUserController {
       throw new NotFoundException('User not found');
     }
 
-    const canUpdateToRole = !body.config?.role || canUpdateOtherUser(authenticatedUser.config.role, body.config.role);
-    const canUpdateUser = canUpdateOtherUser(authenticatedUser.config.role, currentUser.config.role);
+    const isUpdatingSelf = authenticatedUser.id === userId;
+    const canUpdateToRole =
+      !body.config?.role ||
+      (isUpdatingSelf && authenticatedUser.config.role === body.config.role) ||
+      canUpdateOtherUser(authenticatedUser.config.role, body.config.role);
+    const canUpdateUser = isUpdatingSelf || canUpdateOtherUser(authenticatedUser.config.role, currentUser.config.role);
     if (!canUpdateToRole || !canUpdateUser) {
       throw new AuthException('Invalid permissions');
     }
