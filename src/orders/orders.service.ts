@@ -131,8 +131,7 @@ export default class OrdersService {
             const emptyToken: OrderItemTokenMetadata = {
               tokenId: '',
               numTokens: 1, // default for both ERC721 and ERC1155
-              tokenImage:
-                metadata?.[order.chainId as ChainId]?.[nft.collection]?.collection?.metadata?.profileImage ?? '',
+              tokenImage: '',
               tokenName: '',
               tokenSlug: '',
               attributes: []
@@ -486,7 +485,7 @@ export default class OrdersService {
     return metadata;
   }
 
-  public async getOrders(
+  private async getOrders(
     firestoreQuery: FirebaseFirestore.Query<FirebaseFirestore.DocumentData>
   ): Promise<SignedOBOrderDto[]> {
     // fetch query snapshot
@@ -517,7 +516,7 @@ export default class OrdersService {
             collectionImage: orderItemData.collectionImage,
             collectionSlug: orderItemData?.collectionSlug,
             hasBlueCheck: orderItemData?.hasBlueCheck,
-            tokens: [token]
+            tokens: token.tokenId ? [token] : []
           };
         }
       } else {
@@ -528,7 +527,7 @@ export default class OrdersService {
           collectionName: orderItemData.collectionName,
           collectionSlug: orderItemData?.collectionSlug,
           hasBlueCheck: orderItemData?.hasBlueCheck,
-          tokens: [token]
+          tokens: token.tokenId ? [token] : []
         };
         obOrderItemMap[orderItemData.id] = { [orderItemData.collectionAddress]: obOrderItem };
       }
@@ -566,16 +565,6 @@ export default class OrdersService {
         orderItems.set(orderItem.id, { orderDocId, orderItem: orderItemData });
       }
     }
-    // const orderItems = firestoreOrderItems.docs.map((item) => {
-    //   const orderDocId = item.ref.parent.parent?.id;
-    //   if (orderDocId) {
-    //     orderDocsToGet[orderDocId] = item.ref.parent.parent;
-    //   }
-    //   return {
-    //     orderItem: item.data() as FirestoreOrderItem,
-    //     orderDocId: item.ref.parent.parent?.id
-    //   };
-    // });
 
     const docRefs = Object.values(orderDocsToGet);
     if (docRefs.length === 0) {
