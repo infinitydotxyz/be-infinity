@@ -3,7 +3,7 @@ import { ApiUserDto } from '@infinityxyz/lib/types/dto/api-user';
 import { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
-import { ApiUserStorage } from 'api-user/api-user-config-storage.interface';
+import { ApiUserStorage } from 'api-user/api-user-storage.interface';
 import { ApiUserService } from 'api-user/api-user.service';
 import { ethers } from 'ethers';
 import { splitSignature } from 'ethers/lib/utils';
@@ -49,14 +49,14 @@ class MockUserParser extends UserParserService {
 class MockApiUserStorage implements ApiUserStorage {
   private storage: { [key: string]: ApiUserDto } = {};
 
-  public getUser(userId: string): Promise<ApiUserDto | undefined> {
+  public getUser(userId: string): Promise<ApiUserDto | null> {
     const user = this.storage[userId];
-    return Promise.resolve(user);
+    return Promise.resolve(user ?? null);
   }
 
-  public setUser(user: ApiUserDto): Promise<void> {
+  public setUser(user: ApiUserDto): Promise<ApiUserDto> {
     this.storage[user.id] = user;
-    return Promise.resolve();
+    return Promise.resolve(user);
   }
 }
 

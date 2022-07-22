@@ -2,22 +2,22 @@ import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
 import { ApiUserDto } from '@infinityxyz/lib/types/dto/api-user';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ApiUserConfigStorageFirebase } from './api-user-config-storage-firebase.service';
+import { ApiUserStorage } from './api-user-storage.abstract';
 import { ApiUserService } from './api-user.service';
 import { getHmac } from './api-user.utils';
-class MockApiUserStorage {
+class MockApiUserStorage extends ApiUserStorage {
   private storage: { [key: string]: ApiUserDto } = {};
 
-  public getUser(userId: string): Promise<ApiUserDto | undefined> {
-    return new Promise<ApiUserDto | undefined>((resolve) => {
+  protected _getUser(userId: string): Promise<ApiUserDto | null> {
+    return new Promise<ApiUserDto | null>((resolve) => {
       const user = this.storage[userId];
       resolve(user);
     });
   }
-
-  public setUser(user: ApiUserDto): Promise<void> {
-    return new Promise<void>((resolve) => {
+  protected _setUser(user: ApiUserDto): Promise<ApiUserDto> {
+    return new Promise<ApiUserDto>((resolve) => {
       this.storage[user.id] = user;
-      resolve();
+      resolve(user);
     });
   }
 }

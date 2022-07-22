@@ -1,7 +1,8 @@
 import { ApiUserDto } from '@infinityxyz/lib/types/dto/api-user/api-user.dto';
 import { validateAndStrip } from 'utils/strip-properties';
+import { ApiUserStorage as IApiUserStorage } from './api-user-storage.interface';
 
-export abstract class ApiUserStorage implements ApiUserStorage {
+export abstract class ApiUserStorage implements IApiUserStorage {
   protected abstract _getUser(userId: string): Promise<ApiUserDto | null>;
 
   protected abstract _setUser(user: ApiUserDto): Promise<ApiUserDto>;

@@ -4,7 +4,7 @@ import { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import { ThrottlerException, ThrottlerStorage } from '@nestjs/throttler';
-import { ApiUserStorage } from 'api-user/api-user-config-storage.interface';
+import { ApiUserStorage } from 'api-user/api-user-storage.abstract';
 import { ApiUserService } from 'api-user/api-user.service';
 import { API_KEY_HEADER, API_SECRET_HEADER } from 'auth/auth.constants';
 import { AuthException } from 'auth/auth.exception';
@@ -32,20 +32,22 @@ class ThrottlerStorageServiceMock implements ThrottlerStorage {
   }
 }
 
-class MockApiUserStorage implements ApiUserStorage {
+class MockApiUserStorage extends ApiUserStorage {
   private storage: { [key: string]: ApiUserDto } = {};
 
-  public getUser(userId: string): Promise<ApiUserDto | undefined> {
-    const user = this.storage[userId];
-    return Promise.resolve(user);
+  protected _getUser(userId: string): Promise<ApiUserDto | null> {
+    return new Promise<ApiUserDto | null>((resolve) => {
+      const user = this.storage[userId];
+      resolve(user);
+    });
   }
-
-  public setUser(user: ApiUserDto): Promise<void> {
-    this.storage[user.id] = user;
-    return Promise.resolve();
+  protected _setUser(user: ApiUserDto): Promise<ApiUserDto> {
+    return new Promise<ApiUserDto>((resolve) => {
+      this.storage[user.id] = user;
+      resolve(user);
+    });
   }
 }
-
 function contextMockFactory(
   type: 'http' | 'ws' | 'graphql',
   handler: () => any,
