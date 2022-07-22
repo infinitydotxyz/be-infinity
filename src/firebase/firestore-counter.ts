@@ -1,5 +1,5 @@
-import * as uuid from 'uuid';
 import firebaseAdmin from 'firebase-admin';
+import { generateUUID } from 'utils';
 
 export class FirestoreDistributedCounter {
   private shardsRef: FirebaseFirestore.CollectionReference<FirebaseFirestore.DocumentData>;
@@ -22,7 +22,7 @@ export class FirestoreDistributedCounter {
       .reverse()
       .reduce((value, name) => ({ [name]: value }), increment);
 
-    const shardId = uuid.v4();
+    const shardId = generateUUID();
     this.shardsRef
       .doc(shardId)
       .set(update, { merge: true })

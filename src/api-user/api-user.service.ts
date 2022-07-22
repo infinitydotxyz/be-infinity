@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { ApiUserConfigStorageFirebase } from './api-user-config-storage-firebase.service';
 import { ApiUserVerifier } from './api-user.types';
 import { getHmac } from './api-user.utils';
-import { randomBytes } from 'crypto';
 import {
   ApiUserDto,
   AdminUpdateApiUserDto,
@@ -10,6 +9,7 @@ import {
   PartialAdminUpdateApiUserDto,
   ApiUserCredsDto
 } from '@infinityxyz/lib/types/dto/api-user';
+import { generateUUID } from 'utils';
 
 @Injectable()
 export class ApiUserService implements ApiUserVerifier {
@@ -133,7 +133,6 @@ export class ApiUserService implements ApiUserVerifier {
   }
 
   protected generateId() {
-    const id = Buffer.from(randomBytes(32)).toString('hex').toLowerCase();
-    return id;
+    return generateUUID();
   }
 }
