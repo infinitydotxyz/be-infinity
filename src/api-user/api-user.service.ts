@@ -70,18 +70,13 @@ export class ApiUserService implements ApiUserVerifier {
     if (!currentUser) {
       return null;
     }
-    const createdAt = currentUser.createdAt ?? Date.now();
-    const updatedAt = Date.now();
 
     const user: ApiUserDto = {
       ...currentUser,
       name: userProps.name || currentUser.name,
-      config: userProps.config || currentUser.config,
-      createdAt,
-      updatedAt
+      config: userProps.config || currentUser.config
     };
-    await this.storage.setUser(user);
-    return user;
+    return await this.setApiUser(user);
   }
 
   async resetApiSecret(id: string): Promise<ApiUserWithCredsDto | null> {
