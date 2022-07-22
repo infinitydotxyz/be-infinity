@@ -39,7 +39,18 @@ export class ApiUserService implements ApiUserVerifier {
   }
 
   async createApiUser(userProps: AdminUpdateApiUserDto): Promise<ApiUserWithCredsDto> {
-    const id = this.generateId();
+    let existingUser: ApiUserDto | undefined;
+    let attempts = 0;
+    let id: string;
+    do {
+      id = this.generateId();
+      existingUser = await this.getUser(id);
+      attempts += 1;
+      if (existingUser && attempts > 10) {
+        throw new Error('Failed to create user');
+      }
+    } while (existingUser);
+
     const creds = this.generateCreds({ id });
     const userToCreate: Omit<ApiUserDto, 'createdAt' | 'updatedAt'> = {
       id,
