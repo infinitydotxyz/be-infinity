@@ -45,7 +45,6 @@ import { CursorService } from '../pagination/cursor.service';
 import { ParsedUserId } from '../user/parser/parsed-user-id';
 import { UserParserService } from '../user/parser/parser.service';
 import { UserService } from '../user/user.service';
-import { getDocIdHash } from '../utils';
 import { OrderItemTokenMetadata, OrderMetadata } from './order.types';
 
 @Injectable()
@@ -146,14 +145,10 @@ export default class OrdersService {
               makerUsername,
               collection
             );
-            // get doc id
-            const tokenId = '';
-            const orderItemDocRef = orderItemsRef.doc(
-              getDocIdHash({ collectionAddress: nft.collection, tokenId, chainId: order.chainId })
-            );
-            // add to batch
-            fsBatchHandler.add(orderItemDocRef, orderItemData, { merge: true });
 
+            // add to batch
+            const orderItemDocRef = orderItemsRef.doc();
+            fsBatchHandler.add(orderItemDocRef, orderItemData, { merge: true });
             orderItems.push({ ...orderItemData, orderItemId: orderItemDocRef.id });
           } else {
             for (const token of nft.tokens) {
@@ -179,14 +174,10 @@ export default class OrdersService {
                 makerUsername,
                 collection
               );
-              // get doc id
-              const tokenId = token.tokenId;
-              const orderItemDocRef = orderItemsRef.doc(
-                getDocIdHash({ collectionAddress: nft.collection, tokenId, chainId: order.chainId })
-              );
-              // add to batch
-              fsBatchHandler.add(orderItemDocRef, orderItemData, { merge: true });
 
+              // add to batch
+              const orderItemDocRef = orderItemsRef.doc();
+              fsBatchHandler.add(orderItemDocRef, orderItemData, { merge: true });
               orderItems.push({ ...orderItemData, orderItemId: orderItemDocRef.id });
             }
           }
