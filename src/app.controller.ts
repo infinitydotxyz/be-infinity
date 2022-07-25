@@ -1,5 +1,5 @@
-import { Controller, Get } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { Controller, Get, Redirect } from '@nestjs/common';
+import { ApiFoundResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 
 @Controller()
 export class AppController {
@@ -13,4 +13,14 @@ export class AppController {
   ping() {
     return 'pong';
   }
+
+  @Get()
+  @Redirect('/docs/')
+  @ApiFoundResponse({
+    description: 'Redirect to /docs'
+  })
+  redirectToDocs() {
+    return;
+  }
+
 }
