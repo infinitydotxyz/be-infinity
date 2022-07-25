@@ -1,4 +1,5 @@
 import { OBOrderItem } from '@infinityxyz/lib/types/core';
+import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
 import {
   OBOrderItemDto,
   OrderItemsQueryDto,
@@ -11,8 +12,9 @@ import {
 import { trimLowerCase, getDigest, orderHash, verifySig } from '@infinityxyz/lib/utils';
 import { BadRequestException, Body, Controller, Get, NotFoundException, Param, Post, Query } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { Auth } from 'auth/api-auth.decorator';
+import { SiteRole } from 'auth/auth.constants';
 import { ParamUserId } from 'auth/param-user-id.decorator';
-import { UserAuth } from 'auth/user-auth.decorator';
 import { instanceToPlain } from 'class-transformer';
 import { ApiTag } from 'common/api-tags';
 import { ErrorResponseDto } from 'common/dto/error-response.dto';
@@ -93,7 +95,7 @@ export class OrdersController {
     description: 'Get collections from user orders',
     tags: [ApiTag.Orders, ApiTag.User]
   })
-  @UserAuth('userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOkResponse({ description: ResponseDescription.Success, type: SignedOBOrderArrayDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
@@ -152,7 +154,7 @@ export class OrdersController {
     description: 'Get orders for a user',
     tags: [ApiTag.Orders, ApiTag.User]
   })
-  @UserAuth('userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOkResponse({ description: ResponseDescription.Success, type: SignedOBOrderArrayDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
@@ -169,7 +171,7 @@ export class OrdersController {
     description: 'Get order nonce for user',
     tags: [ApiTag.Orders]
   })
-  @UserAuth('userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })

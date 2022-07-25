@@ -2,6 +2,7 @@ import { trimLowerCase } from '@infinityxyz/lib/utils';
 import BigNumber from 'bignumber.js';
 import { createHash, randomInt } from 'crypto';
 import { List, uniqBy } from 'lodash';
+import { customAlphabet } from 'nanoid';
 
 export const base64Encode = (data: string) => Buffer.from(data).toString('base64');
 
@@ -83,3 +84,12 @@ export function randomItem<T>(array: T[]): T {
   const index = randomInt(0, array.length - 1);
   return array[index];
 }
+
+/**
+ * if generating 10,000 IDs per second this requires
+ * ~1 billion years, in order to have a 1% probability
+ * of at least one collision
+ */
+const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+const nanoid = customAlphabet(alphabet, 24);
+export const generateUUID = nanoid;

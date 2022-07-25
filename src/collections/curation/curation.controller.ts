@@ -11,19 +11,21 @@ import { ApiTag } from 'common/api-tags';
 import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param-collection-id.decorator';
 import { ErrorResponseDto } from 'common/dto/error-response.dto';
 import { ResponseDescription } from 'common/response-description';
-import { UserAuth } from 'auth/user-auth.decorator';
-import { ParamUserId } from 'auth/param-user-id.decorator';
 import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 import { CurationService } from './curation.service';
 import { CurationVoteDto } from '@infinityxyz/lib/types/dto/collections/curation/curation-vote.dto';
+import { Auth } from 'auth/api-auth.decorator';
+import { SiteRole } from 'auth/auth.constants';
+import { ParamUserId } from 'auth/param-user-id.decorator';
+import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
 
 @Controller('collections')
 export class CurationController {
   constructor(private curationService: CurationService) {}
 
   @Post('/:id/curated/:userId')
-  @UserAuth('userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOperation({
     description: 'Vote on the collection',
     tags: [ApiTag.Collection, ApiTag.Curation]
