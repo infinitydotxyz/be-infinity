@@ -28,7 +28,6 @@ import { FeedModule } from 'feed/feed.module';
 
 import * as serviceAccount from './creds/nftc-dev-firebase-creds.json';
 import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
-// import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
 
 @Module({
   imports: [
