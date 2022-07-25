@@ -26,7 +26,6 @@ import { ApiUserModule } from './api-user/api-user.module';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { FeedModule } from 'feed/feed.module';
 
-// TODO adi
 import * as serviceAccount from './creds/nftc-dev-firebase-creds.json';
 import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
 // import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
@@ -61,7 +60,7 @@ import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
-        const redisUrl = config.get<string>('REDIS_URL'); // TODO adi set the redis url in .env for prod
+        const redisUrl = config.get<string>('REDIS_URL');
         let storage = undefined;
         if (redisUrl) {
           storage = new ThrottlerStorageRedisService(redisUrl);
