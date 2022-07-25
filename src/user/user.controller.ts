@@ -55,8 +55,6 @@ import {
   ApiOperation,
   ApiQuery
 } from '@nestjs/swagger';
-import { ApiParamUserId, ParamUserId } from 'auth/param-user-id.decorator';
-import { UserAuth } from 'auth/user-auth.decorator';
 import { instanceToPlain } from 'class-transformer';
 import { ParseCollectionIdPipe, ParsedCollectionId } from 'collections/collection-id.pipe';
 import CollectionsService from 'collections/collections.service';
@@ -78,6 +76,10 @@ import { ProfileService } from './profile/profile.service';
 import { UsernameType } from './profile/profile.types';
 import { QueryUsername } from './profile/query-username.decorator';
 import { UserService } from './user.service';
+import { ParamUserId } from 'auth/param-user-id.decorator';
+import { SiteRole } from 'auth/auth.constants';
+import { ApiParamUserId, Auth } from 'auth/api-auth.decorator';
+import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
 
 @Controller('user')
 export class UserController {
@@ -104,7 +106,7 @@ export class UserController {
     required: true,
     type: String
   })
-  @UserAuth('userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOkResponse({ description: ResponseDescription.Success, type: ValidateUsernameResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   async checkUsername(
@@ -208,7 +210,7 @@ export class UserController {
   }
 
   @Put('/:userId')
-  @UserAuth('userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOperation({
     description: "Update a user's profile",
     tags: [ApiTag.User]
@@ -307,7 +309,7 @@ export class UserController {
     description: "Get a user's watchlist",
     tags: [ApiTag.User, ApiTag.Stats]
   })
-  @UserAuth('userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOkResponse({ description: ResponseDescription.Success, type: CollectionStatsArrayResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   async getWatchlist(
@@ -327,7 +329,7 @@ export class UserController {
 
   @Put(':userId/collections/:collectionId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @UserAuth('userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @UseInterceptors(FileInterceptor('profileImage'))
   @ApiOperation({
     description: 'Update collection information',
@@ -376,7 +378,7 @@ export class UserController {
   }
 
   @Get(':userId/collections/:collectionId/permissions')
-  @UserAuth('userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOperation({
     description: "Get the user's permissions for this collection",
     tags: [ApiTag.User, ApiTag.Collection]
@@ -422,7 +424,7 @@ export class UserController {
   }
 
   @Get(':userId/followingCollections')
-  @UserAuth('userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOperation({
     description: 'Get the collections a user is following',
     tags: [ApiTag.User]
@@ -443,7 +445,7 @@ export class UserController {
   }
 
   @Post(':userId/followingCollections')
-  @UserAuth('userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOperation({
     description: 'Follow a collection for a user',
     tags: [ApiTag.User]
@@ -467,7 +469,7 @@ export class UserController {
   }
 
   @Delete(':userId/followingCollections')
-  @UserAuth('userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOperation({
     description: 'Unfollow a collection for a user',
     tags: [ApiTag.User]
@@ -491,7 +493,7 @@ export class UserController {
   }
 
   @Get(':userId/followingUsers')
-  @UserAuth('userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOperation({
     description: 'Get the users that the user is following',
     tags: [ApiTag.User]
@@ -512,7 +514,7 @@ export class UserController {
   }
 
   @Post(':userId/followingUsers')
-  @UserAuth('userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOperation({
     description: 'Follow a user for a user',
     tags: [ApiTag.User]
@@ -536,7 +538,7 @@ export class UserController {
   }
 
   @Delete(':userId/followingUsers')
-  @UserAuth('userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOperation({
     description: 'Unfollow a user for a user',
     tags: [ApiTag.User]

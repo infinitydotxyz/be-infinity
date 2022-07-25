@@ -61,11 +61,13 @@ import { CollectionStatsArrayDto } from './dto/collection-stats-array.dto';
 import { NftsService } from './nfts/nfts.service';
 import { CuratedCollectionsQuery } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
 import { CurationService } from './curation/curation.service';
-import { ApiParamUserId, ParamUserId } from 'auth/param-user-id.decorator';
-import { UserAuth } from 'auth/user-auth.decorator';
 import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 import { CuratedCollectionDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
+import { Auth } from 'auth/api-auth.decorator';
+import { SiteRole } from 'auth/auth.constants';
+import { ParamUserId } from 'auth/param-user-id.decorator';
+import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
 
 @Controller('collections')
 export class CollectionsController {
@@ -232,7 +234,7 @@ export class CollectionsController {
   }
 
   @Get('curated/:userId')
-  @UserAuth('userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOperation({
     description:
       'Fetch all curated collections. Each curated collection object that has been voted for by the current user will contain more info, like the amount of votes.',
@@ -250,8 +252,7 @@ export class CollectionsController {
   }
 
   @Get('/:id/curated/:userId')
-  @UserAuth('userId')
-  @ApiParamUserId('userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiParamCollectionId('collectionId')
   @ApiOperation({
     description: 'Fetch curation details and estimations of the collection',
