@@ -631,9 +631,13 @@ export default class OrdersService {
     orderId: string
   ): FirestoreOrder {
     try {
+      const orderStatus =
+        order.startTimeMs <= Date.now() && order.endTimeMs >= Date.now()
+          ? OBOrderStatus.ValidActive
+          : OBOrderStatus.ValidInactive;
       const data: FirestoreOrder = {
         id: orderId,
-        orderStatus: OBOrderStatus.ValidActive,
+        orderStatus,
         chainId: order.chainId,
         isSellOrder: order.signedOrder.isSellOrder,
         numItems: order.numItems,
@@ -680,9 +684,15 @@ export default class OrdersService {
         takerUsername = takerProfile?.username ?? '';
       }
     }
+
+    const orderStatus =
+      order.startTimeMs <= Date.now() && order.endTimeMs >= Date.now()
+        ? OBOrderStatus.ValidActive
+        : OBOrderStatus.ValidInactive;
+
     const data: FirestoreOrderItem = {
       id: orderId,
-      orderStatus: OBOrderStatus.ValidActive,
+      orderStatus,
       chainId: order.chainId,
       isSellOrder: order.signedOrder.isSellOrder,
       numItems: order.numItems,

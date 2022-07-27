@@ -25,6 +25,7 @@ import { StatsModule } from './stats/stats.module';
 import { StorageModule } from './storage/storage.module';
 import { TwitterModule } from './twitter/twitter.module';
 import { UserModule } from './user/user.module';
+import { SalesModule } from 'sales/sales.module';
 
 import * as serviceAccount from './creds/nftc-infinity-firebase-creds.json';
 import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
@@ -71,7 +72,8 @@ import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
         };
       }
     }),
-    ApiUserModule
+    ApiUserModule,
+    SalesModule
   ],
   providers: [
     {
