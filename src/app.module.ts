@@ -27,6 +27,7 @@ import { TwitterModule } from './twitter/twitter.module';
 import { UserModule } from './user/user.module';
 
 import * as serviceAccount from './creds/nftc-dev-firebase-creds.json';
+import { SalesModule } from 'sales/sales.module';
 
 @Module({
   imports: [
@@ -59,7 +60,8 @@ import * as serviceAccount from './creds/nftc-dev-firebase-creds.json';
       limit: 10,
       storage: undefined
     }),
-    ApiUserModule
+    ApiUserModule,
+    SalesModule
   ],
   providers: [
     {
