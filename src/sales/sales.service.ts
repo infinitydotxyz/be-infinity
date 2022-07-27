@@ -29,7 +29,7 @@ export default class SalesService {
       }
       const nextCursor = hasNextPage
         ? this.cursorService.encodeCursor(results[results.length - 1].data().timestamp)
-        : undefined;
+        : '';
 
       const sales = results.map((doc) => doc.data() as NftSale);
 
