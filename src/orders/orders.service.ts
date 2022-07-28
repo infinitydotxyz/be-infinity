@@ -356,9 +356,10 @@ export default class OrdersService {
     firestoreQuery = firestoreQuery.limit(reqQuery.limit + 1); // +1 to check if there are more results
 
     // query firestore
-    const data = await this.getOrders(firestoreQuery);
+    const firestoreOrderItems = await firestoreQuery.get();
+    const data = await this.getOrders(firestoreOrderItems);
 
-    const hasNextPage = data.length > reqQuery.limit;
+    const hasNextPage = firestoreOrderItems.size > reqQuery.limit;
     if (hasNextPage) {
       data.pop();
     }
@@ -477,10 +478,8 @@ export default class OrdersService {
   }
 
   private async getOrders(
-    firestoreQuery: FirebaseFirestore.Query<FirebaseFirestore.DocumentData>
+    firestoreOrderItems: FirebaseFirestore.QuerySnapshot<FirebaseFirestore.DocumentData>
   ): Promise<SignedOBOrderDto[]> {
-    // fetch query snapshot
-    const firestoreOrderItems = await firestoreQuery.get();
     const obOrderItemMap: { [key: string]: { [key: string]: OBOrderItem } } = {};
     const resultsMap: { [key: string]: SignedOBOrderDto } = {};
 
