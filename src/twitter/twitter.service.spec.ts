@@ -1,4 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { firebaseMockFactory } from 'firebase/firebase-mock';
+import { PaginationModule } from 'pagination/pagination.module';
 import { TestModule } from 'test.module';
 import { TwitterService } from './twitter.service';
 
@@ -7,9 +9,11 @@ describe('TwitterService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [TestModule],
+      imports: [TestModule, PaginationModule],
       providers: [TwitterService]
-    }).compile();
+    })
+      .useMocker(firebaseMockFactory)
+      .compile();
 
     service = module.get<TwitterService>(TwitterService);
   });
