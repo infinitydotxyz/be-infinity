@@ -68,6 +68,7 @@ import { Auth } from 'auth/api-auth.decorator';
 import { SiteRole } from 'auth/auth.constants';
 import { ParamUserId } from 'auth/param-user-id.decorator';
 import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('collections')
 export class CollectionsController {
@@ -89,6 +90,7 @@ export class CollectionsController {
   @ApiOkResponse({ description: ResponseDescription.Success, type: CollectionSearchArrayDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  @Throttle(10, 1) // 10 reqs per second; overrides global config
   async searchByName(@Query() search: CollectionSearchQueryDto) {
     const res = await this.collectionsService.searchByName(search);
     return res;
