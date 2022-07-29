@@ -1,6 +1,7 @@
 import { ChainId, Collection, CollectionPeriodStatsContent, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
 import {
+  Body,
   Controller,
   Get,
   InternalServerErrorException,
@@ -441,11 +442,11 @@ export class CollectionsController {
   @ApiOkResponse({ description: ResponseDescription.Success, type: String })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 2 }))
   enqueueCollectionForIndexing(
-    @ParamCollectionId('id', ParseCollectionIdPipe) { address, chainId }: ParsedCollectionId
+    @ParamCollectionId('id', ParseCollectionIdPipe) { address, chainId }: ParsedCollectionId,
+    @Body() body: { reset: boolean }
   ) {
-    enqueueCollection({ chainId, address })
+    enqueueCollection({ chainId, address, reset: body.reset })
       .then((res) => {
         console.log('enqueueCollection response:', res);
       })
