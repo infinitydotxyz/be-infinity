@@ -96,7 +96,14 @@ export class NftsService {
     return externalNfts;
   }
 
-  async getNfts(nfts: { address: string; chainId: ChainId; tokenId: string }[]): Promise<(NftDto | undefined)[]> {
+  public async refreshMetaData(nft: { address: string; chainId: ChainId; tokenId: string }): Promise<NftDto[]> {
+    const result = await this.backfillService.backfillNfts([nft]);
+    console.log(result);
+
+    return result;
+  }
+
+  async getNfts(nfts: { address: string; chainId: ChainId; tokenId: string }[]): Promise<NftDto[]> {
     const refs = nfts.map((item) => {
       const collectionDocId = getCollectionDocId({
         collectionAddress: item.address,
