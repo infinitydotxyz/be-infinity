@@ -98,7 +98,6 @@ export class NftsService {
 
   public async refreshMetaData(nft: { address: string; chainId: ChainId; tokenId: string }): Promise<NftDto[]> {
     const result = await this.backfillService.backfillNfts([nft]);
-    console.log(result);
 
     return result;
   }
