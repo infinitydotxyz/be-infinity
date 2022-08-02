@@ -67,7 +67,7 @@ import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
         }
         return {
           ttl: 60,
-          limit: 10,
+          limit: 20,
           storage
         };
       }
