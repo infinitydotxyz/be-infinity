@@ -80,9 +80,7 @@ export class BackfillService {
     return undefined;
   }
 
-  public async backfillNfts(
-    nfts: { address: string; chainId: ChainId; tokenId: string }[]
-  ): Promise<(NftDto | undefined)[]> {
+  public async backfillNfts(nfts: { address: string; chainId: ChainId; tokenId: string }[]): Promise<NftDto[]> {
     try {
       // try opensea
       const openseaNfts = await this.fetchNftsFromOpensea(nfts);
@@ -419,7 +417,7 @@ export class BackfillService {
 
   private async fetchNftsFromOpensea(
     nfts: { address: string; chainId: ChainId; tokenId: string }[]
-  ): Promise<(NftDto | undefined)[]> {
+  ): Promise<NftDto[]> {
     const nftDtos: NftDto[] = [];
     for (const nft of nfts) {
       const osAsset = await this.openseaService.getNFT(nft.address, nft.tokenId);
@@ -459,7 +457,7 @@ export class BackfillService {
 
   private async fetchNftsFromAlchemy(
     nfts: { address: string; chainId: ChainId; tokenId: string }[]
-  ): Promise<(NftDto | undefined)[]> {
+  ): Promise<NftDto[]> {
     const nftDtos: NftDto[] = [];
     for (const nft of nfts) {
       const alchemyAsset = await this.alchemyService.getNft(nft.chainId, nft.address, nft.tokenId);
