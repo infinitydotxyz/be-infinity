@@ -27,6 +27,7 @@ import { TwitterModule } from './twitter/twitter.module';
 import { UserModule } from './user/user.module';
 
 import * as serviceAccount from './creds/nftc-dev-firebase-creds.json';
+import { SalesModule } from 'sales/sales.module';
 
 @Module({
   imports: [
@@ -56,10 +57,11 @@ import * as serviceAccount from './creds/nftc-dev-firebase-creds.json';
     GemModule,
     ThrottlerModule.forRoot({
       ttl: 60,
-      limit: 10,
+      limit: 20,
       storage: undefined
     }),
-    ApiUserModule
+    ApiUserModule,
+    SalesModule
   ],
   providers: [
     {

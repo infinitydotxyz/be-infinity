@@ -29,6 +29,7 @@ export async function enqueueCollection(collection: {
   chainId: string;
   address: string;
   indexInitiator?: string;
+  reset?: boolean;
 }): Promise<void> {
   try {
     const res = await axios.post(
@@ -36,7 +37,8 @@ export async function enqueueCollection(collection: {
       {
         chainId: collection.chainId,
         address: collection.address,
-        indexInitiator: collection.indexInitiator
+        indexInitiator: collection.indexInitiator,
+        reset: collection.reset ?? false
       },
       {
         headers: {
