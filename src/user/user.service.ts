@@ -77,6 +77,13 @@ export class UserService {
       const statA = itemA[query.orderBy];
       const statB = itemB[query.orderBy];
       const isAsc = query.orderDirection === OrderDirection.Ascending;
+      if (statA == null && statB == null) {
+        return 0;
+      } else if (statA == null) {
+        return isAsc ? -1 : 1;
+      } else if (statB == null) {
+        return isAsc ? 1 : -1;
+      }
       return isAsc ? statA - statB : statB - statA;
     });
 
