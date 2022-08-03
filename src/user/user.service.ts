@@ -74,16 +74,9 @@ export class UserService {
     const stats = await Promise.all(statsPromises);
 
     const orderedStats = stats.sort((itemA, itemB) => {
-      const statA = itemA[query.orderBy];
-      const statB = itemB[query.orderBy];
+      const statA = itemA[query.orderBy] ?? Number.MIN_SAFE_INTEGER;
+      const statB = itemB[query.orderBy] ?? Number.MIN_SAFE_INTEGER;
       const isAsc = query.orderDirection === OrderDirection.Ascending;
-      if (statA == null && statB == null) {
-        return 0;
-      } else if (statA == null) {
-        return isAsc ? -1 : 1;
-      } else if (statB == null) {
-        return isAsc ? 1 : -1;
-      }
       return isAsc ? statA - statB : statB - statA;
     });
 
