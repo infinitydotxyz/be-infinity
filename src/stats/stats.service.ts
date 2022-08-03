@@ -582,7 +582,13 @@ export class StatsService {
       period: primary?.period ?? secondary?.period ?? StatsPeriod.All,
       collectionData: collectionData ?? {},
       volumeUSDC: mergeStat(primary?.volumeUSDC, secondary?.volumeUSDC),
-      topOwnersByOwnedNftsCount: primary?.topOwnersByOwnedNftsCount ?? secondary?.topOwnersByOwnedNftsCount ?? []
+      topOwnersByOwnedNftsCount: primary?.topOwnersByOwnedNftsCount ?? secondary?.topOwnersByOwnedNftsCount ?? [],
+      minProtocolFeeWei: primary?.minProtocolFeeWei ?? null,
+      maxProtocolFeeWei: primary?.maxProtocolFeeWei ?? null,
+      avgProtocolFeeWei: primary?.avgProtocolFeeWei ?? null,
+      sumProtocolFeeWei: primary?.sumProtocolFeeWei ?? '0',
+      numSalesWithProtocolFee: primary?.numSalesWithProtocolFee ?? 0,
+      sumProtocolFeeEth: primary?.sumProtocolFeeEth ?? 0
     };
 
     return mergedStats;
