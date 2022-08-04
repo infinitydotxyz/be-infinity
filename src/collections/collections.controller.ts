@@ -1,6 +1,7 @@
 import { ChainId, Collection, CollectionPeriodStatsContent, StatsPeriod } from '@infinityxyz/lib/types/core';
 import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
 import {
+  Body,
   Controller,
   Get,
   InternalServerErrorException,
@@ -53,7 +54,6 @@ import { StatsService } from 'stats/stats.service';
 import { TwitterService } from 'twitter/twitter.service';
 import { EXCLUDED_COLLECTIONS } from 'utils/stats';
 import { UPDATE_SOCIAL_STATS_INTERVAL } from '../constants';
-import { AttributesService } from './attributes/attributes.service';
 import { ParseCollectionIdPipe, ParsedCollectionId } from './collection-id.pipe';
 import CollectionsService from './collections.service';
 import { enqueueCollection } from './collections.utils';
@@ -68,6 +68,8 @@ import { Auth } from 'auth/api-auth.decorator';
 import { SiteRole } from 'auth/auth.constants';
 import { ParamUserId } from 'auth/param-user-id.decorator';
 import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
+import { Throttle } from '@nestjs/throttler';
+import { ReservoirService } from 'reservoir/reservoir.service';
 
 @Controller('collections')
 export class CollectionsController {
@@ -75,7 +77,7 @@ export class CollectionsController {
     private collectionsService: CollectionsService,
     private statsService: StatsService,
     private twitterService: TwitterService,
-    private attributesService: AttributesService,
+    private reservoirService: ReservoirService,
     private nftsService: NftsService,
     private curationService: CurationService,
     private firebaseService: FirebaseService
@@ -89,6 +91,7 @@ export class CollectionsController {
   @ApiOkResponse({ description: ResponseDescription.Success, type: CollectionSearchArrayDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  @Throttle(10, 1) // 10 reqs per second; overrides global config
   async searchByName(@Query() search: CollectionSearchQueryDto) {
     const res = await this.collectionsService.searchByName(search);
     return res;
@@ -439,17 +442,22 @@ export class CollectionsController {
   @ApiOkResponse({ description: ResponseDescription.Success, type: String })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 2 }))
   enqueueCollectionForIndexing(
-    @ParamCollectionId('id', ParseCollectionIdPipe) { address, chainId }: ParsedCollectionId
+    @ParamCollectionId('id', ParseCollectionIdPipe) { address, chainId }: ParsedCollectionId,
+    @Body() body: { reset: boolean }
   ) {
-    enqueueCollection({ chainId, address })
+    enqueueCollection({ chainId, address, reset: body.reset })
       .then((res) => {
         console.log('enqueueCollection response:', res);
       })
       .catch((e) => {
         console.error('enqueueCollection error', e);
       });
+
+    // also reindex on reservoir
+    if (body.reset) {
+      this.reservoirService.reindexCollection(chainId, address).catch(console.error);
+    }
     return '';
   }
 }

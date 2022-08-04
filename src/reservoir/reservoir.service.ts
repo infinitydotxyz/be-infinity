@@ -36,6 +36,19 @@ export class ReservoirService {
     });
   }
 
+  public async reindexCollection(chainId: string, collectionAddress: string) {
+    try {
+      await this.errorHandler(() => {
+        const body = {
+          collection: collectionAddress
+        };
+        return this.client.post(`collections/refresh/v1`, { json: body, responseType: 'json' });
+      });
+    } catch (e) {
+      console.error('Failed to enqueue collection for reindexing on reservoir', chainId, collectionAddress, e);
+    }
+  }
+
   public async getSingleCollectionInfo(
     chainId: string,
     collectionAddress: string
