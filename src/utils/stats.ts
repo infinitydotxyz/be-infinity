@@ -1,7 +1,7 @@
 import { trimLowerCase, ALL_TIME_STATS_TIMESTAMP } from '@infinityxyz/lib/utils';
 import { isAddress } from '@ethersproject/address';
 import { StatsPeriod } from '@infinityxyz/lib/types/core';
-import { format } from 'date-fns';
+import { format, parse } from 'date-fns';
 
 export const EXCLUDED_COLLECTIONS = [
   '0x81ae0be3a8044772d04f32398bac1e1b4b215aa8', // Dreadfulz
@@ -18,7 +18,6 @@ export function getCollectionDocId(collection: { collectionAddress: string; chai
   }
   return `${collection.chainId}:${trimLowerCase(collection.collectionAddress)}`;
 }
-
 export function getStatsDocInfo(
   timestamp: number,
   period: StatsPeriod
@@ -58,21 +57,29 @@ function getFormattedStatsDate(timestamp: number, period: StatsPeriod): string {
 
   switch (period) {
     case StatsPeriod.Hourly:
-      return format(date, 'yyyy-MM-dd-HH');
+      return format(date, statsFormatByPeriod[period]);
     case StatsPeriod.Daily:
-      return format(date, 'yyyy-MM-dd');
+      return format(date, statsFormatByPeriod[period]);
     case StatsPeriod.Weekly:
-      return format(date.setDate(firstDayOfWeek), 'yyyy-MM-dd');
+      return format(date.setDate(firstDayOfWeek), statsFormatByPeriod[period]);
     case StatsPeriod.Monthly:
-      return format(date, 'yyyy-MM');
+      return format(date, statsFormatByPeriod[period]);
     case StatsPeriod.Yearly:
-      return format(date, 'yyyy');
+      return format(date, statsFormatByPeriod[period]);
     case StatsPeriod.All:
       return '';
     default:
       throw new Error(`Period: ${period as string} not yet implemented`);
   }
 }
+
+const statsFormatByPeriod = {
+  [StatsPeriod.Hourly]: 'yyyy-MM-dd-HH',
+  [StatsPeriod.Daily]: 'yyyy-MM-dd',
+  [StatsPeriod.Weekly]: 'yyyy-MM-dd',
+  [StatsPeriod.Monthly]: 'yyyy-MM',
+  [StatsPeriod.Yearly]: 'yyyy'
+};
 
 /**
  * returns the timestamp corresponding to the stats docId
@@ -85,11 +92,13 @@ function getTimestampFromFormattedDate(formattedDate: string, period: StatsPerio
     case StatsPeriod.Monthly:
     case StatsPeriod.Weekly:
     case StatsPeriod.Daily:
-      return new Date(formattedDate).getTime();
-    case StatsPeriod.Hourly:
-      // eslint-disable-next-line no-case-declarations
-      const [year, month, day, hour] = formattedDate.split('-');
-      return new Date(`${year}-${month}-${day}T${hour}:00`).getTime();
+    case StatsPeriod.Hourly: {
+      const date = parse(formattedDate, statsFormatByPeriod[period], new Date());
+      return date.getTime();
+    }
+    // // eslint-disable-nzext-line no-case-declarations
+    // const [year, month, day, hour] = formattedDate.split('-');
+    // return new Date(`${year}-${month}-${day}T${hour}:00`).getTime();
     default:
       throw new Error(`Period: ${period as string} not yet implemented`);
   }

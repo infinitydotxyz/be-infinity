@@ -80,6 +80,7 @@ import { ParamUserId } from 'auth/param-user-id.decorator';
 import { SiteRole } from 'auth/auth.constants';
 import { ApiParamUserId, Auth } from 'auth/api-auth.decorator';
 import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('user')
 export class UserController {
@@ -109,6 +110,7 @@ export class UserController {
   @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOkResponse({ description: ResponseDescription.Success, type: ValidateUsernameResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  @Throttle(10, 2)
   async checkUsername(
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
     @QueryUsername('username') usernameObj: UsernameType

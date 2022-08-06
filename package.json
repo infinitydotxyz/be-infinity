@@ -4,7 +4,7 @@
   "description": "",
   "private": true,
   "scripts": {
-    "ci-pre-build": "mkdir ./src/creds && mkdir ./creds && cp ./ci/creds-blank/* ./creds && cp ./ci/creds-blank/* ./src/creds",
+    "ci-pre-build": "mkdir ./src/creds && mkdir ./creds && cp ./ci/creds-blank/* ./creds && cp ./ci/creds-blank/* ./src/creds && cp ./ci/.env .env",
     "clean": "rimraf dist",
     "build": "npm run clean && npm run update:lib && nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -25,7 +25,7 @@
     "deploy:prod": "npm run build && gcloud app deploy -q --appyaml=./app.yaml --project=nftc-infinity"
   },
   "dependencies": {
-    "@infinityxyz/lib": "^1.139.1",
+    "@infinityxyz/lib": "^1.143.10",
     "@nestjs/common": "^8.4.4",
     "@nestjs/config": "^2.0.0",
     "@nestjs/core": "^8.4.4",
@@ -65,6 +65,7 @@
     "eslint": "^8.13.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-eslint-comments": "^3.2.0",
+    "firebase-mock": "^2.3.2",
     "jest": "^27.5.1",
     "prettier": "^2.6.2",
     "rimraf": "^3.0.2",

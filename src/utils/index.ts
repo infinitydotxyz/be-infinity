@@ -55,7 +55,10 @@ const round = (value: number, decimals: number) => {
   return Math.floor(value * decimalsFactor) / decimalsFactor;
 };
 
-export const calcPercentChange = (prev = NaN, current: number) => {
+export const calcPercentChange = (prev: number | null = NaN, current: number) => {
+  if (prev == null) {
+    prev = NaN;
+  }
   const change = current - prev;
   const decimal = change / Math.abs(prev);
   const percent = decimal * 100;

@@ -84,7 +84,7 @@ export class StatsService {
 
         const secondary = secondaryPromiseResult.status === 'fulfilled' ? secondaryPromiseResult.value : undefined;
 
-        const collection = { address: primary?.collectionAddress, chainId: primary?.chainId as ChainId };
+        const collection = { address: primary?.collectionAddress, chainId: primary?.chainId };
         const merged = await this.mergeStats(primary, secondary, collection);
         return merged;
       })
@@ -318,7 +318,7 @@ export class StatsService {
 
         const collection = { address: primary?.collectionAddress, chainId: primary?.chainId };
         const merged = await this.mergeStats(primary, secondary, {
-          chainId: collection.chainId as ChainId,
+          chainId: collection.chainId,
           address: collection.address
         });
         return merged;
@@ -393,7 +393,7 @@ export class StatsService {
     timestamp: number
   ) {
     const address = primaryStat.collectionAddress;
-    const chainId = primaryStat.chainId as ChainId;
+    const chainId = primaryStat.chainId;
     const collectionRef = await this.firebaseService.getCollectionRef({ address, chainId });
     const mostRecentStats = await this.getCollectionStatsForPeriod(
       collectionRef,
@@ -410,7 +410,7 @@ export class StatsService {
     secondary: (Partial<SocialsStats> & Partial<Stats>) | undefined,
     collection: { chainId: ChainId; address: string }
   ): Promise<CollectionStatsDto> {
-    const mergeStat = (primary?: number, secondary?: number) => {
+    const mergeStat = (primary?: number | null, secondary?: number | null) => {
       if (typeof primary === 'number' && !Number.isNaN(primary)) {
         return primary;
       } else if (typeof secondary === 'number' && !Number.isNaN(secondary)) {
@@ -528,6 +528,7 @@ export class StatsService {
       name,
       slug,
       profileImage,
+      bannerImage: collectionData?.metadata?.bannerImage ?? '',
       hasBlueCheck,
       numSales,
       numNfts,
@@ -580,7 +581,14 @@ export class StatsService {
       updatedAt: primary?.updatedAt ?? NaN,
       timestamp: primary?.timestamp ?? secondary?.timestamp ?? NaN,
       period: primary?.period ?? secondary?.period ?? StatsPeriod.All,
-      collectionData: collectionData ?? {}
+      volumeUSDC: mergeStat(primary?.volumeUSDC, secondary?.volumeUSDC),
+      topOwnersByOwnedNftsCount: primary?.topOwnersByOwnedNftsCount ?? secondary?.topOwnersByOwnedNftsCount ?? [],
+      minProtocolFeeWei: primary?.minProtocolFeeWei ?? null,
+      maxProtocolFeeWei: primary?.maxProtocolFeeWei ?? null,
+      avgProtocolFeeWei: primary?.avgProtocolFeeWei ?? null,
+      sumProtocolFeeWei: primary?.sumProtocolFeeWei ?? '0',
+      numSalesWithProtocolFee: primary?.numSalesWithProtocolFee ?? 0,
+      sumProtocolFeeEth: primary?.sumProtocolFeeEth ?? 0
     };
 
     return mergedStats;
