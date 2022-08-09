@@ -7,6 +7,7 @@ import { StakerContractService } from 'ethereum/contracts/staker.contract.servic
 import { TokenContractService } from 'ethereum/contracts/token.contract.service';
 import { FirebaseService } from 'firebase/firebase.service';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
+import { ParsedBulkVotes } from './bulk-votes.pipe';
 
 @Injectable()
 export class CurationService {
@@ -80,6 +81,24 @@ export class CurationService {
     });
 
     await batch.commit();
+  }
+
+  /**
+   * Vote on multiple collections in bulk.
+   * @param votes parsed bulk votes
+   * @param user parsed user
+   * @returns
+   */
+  async voteBulk(votes: ParsedBulkVotes[], user: ParsedUserId) {
+    return Promise.all(
+      votes.map(({ parsedCollectionId, votes }) =>
+        this.vote({
+          parsedCollectionId,
+          user,
+          votes
+        })
+      )
+    );
   }
 
   /**
