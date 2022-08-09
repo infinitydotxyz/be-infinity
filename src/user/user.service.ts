@@ -24,7 +24,8 @@ import {
   UserNftsOrderType,
   UserProfileDto,
   UserActivityQueryDto,
-  UserActivityArrayDto
+  UserActivityArrayDto,
+  UserActivity
 } from '@infinityxyz/lib/types/dto/user';
 import { BackfillService } from 'backfill/backfill.service';
 import { CuratedCollectionsQuery } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
@@ -33,11 +34,9 @@ import {
   CuratedCollectionsDto
 } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 import { NftsService } from '../collections/nfts/nfts.service';
-import { NftSaleEvent, NftListingEvent, NftOfferEvent, EventType } from '@infinityxyz/lib/types/core/feed';
 import { AlchemyNft } from '@infinityxyz/lib/types/services/alchemy';
 import { attemptToIndexCollection } from 'utils/collection-indexing';
-
-export type UserActivity = NftSaleEvent | NftListingEvent | NftOfferEvent;
+import { EventType } from '@infinityxyz/lib/types/core/feed';
 
 @Injectable()
 export class UserService {
