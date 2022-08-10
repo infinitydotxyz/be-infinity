@@ -4,7 +4,8 @@ import {
   NftListingEvent,
   NftOfferEvent,
   NftSaleEvent,
-  NftTransferEvent
+  NftTransferEvent,
+  TwitterTweetEvent
 } from '@infinityxyz/lib/types/core/feed';
 import { NftActivity } from '@infinityxyz/lib/types/dto/collections/nfts';
 
@@ -119,6 +120,29 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
       break;
     }
     case EventType.TwitterTweet: {
+      const tweet: TwitterTweetEvent = item;
+      activity = {
+        id: id,
+        type: EventType.TwitterTweet,
+        address: tweet.collectionAddress,
+        collectionName: tweet.collectionName,
+        collectionSlug: tweet.collectionSlug,
+        hasBlueCheck: tweet.hasBlueCheck,
+        image: tweet.image,
+        tokenId: '',
+        chainId: tweet.chainId as ChainId,
+        from: tweet.username,
+        fromDisplayName: tweet.authorName,
+        to: tweet.text,
+        toDisplayName: tweet.source,
+        price: 0,
+        paymentToken: '',
+        internalUrl: tweet.internalUrl,
+        externalUrl: tweet.externalLink,
+        timestamp: tweet.timestamp,
+        likes: tweet.likes,
+        comments: tweet.comments
+      };
       break;
     }
     case EventType.DiscordAnnouncement: {
