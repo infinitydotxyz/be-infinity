@@ -41,13 +41,13 @@ export class FeedController {
   @Get('activity')
   @ApiOperation({
     description: 'Get activity',
-    tags: [ApiTag.Nft]
+    tags: [ApiTag.Feed]
   })
   @ApiOkResponse({ description: ResponseDescription.Success, type: NftActivityArrayDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 2 }))
-  async getCollectionActivity(@Query() filters: NftActivityFiltersDto) {
+  async getActivity(@Query() filters: NftActivityFiltersDto) {
     const { data, cursor, hasNextPage } = await this.feedService.getActivity(filters);
 
     return {

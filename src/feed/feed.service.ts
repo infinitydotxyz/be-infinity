@@ -1,4 +1,3 @@
-import { EventType } from '@infinityxyz/lib/types/core/feed';
 import { NftActivityFiltersDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
@@ -66,10 +65,6 @@ export class FeedService {
     results.docs.forEach((snap) => {
       const item = snap.data();
 
-      if (item.type !== EventType.NftSale && item.type !== EventType.NftListing && item.type !== EventType.NftOffer) {
-        return null;
-      }
-
       const activity = typeToActivity(item, snap.id);
 
       // return activity;
@@ -83,18 +78,6 @@ export class FeedService {
     if (hasNextPage) {
       activities.pop(); // Remove item used for pagination
     }
-
-    // commenting since not sure why its needed
-    // fill in collection data
-    // const activitiesCollAddresses = activities.map((act) => ({ address: act?.address ?? '', chainId: act.chainId }));
-    // const { getCollection } = await this.collectionsService.getCollectionsByAddress(activitiesCollAddresses);
-    // for (const act of activities) {
-    //   const collectionData = getCollection({
-    //     address: act.address ?? '',
-    //     chainId: act.chainId
-    //   }) as Collection;
-    //   act.collectionData = collectionData;
-    // }
 
     const rawCursor = `${activities?.[activities?.length - 1]?.timestamp ?? ''}`;
     const cursor = this.paginationService.encodeCursor(rawCursor);
