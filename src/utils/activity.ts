@@ -1,15 +1,22 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { EventType, NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
+import {
+  EventType,
+  NftListingEvent,
+  NftOfferEvent,
+  NftSaleEvent,
+  NftTransferEvent
+} from '@infinityxyz/lib/types/core/feed';
 import { NftActivity } from '@infinityxyz/lib/types/dto/collections/nfts';
 
 export const typeToActivity = (item: any, id: string): NftActivity | null => {
-  let activity: NftActivity | null;
+  let activity: NftActivity | null = null;
 
   switch (item.type) {
     case EventType.NftSale: {
       const sale: NftSaleEvent = item;
       activity = {
         id: id,
+        type: EventType.NftSale,
         address: sale.collectionAddress,
         collectionName: sale.collectionName,
         collectionSlug: sale.collectionSlug,
@@ -17,7 +24,6 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
         image: sale.image,
         tokenId: sale.tokenId,
         chainId: sale.chainId as ChainId,
-        type: EventType.NftSale,
         from: sale.seller,
         fromDisplayName: sale.sellerDisplayName,
         to: sale.buyer,
@@ -36,6 +42,7 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
       const listing: NftListingEvent = item;
       activity = {
         id: id,
+        type: EventType.NftListing,
         address: listing.collectionAddress,
         collectionName: listing.collectionName,
         collectionSlug: listing.collectionSlug,
@@ -43,7 +50,6 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
         image: listing.image,
         tokenId: listing.tokenId,
         chainId: listing.chainId as ChainId,
-        type: EventType.NftListing,
         from: listing.makerAddress,
         fromDisplayName: listing.makerUsername,
         to: listing.takerAddress ?? '',
@@ -63,6 +69,7 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
       const offer: NftOfferEvent = item;
       activity = {
         id: id,
+        type: EventType.NftOffer,
         address: offer.collectionAddress,
         collectionName: offer.collectionName,
         collectionSlug: offer.collectionSlug,
@@ -70,7 +77,6 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
         image: offer.image,
         tokenId: offer.tokenId,
         chainId: offer.chainId as ChainId,
-        type: EventType.NftOffer,
         from: offer.makerAddress,
         fromDisplayName: offer.makerUsername,
         to: offer.takerAddress ?? '',
@@ -86,8 +92,44 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
       break;
     }
 
+    case EventType.NftTransfer: {
+      const transfer: NftTransferEvent = item;
+      activity = {
+        id: id,
+        type: EventType.NftTransfer,
+        address: transfer.collectionAddress,
+        collectionName: transfer.collectionName,
+        collectionSlug: transfer.collectionSlug,
+        hasBlueCheck: transfer.hasBlueCheck,
+        image: transfer.image,
+        tokenId: transfer.tokenId,
+        chainId: transfer.chainId as ChainId,
+        from: transfer.from,
+        fromDisplayName: transfer.fromDisplayName,
+        to: transfer.to ?? '',
+        toDisplayName: transfer.toDisplayName,
+        price: 0,
+        paymentToken: '',
+        internalUrl: transfer.internalUrl,
+        externalUrl: transfer.externalUrl,
+        timestamp: transfer.timestamp,
+        likes: transfer.likes,
+        comments: transfer.comments
+      };
+      break;
+    }
+    case EventType.TwitterTweet: {
+      break;
+    }
+    case EventType.DiscordAnnouncement: {
+      break;
+    }
+    case EventType.CoinMarketCapNews: {
+      break;
+    }
+
     default:
-      activity = null;
+      console.log(`Activity transformation not implemented type: ${item.type}`);
       // throw new Error(`Activity transformation not implemented type: ${item.type}`);
       break;
   }
