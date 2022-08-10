@@ -13,6 +13,7 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
         address: sale.collectionAddress,
         collectionName: sale.collectionName,
         collectionSlug: sale.collectionSlug,
+        hasBlueCheck: sale.hasBlueCheck,
         image: sale.image,
         tokenId: sale.tokenId,
         chainId: sale.chainId as ChainId,
@@ -38,6 +39,7 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
         address: listing.collectionAddress,
         collectionName: listing.collectionName,
         collectionSlug: listing.collectionSlug,
+        hasBlueCheck: listing.hasBlueCheck,
         image: listing.image,
         tokenId: listing.tokenId,
         chainId: listing.chainId as ChainId,
@@ -64,6 +66,7 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
         address: offer.collectionAddress,
         collectionName: offer.collectionName,
         collectionSlug: offer.collectionSlug,
+        hasBlueCheck: offer.hasBlueCheck,
         image: offer.image,
         tokenId: offer.tokenId,
         chainId: offer.chainId as ChainId,
@@ -82,6 +85,7 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
       };
       break;
     }
+
     default:
       activity = null;
       // throw new Error(`Activity transformation not implemented type: ${item.type}`);
