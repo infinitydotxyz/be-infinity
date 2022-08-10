@@ -182,7 +182,7 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
         collectionName: coin.title,
         collectionSlug: coin.subtitle,
         hasBlueCheck: false,
-        image: coin.cover,
+        image: coin.cover ?? '',
         tokenId: '',
         chainId: {} as ChainId,
         from: coin.content,
