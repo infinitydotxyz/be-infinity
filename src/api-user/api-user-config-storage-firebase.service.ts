@@ -1,4 +1,5 @@
 import { ApiUserDto } from '@infinityxyz/lib/types/dto/api-user';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common/decorators/core/injectable.decorator';
 import { instanceToPlain } from 'class-transformer';
 import { FirebaseService } from 'firebase/firebase.service';
@@ -25,9 +26,9 @@ export class ApiUserConfigStorageFirebase extends ApiUserStorage {
   }
 
   private getUserRef(id: string): FirebaseFirestore.DocumentReference<ApiUserDto | undefined> {
-    const user = this.firebaseService.firestore.collection('apiUsers').doc(id) as FirebaseFirestore.DocumentReference<
-      ApiUserDto | undefined
-    >;
+    const user = this.firebaseService.firestore
+      .collection(firestoreConstants.API_USERS_COLL)
+      .doc(id) as FirebaseFirestore.DocumentReference<ApiUserDto | undefined>;
     return user;
   }
 }

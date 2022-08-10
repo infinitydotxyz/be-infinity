@@ -385,11 +385,11 @@ export default class CollectionsService {
     // If a user was specified, merge curated collections with user curated collections.
     // Keep in mind that this changes nothing in regards to the order of the returned curated collections.
     if (user && collections.length > 0) {
-      const collectionAdresses = collections.map((c) => c.address);
+      const collectionAddresses = collections.map((c) => c.address);
 
       const curatorsSnap = await this.firebaseService.firestore
         .collectionGroup(firestoreConstants.COLLECTION_CURATORS_COLL)
-        .where('address', 'in', collectionAdresses)
+        .where('address', 'in', collectionAddresses)
         .where('userAddress', '==', user.userAddress)
         .where('userChainId', '==', user.userChainId)
         .get();

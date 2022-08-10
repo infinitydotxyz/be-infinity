@@ -7,17 +7,6 @@ export class StakerContractService {
   constructor(private contractService: ContractService) {}
 
   /**
-   * Returns the user's earned power (a.k.a votes).
-   * @param user
-   * @returns
-   */
-  async getPower(user: ParsedUserId): Promise<number> {
-    const contract = this.contractService.getStakerContract(user.userChainId);
-    const balance = await contract.getUserStakePower(user.userAddress);
-    return balance;
-  }
-
-  /**
    * Get the total number of tokens staked by the user.
    * @param user
    */

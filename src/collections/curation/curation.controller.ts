@@ -46,17 +46,10 @@ export class CurationController {
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
     @Body() vote: CurationVoteDto
   ) {
-    const availableVotes = await this.curationService.getAvailableVotes(user);
-
-    if (availableVotes <= 0 || availableVotes < vote.votes) {
-      throw new BadRequestException('Insufficient amount of votes available');
+    const result = await this.curationService.vote({ parsedCollectionId, user, votes: vote.votes });
+    if (!result.success) {
+      throw new BadRequestException(result.message);
     }
-
-    await this.curationService.vote({
-      parsedCollectionId,
-      user,
-      votes: vote.votes
-    });
   }
 
   @Post('curated/:userId')
@@ -74,13 +67,9 @@ export class CurationController {
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
     @Body(new ParseArrayPipe({ items: CurationVoteBulkDto }), ParsedBulkVotesPipe) votes: ParsedBulkVotes[]
   ) {
-    const totalVotesToSpend = votes.map((v) => v.votes).reduce((x: number, y: number) => x + y, 0);
-    const availableVotes = await this.curationService.getAvailableVotes(user);
-
-    if (availableVotes <= 0 || availableVotes < totalVotesToSpend) {
-      throw new BadRequestException('Insufficient amount of votes available');
+    const result = await this.curationService.voteBulk(votes, user);
+    if (!result.success) {
+      throw new BadRequestException(result.message);
     }
-
-    return this.curationService.voteBulk(votes, user);
   }
 }

@@ -1,3 +1,4 @@
+import { StakeDuration } from '@infinityxyz/lib/types/core';
 import { CuratedCollectionDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 import { UserProfileDto } from '@infinityxyz/lib/types/dto/user';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
@@ -8,6 +9,7 @@ import { TokenContractService } from 'ethereum/contracts/token.contract.service'
 import { FirebaseService } from 'firebase/firebase.service';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 import { ParsedBulkVotes } from './bulk-votes.pipe';
+import { CurationLedgerEvent, CurationVotesAdded } from '@infinityxyz/lib/types/core/curation-ledger';
 
 @Injectable()
 export class CurationService {
@@ -25,63 +27,149 @@ export class CurationService {
    */
   async vote({
     parsedCollectionId,
-    user,
+    user: parsedUser,
     votes
   }: {
     parsedCollectionId: ParsedCollectionId;
     user: ParsedUserId;
     votes: number;
   }) {
-    const collection = (await parsedCollectionId.ref.get()).data();
+    const collectionSnap = await parsedCollectionId.ref.get();
+    const collection = collectionSnap.data() ?? {};
+    const res = await this.firebaseService.firestore.runTransaction(async (txn) => {
+      const curatorDocRef = parsedCollectionId.ref
+        .collection(firestoreConstants.COLLECTION_CURATORS_COLL)
+        .doc(parsedUser.ref.id) as FirebaseFirestore.DocumentReference<CuratedCollectionDto>;
 
-    const incrementVotes = this.firebaseService.firestoreNamespace.FieldValue.increment(votes);
+      const [userSnap, curatedCollectionSnap] = (await txn.getAll<UserProfileDto | CuratedCollectionDto>(
+        parsedUser.ref,
+        curatorDocRef
+      )) as [
+        FirebaseFirestore.DocumentSnapshot<UserProfileDto>,
+        FirebaseFirestore.DocumentSnapshot<CuratedCollectionDto>
+      ];
 
-    let batch = this.firebaseService.firestore.batch();
+      const user: Partial<UserProfileDto> = userSnap.data() ?? {};
+      const curatedCollection: Partial<CuratedCollectionDto> = curatedCollectionSnap.data() ?? {};
 
-    // write to 'curators' sub-collection
-    const curatorDocRef = parsedCollectionId.ref
-      .collection(firestoreConstants.COLLECTION_CURATORS_COLL)
-      .doc(user.ref.id);
-    batch.set(
-      curatorDocRef,
-      {
-        votes: incrementVotes as any,
-        userAddress: user.userAddress,
-        userChainId: user.userChainId,
+      const stakePower = user.stake?.stakePower ?? 0;
+      const totalVotes = user.totalCuratedVotes ?? 0;
+      const availableVotes = stakePower - totalVotes;
+      const curatedCollectionVotes = curatedCollection.numCuratorVotes ?? 0;
+
+      if (votes > availableVotes) {
+        return {
+          success: false,
+          message: `Insufficient amount of votes available. You have ${availableVotes} votes available, but attempted to use ${votes} votes.`
+        };
+      }
+
+      const curatedCollectionUpdate: CuratedCollectionDto = {
+        votes: curatedCollectionVotes + votes,
+        userAddress: parsedUser.userAddress,
+        userChainId: parsedUser.userChainId,
         timestamp: Date.now(),
         address: collection?.address || parsedCollectionId.address,
         chainId: collection?.chainId || parsedCollectionId.chainId,
-        name: collection?.metadata?.name,
-        profileImage: collection?.metadata?.profileImage,
-        slug: collection?.slug,
+        name: collection?.metadata?.name ?? '',
+        profileImage: collection?.metadata?.profileImage ?? '',
+        slug: collection?.slug ?? '',
         // TODO: APRs
         fees: 0,
-        feesAPR: 0
-      } as CuratedCollectionDto,
-      { merge: true }
-    );
+        feesAPR: 0,
+        numCuratorVotes: 0 // TODO find a better way to update this. this value should also be store in the collection document
+      };
 
-    // write to 'collections' collection
-    batch.set(parsedCollectionId.ref, { numCuratorVotes: incrementVotes as any }, { merge: true });
+      const totalCurated = user?.totalCurated ?? 0;
+      const updatedTotalCurated = curatedCollectionVotes === 0 ? 1 + totalCurated : totalCurated;
+      const userUpdate: Partial<UserProfileDto> = {
+        totalCurated: updatedTotalCurated,
+        totalCuratedVotes: totalVotes + votes
+      };
 
-    // write to 'users' collection
-    const userData = { totalCuratedVotes: incrementVotes } as any;
-    if (!(await curatorDocRef.get()).exists) {
-      userData.totalCurated = this.firebaseService.firestoreNamespace.FieldValue.increment(1);
-    }
-    batch.set(user.ref, userData, { merge: true });
+      const voteEvent: CurationVotesAdded = {
+        votes,
+        userAddress: parsedUser.userAddress,
+        discriminator: CurationLedgerEvent.VotesAdded,
+        blockNumber: 0,
+        timestamp: Date.now(),
+        updatedAt: Date.now(),
+        isAggregated: false,
+        isDeleted: false,
+        address: parsedCollectionId.address,
+        chainId: parsedCollectionId.chainId
+      };
+      const voteEventRef = this.firebaseService.firestore.collection(firestoreConstants.CURATION_LEDGER_COLL).doc();
 
-    await batch.commit();
-
-    batch = this.firebaseService.firestore.batch();
-
-    // TODO: not sure how scalable this is, but the only alternative I can think of is multiple reads of each parent collection while fetching 'my curated collections' on /user/:userId/curated ¯\_(ツ)_/¯
-    (await parsedCollectionId.ref.collection(firestoreConstants.COLLECTION_CURATORS_COLL).get()).docs.forEach((doc) => {
-      batch.set(doc.ref, { numCuratorVotes: incrementVotes }, { merge: true });
+      txn.set(parsedUser.ref, userUpdate, { merge: true });
+      txn.set(curatorDocRef, curatedCollectionUpdate, { merge: true });
+      txn.create(voteEventRef, voteEvent);
+      return {
+        success: true
+      };
     });
-
-    await batch.commit();
+    return res;
   }
+
+  // async vote({
+  //   parsedCollectionId,
+  //   user,
+  //   votes
+  // }: {
+  //   parsedCollectionId: ParsedCollectionId;
+  //   user: ParsedUserId;
+  //   votes: number;
+  // }) {
+  //   const collection = (await parsedCollectionId.ref.get()).data();
+
+  //   const incrementVotes = this.firebaseService.firestoreNamespace.FieldValue.increment(votes);
+
+  //   let batch = this.firebaseService.firestore.batch();
+
+  //   // write to 'curators' sub-collection
+  //   const curatorDocRef = parsedCollectionId.ref
+  //     .collection(firestoreConstants.COLLECTION_CURATORS_COLL)
+  //     .doc(user.ref.id);
+  //   batch.set(
+  //     curatorDocRef,
+  //     {
+  //       votes: incrementVotes as any,
+  //       userAddress: user.userAddress,
+  //       userChainId: user.userChainId,
+  //       timestamp: Date.now(),
+  //       address: collection?.address || parsedCollectionId.address,
+  //       chainId: collection?.chainId || parsedCollectionId.chainId,
+  //       name: collection?.metadata?.name,
+  //       profileImage: collection?.metadata?.profileImage,
+  //       slug: collection?.slug,
+  //       // TODO: APRs
+  //       fees: 0,
+  //       feesAPR: 0
+  //     } as CuratedCollectionDto,
+  //     { merge: true }
+  //   );
+
+  //   // write to 'collections' collection
+  //   batch.set(parsedCollectionId.ref, { numCuratorVotes: incrementVotes as any }, { merge: true });
+
+  //   // write to 'users' collection
+  //   const userData = { totalCuratedVotes: incrementVotes } as any;
+  //   if (!(await curatorDocRef.get()).exists) {
+  //     userData.totalCurated = this.firebaseService.firestoreNamespace.FieldValue.increment(1);
+  //   }
+  //   batch.set(user.ref, userData, { merge: true });
+
+  //   await batch.commit();
+
+  //   batch = this.firebaseService.firestore.batch();
+
+  //   // TODO: not sure how scalable this is, but the only alternative I can think of is multiple reads of each parent collection while fetching 'my curated collections' on /user/:userId/curated ¯\_(ツ)_/¯
+  //   (await parsedCollectionId.ref.collection(firestoreConstants.COLLECTION_CURATORS_COLL).get()).docs.forEach((doc) => {
+  //     batch.set(doc.ref, { numCuratorVotes: incrementVotes }, { merge: true });
+  //   });
+
+  //   await batch.commit();
+  // }
 
   /**
    * Vote on multiple collections in bulk.
@@ -90,27 +178,26 @@ export class CurationService {
    * @returns
    */
   async voteBulk(votes: ParsedBulkVotes[], user: ParsedUserId) {
-    return Promise.all(
-      votes.map(({ parsedCollectionId, votes }) =>
-        this.vote({
-          parsedCollectionId,
-          user,
-          votes
-        })
-      )
-    );
+    // votes should be executed in series to prevent too many transaction locks on the user document
+    for (const vote of votes) {
+      const result = await this.vote({ parsedCollectionId: vote.parsedCollectionId, user, votes: vote.votes });
+      if (!result.success) {
+        return result;
+      }
+    }
+    return {
+      success: true
+    };
   }
 
   /**
-   * Returns the total number of availale votes.
+   * Returns the total number of available votes.
    * Based on the balance read from the contract and database records.
    */
   async getAvailableVotes(user: ParsedUserId): Promise<number> {
-    // available votes according to contract
-    const contractVotes = await this.stakerContractService.getPower(user);
-
     // available votes according to record in database
-    const { totalCuratedVotes: dbVotes } = await this.getUserCurationInfo(user);
+    const { totalCuratedVotes: dbVotes, stake } = await this.getUserCurationInfo(user);
+    const contractVotes = stake?.stakePower;
 
     // actual available votes
     const availableVotes = contractVotes - dbVotes;
@@ -157,12 +244,40 @@ export class CurationService {
    * @param user
    * @returns
    */
-  async getUserCurationInfo(user: ParsedUserId): Promise<Pick<UserProfileDto, 'totalCurated' | 'totalCuratedVotes'>> {
-    const snap = await user.ref.get();
+  async getUserCurationInfo(
+    parsedUser: ParsedUserId
+  ): Promise<Pick<UserProfileDto, 'totalCurated' | 'totalCuratedVotes' | 'stake'>> {
+    const snap = await parsedUser.ref.get();
+    const user = (snap.data() ?? {}) as Partial<UserProfileDto>;
+    const totalCurated = user?.totalCurated ?? 0;
+    const totalCuratedVotes = user?.totalCuratedVotes ?? 0;
+    const stake = user?.stake ?? {
+      stakeInfo: {
+        [StakeDuration.X0]: {
+          amount: '0',
+          timestamp: NaN
+        },
+        [StakeDuration.X3]: {
+          amount: '0',
+          timestamp: NaN
+        },
+        [StakeDuration.X6]: {
+          amount: '0',
+          timestamp: NaN
+        },
+        [StakeDuration.X12]: {
+          amount: '0',
+          timestamp: NaN
+        }
+      },
+      stakePower: 0,
+      blockUpdatedAt: 0
+    };
 
     return {
-      totalCurated: snap.get('totalCurated') || 0,
-      totalCuratedVotes: snap.get('totalCuratedVotes') || 0
+      totalCurated,
+      totalCuratedVotes,
+      stake
     };
   }
 }

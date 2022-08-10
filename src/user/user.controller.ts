@@ -1,4 +1,4 @@
-import { CollectionMetadata } from '@infinityxyz/lib/types/core';
+import { CollectionMetadata, StakeDuration } from '@infinityxyz/lib/types/core';
 import { RankingQueryDto, UpdateCollectionDto } from '@infinityxyz/lib/types/dto/collections';
 import { CuratedCollectionsQuery } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
 import { CurationQuotaDto } from '@infinityxyz/lib/types/dto/collections/curation/curation-quota.dto';
@@ -170,7 +170,29 @@ export class UserController {
         createdAt: NaN,
         updatedAt: NaN,
         totalCurated: 0,
-        totalCuratedVotes: 0
+        totalCuratedVotes: 0,
+        stake: {
+          stakeInfo: {
+            [StakeDuration.X0]: {
+              amount: '0',
+              timestamp: NaN
+            },
+            [StakeDuration.X3]: {
+              amount: '0',
+              timestamp: NaN
+            },
+            [StakeDuration.X6]: {
+              amount: '0',
+              timestamp: NaN
+            },
+            [StakeDuration.X12]: {
+              amount: '0',
+              timestamp: NaN
+            }
+          },
+          stakePower: 0,
+          blockUpdatedAt: 0
+        }
       };
     }
 
