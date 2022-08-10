@@ -111,66 +111,6 @@ export class CurationService {
     return res;
   }
 
-  // async vote({
-  //   parsedCollectionId,
-  //   user,
-  //   votes
-  // }: {
-  //   parsedCollectionId: ParsedCollectionId;
-  //   user: ParsedUserId;
-  //   votes: number;
-  // }) {
-  //   const collection = (await parsedCollectionId.ref.get()).data();
-
-  //   const incrementVotes = this.firebaseService.firestoreNamespace.FieldValue.increment(votes);
-
-  //   let batch = this.firebaseService.firestore.batch();
-
-  //   // write to 'curators' sub-collection
-  //   const curatorDocRef = parsedCollectionId.ref
-  //     .collection(firestoreConstants.COLLECTION_CURATORS_COLL)
-  //     .doc(user.ref.id);
-  //   batch.set(
-  //     curatorDocRef,
-  //     {
-  //       votes: incrementVotes as any,
-  //       userAddress: user.userAddress,
-  //       userChainId: user.userChainId,
-  //       timestamp: Date.now(),
-  //       address: collection?.address || parsedCollectionId.address,
-  //       chainId: collection?.chainId || parsedCollectionId.chainId,
-  //       name: collection?.metadata?.name,
-  //       profileImage: collection?.metadata?.profileImage,
-  //       slug: collection?.slug,
-  //       // TODO: APRs
-  //       fees: 0,
-  //       feesAPR: 0
-  //     } as CuratedCollectionDto,
-  //     { merge: true }
-  //   );
-
-  //   // write to 'collections' collection
-  //   batch.set(parsedCollectionId.ref, { numCuratorVotes: incrementVotes as any }, { merge: true });
-
-  //   // write to 'users' collection
-  //   const userData = { totalCuratedVotes: incrementVotes } as any;
-  //   if (!(await curatorDocRef.get()).exists) {
-  //     userData.totalCurated = this.firebaseService.firestoreNamespace.FieldValue.increment(1);
-  //   }
-  //   batch.set(user.ref, userData, { merge: true });
-
-  //   await batch.commit();
-
-  //   batch = this.firebaseService.firestore.batch();
-
-  //   // TODO: not sure how scalable this is, but the only alternative I can think of is multiple reads of each parent collection while fetching 'my curated collections' on /user/:userId/curated ¯\_(ツ)_/¯
-  //   (await parsedCollectionId.ref.collection(firestoreConstants.COLLECTION_CURATORS_COLL).get()).docs.forEach((doc) => {
-  //     batch.set(doc.ref, { numCuratorVotes: incrementVotes }, { merge: true });
-  //   });
-
-  //   await batch.commit();
-  // }
-
   /**
    * Vote on multiple collections in bulk.
    * @param votes parsed bulk votes
