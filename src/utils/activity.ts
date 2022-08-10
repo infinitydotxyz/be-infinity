@@ -1,5 +1,7 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
 import {
+  CoinMarketCapNewsEvent,
+  DiscordAnnouncementEvent,
   EventType,
   NftListingEvent,
   NftOfferEvent,
@@ -146,9 +148,55 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
       break;
     }
     case EventType.DiscordAnnouncement: {
+      const discord: DiscordAnnouncementEvent = item;
+      activity = {
+        id: id,
+        type: EventType.DiscordAnnouncement,
+        address: '',
+        collectionName: discord.author,
+        collectionSlug: discord.content,
+        hasBlueCheck: false,
+        image: '',
+        tokenId: '',
+        chainId: {} as ChainId,
+        from: discord.guildId,
+        fromDisplayName: discord.authorId,
+        to: '',
+        toDisplayName: '',
+        price: 0,
+        paymentToken: '',
+        internalUrl: '',
+        externalUrl: '',
+        timestamp: discord.timestamp,
+        likes: discord.likes,
+        comments: discord.comments
+      };
       break;
     }
     case EventType.CoinMarketCapNews: {
+      const coin: CoinMarketCapNewsEvent = item;
+      activity = {
+        id: id,
+        type: EventType.CoinMarketCapNews,
+        address: '',
+        collectionName: coin.title,
+        collectionSlug: coin.subtitle,
+        hasBlueCheck: false,
+        image: coin.cover,
+        tokenId: '',
+        chainId: {} as ChainId,
+        from: coin.content,
+        fromDisplayName: coin.sourceName,
+        to: coin.sourceUrl,
+        toDisplayName: coin.releasedAt,
+        price: 0,
+        paymentToken: '',
+        internalUrl: '',
+        externalUrl: '',
+        timestamp: coin.timestamp,
+        likes: coin.likes,
+        comments: coin.comments
+      };
       break;
     }
 
