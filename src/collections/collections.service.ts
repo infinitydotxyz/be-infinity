@@ -379,7 +379,9 @@ export default class CollectionsService {
       userChainId: '' as ChainId,
       fees: 0,
       feesAPR: 0,
-      votes: 0
+      votes: 0,
+      stakerContractAddress: '',
+      stakerContractChainId: ChainId.Mainnet
     }));
 
     // If a user was specified, merge curated collections with user curated collections.

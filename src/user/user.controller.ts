@@ -81,6 +81,7 @@ import { SiteRole } from 'auth/auth.constants';
 import { ApiParamUserId, Auth } from 'auth/api-auth.decorator';
 import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
 import { Throttle } from '@nestjs/throttler';
+import { sleep } from '@infinityxyz/lib/utils';
 
 @Controller('user')
 export class UserController {
@@ -416,11 +417,8 @@ export class UserController {
   @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   async getCurationQuota(@ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId): Promise<CurationQuotaDto> {
-    return {
-      availableVotes: await this.curationService.getAvailableVotes(user),
-      totalStaked: await this.curationService.getTotalStaked(user),
-      tokenBalance: await this.curationService.getTokenBalance(user)
-    };
+    await sleep(0); // will be fixed once pr#245 is merged
+    return {} as any;
   }
 
   @Get(':userId/followingCollections')
