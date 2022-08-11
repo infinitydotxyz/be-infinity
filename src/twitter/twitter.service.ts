@@ -28,12 +28,12 @@ export class TwitterService {
   private readonly client: AxiosInstance;
 
   constructor(
-    private config: ConfigService,
+    private config: ConfigService<EnvironmentVariables, true>,
     private firebaseService: FirebaseService,
     private paginationService: CursorService
   ) {
     this.fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
-    const bearer = this.config.get<EnvironmentVariables>('twitterBearerToken');
+    const bearer = this.config.get('twitterBearerToken');
     this.client = axios.create({
       baseURL: 'https://api.twitter.com/2/',
       headers: {

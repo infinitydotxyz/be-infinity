@@ -1,4 +1,4 @@
-import { CollectionMetadata, StakeDuration } from '@infinityxyz/lib/types/core';
+import { CollectionMetadata } from '@infinityxyz/lib/types/core';
 import { RankingQueryDto, UpdateCollectionDto } from '@infinityxyz/lib/types/dto/collections';
 import { CuratedCollectionsQuery } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
 import { CurationQuotaDto } from '@infinityxyz/lib/types/dto/collections/curation/curation-quota.dto';
@@ -168,31 +168,7 @@ export class UserController {
         instagramUsername: '',
         facebookUsername: '',
         createdAt: NaN,
-        updatedAt: NaN,
-        totalCurated: 0,
-        totalCuratedVotes: 0,
-        stake: {
-          stakeInfo: {
-            [StakeDuration.X0]: {
-              amount: '0',
-              timestamp: NaN
-            },
-            [StakeDuration.X3]: {
-              amount: '0',
-              timestamp: NaN
-            },
-            [StakeDuration.X6]: {
-              amount: '0',
-              timestamp: NaN
-            },
-            [StakeDuration.X12]: {
-              amount: '0',
-              timestamp: NaN
-            }
-          },
-          stakePower: 0,
-          blockUpdatedAt: 0
-        }
+        updatedAt: NaN
       };
     }
 
@@ -431,7 +407,7 @@ export class UserController {
     return this.userService.getAllCurated(user, query);
   }
 
-  @Get(':userId/curated/quota')
+  @Get(':userId/curatedQuota')
   @ApiOperation({
     description: "Get the user's available votes for curation",
     tags: [ApiTag.User, ApiTag.Collection, ApiTag.Curation]
@@ -440,11 +416,8 @@ export class UserController {
   @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   async getCurationQuota(@ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId): Promise<CurationQuotaDto> {
-    return {
-      availableVotes: await this.curationService.getAvailableVotes(user),
-      totalStaked: await this.curationService.getTotalStaked(user),
-      tokenBalance: await this.curationService.getTokenBalance(user)
-    };
+    const quota = await this.curationService.getUserCurationQuota(user);
+    return quota;
   }
 
   @Get(':userId/followingCollections')

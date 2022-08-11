@@ -2,6 +2,7 @@ import { CollectionPeriodStatsContent, StatsPeriod } from '@infinityxyz/lib/type
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
+import { EnvironmentVariables } from 'types/environment-variables.interface';
 import {
   MnemonicNumOwnersResponseBody,
   MnemonicNumTokensResponseBody,
@@ -19,8 +20,8 @@ export type mnemonicByParam = 'by_sales_volume';
 export class MnemonicService {
   private readonly client: AxiosInstance;
 
-  constructor(private config: ConfigService) {
-    const apiKey = this.config.get<string>('mnemonicApiKey');
+  constructor(private config: ConfigService<EnvironmentVariables, true>) {
+    const apiKey = this.config.get('mnemonicApiKey');
 
     if (!apiKey) {
       throw new Error('Mnemonic API key is not set');

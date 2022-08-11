@@ -337,80 +337,85 @@ export default class CollectionsService {
    * @param user Optional user object. If specified, more info like user votes will be included in each curated collection DTO that matches.
    */
   async getCurated(query: CuratedCollectionsQuery, user?: ParsedUserId): Promise<CuratedCollectionsDto> {
-    const collectionsRef = this.firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL);
+    // const collectionsRef = this.firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL);
 
-    type Cursor = Record<'address' | 'chainId', string | number>;
+    // type Cursor = Record<'address' | 'chainId', string | number>;
 
-    const mapOrderByQuery = {
-      [CuratedCollectionsOrderBy.Votes]: 'numCuratorVotes',
-      [CuratedCollectionsOrderBy.AprHighToLow]: 'numCuratorVotes', // TODO: APRs
-      [CuratedCollectionsOrderBy.AprLowToHigh]: 'numCuratorVotes'
-    };
+    // const mapOrderByQuery = {
+    //   [CuratedCollectionsOrderBy.Votes]: 'numCuratorVotes',
+    //   [CuratedCollectionsOrderBy.AprHighToLow]: 'numCuratorVotes', // TODO: APRs
+    //   [CuratedCollectionsOrderBy.AprLowToHigh]: 'numCuratorVotes'
+    // };
 
-    let q = collectionsRef.orderBy(mapOrderByQuery[query.orderBy], query.orderDirection).limit(query.limit + 1);
+    // let q = collectionsRef.orderBy(mapOrderByQuery[query.orderBy], query.orderDirection).limit(query.limit + 1);
 
-    if (query.cursor) {
-      const decodedCursor = this.paginationService.decodeCursorToObject<Cursor>(query.cursor);
-      const lastDocument = await collectionsRef.doc(`${decodedCursor.chainId}:${decodedCursor.address}`).get();
-      q = q.startAfter(lastDocument);
-    }
+    // if (query.cursor) {
+    //   const decodedCursor = this.paginationService.decodeCursorToObject<Cursor>(query.cursor);
+    //   const lastDocument = await collectionsRef.doc(`${decodedCursor.chainId}:${decodedCursor.address}`).get();
+    //   q = q.startAfter(lastDocument);
+    // }
 
-    const snap = await q.get();
-    const collections = snap.docs.map((item) => item.data() as Collection);
+    // const snap = await q.get();
+    // const collections = snap.docs.map((item) => item.data() as Collection);
 
-    const hasNextPage = collections.length > query.limit;
-    if (hasNextPage) {
-      collections.pop();
-    }
+    // const hasNextPage = collections.length > query.limit;
+    // if (hasNextPage) {
+    //   collections.pop();
+    // }
 
-    const lastItem = collections[collections.length - 1];
-    const cursor = hasNextPage
-      ? this.paginationService.encodeCursor({ address: lastItem.address, chainId: lastItem.chainId } as Cursor)
-      : undefined;
-    let curatedCollections: CuratedCollectionDto[] = collections.map((collection) => ({
-      address: collection.address,
-      chainId: collection.chainId as ChainId,
-      name: collection.metadata.name,
-      numCuratorVotes: collection.numCuratorVotes || 0,
-      profileImage: collection.metadata.profileImage,
-      slug: collection.slug,
-      timestamp: 0,
-      userAddress: '',
-      userChainId: '' as ChainId,
-      fees: 0,
-      feesAPR: 0,
-      votes: 0
-    }));
+    // const lastItem = collections[collections.length - 1];
+    // const cursor = hasNextPage
+    //   ? this.paginationService.encodeCursor({ address: lastItem.address, chainId: lastItem.chainId } as Cursor)
+    //   : undefined;
+    // let curatedCollections: CuratedCollectionDto[] = collections.map((collection) => ({
+    //   address: collection.address,
+    //   chainId: collection.chainId as ChainId,
+    //   name: collection.metadata.name,
+    //   numCuratorVotes: collection.numCuratorVotes || 0,
+    //   profileImage: collection.metadata.profileImage,
+    //   stakerContractAddress: collection.stakerContractAddress,
+    //   stakerContractChainId: collection.stakerContractChainId,
+    //   slug: collection.slug,
+    //   timestamp: 0,
+    //   userAddress: '',
+    //   userChainId: '' as ChainId,
+    //   fees: 0,
+    //   feesAPR: 0,
+    //   votes: 0
+    // }));
 
-    // If a user was specified, merge curated collections with user curated collections.
-    // Keep in mind that this changes nothing in regards to the order of the returned curated collections.
-    if (user && collections.length > 0) {
-      const collectionAddresses = collections.map((c) => c.address);
+    // // If a user was specified, merge curated collections with user curated collections.
+    // // Keep in mind that this changes nothing in regards to the order of the returned curated collections.
+    // if (user && collections.length > 0) {
+    //   const collectionAddresses = collections.map((c) => c.address);
 
-      const curatorsSnap = await this.firebaseService.firestore
-        .collectionGroup(firestoreConstants.COLLECTION_CURATORS_COLL)
-        .where('address', 'in', collectionAddresses)
-        .where('userAddress', '==', user.userAddress)
-        .where('userChainId', '==', user.userChainId)
-        .get();
-      const curators = curatorsSnap.docs.map((cs) => cs.data() as CuratedCollectionDto);
+    //   const curatorsSnap = await this.firebaseService.firestore
+    //     .collectionGroup(firestoreConstants.COLLECTION_CURATORS_COLL)
+    //     .where('address', 'in', collectionAddresses)
+    //     .where('userAddress', '==', user.userAddress)
+    //     .where('userChainId', '==', user.userChainId)
+    //     .get();
+    //   const curators = curatorsSnap.docs.map((cs) => cs.data() as CuratedCollectionDto);
 
-      curatedCollections = curatedCollections.map((curatedCollection) => {
-        const userCurated = curators.find(
-          (c) => c.address === curatedCollection.address && c.chainId === curatedCollection.chainId
-        );
+    //   curatedCollections = curatedCollections.map((curatedCollection) => {
+    //     const userCurated = curators.find(
+    //       (c) => c.address === curatedCollection.address && c.chainId === curatedCollection.chainId
+    //     );
 
-        return {
-          ...curatedCollection,
-          timestamp: userCurated?.timestamp || curatedCollection.timestamp,
-          userAddress: userCurated?.userAddress || curatedCollection.userAddress,
-          userChainId: userCurated?.userChainId || curatedCollection.userChainId,
-          fees: userCurated?.fees || curatedCollection.fees,
-          feesAPR: userCurated?.feesAPR || curatedCollection.feesAPR,
-          votes: userCurated?.votes || curatedCollection.votes
-        };
-      });
-    }
+    //     return {
+    //       ...curatedCollection,
+    //       timestamp: userCurated?.timestamp || curatedCollection.timestamp,
+    //       userAddress: userCurated?.userAddress || curatedCollection.userAddress,
+    //       userChainId: userCurated?.userChainId || curatedCollection.userChainId,
+    //       fees: userCurated?.fees || curatedCollection.fees,
+    //       feesAPR: userCurated?.feesAPR || curatedCollection.feesAPR,
+    //       votes: userCurated?.votes || curatedCollection.votes
+    //     };
+    //   });
+    // }
+    const cursor = '';
+    const curatedCollections: CuratedCollectionDto[] = [];
+    const hasNextPage = false; // TODO update this after changing firestore structure
 
     return {
       data: curatedCollections,

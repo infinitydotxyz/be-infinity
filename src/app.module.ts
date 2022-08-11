@@ -17,7 +17,7 @@ import { ZoraModule } from 'zora/zora.module';
 import { AlchemyModule } from './alchemy/alchemy.module';
 import { ApiUserModule } from './api-user/api-user.module';
 import { AppController } from './app.controller';
-import { FB_STORAGE_BUCKET } from './constants';
+import { FB_STORAGE_BUCKET, validateAndTransformEnvVariables } from './constants';
 import { DiscordModule } from './discord/discord.module';
 import { EthereumModule } from './ethereum/ethereum.module';
 import { FirebaseModule } from './firebase/firebase.module';
@@ -25,18 +25,17 @@ import { StatsModule } from './stats/stats.module';
 import { StorageModule } from './storage/storage.module';
 import { TwitterModule } from './twitter/twitter.module';
 import { UserModule } from './user/user.module';
-
-import * as serviceAccount from './creds/nftc-dev-firebase-creds.json';
+import { envFileName } from './constants';
 import { SalesModule } from 'sales/sales.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      envFilePath: join(__dirname, '../.env'),
-      isGlobal: true
+      envFilePath: join(__dirname, `../${envFileName}`),
+      isGlobal: true,
+      validate: validateAndTransformEnvVariables
     }),
     FirebaseModule.forRoot({
-      cert: serviceAccount,
       storageBucket: FB_STORAGE_BUCKET
     }),
     CollectionsModule,
