@@ -9,7 +9,13 @@ import {
   CuratedCollectionsDto
 } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 import { ExternalNftCollectionDto, NftCollectionDto } from '@infinityxyz/lib/types/dto/collections/nfts';
-import { firestoreConstants, getCollectionDocId, getEndCode, getSearchFriendlyString } from '@infinityxyz/lib/utils';
+import {
+  firestoreConstants,
+  getCollectionDocId,
+  getEndCode,
+  getSearchFriendlyString,
+  sleep
+} from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { BackfillService } from 'backfill/backfill.service';
 import { FirebaseService } from 'firebase/firebase.service';
@@ -413,6 +419,7 @@ export default class CollectionsService {
     //     };
     //   });
     // }
+    await sleep(0);
     const cursor = '';
     const curatedCollections: CuratedCollectionDto[] = [];
     const hasNextPage = false; // TODO update this after changing firestore structure
