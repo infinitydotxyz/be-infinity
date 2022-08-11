@@ -10,7 +10,7 @@ import { EnvironmentVariables } from '../types/environment-variables.interface';
 export class EthereumService {
   private _providers: Map<ChainId, ethers.providers.StaticJsonRpcProvider> = new Map();
 
-  constructor(private configService: ConfigService<EnvironmentVariables>) {
+  constructor(private configService: ConfigService<EnvironmentVariables, true>) {
     const mainnetUrl = this.configService.get('alchemyJsonRpcEthMainnet');
     const polygonUrl = this.configService.get('alchemyJsonRpcPolygonMainnet');
     const goerliUrl = this.configService.get('alchemyJsonRpcEthGoerli');

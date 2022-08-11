@@ -1,18 +1,20 @@
 import { ZoraAggregateCollectionStatsResponse, ZoraTokensResponse } from '@infinityxyz/lib/types/services/zora';
 import { sleep } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ClientError, gql, GraphQLClient } from 'graphql-request';
-import { ZORA_API_KEY } from '../constants';
+import { EnvironmentVariables } from 'types/environment-variables.interface';
 
 @Injectable()
 export class ZoraService {
   private readonly client: GraphQLClient;
 
-  constructor() {
+  constructor(private configService: ConfigService<EnvironmentVariables, true>) {
+    const apiKey = this.configService.get('ZORA_API_KEY');
     const ZORA_API_ENDPOINT = 'https://api.zora.co/graphql';
     this.client = new GraphQLClient(ZORA_API_ENDPOINT, {
       headers: {
-        'X-API-KEY': ZORA_API_KEY ?? ''
+        'X-API-KEY': apiKey ?? ''
       }
     });
   }

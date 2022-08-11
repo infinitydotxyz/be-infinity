@@ -1,11 +1,13 @@
 import { CuratedCollectionDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
-import { UserProfileDto } from '@infinityxyz/lib/types/dto/user';
-import { firestoreConstants } from '@infinityxyz/lib/utils';
+import { UserStakeDto } from '@infinityxyz/lib/types/dto/user';
+import { firestoreConstants, getStakerAddress } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
 import { StakerContractService } from 'ethereum/contracts/staker.contract.service';
 import { TokenContractService } from 'ethereum/contracts/token.contract.service';
 import { FirebaseService } from 'firebase/firebase.service';
+import { EnvironmentVariables } from 'types/environment-variables.interface';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 import { ParsedBulkVotes } from './bulk-votes.pipe';
 
@@ -14,7 +16,8 @@ export class CurationService {
   constructor(
     private firebaseService: FirebaseService,
     private stakerContractService: StakerContractService,
-    private tokenContractService: TokenContractService
+    private tokenContractService: TokenContractService,
+    private configService: ConfigService<EnvironmentVariables, true>
   ) {}
 
   /**
@@ -157,10 +160,20 @@ export class CurationService {
    * @param user
    * @returns
    */
-  async getUserCurationInfo(user: ParsedUserId): Promise<Pick<UserProfileDto, 'totalCurated' | 'totalCuratedVotes'>> {
-    const snap = await user.ref.get();
+  async getUserCurationInfo(user: ParsedUserId): Promise<UserStakeDto> {
+    const env = this.configService.get('INFINITY_NODE_ENV');
+    const stakingContract = getStakerAddress(user.userChainId, env);
+    const userStakeRef = user.ref
+      .collection(firestoreConstants.USER_CURATION_COLL)
+      .doc(`${user.userChainId}:${stakingContract}`) as FirebaseFirestore.DocumentReference<UserStakeDto>;
+    const snap = await userStakeRef.get();
 
     return {
+      stakerContractAddress: snap.get('stakerContractAddress') || stakingContract,
+      stakerContractChainId: snap.get('stakerContractChainId') || user.userChainId,
+      stakeInfo: snap.get('stakeInfo') || {},
+      stakePower: snap.get('stakePower') ?? 0,
+      blockUpdatedAt: snap.get('blockUpdatedAt') ?? NaN,
       totalCurated: snap.get('totalCurated') || 0,
       totalCuratedVotes: snap.get('totalCuratedVotes') || 0
     };

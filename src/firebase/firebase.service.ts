@@ -2,9 +2,11 @@ import { ChainId } from '@infinityxyz/lib/types/core';
 import { Collection } from '@infinityxyz/lib/types/core/Collection';
 import { firestoreConstants, getCollectionDocId, trimLowerCase } from '@infinityxyz/lib/utils';
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
 import { ethers } from 'ethers';
 import firebaseAdmin, { storage } from 'firebase-admin';
+import { EnvironmentVariables } from 'types/environment-variables.interface';
 import { CollectionRefDto } from './dto/collection-ref.dto';
 import { FIREBASE_OPTIONS } from './firebase.constants';
 import { FirebaseModuleOptions } from './firebase.types';
@@ -22,11 +24,15 @@ export class FirebaseService {
     return storage().bucket();
   }
 
-  constructor(@Inject(FIREBASE_OPTIONS) private options: FirebaseModuleOptions) {
+  constructor(
+    @Inject(FIREBASE_OPTIONS) private options: FirebaseModuleOptions,
+    private configService: ConfigService<EnvironmentVariables, true>
+  ) {
     if (firebaseAdmin.apps.length == 0) {
+      const cert = this.options.cert ? this.options.cert : this.configService.get('firebaseServiceAccount');
       firebaseAdmin.initializeApp(
         {
-          credential: firebaseAdmin.credential.cert(options.cert),
+          credential: firebaseAdmin.credential.cert(cert),
           storageBucket: options.storageBucket
         },
         options.certName

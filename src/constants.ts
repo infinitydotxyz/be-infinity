@@ -1,22 +1,27 @@
 import { OrderDirection } from '@infinityxyz/lib/types/core';
+import { Env } from '@infinityxyz/lib/utils';
 import { AUTH_MESSAGE_HEADER, AUTH_NONCE_HEADER, AUTH_SIGNATURE_HEADER } from 'auth/auth.constants';
-import 'dotenv/config';
+import { resolve } from 'path';
+import { readFileSync } from 'fs';
+import { devOptionalEnvVariables, EnvironmentVariables } from 'types/environment-variables.interface';
 
-const getEnvironmentVariable = (name: string, required = true) => {
-  const variable = process.env[name];
-  if (required && !variable) {
-    throw new Error(`Missing environment variable ${name}`);
-  }
-  return variable;
-};
+export const env = process.env.INFINITY_NODE_ENV || Env.Prod;
+export const envFileName = env === Env.Dev ? '.dev.env' : '.env';
 
-const getMultipleEnvVariables = (prefix: string, minLength = 1): (string | undefined)[] => {
+export const getMultipleEnvVariables = (
+  prefix: string,
+  minLength = 1,
+  envVariables: Record<string, string>
+): string[] => {
   const variables = [];
   let i = 0;
 
   for (;;) {
     try {
-      const apiKey = getEnvironmentVariable(`${prefix}${i}`);
+      const apiKey = envVariables[`${prefix}${i}`];
+      if (!apiKey) {
+        throw new Error(`Missing environment variable ${name}`);
+      }
       variables.push(apiKey);
       i += 1;
     } catch (err) {
@@ -32,17 +37,51 @@ const getMultipleEnvVariables = (prefix: string, minLength = 1): (string | undef
   return variables;
 };
 
-export const RESERVOIR_API_KEY = getEnvironmentVariable('RESERVOIR_API_KEY');
-export const ZORA_API_KEY = getEnvironmentVariable('ZORA_API_KEY');
-export const GEM_API_KEY = getEnvironmentVariable('GEM_API_KEY');
+export const loadJsonFile = <T = any>(fileName: string): T => {
+  const path = resolve(__dirname, './creds', fileName);
+  try {
+    const raw = readFileSync(path, 'utf-8');
+    const parsed = JSON.parse(raw);
+    return parsed;
+  } catch (err) {
+    console.error(`Failed to load json file from path: ${path}`, err);
+    throw err;
+  }
+};
 
-export const OPENSEA_API_KEYS = (() => {
-  const apiKeys = getMultipleEnvVariables('OPENSEA_API_KEY');
-  return apiKeys;
-})();
+export const validateAndTransformEnvVariables = (env: Record<string, string>) => {
+  const openseaApiKeys = getMultipleEnvVariables('OPENSEA_API_KEY', 1, env);
+  const INFINITY_NODE_ENV = (env.INFINITY_NODE_ENV as Env | undefined) ?? Env.Prod;
+  const isProd = INFINITY_NODE_ENV === Env.Prod;
+  const firebaseServiceAccountName = isProd ? 'nftc-infinity-firebase-creds.json' : 'nftc-dev-firebase-creds.json';
+  const firebaseServiceAccount = loadJsonFile<object>(firebaseServiceAccountName);
 
-export const ALCHEMY_JSON_RPC_ETH_MAINNET = getEnvironmentVariable('alchemyJsonRpcEthMainnet');
-export const ALCHEMY_JSON_RPC_POLYGON_MAINNET = getEnvironmentVariable('alchemyJsonRpcPolygonMainnet');
+  const envVariables: EnvironmentVariables = {
+    twitterBearerToken: env.twitterBearerToken,
+    ALCHEMY_API_KEY: env.ALCHEMY_API_KEY,
+    mnemonicApiKey: env.mnemonicApiKey,
+    alchemyJsonRpcEthMainnet: env.alchemyJsonRpcEthMainnet,
+    alchemyJsonRpcPolygonMainnet: env.alchemyJsonRpcPolygonMainnet,
+    alchemyJsonRpcEthGoerli: env.alchemyJsonRpcEthGoerli,
+    REDIS_URL: env.REDIS_URL ?? '',
+    GEM_API_KEY: env.GEM_API_KEY,
+    OPENSEA_API_KEYS: openseaApiKeys,
+    RESERVOIR_API_KEY: env.RESERVOIR_API_KEY,
+    ZORA_API_KEY: env.ZORA_API_KEY,
+    INFINITY_NODE_ENV,
+    firebaseServiceAccount
+  };
+
+  for (const key of Object.keys(envVariables) as (keyof EnvironmentVariables)[]) {
+    const isRequiredInProd = true;
+    const isRequiredInDev = !devOptionalEnvVariables.includes(key);
+    const isRequired = isProd ? isRequiredInProd : isRequiredInDev;
+    if (isRequired && !envVariables[key]) {
+      throw new Error(`Environment variable ${key} is not set`);
+    }
+  }
+  return envVariables;
+};
 
 export const auth = {
   nonce: AUTH_NONCE_HEADER,

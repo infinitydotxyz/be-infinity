@@ -1,10 +1,12 @@
 import { BaseCollection, ChainId, CollectionMetadata, TokenStandard } from '@infinityxyz/lib/types/core';
 import { getSearchFriendlyString, sleep } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ethers } from 'ethers';
 import got, { Got, Response } from 'got/dist/source';
+import { EnvironmentVariables } from 'types/environment-variables.interface';
 import { randomItem } from 'utils';
-import { OPENSEA_API_KEYS } from '../constants';
+// import { OPENSEA_API_KEYS } from '../constants';
 import { gotErrorHandler } from '../utils/got';
 import {
   OpenseaAsset,
@@ -26,7 +28,8 @@ export class OpenseaService {
   private readonly clientNoApiKey: Got;
   private readonly OS_VERIFIED_STATUS = 'verified';
 
-  constructor() {
+  constructor(private configService: ConfigService<EnvironmentVariables, true>) {
+    const apiKeys = this.configService.get('OPENSEA_API_KEYS');
     this.client = got.extend({
       prefixUrl: 'https://api.opensea.io/api/v1/',
       hooks: {
@@ -37,7 +40,7 @@ export class OpenseaService {
                 options.headers = {};
               }
 
-              const randomApiKey = randomItem(OPENSEA_API_KEYS);
+              const randomApiKey = randomItem(apiKeys);
               options.headers['x-api-key'] = randomApiKey;
             }
           }

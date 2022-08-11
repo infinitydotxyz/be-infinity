@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { RESERVOIR_API_KEY } from '../constants';
 import { gotErrorHandler } from '../utils/got';
 import got, { Got, Response } from 'got/dist/source';
 import { sleep } from '@infinityxyz/lib/utils';
@@ -8,11 +7,14 @@ import {
   ReservoirSingleCollectionResponse,
   ReservoirTopCollectionOwnersResponse
 } from '@infinityxyz/lib/types/services/reservoir';
+import { ConfigService } from '@nestjs/config';
+import { EnvironmentVariables } from 'types/environment-variables.interface';
 
 @Injectable()
 export class ReservoirService {
   private readonly client: Got;
-  constructor() {
+  constructor(private configService: ConfigService<EnvironmentVariables, true>) {
+    const apiKey = this.configService.get('RESERVOIR_API_KEY');
     this.client = got.extend({
       prefixUrl: 'https://api.reservoir.tools/',
       hooks: {
@@ -22,7 +24,7 @@ export class ReservoirService {
               if (!options.headers) {
                 options.headers = {};
               }
-              options.headers['x-api-key'] = RESERVOIR_API_KEY;
+              options.headers['x-api-key'] = apiKey;
             }
           }
         ]

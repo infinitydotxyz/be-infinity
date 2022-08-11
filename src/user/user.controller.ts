@@ -21,7 +21,6 @@ import {
   UserNftsQueryDto,
   UserProfileDto,
   UserProfileImagesDto,
-  UserStakeDto,
   ValidateUsernameResponseDto
 } from '@infinityxyz/lib/types/dto/user';
 import {
@@ -169,11 +168,7 @@ export class UserController {
         instagramUsername: '',
         facebookUsername: '',
         createdAt: NaN,
-        updatedAt: NaN,
-        totalCurated: 0,
-        totalCuratedVotes: 0,
-        // TODO adi put this in to compile, fix
-        stake: {} as UserStakeDto
+        updatedAt: NaN
       };
     }
 

@@ -23,6 +23,7 @@ import { AuthGuard } from './auth.guard';
 class Dummy {}
 
 const userService = {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   getRef: (address: string) => {
     return {} as any;
   }
