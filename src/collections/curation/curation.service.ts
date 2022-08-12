@@ -106,6 +106,7 @@ export class CurationService {
 
       const voteEvent: CurationVotesAdded = {
         votes,
+        collectionAddress: collection?.address || parsedCollectionId.address,
         stakerContractAddress: stakingContract,
         stakerContractChainId: stakingContractChainId,
         userAddress: parsedUser.userAddress,
@@ -115,8 +116,7 @@ export class CurationService {
         updatedAt: Date.now(),
         isAggregated: false,
         isDeleted: false,
-        address: parsedCollectionId.address,
-        chainId: parsedCollectionId.chainId
+        collectionChainId: parsedCollectionId.chainId
       };
       const voteEventRef = collectionStakingDocRef.collection(firestoreConstants.CURATION_LEDGER_COLL).doc();
 

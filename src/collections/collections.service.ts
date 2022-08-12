@@ -1,9 +1,6 @@
 import { ChainId, Collection, CollectionMetadata, CreationFlow, TopOwner } from '@infinityxyz/lib/types/core';
 import { CollectionSearchQueryDto, TopOwnerDto, TopOwnersQueryDto } from '@infinityxyz/lib/types/dto/collections';
-import {
-  CuratedCollectionsOrderBy,
-  CuratedCollectionsQuery
-} from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
+import { CuratedCollectionsQuery } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
 import {
   CuratedCollectionDto,
   CuratedCollectionsDto
