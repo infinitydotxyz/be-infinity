@@ -37,6 +37,7 @@ import { NftsService } from '../collections/nfts/nfts.service';
 import { AlchemyNft } from '@infinityxyz/lib/types/services/alchemy';
 import { attemptToIndexCollection } from 'utils/collection-indexing';
 import { EventType } from '@infinityxyz/lib/types/core/feed';
+import { CurationService } from 'collections/curation/curation.service';
 
 @Injectable()
 export class UserService {
@@ -47,6 +48,7 @@ export class UserService {
     private paginationService: CursorService,
     private nftsService: NftsService,
     private backfillService: BackfillService,
+    private curationService: CurationService,
     @Optional() private statsService: StatsService
   ) {
     this.alchemyNftToInfinityNft = new AlchemyNftToInfinityNft(this.nftsService);
@@ -452,10 +454,14 @@ export class UserService {
    * Fetch all user-curated collections.
    */
   async getAllCurated(user: ParsedUserId, query: CuratedCollectionsQuery): Promise<CuratedCollectionsDto> {
+    const stakingContractChainId = user.userChainId;
+    const stakingContractAddress = this.curationService.getStakerAddress(stakingContractChainId);
     let q = this.firebaseService.firestore
       .collectionGroup(firestoreConstants.COLLECTION_CURATORS_COLL)
       .where('userAddress', '==', user.userAddress)
       .where('userChainId', '==', user.userChainId)
+      .where('stakerContractChainId', '==', stakingContractChainId)
+      .where('stakerContractAddress', '==', stakingContractAddress)
       .orderBy('votes', query.orderDirection)
       .orderBy('timestamp', 'desc')
       .limit(query.limit + 1);
@@ -466,17 +472,17 @@ export class UserService {
     }
 
     const snap = await q.get();
-    const curations = snap.docs.map((item) => item.data() as CuratedCollectionDto);
+    const curatedCollections = snap.docs.map((item) => item.data() as CuratedCollectionDto);
 
-    const hasNextPage = curations.length > query.limit;
+    const hasNextPage = curatedCollections.length > query.limit;
     if (hasNextPage) {
-      curations.pop();
+      curatedCollections.pop();
     }
 
-    const lastItem = curations[curations.length - 1];
+    const lastItem = curatedCollections[curatedCollections.length - 1];
 
     return {
-      data: curations,
+      data: curatedCollections,
       cursor: hasNextPage ? this.paginationService.encodeCursor(lastItem) : undefined,
       hasNextPage
     };

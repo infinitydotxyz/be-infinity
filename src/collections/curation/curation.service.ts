@@ -41,12 +41,15 @@ export class CurationService {
     const collectionSnap = await parsedCollectionId.ref.get();
     const collection = collectionSnap.data() ?? {};
     const res = await this.firebaseService.firestore.runTransaction(async (txn) => {
-      const curatorDocRef = parsedCollectionId.ref
-        .collection(firestoreConstants.COLLECTION_CURATORS_COLL)
-        .doc(parsedUser.ref.id) as FirebaseFirestore.DocumentReference<CuratedCollectionDto>; // TODO select based on staker address
-
       const stakingContractChainId = parsedUser.userChainId;
       const stakingContract = this.getStakerAddress(stakingContractChainId);
+      const collectionStakingDocRef = parsedCollectionId.ref
+        .collection(firestoreConstants.COLLECTION_CURATION_COLL)
+        .doc(`${stakingContractChainId}:${stakingContract}`);
+      const curatorDocRef = collectionStakingDocRef
+        .collection(firestoreConstants.COLLECTION_CURATORS_COLL)
+        .doc(parsedUser.ref.id) as FirebaseFirestore.DocumentReference<CuratedCollectionDto>;
+
       const userStakeRef = parsedUser.ref
         .collection(firestoreConstants.USER_CURATION_COLL)
         .doc(`${stakingContractChainId}:${stakingContract}`) as FirebaseFirestore.DocumentReference<UserStakeDto>;
@@ -115,7 +118,7 @@ export class CurationService {
         address: parsedCollectionId.address,
         chainId: parsedCollectionId.chainId
       };
-      const voteEventRef = this.firebaseService.firestore.collection(firestoreConstants.CURATION_LEDGER_COLL).doc();
+      const voteEventRef = collectionStakingDocRef.collection(firestoreConstants.CURATION_LEDGER_COLL).doc();
 
       txn.set(userStakeRef, userStakeUpdate, { merge: true });
       txn.set(curatorDocRef, curatedCollectionUpdate, { merge: true });
@@ -174,12 +177,16 @@ export class CurationService {
     user: Omit<ParsedUserId, 'ref'>,
     collection: Omit<ParsedCollectionId, 'ref'>
   ): Promise<CuratedCollectionDto | null> {
+    const stakingContractChainId = user.userChainId;
+    const stakingContractAddress = this.getStakerAddress(stakingContractChainId);
     const snap = await this.firebaseService.firestore
       .collectionGroup(firestoreConstants.COLLECTION_CURATORS_COLL)
       .where('userAddress', '==', user.userAddress)
       .where('userChainId', '==', user.userChainId)
       .where('address', '==', collection.address)
       .where('chainId', '==', collection.chainId)
+      .where('stakerContractChainId', '==', stakingContractChainId)
+      .where('stakerContractAddress', '==', stakingContractAddress)
       .limit(1)
       .get();
 
@@ -200,14 +207,14 @@ export class CurationService {
    */
   async getUserCurationInfo(parsedUser: ParsedUserId): Promise<UserStakeDto> {
     const stakerContractChainId = parsedUser.userChainId;
-    const stakingContract = this.getStakerAddress(stakerContractChainId);
+    const stakerContractAddress = this.getStakerAddress(stakerContractChainId);
     const userStakeRef = parsedUser.ref
       .collection(firestoreConstants.USER_CURATION_COLL)
-      .doc(`${parsedUser.userChainId}:${stakingContract}`) as FirebaseFirestore.DocumentReference<UserStakeDto>;
+      .doc(`${stakerContractChainId}:${stakerContractAddress}`) as FirebaseFirestore.DocumentReference<UserStakeDto>;
     const snap = await userStakeRef.get();
 
     return {
-      stakerContractAddress: snap.get('stakerContractAddress') || stakingContract,
+      stakerContractAddress: snap.get('stakerContractAddress') || stakerContractAddress,
       stakerContractChainId: snap.get('stakerContractChainId') || stakerContractChainId,
       stakeInfo: snap.get('stakeInfo') || {
         [StakeDuration.X0]: {
@@ -252,7 +259,7 @@ export class CurationService {
     return quota;
   }
 
-  protected getStakerAddress(chainId: ChainId) {
+  getStakerAddress(chainId: ChainId) {
     const env = this.configService.get('INFINITY_NODE_ENV');
     const stakingContract = getStakerAddress(chainId, env);
     return stakingContract;
