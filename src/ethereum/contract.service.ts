@@ -22,18 +22,9 @@ export class ContractService {
     return +ether;
   }
 
-  assertSupportedChain(chainId: string | ChainId) {
-    // TODO: return correct contract based on specified chain id
-    if (chainId != ChainId.Goerli) {
-      throw new BadRequestException(`Chain id '${chainId}' is currently not supported!`);
-    }
-  }
-
   getStakerContract(chainId: string | ChainId) {
     const stakerContractAddress = this.getStakerAddress(chainId as ChainId);
-    if (!stakerContractAddress || stakerContractAddress === NULL_ADDRESS) {
-      throw new BadRequestException(`Chain id '${chainId}' is currently not supported!`);
-    }
+    this._assertSupportedAddress(stakerContractAddress, chainId as ChainId);
 
     return this.ethereumService.getContract({
       abi: InfinityStakerABI,
@@ -44,9 +35,7 @@ export class ContractService {
 
   getTokenContract(chainId: string | ChainId) {
     const tokenAddress = getTokenAddress(chainId as ChainId);
-    if (!tokenAddress || tokenAddress === NULL_ADDRESS) {
-      throw new BadRequestException(`Chain id '${chainId}' is currently not supported!`);
-    }
+    this._assertSupportedAddress(tokenAddress, chainId as ChainId);
 
     return this.ethereumService.getContract({
       abi: ERC20ABI,
@@ -59,5 +48,11 @@ export class ContractService {
     const env = this.configService.get('INFINITY_NODE_ENV');
     const stakingContract = getStakerAddress(chainId, env);
     return stakingContract;
+  }
+
+  protected _assertSupportedAddress(contractAddress: string, chainId: ChainId) {
+    if (!contractAddress || contractAddress === NULL_ADDRESS) {
+      throw new BadRequestException(`Chain id ${chainId} is currently not supported!`);
+    }
   }
 }

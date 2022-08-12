@@ -3,12 +3,10 @@ import { CuratedCollectionDto } from '@infinityxyz/lib/types/dto/collections/cur
 import { UserStakeDto } from '@infinityxyz/lib/types/dto/user';
 import { firestoreConstants, formatEth } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
 import { StakerContractService } from 'ethereum/contracts/staker.contract.service';
 import { TokenContractService } from 'ethereum/contracts/token.contract.service';
 import { FirebaseService } from 'firebase/firebase.service';
-import { EnvironmentVariables } from 'types/environment-variables.interface';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 import { ParsedBulkVotes } from './bulk-votes.pipe';
 import { CurationLedgerEvent, CurationVotesAdded } from '@infinityxyz/lib/types/core/curation-ledger';
@@ -19,8 +17,7 @@ export class CurationService {
   constructor(
     private firebaseService: FirebaseService,
     private stakerContractService: StakerContractService,
-    private tokenContractService: TokenContractService,
-    private configService: ConfigService<EnvironmentVariables, true>
+    private tokenContractService: TokenContractService
   ) {}
 
   /**

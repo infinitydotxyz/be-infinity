@@ -1,13 +1,11 @@
 import { ChainId } from '@infinityxyz/lib/types/core/ChainId';
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { ContractService } from 'ethereum/contract.service';
-import { EnvironmentVariables } from 'types/environment-variables.interface';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 
 @Injectable()
 export class StakerContractService {
-  constructor(private contractService: ContractService, private configService: ConfigService<EnvironmentVariables>) {}
+  constructor(private contractService: ContractService) {}
 
   /**
    * Get the total number of tokens staked by the user.
