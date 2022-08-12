@@ -1,7 +1,7 @@
 import { ChainId, StakeAmount, StakeDuration } from '@infinityxyz/lib/types/core';
 import { CuratedCollectionDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 import { UserStakeDto } from '@infinityxyz/lib/types/dto/user';
-import { firestoreConstants, formatEth, getStakerAddress } from '@infinityxyz/lib/utils';
+import { firestoreConstants, formatEth } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
@@ -260,8 +260,6 @@ export class CurationService {
   }
 
   getStakerAddress(chainId: ChainId) {
-    const env = this.configService.get('INFINITY_NODE_ENV');
-    const stakingContract = getStakerAddress(chainId, env);
-    return stakingContract;
+    return this.stakerContractService.getStakerAddress(chainId);
   }
 }
