@@ -1,18 +1,15 @@
 import { ChainId, Collection, CollectionMetadata, CreationFlow, TopOwner } from '@infinityxyz/lib/types/core';
 import { CollectionSearchQueryDto, TopOwnerDto, TopOwnersQueryDto } from '@infinityxyz/lib/types/dto/collections';
-import { CuratedCollectionsQuery } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
+import {
+  CuratedCollectionsOrderBy,
+  CuratedCollectionsQuery
+} from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
 import {
   CuratedCollectionDto,
   CuratedCollectionsDto
 } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 import { ExternalNftCollectionDto, NftCollectionDto } from '@infinityxyz/lib/types/dto/collections/nfts';
-import {
-  firestoreConstants,
-  getCollectionDocId,
-  getEndCode,
-  getSearchFriendlyString,
-  sleep
-} from '@infinityxyz/lib/utils';
+import { firestoreConstants, getCollectionDocId, getEndCode, getSearchFriendlyString } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { BackfillService } from 'backfill/backfill.service';
 import { FirebaseService } from 'firebase/firebase.service';
@@ -21,6 +18,7 @@ import { ReservoirService } from 'reservoir/reservoir.service';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 import { ZoraService } from 'zora/zora.service';
 import { ParsedCollectionId } from './collection-id.pipe';
+import { CurationService } from './curation/curation.service';
 
 interface CollectionQueryOptions {
   /**
@@ -38,7 +36,8 @@ export default class CollectionsService {
     private zoraService: ZoraService,
     private reservoirService: ReservoirService,
     private paginationService: CursorService,
-    private backfillService: BackfillService
+    private backfillService: BackfillService,
+    private curationService: CurationService
   ) {}
 
   private get defaultCollectionQueryOptions(): CollectionQueryOptions {
@@ -341,7 +340,6 @@ export default class CollectionsService {
    */
   async getCurated(query: CuratedCollectionsQuery, user?: ParsedUserId): Promise<CuratedCollectionsDto> {
     // const collectionsRef = this.firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL);
-
     // type Cursor = Record<'address' | 'chainId', string | number>;
 
     // const mapOrderByQuery = {
@@ -376,8 +374,8 @@ export default class CollectionsService {
     //   name: collection.metadata.name,
     //   numCuratorVotes: collection.numCuratorVotes || 0,
     //   profileImage: collection.metadata.profileImage,
-    //   stakerContractAddress: collection.stakerContractAddress,
-    //   stakerContractChainId: collection.stakerContractChainId,
+    //   stakerContractAddress: '',
+    //   stakerContractChainId: '' as ChainId,
     //   slug: collection.slug,
     //   timestamp: 0,
     //   userAddress: '',
@@ -390,11 +388,16 @@ export default class CollectionsService {
     // // If a user was specified, merge curated collections with user curated collections.
     // // Keep in mind that this changes nothing in regards to the order of the returned curated collections.
     // if (user && collections.length > 0) {
+    //   const stakerContractChainId = user?.userChainId ?? ChainId.Mainnet;
+    //   const stakerContractAddress = this.curationService.getStakerAddress(stakerContractChainId);
+
     //   const collectionAddresses = collections.map((c) => c.address);
 
     //   const curatorsSnap = await this.firebaseService.firestore
     //     .collectionGroup(firestoreConstants.COLLECTION_CURATORS_COLL)
-    //     .where('address', 'in', collectionAddresses)
+    //     .where('address', 'in', collectionAddresses) // TODO in only supports up to 10 items
+    //     .where('stakerContractChainId', '==', stakerContractChainId)
+    //     .where('stakerContractAddress', '==', stakerContractAddress)
     //     .where('userAddress', '==', user.userAddress)
     //     .where('userChainId', '==', user.userChainId)
     //     .get();
@@ -416,10 +419,6 @@ export default class CollectionsService {
     //     };
     //   });
     // }
-    await sleep(0);
-    const cursor = '';
-    const curatedCollections: CuratedCollectionDto[] = [];
-    const hasNextPage = false; // TODO update this after changing firestore structure
 
     return {
       data: curatedCollections,

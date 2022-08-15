@@ -251,7 +251,7 @@ export class CollectionsController {
     @Query() query: CuratedCollectionsQuery,
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId
   ) {
-    return this.collectionsService.getCurated(query, user);
+    return this.collectionsService.getCurated(query, user); // TODO CuratedCollectionsQuery limit should have a max
   }
 
   @Get('/:id/curated/:userId')
