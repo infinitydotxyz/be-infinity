@@ -338,6 +338,7 @@ export default class CollectionsService {
    * @param query Filter and pagination.
    * @param user Optional user object. If specified, more info like user votes will be included in each curated collection DTO that matches.
    */
+  // eslint-disable-next-line @typescript-eslint/require-await
   async getCurated(query: CuratedCollectionsQuery, user?: ParsedUserId): Promise<CuratedCollectionsDto> {
     // const collectionsRef = this.firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL);
     // type Cursor = Record<'address' | 'chainId', string | number>;
@@ -421,9 +422,9 @@ export default class CollectionsService {
     // }
 
     return {
-      data: curatedCollections,
-      cursor,
-      hasNextPage
+      data: {} as any,
+      cursor: '',
+      hasNextPage: false
     };
   }
 }

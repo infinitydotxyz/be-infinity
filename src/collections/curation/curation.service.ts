@@ -1,7 +1,7 @@
-import { ChainId, StakeAmount, StakeDuration } from '@infinityxyz/lib/types/core';
+import { ChainId, StakeDuration } from '@infinityxyz/lib/types/core';
 import { CuratedCollectionDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 import { UserStakeDto } from '@infinityxyz/lib/types/dto/user';
-import { firestoreConstants, formatEth } from '@infinityxyz/lib/utils';
+import { firestoreConstants, getTokenAddressByStakerAddress, getTotalStaked } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
 import { StakerContractService } from 'ethereum/contracts/staker.contract.service';
@@ -11,13 +11,15 @@ import { ParsedUserId } from 'user/parser/parsed-user-id';
 import { ParsedBulkVotes } from './bulk-votes.pipe';
 import { CurationLedgerEvent, CurationVotesAdded } from '@infinityxyz/lib/types/core/curation-ledger';
 import { CurationQuotaDto } from '@infinityxyz/lib/types/dto/collections/curation/curation-quota.dto';
+import { EthereumService } from 'ethereum/ethereum.service';
 
 @Injectable()
 export class CurationService {
   constructor(
     private firebaseService: FirebaseService,
     private stakerContractService: StakerContractService,
-    private tokenContractService: TokenContractService
+    private tokenContractService: TokenContractService,
+    private ethereumService: EthereumService
   ) {}
 
   /**
@@ -37,6 +39,7 @@ export class CurationService {
   }) {
     const collectionSnap = await parsedCollectionId.ref.get();
     const collection = collectionSnap.data() ?? {};
+    const currentBlock = await this.ethereumService.getCurrentBlock(parsedUser.userChainId);
     const res = await this.firebaseService.firestore.runTransaction(async (txn) => {
       const stakingContractChainId = parsedUser.userChainId;
       const stakingContract = this.getStakerAddress(stakingContractChainId);
@@ -74,6 +77,10 @@ export class CurationService {
         };
       }
 
+      const { tokenContractAddress, tokenContractChainId } = getTokenAddressByStakerAddress(
+        stakingContractChainId,
+        stakingContract
+      );
       const curatedCollectionUpdate: CuratedCollectionDto = {
         votes: curatedCollectionVotes + votes,
         userAddress: parsedUser.userAddress,
@@ -87,9 +94,11 @@ export class CurationService {
         // TODO: APRs
         fees: 0,
         feesAPR: 0,
-        numCuratorVotes: 0, // TODO find a better way to update this. this value should also be store in the collection document
+        numCuratorVotes: 0, // TODO find a better way to update this
         stakerContractAddress: stakingContract,
-        stakerContractChainId: stakingContractChainId
+        stakerContractChainId: stakingContractChainId,
+        tokenContractAddress,
+        tokenContractChainId
       };
 
       const updatedTotalCurated = curatedCollectionVotes === 0 ? 1 + totalCurated : totalCurated;
@@ -108,12 +117,16 @@ export class CurationService {
         stakerContractChainId: stakingContractChainId,
         userAddress: parsedUser.userAddress,
         discriminator: CurationLedgerEvent.VotesAdded,
-        blockNumber: 0,
-        timestamp: Date.now(),
+        blockNumber: currentBlock.number,
+        timestamp: currentBlock.timestamp * 1000,
         updatedAt: Date.now(),
+        collectionChainId: parsedCollectionId.chainId,
+        tokenContractAddress: tokenContractAddress,
+        tokenContractChainId: tokenContractChainId,
+        isStakeMerged: false,
         isAggregated: false,
         isDeleted: false,
-        collectionChainId: parsedCollectionId.chainId
+        isFeedUpdated: false
       };
       const voteEventRef = collectionStakingDocRef.collection(firestoreConstants.CURATION_LEDGER_COLL).doc();
 
@@ -210,6 +223,10 @@ export class CurationService {
       .doc(`${stakerContractChainId}:${stakerContractAddress}`) as FirebaseFirestore.DocumentReference<UserStakeDto>;
     const snap = await userStakeRef.get();
 
+    const { tokenContractAddress, tokenContractChainId } = getTokenAddressByStakerAddress(
+      stakerContractChainId,
+      stakerContractAddress
+    );
     return {
       stakerContractAddress: snap.get('stakerContractAddress') || stakerContractAddress,
       stakerContractChainId: snap.get('stakerContractChainId') || stakerContractChainId,
@@ -234,22 +251,19 @@ export class CurationService {
       stakePower: snap.get('stakePower') ?? 0,
       blockUpdatedAt: snap.get('blockUpdatedAt') ?? NaN,
       totalCurated: snap.get('totalCurated') || 0,
-      totalCuratedVotes: snap.get('totalCuratedVotes') || 0
+      totalCuratedVotes: snap.get('totalCuratedVotes') || 0,
+      tokenContractAddress: snap.get('tokenContractAddress') || tokenContractAddress,
+      tokenContractChainId: snap.get('tokenContractChainId') || tokenContractChainId
     };
   }
 
   async getUserCurationQuota(user: ParsedUserId) {
     const tokenBalance = await this.getTokenBalance(user);
     const stake = await this.getUserCurationInfo(user);
-    const totalStaked = Object.values(stake.stakeInfo).reduce(
-      (acc, item: StakeAmount) => BigInt(acc) + BigInt(item.amount),
-      0
-    );
-
     const quota: CurationQuotaDto = {
       stake,
       tokenBalance,
-      totalStaked: formatEth(totalStaked.toString(), 4),
+      totalStaked: getTotalStaked(stake.stakeInfo, 8),
       availableVotes: stake.stakePower - stake.totalCuratedVotes
     };
 
