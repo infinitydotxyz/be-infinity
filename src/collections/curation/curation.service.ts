@@ -1,6 +1,6 @@
 import { CuratedCollectionDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 import { UserStakeDto } from '@infinityxyz/lib/types/dto/user';
-import { firestoreConstants, getStakerAddress } from '@infinityxyz/lib/utils';
+import { firestoreConstants, getStakerAddress, getTokenAddressByStakerAddress } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
@@ -163,11 +163,15 @@ export class CurationService {
   async getUserCurationInfo(user: ParsedUserId): Promise<UserStakeDto> {
     const env = this.configService.get('INFINITY_NODE_ENV');
     const stakingContract = getStakerAddress(user.userChainId, env);
+    const stakingContractChainId = user.userChainId;
     const userStakeRef = user.ref
       .collection(firestoreConstants.USER_CURATION_COLL)
       .doc(`${user.userChainId}:${stakingContract}`) as FirebaseFirestore.DocumentReference<UserStakeDto>;
     const snap = await userStakeRef.get();
-
+    const { tokenContractAddress, tokenContractChainId } = getTokenAddressByStakerAddress(
+      stakingContractChainId,
+      stakingContract
+    );
     return {
       stakerContractAddress: snap.get('stakerContractAddress') || stakingContract,
       stakerContractChainId: snap.get('stakerContractChainId') || user.userChainId,
@@ -175,7 +179,9 @@ export class CurationService {
       stakePower: snap.get('stakePower') ?? 0,
       blockUpdatedAt: snap.get('blockUpdatedAt') ?? NaN,
       totalCurated: snap.get('totalCurated') || 0,
-      totalCuratedVotes: snap.get('totalCuratedVotes') || 0
+      totalCuratedVotes: snap.get('totalCuratedVotes') || 0,
+      tokenContractAddress: snap.get('tokenContractAddress') || tokenContractAddress,
+      tokenContractChainId: snap.get('tokenContractChainId') || tokenContractChainId
     };
   }
 }
