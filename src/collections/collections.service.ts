@@ -343,8 +343,7 @@ export default class CollectionsService {
 
     const mapOrderByQuery = {
       [CuratedCollectionsOrderBy.Votes]: 'numCuratorVotes',
-      [CuratedCollectionsOrderBy.AprHighToLow]: 'numCuratorVotes', // TODO: APRs
-      [CuratedCollectionsOrderBy.AprLowToHigh]: 'numCuratorVotes'
+      [CuratedCollectionsOrderBy.Apr]: 'numCuratorVotes' // TODO: APRs
     };
 
     let q = collectionsRef.orderBy(mapOrderByQuery[query.orderBy], query.orderDirection).limit(query.limit + 1);
