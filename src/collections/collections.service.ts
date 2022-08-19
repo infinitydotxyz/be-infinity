@@ -395,13 +395,15 @@ export default class CollectionsService {
           .doc(user.userAddress) as FirebaseFirestore.DocumentReference<CurationBlockUser>;
       });
 
-      const userSnaps = (await this.firebaseService.firestore.getAll(
-        ...curationSnippetUserRefs
-      )) as FirebaseFirestore.DocumentSnapshot<CurationBlockUser>[];
-      userSnaps.forEach((userSnap, index) => {
-        const blockUser = userSnap.data();
-        results[index].curator = blockUser;
-      });
+      if (curationSnippetUserRefs.length > 0) {
+        const userSnaps = (await this.firebaseService.firestore.getAll(
+          ...curationSnippetUserRefs
+        )) as FirebaseFirestore.DocumentSnapshot<CurationBlockUser>[];
+        userSnaps.forEach((userSnap, index) => {
+          const blockUser = userSnap.data();
+          results[index].curator = blockUser;
+        });
+      }
     }
 
     let hasNextPage = querySnap.size > collectionsQuery.limit;

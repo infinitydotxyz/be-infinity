@@ -53,7 +53,7 @@ export const validateAndTransformEnvVariables = (env: Record<string, string>) =>
   const openseaApiKeys = getMultipleEnvVariables('OPENSEA_API_KEY', 1, env);
   const INFINITY_NODE_ENV = (env.INFINITY_NODE_ENV as Env | undefined) ?? Env.Prod;
   const isProd = INFINITY_NODE_ENV === Env.Prod;
-  const firebaseServiceAccountName = isProd ? 'nftc-infinity-firebase-creds.json' : 'nftc-dev-firebase-creds.json';
+  const firebaseServiceAccountName = isProd ? 'nftc-infinity-firebase-creds.json' : 'nftc-test2-firebase-creds.json';
   const firebaseServiceAccount = loadJsonFile<object>(firebaseServiceAccountName);
 
   const envVariables: EnvironmentVariables = {
