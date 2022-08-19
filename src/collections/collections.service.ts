@@ -302,7 +302,7 @@ export default class CollectionsService {
   }
 
   /**
-   * Verify whether the given user address is an administrator of the infnity platform.
+   * Verify whether the given user address is an administrator of the infinity platform.
    */
   async isAdmin(userAddress: string) {
     const adminDocRef = this.firebaseService.firestore
