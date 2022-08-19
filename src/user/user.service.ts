@@ -1,4 +1,4 @@
-import { ChainId, OrderDirection } from '@infinityxyz/lib/types/core';
+import { ChainId, CurationBlockUser, OrderDirection } from '@infinityxyz/lib/types/core';
 import { AlchemyNftToInfinityNft } from '../common/transformers/alchemy-nft-to-infinity-nft.pipe';
 import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
 import { Injectable, Optional } from '@nestjs/common';
@@ -29,10 +29,6 @@ import {
 } from '@infinityxyz/lib/types/dto/user';
 import { BackfillService } from 'backfill/backfill.service';
 import { CuratedCollectionsQuery } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
-import {
-  CuratedCollectionDto,
-  CuratedCollectionsDto
-} from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 import { NftsService } from '../collections/nfts/nfts.service';
 import { AlchemyNft } from '@infinityxyz/lib/types/services/alchemy';
 import { attemptToIndexCollection } from 'utils/collection-indexing';
@@ -453,26 +449,34 @@ export class UserService {
   /**
    * Fetch all user-curated collections.
    */
-  async getAllCurated(user: ParsedUserId, query: CuratedCollectionsQuery): Promise<CuratedCollectionsDto> {
+  async getAllCurated(
+    user: ParsedUserId,
+    query: CuratedCollectionsQuery
+  ): Promise<{ data: CurationBlockUser[]; hasNextPage: boolean; cursor: string }> {
     const stakingContractChainId = user.userChainId;
     const stakingContractAddress = this.curationService.getStakerAddress(stakingContractChainId);
     let q = this.firebaseService.firestore
-      .collectionGroup(firestoreConstants.COLLECTION_CURATORS_COLL)
-      .where('userAddress', '==', user.userAddress)
-      .where('userChainId', '==', user.userChainId)
-      .where('stakerContractChainId', '==', stakingContractChainId)
-      .where('stakerContractAddress', '==', stakingContractAddress)
-      .orderBy('votes', query.orderDirection)
-      .orderBy('timestamp', 'desc')
-      .limit(query.limit + 1);
+      .collectionGroup(firestoreConstants.CURATION_SNIPPET_USERS_COLL)
+      .where('metadata.userAddress', '==', user.userAddress)
+      .where('metadata.stakerContractChainId', '==', stakingContractChainId)
+      .where('metadata.stakerContractAddress', '==', stakingContractAddress)
+      .orderBy('stats.votes', query.orderDirection)
+      .orderBy('metadata.timestamp', 'desc') as FirebaseFirestore.Query<CurationBlockUser>;
+
+    //TODO order by apr
 
     if (query.cursor) {
-      const { votes, timestamp } = this.paginationService.decodeCursorToObject<CuratedCollectionDto>(query.cursor);
-      q = q.startAfter({ votes, timestamp });
+      const {
+        stats: { votes },
+        metadata: { timestamp }
+      } = this.paginationService.decodeCursorToObject<CurationBlockUser>(query.cursor);
+      if (typeof votes === 'number' && typeof timestamp === 'number') {
+        q = q.startAfter(votes, timestamp);
+      }
     }
 
-    const snap = await q.get();
-    const curatedCollections = snap.docs.map((item) => item.data() as CuratedCollectionDto);
+    const snap = await q.limit(query.limit + 1).get();
+    const curatedCollections = snap.docs.map((item) => item.data());
 
     const hasNextPage = curatedCollections.length > query.limit;
     if (hasNextPage) {
@@ -483,7 +487,7 @@ export class UserService {
 
     return {
       data: curatedCollections,
-      cursor: hasNextPage ? this.paginationService.encodeCursor(lastItem) : undefined,
+      cursor: hasNextPage ? this.paginationService.encodeCursor(lastItem) : '',
       hasNextPage
     };
   }

@@ -1,13 +1,17 @@
-import { ChainId, Collection, CollectionMetadata, CreationFlow, TopOwner } from '@infinityxyz/lib/types/core';
+import {
+  ChainId,
+  Collection,
+  CollectionMetadata,
+  CreationFlow,
+  CurationBlockUser,
+  CurrentCurationSnippetDoc,
+  TopOwner
+} from '@infinityxyz/lib/types/core';
 import { CollectionSearchQueryDto, TopOwnerDto, TopOwnersQueryDto } from '@infinityxyz/lib/types/dto/collections';
 import {
   CuratedCollectionsOrderBy,
   CuratedCollectionsQuery
 } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
-import {
-  CuratedCollectionDto,
-  CuratedCollectionsDto
-} from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 import { ExternalNftCollectionDto, NftCollectionDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { firestoreConstants, getCollectionDocId, getEndCode, getSearchFriendlyString } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
@@ -333,98 +337,98 @@ export default class CollectionsService {
     return externalCollection;
   }
 
-  /**
-   * Fetch all curated collections.
-   * @param query Filter and pagination.
-   * @param user Optional user object. If specified, more info like user votes will be included in each curated collection DTO that matches.
-   */
-  // eslint-disable-next-line @typescript-eslint/require-await
-  async getCurated(query: CuratedCollectionsQuery, user?: ParsedUserId): Promise<CuratedCollectionsDto> {
-    // const collectionsRef = this.firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL);
-    // type Cursor = Record<'address' | 'chainId', string | number>;
+  async getCurated(
+    collectionsQuery: CuratedCollectionsQuery,
+    user?: ParsedUserId
+  ): Promise<{
+    data: (CurrentCurationSnippetDoc & { curator?: CurationBlockUser })[];
+    hasNextPage: boolean;
+    cursor: string;
+  }> {
+    const stakerContractChainId = collectionsQuery.chainId ?? ChainId.Mainnet;
+    const stakerContractAddress = this.curationService.getStakerAddress(stakerContractChainId);
+    let query = this.firebaseService.firestore
+      .collectionGroup('curationSnippets')
+      .where('metadata.stakerContractAddress', '==', stakerContractAddress)
+      .where(
+        'metadata.stakerContractChainId',
+        '==',
+        stakerContractChainId
+      ) as FirebaseFirestore.Query<CurrentCurationSnippetDoc>;
 
-    // const mapOrderByQuery = {
-    //   [CuratedCollectionsOrderBy.Votes]: 'numCuratorVotes',
-    //   [CuratedCollectionsOrderBy.AprHighToLow]: 'numCuratorVotes', // TODO: APRs
-    //   [CuratedCollectionsOrderBy.AprLowToHigh]: 'numCuratorVotes'
-    // };
+    const orderByField = {
+      [CuratedCollectionsOrderBy.Apr]: {
+        primary: 'currentBlock.stats.blockApr',
+        secondary: 'currentBlock.metadata.collectionAddress'
+      },
+      [CuratedCollectionsOrderBy.Votes]: {
+        primary: 'mostRecentCompletedBlock.stats.numCuratorVotes',
+        secondary: 'mostRecentCompletedBlock.metadata.collectionAddress'
+      }
+    };
 
-    // let q = collectionsRef.orderBy(mapOrderByQuery[query.orderBy], query.orderDirection).limit(query.limit + 1);
+    const orderBy = orderByField[collectionsQuery.orderBy];
+    query = query
+      .orderBy(orderBy.primary, collectionsQuery.orderDirection)
+      .orderBy(orderBy.secondary, 'asc')
+      .limit(collectionsQuery.limit + 1);
 
-    // if (query.cursor) {
-    //   const decodedCursor = this.paginationService.decodeCursorToObject<Cursor>(query.cursor);
-    //   const lastDocument = await collectionsRef.doc(`${decodedCursor.chainId}:${decodedCursor.address}`).get();
-    //   q = q.startAfter(lastDocument);
-    // }
+    type Cursor = Record<CuratedCollectionsOrderBy, { value: number; collectionAddress: string }>;
+    const cursor = this.paginationService.decodeCursorToObject<Partial<Cursor>>(collectionsQuery.cursor);
+    const startAt = cursor[collectionsQuery.orderBy];
+    if (typeof startAt?.value === 'number' && startAt.collectionAddress) {
+      query = query.startAt(startAt.value, startAt.collectionAddress);
+    }
 
-    // const snap = await q.get();
-    // const collections = snap.docs.map((item) => item.data() as Collection);
+    const querySnap = await query.get();
+    const results: (CurrentCurationSnippetDoc & { curator?: CurationBlockUser })[] = [];
 
-    // const hasNextPage = collections.length > query.limit;
-    // if (hasNextPage) {
-    //   collections.pop();
-    // }
+    querySnap.docs.forEach((doc, index) => {
+      const data = doc.data() ?? {};
+      results[index] = { ...data };
+    });
 
-    // const lastItem = collections[collections.length - 1];
-    // const cursor = hasNextPage
-    //   ? this.paginationService.encodeCursor({ address: lastItem.address, chainId: lastItem.chainId } as Cursor)
-    //   : undefined;
-    // let curatedCollections: CuratedCollectionDto[] = collections.map((collection) => ({
-    //   address: collection.address,
-    //   chainId: collection.chainId as ChainId,
-    //   name: collection.metadata.name,
-    //   numCuratorVotes: collection.numCuratorVotes || 0,
-    //   profileImage: collection.metadata.profileImage,
-    //   stakerContractAddress: '',
-    //   stakerContractChainId: '' as ChainId,
-    //   slug: collection.slug,
-    //   timestamp: 0,
-    //   userAddress: '',
-    //   userChainId: '' as ChainId,
-    //   fees: 0,
-    //   feesAPR: 0,
-    //   votes: 0
-    // }));
+    if (user) {
+      const curationSnippetUserRefs = querySnap.docs.map((curationSnippetDoc) => {
+        return curationSnippetDoc.ref
+          .collection(firestoreConstants.CURATION_SNIPPET_USERS_COLL)
+          .doc(user.userAddress) as FirebaseFirestore.DocumentReference<CurationBlockUser>;
+      });
 
-    // // If a user was specified, merge curated collections with user curated collections.
-    // // Keep in mind that this changes nothing in regards to the order of the returned curated collections.
-    // if (user && collections.length > 0) {
-    //   const stakerContractChainId = user?.userChainId ?? ChainId.Mainnet;
-    //   const stakerContractAddress = this.curationService.getStakerAddress(stakerContractChainId);
+      const userSnaps = (await this.firebaseService.firestore.getAll(
+        ...curationSnippetUserRefs
+      )) as FirebaseFirestore.DocumentSnapshot<CurationBlockUser>[];
+      userSnaps.forEach((userSnap, index) => {
+        const blockUser = userSnap.data();
+        results[index].curator = blockUser;
+      });
+    }
 
-    //   const collectionAddresses = collections.map((c) => c.address);
-
-    //   const curatorsSnap = await this.firebaseService.firestore
-    //     .collectionGroup(firestoreConstants.COLLECTION_CURATORS_COLL)
-    //     .where('address', 'in', collectionAddresses) // TODO in only supports up to 10 items
-    //     .where('stakerContractChainId', '==', stakerContractChainId)
-    //     .where('stakerContractAddress', '==', stakerContractAddress)
-    //     .where('userAddress', '==', user.userAddress)
-    //     .where('userChainId', '==', user.userChainId)
-    //     .get();
-    //   const curators = curatorsSnap.docs.map((cs) => cs.data() as CuratedCollectionDto);
-
-    //   curatedCollections = curatedCollections.map((curatedCollection) => {
-    //     const userCurated = curators.find(
-    //       (c) => c.address === curatedCollection.address && c.chainId === curatedCollection.chainId
-    //     );
-
-    //     return {
-    //       ...curatedCollection,
-    //       timestamp: userCurated?.timestamp || curatedCollection.timestamp,
-    //       userAddress: userCurated?.userAddress || curatedCollection.userAddress,
-    //       userChainId: userCurated?.userChainId || curatedCollection.userChainId,
-    //       fees: userCurated?.fees || curatedCollection.fees,
-    //       feesAPR: userCurated?.feesAPR || curatedCollection.feesAPR,
-    //       votes: userCurated?.votes || curatedCollection.votes
-    //     };
-    //   });
-    // }
+    let hasNextPage = querySnap.size > collectionsQuery.limit;
+    let updatedCursor = '';
+    if (hasNextPage) {
+      const startAtItem = results.pop();
+      if (startAtItem) {
+        const rawCursor: Cursor = {
+          [CuratedCollectionsOrderBy.Apr]: {
+            value: startAtItem.currentBlock?.stats.blockApr ?? Number.NaN,
+            collectionAddress: startAtItem.metadata.collectionAddress
+          },
+          [CuratedCollectionsOrderBy.Votes]: {
+            value: startAtItem.mostRecentCompletedBlock?.stats.numCuratorVotes ?? Number.NaN,
+            collectionAddress: startAtItem.metadata.collectionAddress
+          }
+        };
+        updatedCursor = this.paginationService.encodeCursor(rawCursor);
+      } else {
+        hasNextPage = false;
+      }
+    }
 
     return {
-      data: {} as any,
-      cursor: '',
-      hasNextPage: false
+      data: results,
+      hasNextPage,
+      cursor: updatedCursor
     };
   }
 }
