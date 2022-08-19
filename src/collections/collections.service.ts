@@ -7,7 +7,13 @@ import {
   CurrentCurationSnippetDoc,
   TopOwner
 } from '@infinityxyz/lib/types/core';
-import { CollectionSearchQueryDto, TopOwnerDto, TopOwnersQueryDto } from '@infinityxyz/lib/types/dto/collections';
+import {
+  CollectionSearchQueryDto,
+  CuratedCollectionDto,
+  CuratedCollectionsDto,
+  TopOwnerDto,
+  TopOwnersQueryDto
+} from '@infinityxyz/lib/types/dto/collections';
 import {
   CuratedCollectionsOrderBy,
   CuratedCollectionsQuery
@@ -337,14 +343,7 @@ export default class CollectionsService {
     return externalCollection;
   }
 
-  async getCurated(
-    collectionsQuery: CuratedCollectionsQuery,
-    user?: ParsedUserId
-  ): Promise<{
-    data: (CurrentCurationSnippetDoc & { curator?: CurationBlockUser })[];
-    hasNextPage: boolean;
-    cursor: string;
-  }> {
+  async getCurated(collectionsQuery: CuratedCollectionsQuery, user?: ParsedUserId): Promise<CuratedCollectionsDto> {
     const stakerContractChainId = collectionsQuery.chainId ?? ChainId.Mainnet;
     const stakerContractAddress = this.curationService.getStakerAddress(stakerContractChainId);
     let query = this.firebaseService.firestore
@@ -395,13 +394,15 @@ export default class CollectionsService {
           .doc(user.userAddress) as FirebaseFirestore.DocumentReference<CurationBlockUser>;
       });
 
-      const userSnaps = (await this.firebaseService.firestore.getAll(
-        ...curationSnippetUserRefs
-      )) as FirebaseFirestore.DocumentSnapshot<CurationBlockUser>[];
-      userSnaps.forEach((userSnap, index) => {
-        const blockUser = userSnap.data();
-        results[index].curator = blockUser;
-      });
+      if (curationSnippetUserRefs.length > 0) {
+        const userSnaps = (await this.firebaseService.firestore.getAll(
+          ...curationSnippetUserRefs
+        )) as FirebaseFirestore.DocumentSnapshot<CurationBlockUser>[];
+        userSnaps.forEach((userSnap, index) => {
+          const blockUser = userSnap.data();
+          results[index].curator = blockUser;
+        });
+      }
     }
 
     let hasNextPage = querySnap.size > collectionsQuery.limit;
@@ -425,8 +426,31 @@ export default class CollectionsService {
       }
     }
 
+    const curatedCollections = results.map((item) => {
+      const curatedCollection: CuratedCollectionDto = {
+        address: item.metadata.collectionAddress,
+        chainId: item.metadata.collectionChainId,
+        stakerContractAddress: item.metadata.stakerContractAddress,
+        stakerContractChainId: item.metadata.stakerContractChainId,
+        tokenContractAddress: item.metadata.tokenContractAddress,
+        tokenContractChainId: item.metadata.tokenContractChainId,
+        userAddress: item.curator?.metadata?.userAddress ?? '',
+        userChainId: item.metadata.collectionChainId,
+        votes: item.curator?.stats?.votes ?? 0,
+        fees: item.curator?.stats?.totalProtocolFeesAccruedEth ?? 0,
+        feesAPR: item.curator?.stats?.blockApr ?? 0,
+        timestamp: item.metadata.updatedAt,
+        slug: item?.collection?.slug,
+        numCuratorVotes:
+          item?.currentBlock?.stats?.numCuratorVotes ?? item?.mostRecentCompletedBlock?.stats?.numCuratorVotes ?? 0,
+        profileImage: item?.collection?.profileImage ?? '',
+        name: item?.collection?.name ?? ''
+      };
+      return curatedCollection;
+    });
+
     return {
-      data: results,
+      data: curatedCollections,
       hasNextPage,
       cursor: updatedCursor
     };

@@ -11,7 +11,7 @@ import { CursorService } from 'pagination/cursor.service';
 import { StatsService } from 'stats/stats.service';
 import { ParsedUserId } from './parser/parsed-user-id';
 import { BadQueryError } from 'common/errors/bad-query.error';
-import { RankingQueryDto } from '@infinityxyz/lib/types/dto/collections';
+import { CuratedCollectionDto, CuratedCollectionsDto, RankingQueryDto } from '@infinityxyz/lib/types/dto/collections';
 import { NftCollectionDto, NftDto, NftArrayDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import {
   UserFollowingCollection,
@@ -28,7 +28,10 @@ import {
   UserActivity
 } from '@infinityxyz/lib/types/dto/user';
 import { BackfillService } from 'backfill/backfill.service';
-import { CuratedCollectionsQuery } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
+import {
+  CuratedCollectionsOrderBy,
+  CuratedCollectionsQuery
+} from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
 import { NftsService } from '../collections/nfts/nfts.service';
 import { AlchemyNft } from '@infinityxyz/lib/types/services/alchemy';
 import { attemptToIndexCollection } from 'utils/collection-indexing';
@@ -449,45 +452,69 @@ export class UserService {
   /**
    * Fetch all user-curated collections.
    */
-  async getAllCurated(
-    user: ParsedUserId,
-    query: CuratedCollectionsQuery
-  ): Promise<{ data: CurationBlockUser[]; hasNextPage: boolean; cursor: string }> {
+  async getAllCurated(user: ParsedUserId, query: CuratedCollectionsQuery): Promise<CuratedCollectionsDto> {
     const stakingContractChainId = user.userChainId;
     const stakingContractAddress = this.curationService.getStakerAddress(stakingContractChainId);
+    const orderBy = {
+      [CuratedCollectionsOrderBy.Votes]: 'stats.votes',
+      [CuratedCollectionsOrderBy.Apr]: 'stats.blockApr'
+    };
     let q = this.firebaseService.firestore
       .collectionGroup(firestoreConstants.CURATION_SNIPPET_USERS_COLL)
       .where('metadata.userAddress', '==', user.userAddress)
       .where('metadata.stakerContractChainId', '==', stakingContractChainId)
       .where('metadata.stakerContractAddress', '==', stakingContractAddress)
-      .orderBy('stats.votes', query.orderDirection)
-      .orderBy('metadata.timestamp', 'desc') as FirebaseFirestore.Query<CurationBlockUser>;
-
-    //TODO order by apr
+      .orderBy(orderBy[query.orderBy], query.orderDirection)
+      .orderBy('metadata.collectionAddress', 'desc') as FirebaseFirestore.Query<CurationBlockUser>;
 
     if (query.cursor) {
       const {
         stats: { votes },
-        metadata: { timestamp }
+        metadata: { collectionAddress }
       } = this.paginationService.decodeCursorToObject<CurationBlockUser>(query.cursor);
-      if (typeof votes === 'number' && typeof timestamp === 'number') {
-        q = q.startAfter(votes, timestamp);
+      if (typeof votes === 'number' && collectionAddress) {
+        q = q.startAt(votes, collectionAddress);
       }
     }
 
     const snap = await q.limit(query.limit + 1).get();
-    const curatedCollections = snap.docs.map((item) => item.data());
+    const curationBlockUsers = snap.docs.map((item) => item.data());
 
-    const hasNextPage = curatedCollections.length > query.limit;
+    let hasNextPage = curationBlockUsers.length > query.limit;
+    let updatedCursor = '';
     if (hasNextPage) {
-      curatedCollections.pop();
+      const startAtItem = curationBlockUsers.pop();
+      if (!startAtItem) {
+        hasNextPage = false;
+      }
+      updatedCursor = this.paginationService.encodeCursor(startAtItem ?? {});
     }
 
-    const lastItem = curatedCollections[curatedCollections.length - 1];
+    const curatedCollections = curationBlockUsers.map((curator) => {
+      const curatedCollection: CuratedCollectionDto = {
+        address: curator.metadata.collectionAddress,
+        chainId: curator.metadata.collectionChainId,
+        stakerContractAddress: curator.metadata.stakerContractAddress,
+        stakerContractChainId: curator.metadata.stakerContractChainId,
+        tokenContractAddress: curator.metadata.tokenContractAddress,
+        tokenContractChainId: curator.metadata.tokenContractChainId,
+        userAddress: curator.metadata.userAddress,
+        userChainId: curator.metadata.collectionChainId,
+        votes: curator.stats.votes,
+        fees: curator.stats.totalProtocolFeesAccruedEth ?? 0,
+        feesAPR: curator.stats.blockApr ?? 0,
+        timestamp: curator.metadata.updatedAt,
+        slug: curator.collection.slug,
+        numCuratorVotes: curator.stats.numCuratorVotes,
+        profileImage: curator.collection.profileImage,
+        name: curator.collection.name
+      };
+      return curatedCollection;
+    });
 
     return {
       data: curatedCollections,
-      cursor: hasNextPage ? this.paginationService.encodeCursor(lastItem) : '',
+      cursor: updatedCursor,
       hasNextPage
     };
   }

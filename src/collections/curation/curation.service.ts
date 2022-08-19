@@ -9,7 +9,11 @@ import { TokenContractService } from 'ethereum/contracts/token.contract.service'
 import { FirebaseService } from 'firebase/firebase.service';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 import { ParsedBulkVotes } from './bulk-votes.pipe';
-import { CurationLedgerEvent, CurationVotesAdded } from '@infinityxyz/lib/types/core/curation-ledger';
+import {
+  CurationBlockUser,
+  CurationLedgerEvent,
+  CurationVotesAdded
+} from '@infinityxyz/lib/types/core/curation-ledger';
 import { CurationQuotaDto } from '@infinityxyz/lib/types/dto/collections/curation/curation-quota.dto';
 import { EthereumService } from 'ethereum/ethereum.service';
 
@@ -81,6 +85,7 @@ export class CurationService {
         stakingContractChainId,
         stakingContract
       );
+      // TODO update functions and this to support a live list of collections a user has voted on
       const curatedCollectionUpdate: CuratedCollectionDto = {
         votes: curatedCollectionVotes + votes,
         userAddress: parsedUser.userAddress,
@@ -91,10 +96,9 @@ export class CurationService {
         name: collection?.metadata?.name ?? '',
         profileImage: collection?.metadata?.profileImage ?? '',
         slug: collection?.slug ?? '',
-        // TODO: APRs
         fees: 0,
         feesAPR: 0,
-        numCuratorVotes: 0, // TODO find a better way to update this
+        numCuratorVotes: 0,
         stakerContractAddress: stakingContract,
         stakerContractChainId: stakingContractChainId,
         tokenContractAddress,
@@ -189,24 +193,41 @@ export class CurationService {
   ): Promise<CuratedCollectionDto | null> {
     const stakingContractChainId = user.userChainId;
     const stakingContractAddress = this.getStakerAddress(stakingContractChainId);
-    const snap = await this.firebaseService.firestore
-      .collectionGroup(firestoreConstants.COLLECTION_CURATORS_COLL)
-      .where('userAddress', '==', user.userAddress)
-      .where('userChainId', '==', user.userChainId)
-      .where('address', '==', collection.address)
-      .where('chainId', '==', collection.chainId)
-      .where('stakerContractChainId', '==', stakingContractChainId)
-      .where('stakerContractAddress', '==', stakingContractAddress)
-      .limit(1)
-      .get();
-
-    const doc = snap.docs[0];
-
-    if (!doc?.exists) {
+    const curatorRef = this.firebaseService.firestore
+      .collection(`${firestoreConstants.COLLECTIONS_COLL}`)
+      .doc(`${collection.chainId}:${collection.address}`)
+      .collection(firestoreConstants.COLLECTION_CURATION_COLL)
+      .doc(`${stakingContractChainId}:${stakingContractAddress}`)
+      .collection('curationSnippets')
+      .doc(firestoreConstants.CURATION_SNIPPET_DOC)
+      .collection(firestoreConstants.CURATION_SNIPPET_USERS_COLL)
+      .doc(user.userAddress) as FirebaseFirestore.DocumentReference<CurationBlockUser>;
+    const curatorSnap = await curatorRef.get();
+    const curator = curatorSnap.data();
+    if (!curator) {
       return null;
     }
 
-    return doc.data() as CuratedCollectionDto;
+    const curatedCollection: CuratedCollectionDto = {
+      address: curator.metadata.collectionAddress,
+      chainId: curator.metadata.collectionChainId,
+      stakerContractAddress: curator.metadata.stakerContractAddress,
+      stakerContractChainId: curator.metadata.stakerContractChainId,
+      tokenContractAddress: curator.metadata.tokenContractAddress,
+      tokenContractChainId: curator.metadata.tokenContractChainId,
+      userAddress: curator.metadata.userAddress,
+      userChainId: curator.metadata.collectionChainId,
+      votes: curator.stats.votes,
+      fees: curator.stats.totalProtocolFeesAccruedEth ?? 0,
+      feesAPR: curator.stats.blockApr ?? 0,
+      timestamp: curator.metadata.updatedAt,
+      slug: curator.collection.slug,
+      numCuratorVotes: curator.stats.numCuratorVotes,
+      profileImage: curator.collection.profileImage,
+      name: curator.collection.name
+    };
+
+    return curatedCollection;
   }
 
   /**

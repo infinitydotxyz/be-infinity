@@ -403,7 +403,10 @@ export class UserController {
   @ApiOkResponse({ description: ResponseDescription.Success, type: CuratedCollectionsDto })
   @ApiParamUserId('userId')
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  getCurated(@ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId, @Query() query: CuratedCollectionsQuery) {
+  getCurated(
+    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
+    @Query() query: CuratedCollectionsQuery
+  ): Promise<CuratedCollectionsDto> {
     return this.userService.getAllCurated(user, query);
   }
 

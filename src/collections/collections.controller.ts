@@ -63,7 +63,10 @@ import { CuratedCollectionsQuery } from '@infinityxyz/lib/types/dto/collections/
 import { CurationService } from './curation/curation.service';
 import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
-import { CuratedCollectionDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
+import {
+  CuratedCollectionDto,
+  CuratedCollectionsDto
+} from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 import { Auth } from 'auth/api-auth.decorator';
 import { SiteRole } from 'auth/auth.constants';
 import { ParamUserId } from 'auth/param-user-id.decorator';
@@ -250,7 +253,7 @@ export class CollectionsController {
   async getAllCuratedByUserId(
     @Query() query: CuratedCollectionsQuery,
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId
-  ) {
+  ): Promise<CuratedCollectionsDto> {
     return this.collectionsService.getCurated(query, user);
   }
 
@@ -268,11 +271,11 @@ export class CollectionsController {
   async getCurated(
     @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId
-  ) {
+  ): Promise<CuratedCollectionDto> {
     const curated = await this.curationService.findUserCurated(user, collection);
 
     if (!curated) {
-      return {};
+      throw new NotFoundException(`Failed to find user curation data for collection ${collection.address}`);
     }
 
     return curated;
