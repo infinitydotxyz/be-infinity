@@ -1,4 +1,4 @@
-import { ChainId, StakeDuration } from '@infinityxyz/lib/types/core';
+import { ChainId, Collection, StakeDuration } from '@infinityxyz/lib/types/core';
 import { CuratedCollectionDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 import { UserStakeDto } from '@infinityxyz/lib/types/dto/user';
 import { firestoreConstants, getTokenAddressByStakerAddress, getTotalStaked } from '@infinityxyz/lib/utils';
@@ -16,9 +16,11 @@ import {
 } from '@infinityxyz/lib/types/core/curation-ledger';
 import { CurationQuotaDto } from '@infinityxyz/lib/types/dto/collections/curation/curation-quota.dto';
 import { EthereumService } from 'ethereum/ethereum.service';
+import { partitionArray } from 'utils';
 
 @Injectable()
 export class CurationService {
+  private static BULK_VOTE_CHUNK_LIMIT = 100;
   constructor(
     private firebaseService: FirebaseService,
     private stakerContractService: StakerContractService,
@@ -28,9 +30,6 @@ export class CurationService {
 
   /**
    * Vote on a specific NFT collection.
-   *
-   * User votes are stored in the `collections` collection
-   * and the total amount of votes is stored in the `users` collection for quick reads.
    */
   async vote({
     parsedCollectionId,
@@ -41,107 +40,7 @@ export class CurationService {
     user: ParsedUserId;
     votes: number;
   }) {
-    const collectionSnap = await parsedCollectionId.ref.get();
-    const collection = collectionSnap.data() ?? {};
-    const currentBlock = await this.ethereumService.getCurrentBlock(parsedUser.userChainId);
-    const res = await this.firebaseService.firestore.runTransaction(async (txn) => {
-      const stakingContractChainId = parsedUser.userChainId;
-      const stakingContract = this.getStakerAddress(stakingContractChainId);
-      const collectionStakingDocRef = parsedCollectionId.ref
-        .collection(firestoreConstants.COLLECTION_CURATION_COLL)
-        .doc(`${stakingContractChainId}:${stakingContract}`);
-      const curatorDocRef = collectionStakingDocRef
-        .collection(firestoreConstants.COLLECTION_CURATORS_COLL)
-        .doc(parsedUser.ref.id) as FirebaseFirestore.DocumentReference<CuratedCollectionDto>;
-
-      const userStakeRef = parsedUser.ref
-        .collection(firestoreConstants.USER_CURATION_COLL)
-        .doc(`${stakingContractChainId}:${stakingContract}`) as FirebaseFirestore.DocumentReference<UserStakeDto>;
-
-      const [userStakeSnap, curatedCollectionSnap] = (await txn.getAll<UserStakeDto | CuratedCollectionDto>(
-        userStakeRef,
-        curatorDocRef
-      )) as [
-        FirebaseFirestore.DocumentSnapshot<UserStakeDto>,
-        FirebaseFirestore.DocumentSnapshot<CuratedCollectionDto>
-      ];
-      const curatedCollection: Partial<CuratedCollectionDto> = curatedCollectionSnap.data() ?? {};
-      const userStake: Partial<UserStakeDto> = userStakeSnap.data() ?? {};
-
-      const stakePower = userStake.stakePower ?? 0;
-      const totalCuratedVotes = userStake?.totalCuratedVotes ?? 0;
-      const totalCurated = userStake?.totalCurated ?? 0;
-      const availableVotes = stakePower - totalCuratedVotes;
-      const curatedCollectionVotes = curatedCollection.numCuratorVotes ?? 0;
-
-      if (votes > availableVotes) {
-        return {
-          success: false,
-          message: `Insufficient amount of votes available. You have ${availableVotes} votes available, but attempted to use ${votes} votes.`
-        };
-      }
-
-      const { tokenContractAddress, tokenContractChainId } = getTokenAddressByStakerAddress(
-        stakingContractChainId,
-        stakingContract
-      );
-      // TODO update functions and this to support a live list of collections a user has voted on
-      const curatedCollectionUpdate: CuratedCollectionDto = {
-        votes: curatedCollectionVotes + votes,
-        userAddress: parsedUser.userAddress,
-        userChainId: parsedUser.userChainId,
-        timestamp: Date.now(),
-        address: collection?.address || parsedCollectionId.address,
-        chainId: collection?.chainId || parsedCollectionId.chainId,
-        name: collection?.metadata?.name ?? '',
-        profileImage: collection?.metadata?.profileImage ?? '',
-        slug: collection?.slug ?? '',
-        fees: 0,
-        feesAPR: 0,
-        numCuratorVotes: 0,
-        stakerContractAddress: stakingContract,
-        stakerContractChainId: stakingContractChainId,
-        tokenContractAddress,
-        tokenContractChainId
-      };
-
-      const updatedTotalCurated = curatedCollectionVotes === 0 ? 1 + totalCurated : totalCurated;
-      const updatedTotalCuratedVotes = totalCuratedVotes + votes;
-      const userStakeUpdate: Partial<UserStakeDto> = {
-        stakerContractAddress: stakingContract,
-        stakerContractChainId: stakingContractChainId,
-        totalCurated: updatedTotalCurated,
-        totalCuratedVotes: updatedTotalCuratedVotes
-      };
-
-      const voteEvent: CurationVotesAdded = {
-        votes,
-        collectionAddress: collection?.address || parsedCollectionId.address,
-        stakerContractAddress: stakingContract,
-        stakerContractChainId: stakingContractChainId,
-        userAddress: parsedUser.userAddress,
-        discriminator: CurationLedgerEvent.VotesAdded,
-        blockNumber: currentBlock.number,
-        timestamp: currentBlock.timestamp * 1000,
-        updatedAt: Date.now(),
-        collectionChainId: parsedCollectionId.chainId,
-        tokenContractAddress: tokenContractAddress,
-        tokenContractChainId: tokenContractChainId,
-        isStakeMerged: false,
-        isAggregated: false,
-        isDeleted: false,
-        isFeedUpdated: false
-      };
-      const voteEventRef = collectionStakingDocRef.collection(firestoreConstants.CURATION_LEDGER_COLL).doc();
-
-      txn.set(userStakeRef, userStakeUpdate, { merge: true });
-      txn.set(curatorDocRef, curatedCollectionUpdate, { merge: true });
-      txn.create(voteEventRef, voteEvent);
-      return {
-        success: true
-      };
-    });
-    return res;
+    return await this.voteBulk([{ votes, parsedCollectionId }], parsedUser);
   }
 
   /**
@@ -151,15 +50,196 @@ export class CurationService {
    * @returns
    */
   async voteBulk(votes: ParsedBulkVotes[], user: ParsedUserId) {
-    // votes should be executed in series to prevent too many transaction locks on the user document
-    for (const vote of votes) {
-      const result = await this.vote({ parsedCollectionId: vote.parsedCollectionId, user, votes: vote.votes });
-      if (!result.success) {
-        return result;
+    const collectionVotes = new Map<string, ParsedBulkVotes>();
+    for (const item of votes) {
+      const id = `${item.parsedCollectionId.chainId}:${item.parsedCollectionId.address}`;
+      const collection = collectionVotes.get(id) ?? { parsedCollectionId: item.parsedCollectionId, votes: 0 };
+      collection.votes += item.votes;
+      if (user.userChainId !== item.parsedCollectionId.chainId) {
+        throw new Error(
+          `User ${user.userChainId} is not on the same chain as collection ${item.parsedCollectionId.chainId}`
+        );
       }
     }
+
+    const votesByCollection = [...collectionVotes.values()];
+    const chunks = partitionArray(votesByCollection, CurationService.BULK_VOTE_CHUNK_LIMIT);
+    for (const chunk of chunks) {
+      await this._voteOnBulkChunk(chunk, user);
+    }
+  }
+
+  protected async _voteOnBulkChunk(votes: ParsedBulkVotes[], parsedUser: ParsedUserId) {
+    // TODO update functions and this to support a live list of collections a user has voted on
+    const totalVotes = votes.reduce((acc, { votes }) => acc + votes, 0);
+    if (votes.length > CurationService.BULK_VOTE_CHUNK_LIMIT) {
+      throw new Error('Bulk vote chunk limit exceeded.');
+    }
+
+    const collectionRefs = votes.map((item) => item.parsedCollectionId.ref);
+    const collectionSnaps = (await this.firebaseService.firestore.getAll(
+      ...collectionRefs
+    )) as FirebaseFirestore.DocumentSnapshot<Partial<Collection>>[];
+    const currentBlock = await this.ethereumService.getCurrentBlock(parsedUser.userChainId);
+
+    await this.firebaseService.firestore.runTransaction(async (txn) => {
+      const collectionsVotedOn = new Set<string>();
+      const stakingContractChainId = parsedUser.userChainId;
+      const stakingContractAddress = this.getStakerAddress(stakingContractChainId);
+      const { tokenContractAddress, tokenContractChainId } = getTokenAddressByStakerAddress(
+        stakingContractChainId,
+        stakingContractAddress
+      );
+      const userStakeRef = parsedUser.ref
+        .collection(firestoreConstants.USER_CURATION_COLL)
+        .doc(
+          `${stakingContractChainId}:${stakingContractAddress}`
+        ) as FirebaseFirestore.DocumentReference<UserStakeDto>;
+
+      const userStakeSnap = await txn.get(userStakeRef);
+      const userStake: Partial<UserStakeDto> = userStakeSnap.data() ?? {};
+      const stakePower = userStake.stakePower ?? 0;
+      let totalCuratedVotes = userStake?.totalCuratedVotes ?? 0;
+      let totalCurated = userStake?.totalCurated ?? 0;
+      const availableVotes = stakePower - totalCuratedVotes;
+
+      if (totalVotes > availableVotes) {
+        throw new Error(
+          `Insufficient amount of votes available. User has ${availableVotes} votes available, but attempted to use ${totalVotes} votes.`
+        );
+      }
+
+      const curatedCollectionRefs = votes.map((item) => {
+        const curatorDocRef = item.parsedCollectionId.ref
+          .collection(firestoreConstants.COLLECTION_CURATION_COLL)
+          .doc(`${stakingContractChainId}:${stakingContractAddress}`)
+          .collection(firestoreConstants.COLLECTION_CURATORS_COLL)
+          .doc(parsedUser.ref.id) as FirebaseFirestore.DocumentReference<CuratedCollectionDto>;
+        return curatorDocRef;
+      });
+      const curatedCollectionSnaps = await txn.getAll(...curatedCollectionRefs);
+
+      const contracts = {
+        stakingContractAddress,
+        stakingContractChainId,
+        tokenContractAddress,
+        tokenContractChainId
+      };
+
+      votes.forEach((vote, index) => {
+        const collectionSnap = collectionSnaps[index];
+        const curatedCollectionSnap = curatedCollectionSnaps[index];
+        if (vote.parsedCollectionId.chainId !== parsedUser.userChainId) {
+          throw new Error('User is not on the same chain as collection.');
+        } else if (collectionsVotedOn.has(vote.parsedCollectionId.address)) {
+          throw new Error('Cannot vote on the same collection multiple times.');
+        } else if (!collectionSnap || !curatedCollectionSnap) {
+          throw new Error('Failed to get collection or curated collection snapshot.');
+        }
+
+        const { totalCurated: updatedTotalCurated, totalCuratedVotes: updatedTotalCuratedVotes } = this._vote(
+          txn,
+          vote,
+          parsedUser,
+          collectionSnap,
+          curatedCollectionSnap,
+          totalCurated,
+          totalCuratedVotes,
+          currentBlock,
+          contracts
+        );
+        totalCurated = updatedTotalCurated;
+        totalCuratedVotes = updatedTotalCuratedVotes;
+        collectionsVotedOn.add(vote.parsedCollectionId.address);
+      });
+
+      const userStakeUpdate: Partial<UserStakeDto> = {
+        stakerContractAddress: stakingContractAddress,
+        stakerContractChainId: stakingContractChainId,
+        totalCurated,
+        totalCuratedVotes
+      };
+      txn.set(userStakeRef, userStakeUpdate, { merge: true });
+    });
+  }
+
+  protected _vote(
+    txn: FirebaseFirestore.Transaction,
+    vote: ParsedBulkVotes,
+    parsedUser: ParsedUserId,
+    collectionSnap: FirebaseFirestore.DocumentSnapshot<Partial<Collection>>,
+    curatedCollectionSnap: FirebaseFirestore.DocumentSnapshot<CuratedCollectionDto>,
+    totalCurated: number,
+    totalCuratedVotes: number,
+    currentBlock: { number: number; timestamp: number },
+    contracts: {
+      stakingContractAddress: string;
+      stakingContractChainId: ChainId;
+      tokenContractAddress: string;
+      tokenContractChainId: ChainId;
+    }
+  ): {
+    totalCurated: number;
+    totalCuratedVotes: number;
+  } {
+    const collection = collectionSnap.data() ?? {};
+    const curatedCollection: Partial<CuratedCollectionDto> = curatedCollectionSnap.data() ?? {};
+    const curatedCollectionVotes = curatedCollection.votes ?? 0;
+
+    const curatedCollectionUpdate: CuratedCollectionDto = {
+      votes: curatedCollectionVotes + vote.votes,
+      userAddress: parsedUser.userAddress,
+      userChainId: parsedUser.userChainId,
+      timestamp: Date.now(),
+      address: vote.parsedCollectionId.address,
+      chainId: vote.parsedCollectionId.chainId,
+      name: collection?.metadata?.name ?? '',
+      profileImage: collection?.metadata?.profileImage ?? '',
+      slug: collection?.slug ?? '',
+      fees: 0,
+      feesAPR: 0,
+      numCuratorVotes: 0,
+      stakerContractAddress: contracts.stakingContractAddress,
+      stakerContractChainId: contracts.stakingContractChainId,
+      tokenContractAddress: contracts.tokenContractAddress,
+      tokenContractChainId: contracts.tokenContractChainId
+    };
+
+    const voteEvent: CurationVotesAdded = {
+      votes: vote.votes,
+      collectionAddress: vote.parsedCollectionId.address,
+      collectionChainId: vote.parsedCollectionId.chainId,
+      stakerContractAddress: contracts.stakingContractAddress,
+      stakerContractChainId: contracts.stakingContractChainId,
+      userAddress: parsedUser.userAddress,
+      discriminator: CurationLedgerEvent.VotesAdded,
+      blockNumber: currentBlock.number,
+      timestamp: currentBlock.timestamp * 1000,
+      updatedAt: Date.now(),
+      tokenContractAddress: contracts.tokenContractAddress,
+      tokenContractChainId: contracts.tokenContractChainId,
+      isStakeMerged: false,
+      isAggregated: false,
+      isDeleted: false,
+      isFeedUpdated: false
+    };
+
+    const collectionStakingDocRef = vote.parsedCollectionId.ref
+      .collection(firestoreConstants.COLLECTION_CURATION_COLL)
+      .doc(`${contracts.stakingContractChainId}:${contracts.stakingContractAddress}`);
+    const voteEventRef = collectionStakingDocRef.collection(firestoreConstants.CURATION_LEDGER_COLL).doc();
+
+    txn.set(curatedCollectionSnap.ref, curatedCollectionUpdate, { merge: true });
+    txn.create(voteEventRef, voteEvent);
+
+    if (curatedCollectionVotes === 0) {
+      totalCurated += 1;
+    }
+    totalCuratedVotes += vote.votes;
+
     return {
-      success: true
+      totalCurated,
+      totalCuratedVotes
     };
   }
 

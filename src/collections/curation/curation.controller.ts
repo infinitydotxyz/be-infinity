@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, ParseArrayPipe, Post } from '@nestjs/common';
+import { Body, Controller, ParseArrayPipe, Post } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBody,
@@ -46,10 +46,7 @@ export class CurationController {
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
     @Body() vote: CurationVoteDto
   ) {
-    const result = await this.curationService.vote({ parsedCollectionId, user, votes: vote.votes });
-    if (!result.success) {
-      throw new BadRequestException(result.message);
-    }
+    await this.curationService.vote({ parsedCollectionId, user, votes: vote.votes });
   }
 
   @Post('curated/:userId')
@@ -67,9 +64,6 @@ export class CurationController {
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
     @Body(new ParseArrayPipe({ items: CurationVoteBulkDto }), ParsedBulkVotesPipe) votes: ParsedBulkVotes[]
   ) {
-    const result = await this.curationService.voteBulk(votes, user);
-    if (!result.success) {
-      throw new BadRequestException(result.message);
-    }
+    await this.curationService.voteBulk(votes, user);
   }
 }

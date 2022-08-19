@@ -96,3 +96,11 @@ export function randomItem<T>(array: T[]): T {
 const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 const nanoid = customAlphabet(alphabet, 24);
 export const generateUUID = nanoid;
+
+export function partitionArray<T>(array: T[], size: number): T[][] {
+  const result = [];
+  for (let i = 0; i < array.length; i += size) {
+    result.push(array.slice(i, i + size));
+  }
+  return result;
+}
