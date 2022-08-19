@@ -21,7 +21,7 @@ export class MnemonicService {
   private readonly client: AxiosInstance;
 
   constructor(private config: ConfigService<EnvironmentVariables, true>) {
-    const apiKey = this.config.get('mnemonicApiKey');
+    const apiKey = this.config.get('MNEMONIC_API_KEY');
 
     if (!apiKey) {
       throw new Error('Mnemonic API key is not set');

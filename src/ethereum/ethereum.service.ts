@@ -11,9 +11,9 @@ export class EthereumService {
   private _providers: Map<ChainId, ethers.providers.StaticJsonRpcProvider> = new Map();
 
   constructor(private configService: ConfigService<EnvironmentVariables, true>) {
-    const mainnetUrl = this.configService.get('alchemyJsonRpcEthMainnet');
-    const polygonUrl = this.configService.get('alchemyJsonRpcPolygonMainnet');
-    const goerliUrl = this.configService.get('alchemyJsonRpcEthGoerli');
+    const mainnetUrl = this.configService.get('ALCHEMY_JSON_RPC_ETH_MAINNET');
+    const polygonUrl = this.configService.get('ALCHEMY_JSON_RPC_POLYGON_MAINNET');
+    const goerliUrl = this.configService.get('ALCHEMY_JSON_RPC_GOERLI_MAINNET');
     const providerUrlByChainId = {
       [ChainId.Mainnet]: mainnetUrl,
       [ChainId.Polygon]: polygonUrl,
@@ -29,7 +29,7 @@ export class EthereumService {
     }
   }
 
-  private getProvider(chainId: ChainId) {
+  public getProvider(chainId: ChainId) {
     const provider = this._providers.get(chainId);
     if (!provider) {
       throw new Error(`Provider is not configured for chainId: ${chainId}`);

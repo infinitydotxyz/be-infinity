@@ -33,7 +33,7 @@ export class TwitterService {
     private paginationService: CursorService
   ) {
     this.fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
-    const bearer = this.config.get('twitterBearerToken');
+    const bearer = this.config.get('TWITTER_BEARER_TOKEN');
     this.client = axios.create({
       baseURL: 'https://api.twitter.com/2/',
       headers: {

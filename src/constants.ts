@@ -53,23 +53,23 @@ export const validateAndTransformEnvVariables = (env: Record<string, string>) =>
   const openseaApiKeys = getMultipleEnvVariables('OPENSEA_API_KEY', 1, env);
   const INFINITY_NODE_ENV = (env.INFINITY_NODE_ENV as Env | undefined) ?? Env.Prod;
   const isProd = INFINITY_NODE_ENV === Env.Prod;
-  const firebaseServiceAccountName = isProd ? 'nftc-infinity-firebase-creds.json' : 'nftc-test2-firebase-creds.json';
-  const firebaseServiceAccount = loadJsonFile<object>(firebaseServiceAccountName);
+  const firebaseServiceAccountName = isProd ? 'nftc-infinity-firebase-creds.json' : 'nftc-test2-firebase-creds.json'; // TODO CHANGE BACK
+  const FIREBASE_SERVICE_ACCOUNT = loadJsonFile<object>(firebaseServiceAccountName);
 
   const envVariables: EnvironmentVariables = {
-    twitterBearerToken: env.twitterBearerToken,
+    TWITTER_BEARER_TOKEN: env.TWITTER_BEARER_TOKEN,
     ALCHEMY_API_KEY: env.ALCHEMY_API_KEY,
-    mnemonicApiKey: env.mnemonicApiKey,
-    alchemyJsonRpcEthMainnet: env.alchemyJsonRpcEthMainnet,
-    alchemyJsonRpcPolygonMainnet: env.alchemyJsonRpcPolygonMainnet,
-    alchemyJsonRpcEthGoerli: env.alchemyJsonRpcEthGoerli,
+    MNEMONIC_API_KEY: env.MNEMONIC_API_KEY,
+    ALCHEMY_JSON_RPC_ETH_MAINNET: env.ALCHEMY_JSON_RPC_ETH_MAINNET,
+    ALCHEMY_JSON_RPC_POLYGON_MAINNET: env.ALCHEMY_JSON_RPC_POLYGON_MAINNET,
+    ALCHEMY_JSON_RPC_GOERLI_MAINNET: env.ALCHEMY_JSON_RPC_GOERLI_MAINNET,
     REDIS_URL: env.REDIS_URL ?? '',
     GEM_API_KEY: env.GEM_API_KEY,
     OPENSEA_API_KEYS: openseaApiKeys,
     RESERVOIR_API_KEY: env.RESERVOIR_API_KEY,
     ZORA_API_KEY: env.ZORA_API_KEY,
     INFINITY_NODE_ENV,
-    firebaseServiceAccount
+    FIREBASE_SERVICE_ACCOUNT
   };
 
   for (const key of Object.keys(envVariables) as (keyof EnvironmentVariables)[]) {

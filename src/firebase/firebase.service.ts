@@ -28,18 +28,30 @@ export class FirebaseService {
     @Inject(FIREBASE_OPTIONS) private options: FirebaseModuleOptions,
     private configService: ConfigService<EnvironmentVariables, true>
   ) {
+    console.log(`INIT FIRESTORE. APPS: ${firebaseAdmin.apps.length}`);
+    let app: firebaseAdmin.app.App | null = null;
     if (firebaseAdmin.apps.length == 0) {
-      const cert = this.options.cert ? this.options.cert : this.configService.get('firebaseServiceAccount');
-      firebaseAdmin.initializeApp(
+      const cert = this.options.cert ? this.options.cert : this.configService.get('FIREBASE_SERVICE_ACCOUNT');
+      console.log(`INITIALIZING WITH ACCOUNT: ${cert}`);
+      app = firebaseAdmin.initializeApp(
         {
           credential: firebaseAdmin.credential.cert(cert),
           storageBucket: options.storageBucket
         },
         options.certName
       );
+    } else if (firebaseAdmin.apps.length > 0) {
+      const existingApp = firebaseAdmin.apps[0];
+      if (existingApp) {
+        app = existingApp;
+      }
     }
-    this._firestore = firebaseAdmin.firestore();
+    if (!app) {
+      throw new Error('Failed to initialize app');
+    }
+    this._firestore = firebaseAdmin.firestore(app);
     this._firestore.settings({ ignoreUndefinedProperties: true });
+    console.log(`FIRESTORE INITIALIZED`);
   }
 
   /**
