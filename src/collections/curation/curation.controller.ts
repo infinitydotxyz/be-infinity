@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, ParseArrayPipe, Post } from '@nestjs/common';
+import { Body, Controller, ParseArrayPipe, Post } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBody,
@@ -46,17 +46,7 @@ export class CurationController {
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
     @Body() vote: CurationVoteDto
   ) {
-    const availableVotes = await this.curationService.getAvailableVotes(user);
-
-    if (availableVotes <= 0 || availableVotes < vote.votes) {
-      throw new BadRequestException('Insufficient amount of votes available');
-    }
-
-    await this.curationService.vote({
-      parsedCollectionId,
-      user,
-      votes: vote.votes
-    });
+    await this.curationService.vote({ parsedCollectionId, user, votes: vote.votes });
   }
 
   @Post('curated/:userId')
@@ -74,13 +64,6 @@ export class CurationController {
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
     @Body(new ParseArrayPipe({ items: CurationVoteBulkDto }), ParsedBulkVotesPipe) votes: ParsedBulkVotes[]
   ) {
-    const totalVotesToSpend = votes.map((v) => v.votes).reduce((x: number, y: number) => x + y, 0);
-    const availableVotes = await this.curationService.getAvailableVotes(user);
-
-    if (availableVotes <= 0 || availableVotes < totalVotesToSpend) {
-      throw new BadRequestException('Insufficient amount of votes available');
-    }
-
-    return this.curationService.voteBulk(votes, user);
+    await this.curationService.voteBulk(votes, user);
   }
 }

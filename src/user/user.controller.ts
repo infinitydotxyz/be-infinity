@@ -404,11 +404,14 @@ export class UserController {
   @ApiOkResponse({ description: ResponseDescription.Success, type: CuratedCollectionsDto })
   @ApiParamUserId('userId')
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  getCurated(@ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId, @Query() query: CuratedCollectionsQuery) {
+  getCurated(
+    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
+    @Query() query: CuratedCollectionsQuery
+  ): Promise<CuratedCollectionsDto> {
     return this.userService.getAllCurated(user, query);
   }
 
-  @Get(':userId/curated/quota')
+  @Get(':userId/curatedQuota')
   @ApiOperation({
     description: "Get the user's available votes for curation",
     tags: [ApiTag.User, ApiTag.Collection, ApiTag.Curation]
@@ -417,8 +420,8 @@ export class UserController {
   @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   async getCurationQuota(@ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId): Promise<CurationQuotaDto> {
-    await sleep(0); // will be fixed once pr#245 is merged
-    return {} as any;
+    const quota = await this.curationService.getUserCurationQuota(user);
+    return quota;
   }
 
   @Get(':userId/followingCollections')

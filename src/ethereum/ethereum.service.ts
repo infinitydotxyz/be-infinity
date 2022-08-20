@@ -38,6 +38,13 @@ export class EthereumService {
     return provider;
   }
 
+  async getCurrentBlock(chainId: ChainId): Promise<ethers.providers.Block> {
+    const provider = this.getProvider(chainId);
+    const blockNumber = await provider.getBlockNumber();
+    const block = await provider.getBlock(blockNumber);
+    return block;
+  }
+
   async getErc721Owner(token: { address: string; tokenId: string; chainId: string }): Promise<string> {
     try {
       const provider = this.getProvider(token.chainId as ChainId);
