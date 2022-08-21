@@ -81,7 +81,6 @@ import { SiteRole } from 'auth/auth.constants';
 import { ApiParamUserId, Auth } from 'auth/api-auth.decorator';
 import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
 import { Throttle } from '@nestjs/throttler';
-import { sleep } from '@infinityxyz/lib/utils';
 
 @Controller('user')
 export class UserController {

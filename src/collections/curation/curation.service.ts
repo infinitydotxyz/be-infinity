@@ -332,19 +332,19 @@ export class CurationService {
       stakerContractAddress: snap.get('stakerContractAddress') || stakerContractAddress,
       stakerContractChainId: snap.get('stakerContractChainId') || stakerContractChainId,
       stakeInfo: snap.get('stakeInfo') || {
-        [StakeDuration.X0]: {
+        [StakeDuration.None]: {
           amount: '0',
           timestamp: NaN
         },
-        [StakeDuration.X3]: {
+        [StakeDuration.ThreeMonths]: {
           amount: '0',
           timestamp: NaN
         },
-        [StakeDuration.X6]: {
+        [StakeDuration.SixMonths]: {
           amount: '0',
           timestamp: NaN
         },
-        [StakeDuration.X12]: {
+        [StakeDuration.TwelveMonths]: {
           amount: '0',
           timestamp: NaN
         }
