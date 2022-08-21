@@ -14,6 +14,9 @@ import { ErrorResponseDto } from 'common/dto/error-response.dto';
 import { ResponseDescription } from 'common/response-description';
 import { FeedService } from './feed.service';
 import { IncrementQuery } from './feed.types';
+import { Get, Query, UseInterceptors } from '@nestjs/common';
+import { NftActivityArrayDto, NftActivityFiltersDto } from '@infinityxyz/lib/types/dto/collections/nfts';
+import { CacheControlInterceptor } from 'common/interceptors/cache-control.interceptor';
 
 @Controller('feed')
 export class FeedController {
@@ -33,5 +36,24 @@ export class FeedController {
     await this.feedService.incrementLikes(payload);
 
     return true;
+  }
+
+  @Get('activity')
+  @ApiOperation({
+    description: 'Get activity',
+    tags: [ApiTag.Feed]
+  })
+  @ApiOkResponse({ description: ResponseDescription.Success, type: NftActivityArrayDto })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 2 }))
+  async getActivity(@Query() filters: NftActivityFiltersDto) {
+    const { data, cursor, hasNextPage } = await this.feedService.getActivity(filters);
+
+    return {
+      data,
+      cursor,
+      hasNextPage
+    };
   }
 }

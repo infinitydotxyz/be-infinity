@@ -1,9 +1,10 @@
 import { BaseCollection, ChainId, CollectionMetadata, TokenStandard } from '@infinityxyz/lib/types/core';
 import { getSearchFriendlyString, sleep } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ethers } from 'ethers';
 import got, { Got, Response } from 'got/dist/source';
-import { GEM_API_KEY } from '../constants';
+import { EnvironmentVariables } from 'types/environment-variables.interface';
 import { gotErrorHandler } from '../utils/got';
 import { GemCollectionResponse } from './gem.types';
 
@@ -11,7 +12,9 @@ import { GemCollectionResponse } from './gem.types';
 export class GemService {
   private readonly client: Got;
 
-  constructor() {
+  constructor(private configService: ConfigService<EnvironmentVariables, true>) {
+    const gemApiKey = this.configService.get('GEM_API_KEY');
+
     this.client = got.extend({
       prefixUrl: 'https://gem-public-api.herokuapp.com/',
       hooks: {
@@ -22,7 +25,7 @@ export class GemService {
                 options.headers = {};
               }
 
-              options.headers['x-api-key'] = GEM_API_KEY;
+              options.headers['x-api-key'] = gemApiKey;
             }
           }
         ]

@@ -1,8 +1,6 @@
 import { ChainId, OrderDirection } from '@infinityxyz/lib/types/core';
-import { EventType, NftListingEvent, NftOfferEvent, NftSaleEvent } from '@infinityxyz/lib/types/core/feed';
 import {
   ExternalNftDto,
-  NftActivity,
   NftActivityFiltersDto,
   NftActivityQueryDto,
   NftArrayDto,
@@ -20,6 +18,7 @@ import CollectionsService from 'collections/collections.service';
 import { EthereumService } from 'ethereum/ethereum.service';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
+import { typeToActivity } from 'utils/activity';
 
 @Injectable()
 export class NftsService {
@@ -315,91 +314,8 @@ export class NftsService {
     results.docs.forEach((snap) => {
       const item = snap.data();
 
-      let activity: NftActivity | null;
-      if (item.type !== EventType.NftSale && item.type !== EventType.NftListing && item.type !== EventType.NftOffer) {
-        return null;
-      }
-      switch (item.type) {
-        case EventType.NftSale: {
-          const sale: NftSaleEvent = item as any;
-          activity = {
-            id: snap.id,
-            address: sale.collectionAddress,
-            collectionName: sale.collectionName,
-            collectionSlug: sale.collectionSlug,
-            image: sale.image,
-            tokenId: sale.tokenId,
-            chainId: sale.chainId as ChainId,
-            type: EventType.NftSale,
-            from: sale.seller,
-            fromDisplayName: sale.sellerDisplayName,
-            to: sale.buyer,
-            toDisplayName: sale.buyerDisplayName,
-            price: sale.price,
-            paymentToken: sale.paymentToken,
-            internalUrl: sale.internalUrl,
-            externalUrl: sale.externalUrl,
-            timestamp: sale.timestamp,
-            likes: sale.likes,
-            comments: sale.comments
-          };
-          break;
-        }
-        case EventType.NftListing: {
-          const listing: NftListingEvent = item as any;
-          activity = {
-            id: snap.id,
-            address: listing.collectionAddress,
-            collectionName: listing.collectionName,
-            collectionSlug: listing.collectionSlug,
-            image: listing.image,
-            tokenId: listing.tokenId,
-            chainId: listing.chainId as ChainId,
-            type: EventType.NftListing,
-            from: listing.makerAddress,
-            fromDisplayName: listing.makerUsername,
-            to: listing.takerAddress ?? '',
-            toDisplayName: listing.takerUsername,
-            price: listing.startPriceEth,
-            paymentToken: listing.paymentToken,
-            internalUrl: listing.internalUrl,
-            externalUrl: '',
-            timestamp: listing.timestamp,
-            likes: listing.likes,
-            comments: listing.comments
-          };
-          break;
-        }
+      const activity = typeToActivity(item, snap.id);
 
-        case EventType.NftOffer: {
-          const offer: NftOfferEvent = item as any;
-          activity = {
-            id: snap.id,
-            address: offer.collectionAddress,
-            collectionName: offer.collectionName,
-            collectionSlug: offer.collectionSlug,
-            image: offer.image,
-            tokenId: offer.tokenId,
-            chainId: offer.chainId as ChainId,
-            type: EventType.NftOffer,
-            from: offer.makerAddress,
-            fromDisplayName: offer.makerUsername,
-            to: offer.takerAddress ?? '',
-            toDisplayName: offer.takerUsername,
-            price: offer.startPriceEth,
-            paymentToken: offer.paymentToken,
-            internalUrl: offer.internalUrl,
-            externalUrl: '',
-            timestamp: offer.timestamp,
-            likes: offer.likes,
-            comments: offer.comments
-          };
-          break;
-        }
-        default:
-          activity = null;
-        // throw new Error(`Activity transformation not implemented type: ${item.type}`);
-      }
       // return activity;
       if (activity) {
         activities.push(activity);
@@ -411,18 +327,6 @@ export class NftsService {
     if (hasNextPage) {
       activities.pop(); // Remove item used for pagination
     }
-
-    // commenting since not sure why its needed
-    // fill in collection data
-    // const activitiesCollAddresses = activities.map((act) => ({ address: act?.address ?? '', chainId: act.chainId }));
-    // const { getCollection } = await this.collectionsService.getCollectionsByAddress(activitiesCollAddresses);
-    // for (const act of activities) {
-    //   const collectionData = getCollection({
-    //     address: act.address ?? '',
-    //     chainId: act.chainId
-    //   }) as Collection;
-    //   act.collectionData = collectionData;
-    // }
 
     const rawCursor = `${activities?.[activities?.length - 1]?.timestamp ?? ''}`;
     const cursor = this.paginationService.encodeCursor(rawCursor);

@@ -81,6 +81,7 @@ import { SiteRole } from 'auth/auth.constants';
 import { ApiParamUserId, Auth } from 'auth/api-auth.decorator';
 import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
 import { Throttle } from '@nestjs/throttler';
+import { sleep } from '@infinityxyz/lib/utils';
 
 @Controller('user')
 export class UserController {
@@ -168,9 +169,7 @@ export class UserController {
         instagramUsername: '',
         facebookUsername: '',
         createdAt: NaN,
-        updatedAt: NaN,
-        totalCurated: 0,
-        totalCuratedVotes: 0
+        updatedAt: NaN
       };
     }
 
@@ -405,11 +404,14 @@ export class UserController {
   @ApiOkResponse({ description: ResponseDescription.Success, type: CuratedCollectionsDto })
   @ApiParamUserId('userId')
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  getCurated(@ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId, @Query() query: CuratedCollectionsQuery) {
+  getCurated(
+    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
+    @Query() query: CuratedCollectionsQuery
+  ): Promise<CuratedCollectionsDto> {
     return this.userService.getAllCurated(user, query);
   }
 
-  @Get(':userId/curated/quota')
+  @Get(':userId/curatedQuota')
   @ApiOperation({
     description: "Get the user's available votes for curation",
     tags: [ApiTag.User, ApiTag.Collection, ApiTag.Curation]
@@ -418,11 +420,8 @@ export class UserController {
   @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   async getCurationQuota(@ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId): Promise<CurationQuotaDto> {
-    return {
-      availableVotes: await this.curationService.getAvailableVotes(user),
-      totalStaked: await this.curationService.getTotalStaked(user),
-      tokenBalance: await this.curationService.getTokenBalance(user)
-    };
+    const quota = await this.curationService.getUserCurationQuota(user);
+    return quota;
   }
 
   @Get(':userId/followingCollections')

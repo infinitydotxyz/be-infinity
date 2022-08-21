@@ -2,7 +2,7 @@ export type FirebaseModuleOptions = {
   /**
    * The service account certificate to use.
    */
-  cert: any;
+  cert?: any;
 
   /**
    * Unique name to identify the service account.

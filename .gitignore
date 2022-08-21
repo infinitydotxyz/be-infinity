@@ -76,6 +76,8 @@ typings/
 .env
 .env.test
 env_variables.yaml
+.dev.env
+.prod.env
 .env*
 !.env.example
 
