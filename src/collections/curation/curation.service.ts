@@ -60,6 +60,7 @@ export class CurationService {
           `User ${user.userChainId} is not on the same chain as collection ${item.parsedCollectionId.chainId}`
         );
       }
+      collectionVotes.set(id, collection);
     }
 
     const votesByCollection = [...collectionVotes.values()];
@@ -106,7 +107,7 @@ export class CurationService {
       if (totalVotes > availableVotes) {
         throw new Error(
           `Insufficient amount of votes available. User has ${availableVotes} votes available, but attempted to use ${totalVotes} votes.`
-        );
+        ); // TODO improve error handling so this message can be returned to the user
       }
 
       const curatedCollectionRefs = votes.map((item) => {
