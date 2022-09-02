@@ -78,7 +78,9 @@ export class RewardsService {
             userRewards: userPhaseReward?.rewards ?? 0,
             [RewardProgram.TradingFee]: phase[RewardProgram.TradingFee] ?? null,
             [RewardProgram.NftReward]: phase[RewardProgram.NftReward] ?? null,
-            [RewardProgram.Curation]: phase[RewardProgram.Curation]
+            [RewardProgram.Curation]: phase[RewardProgram.Curation],
+            userSells: userPhaseReward?.userSells ?? 0,
+            userBuys: userPhaseReward?.userBuys ?? 0
           };
         });
         rewards[epoch.name] = {
@@ -96,7 +98,9 @@ export class RewardsService {
       epochRewards: rewards,
       totals: {
         userVolume: userTotalRewards?.volume ?? 0,
-        userRewards: userTotalRewards?.rewards ?? 0
+        userRewards: userTotalRewards?.rewards ?? 0,
+        userSells: userTotalRewards?.userSells ?? 0,
+        userBuys: userTotalRewards?.userBuys ?? 0
       }
     };
   }
