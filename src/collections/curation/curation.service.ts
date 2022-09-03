@@ -23,7 +23,6 @@ import {
 import { CurationQuotaDto } from '@infinityxyz/lib/types/dto/collections/curation/curation-quota.dto';
 import { EthereumService } from 'ethereum/ethereum.service';
 import { partitionArray } from 'utils';
-import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
 import { streamQuery } from 'firebase/stream-query';
 
 @Injectable()
@@ -339,9 +338,6 @@ export class CurationService {
     for await (const item of stream) {
       results.push(item);
     }
-
-    console.log(`Found: ${results.length} periods for user: ${user.userAddress} staking contract: ${stakingContract}`);
-    results.sort((a, b) => a.metadata.timestamp - b.metadata.timestamp);
 
     const protocolFeeStats = calculateStatsBigInt(results, (item) => BigInt(item.stats.periodProtocolFeesAccruedWei));
 
