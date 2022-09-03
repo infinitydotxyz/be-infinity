@@ -14,12 +14,13 @@ import {
 } from '@infinityxyz/lib/types/dto/rewards';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
+import { CurationService } from 'collections/curation/curation.service';
 import { FirebaseService } from 'firebase/firebase.service';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 
 @Injectable()
 export class RewardsService {
-  constructor(protected firebaseService: FirebaseService) {}
+  constructor(protected firebaseService: FirebaseService, protected curationService: CurationService) {}
 
   async getPrograms(chainId: ChainId): Promise<RewardsProgramByEpochDto | null> {
     const rewardsProgramRef = this.firebaseService.firestore
@@ -93,6 +94,8 @@ export class RewardsService {
     const userTotalSnap = await userAllTimeRewards.get();
     const userTotalRewards = userTotalSnap.data() ?? null;
 
+    const userCurationTotals = await this.curationService.getUserRewards(parsedUser);
+
     return {
       chainId,
       epochRewards: rewards,
@@ -100,7 +103,9 @@ export class RewardsService {
         userVolume: userTotalRewards?.volume ?? 0,
         userRewards: userTotalRewards?.rewards ?? 0,
         userSells: userTotalRewards?.userSells ?? 0,
-        userBuys: userTotalRewards?.userBuys ?? 0
+        userBuys: userTotalRewards?.userBuys ?? 0,
+        userCurationRewardsEth: userCurationTotals.totalProtocolFeesAccruedEth,
+        userCurationRewardsWei: userCurationTotals.totalProtocolFeesAccruedWei
       }
     };
   }

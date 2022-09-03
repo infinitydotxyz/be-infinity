@@ -1,7 +1,13 @@
-import { ChainId, Collection, StakeDuration } from '@infinityxyz/lib/types/core';
+import { ChainId, Collection, StakeDuration, StakerContractPeriodUserDoc } from '@infinityxyz/lib/types/core';
 import { CuratedCollectionDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 import { UserStakeDto } from '@infinityxyz/lib/types/dto/user';
-import { firestoreConstants, getTokenAddressByStakerAddress, getTotalStaked } from '@infinityxyz/lib/utils';
+import {
+  calculateStatsBigInt,
+  firestoreConstants,
+  formatEth,
+  getTokenAddressByStakerAddress,
+  getTotalStaked
+} from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
 import { StakerContractService } from 'ethereum/contracts/staker.contract.service';
@@ -17,6 +23,8 @@ import {
 import { CurationQuotaDto } from '@infinityxyz/lib/types/dto/collections/curation/curation-quota.dto';
 import { EthereumService } from 'ethereum/ethereum.service';
 import { partitionArray } from 'utils';
+import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
+import { streamQuery } from 'firebase/stream-query';
 
 @Injectable()
 export class CurationService {
@@ -309,6 +317,39 @@ export class CurationService {
     };
 
     return curatedCollection;
+  }
+
+  async getUserRewards(
+    user: ParsedUserId
+  ): Promise<{ totalProtocolFeesAccruedEth: number; totalProtocolFeesAccruedWei: string }> {
+    const stakerContractChainId = user.userChainId;
+    const stakingContract = this.getStakerAddress(stakerContractChainId);
+    const stakingContractPeriods = this.firebaseService.firestore
+      .collectionGroup('stakerContractCurationPeriodsUsers')
+      .where('metadata.userAddress', '==', user.userAddress)
+      .where(
+        'metadata.stakerContractAddress',
+        '==',
+        stakingContract
+      ) as FirebaseFirestore.Query<StakerContractPeriodUserDoc>;
+
+    const stream = streamQuery(stakingContractPeriods, (item, ref) => [ref], { pageSize: 300 });
+
+    const results: StakerContractPeriodUserDoc[] = [];
+    for await (const item of stream) {
+      results.push(item);
+    }
+
+    console.log(`Found: ${results.length} periods for user: ${user.userAddress} staking contract: ${stakingContract}`);
+    results.sort((a, b) => a.metadata.timestamp - b.metadata.timestamp);
+
+    const protocolFeeStats = calculateStatsBigInt(results, (item) => BigInt(item.stats.periodProtocolFeesAccruedWei));
+
+    const totalProtocolFeesAccruedWei = protocolFeeStats.sum.toString();
+    return {
+      totalProtocolFeesAccruedWei,
+      totalProtocolFeesAccruedEth: formatEth(totalProtocolFeesAccruedWei)
+    };
   }
 
   /**
