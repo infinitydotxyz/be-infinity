@@ -66,7 +66,7 @@ export class RewardsService {
     const userPhasesSnap = await userRewardPhasesRef.get();
     const userPhaseRewards = userPhasesSnap.docs.map((item) => item.data());
 
-    const rewards: Record<Epoch, UserEpochRewardDto> = {} as any;
+    const rewards = {} as Record<Epoch, UserEpochRewardDto>;
 
     for (const e of Object.values(Epoch)) {
       const epoch = program[e];
