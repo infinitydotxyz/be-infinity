@@ -10,6 +10,7 @@ import { ProfileModule } from './profile/profile.module';
 import { AlchemyModule } from 'alchemy/alchemy.module';
 import { PaginationModule } from 'pagination/pagination.module';
 import { BackfillModule } from 'backfill/backfill.module';
+import { RewardsModule } from 'rewards/rewards.module';
 
 @Module({
   imports: [
@@ -21,7 +22,8 @@ import { BackfillModule } from 'backfill/backfill.module';
     ProfileModule,
     PaginationModule,
     AlchemyModule,
-    BackfillModule
+    BackfillModule,
+    RewardsModule
   ],
   providers: [UserService],
   controllers: [UserController],

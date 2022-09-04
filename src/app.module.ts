@@ -27,6 +27,7 @@ import { TwitterModule } from './twitter/twitter.module';
 import { UserModule } from './user/user.module';
 import { envFileName } from './constants';
 import { SalesModule } from 'sales/sales.module';
+import { RewardsModule } from './rewards/rewards.module';
 
 @Module({
   imports: [
@@ -60,7 +61,8 @@ import { SalesModule } from 'sales/sales.module';
       storage: undefined
     }),
     ApiUserModule,
-    SalesModule
+    SalesModule,
+    RewardsModule
   ],
   providers: [
     {

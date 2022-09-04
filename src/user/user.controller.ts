@@ -81,6 +81,8 @@ import { SiteRole } from 'auth/auth.constants';
 import { ApiParamUserId, Auth } from 'auth/api-auth.decorator';
 import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
 import { Throttle } from '@nestjs/throttler';
+import { RewardsService } from 'rewards/rewards.service';
+import { UserRewardsDto } from '@infinityxyz/lib/types/dto/rewards';
 
 @Controller('user')
 export class UserController {
@@ -93,8 +95,21 @@ export class UserController {
     private statsService: StatsService,
     private profileService: ProfileService,
     private nftsService: NftsService,
-    private curationService: CurationService
+    private curationService: CurationService,
+    private rewardsService: RewardsService
   ) {}
+
+  @Get('/:userId/rewards')
+  @ApiOperation({ summary: 'Get user rewards' })
+  @ApiOkResponse({ description: ResponseDescription.Success, type: UserRewardsDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  async getRewards(@ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId) {
+    const rewards = await this.rewardsService.getUserRewards(user.userChainId, user);
+    if (!rewards) {
+      throw new NotFoundException(`No rewards found for chain: ${user.userChainId}`);
+    }
+    return rewards;
+  }
 
   @Get('/:userId/checkUsername')
   @ApiOperation({
