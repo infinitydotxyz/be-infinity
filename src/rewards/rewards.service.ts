@@ -75,7 +75,7 @@ export class RewardsService {
           const userPhaseReward = userPhaseRewards.find((item) => item.phase === phase.name);
           return {
             name: phase.name,
-            userVolume: userPhaseReward?.volume ?? 0,
+            userVolume: userPhaseReward?.volumeEth ?? 0,
             userRewards: userPhaseReward?.rewards ?? 0,
             [RewardProgram.TradingFee]: phase[RewardProgram.TradingFee] ?? null,
             [RewardProgram.NftReward]: phase[RewardProgram.NftReward] ?? null,
@@ -100,7 +100,7 @@ export class RewardsService {
       chainId,
       epochRewards: rewards,
       totals: {
-        userVolume: userTotalRewards?.volume ?? 0,
+        userVolume: userTotalRewards?.volumeEth ?? 0,
         userRewards: userTotalRewards?.rewards ?? 0,
         userSells: userTotalRewards?.userSells ?? 0,
         userBuys: userTotalRewards?.userBuys ?? 0,
