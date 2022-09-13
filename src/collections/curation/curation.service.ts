@@ -1,7 +1,13 @@
-import { ChainId, Collection, StakeDuration } from '@infinityxyz/lib/types/core';
+import { ChainId, Collection, StakeDuration, StakerContractPeriodUserDoc } from '@infinityxyz/lib/types/core';
 import { CuratedCollectionDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 import { UserStakeDto } from '@infinityxyz/lib/types/dto/user';
-import { firestoreConstants, getTokenAddressByStakerAddress, getTotalStaked } from '@infinityxyz/lib/utils';
+import {
+  calculateStatsBigInt,
+  firestoreConstants,
+  formatEth,
+  getTokenAddressByStakerAddress,
+  getTotalStaked
+} from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
 import { StakerContractService } from 'ethereum/contracts/staker.contract.service';
@@ -17,6 +23,7 @@ import {
 import { CurationQuotaDto } from '@infinityxyz/lib/types/dto/collections/curation/curation-quota.dto';
 import { EthereumService } from 'ethereum/ethereum.service';
 import { partitionArray } from 'utils';
+import { streamQuery } from 'firebase/stream-query';
 
 @Injectable()
 export class CurationService {
@@ -60,6 +67,7 @@ export class CurationService {
           `User ${user.userChainId} is not on the same chain as collection ${item.parsedCollectionId.chainId}`
         );
       }
+      collectionVotes.set(id, collection);
     }
 
     const votesByCollection = [...collectionVotes.values()];
@@ -106,7 +114,7 @@ export class CurationService {
       if (totalVotes > availableVotes) {
         throw new Error(
           `Insufficient amount of votes available. User has ${availableVotes} votes available, but attempted to use ${totalVotes} votes.`
-        );
+        ); // TODO improve error handling so this message can be returned to the user
       }
 
       const curatedCollectionRefs = votes.map((item) => {
@@ -310,6 +318,36 @@ export class CurationService {
     return curatedCollection;
   }
 
+  async getUserRewards(
+    user: ParsedUserId
+  ): Promise<{ totalProtocolFeesAccruedEth: number; totalProtocolFeesAccruedWei: string }> {
+    const stakerContractChainId = user.userChainId;
+    const stakingContract = this.getStakerAddress(stakerContractChainId);
+    const stakingContractPeriods = this.firebaseService.firestore
+      .collectionGroup('stakerContractCurationPeriodsUsers')
+      .where('metadata.userAddress', '==', user.userAddress)
+      .where(
+        'metadata.stakerContractAddress',
+        '==',
+        stakingContract
+      ) as FirebaseFirestore.Query<StakerContractPeriodUserDoc>;
+
+    const stream = streamQuery(stakingContractPeriods, (item, ref) => [ref], { pageSize: 300 });
+
+    const results: StakerContractPeriodUserDoc[] = [];
+    for await (const item of stream) {
+      results.push(item);
+    }
+
+    const protocolFeeStats = calculateStatsBigInt(results, (item) => BigInt(item.stats.periodProtocolFeesAccruedWei));
+
+    const totalProtocolFeesAccruedWei = protocolFeeStats.sum.toString();
+    return {
+      totalProtocolFeesAccruedWei,
+      totalProtocolFeesAccruedEth: formatEth(totalProtocolFeesAccruedWei)
+    };
+  }
+
   /**
    * Returns information about a specific user's curated collections
    * such as the total amount of curated collections, total votes (on all collections).
@@ -332,19 +370,19 @@ export class CurationService {
       stakerContractAddress: snap.get('stakerContractAddress') || stakerContractAddress,
       stakerContractChainId: snap.get('stakerContractChainId') || stakerContractChainId,
       stakeInfo: snap.get('stakeInfo') || {
-        [StakeDuration.X0]: {
+        [StakeDuration.None]: {
           amount: '0',
           timestamp: NaN
         },
-        [StakeDuration.X3]: {
+        [StakeDuration.ThreeMonths]: {
           amount: '0',
           timestamp: NaN
         },
-        [StakeDuration.X6]: {
+        [StakeDuration.SixMonths]: {
           amount: '0',
           timestamp: NaN
         },
-        [StakeDuration.X12]: {
+        [StakeDuration.TwelveMonths]: {
           amount: '0',
           timestamp: NaN
         }
