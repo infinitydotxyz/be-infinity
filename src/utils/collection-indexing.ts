@@ -2,7 +2,7 @@
 import axios, { AxiosError } from 'axios';
 
 export const COLLECTION_INDEXING_SERVICE_URL =
-  'https://nft-collection-service-dot-nftc-dev.ue.r.appspot.com/collection';
+  'https://nft-collection-service-dot-nftc-infinity.ue.r.appspot.com/collection';
 
 export enum ResponseType {
   IndexingInitiated = 'INDEXING_INITIATED',
