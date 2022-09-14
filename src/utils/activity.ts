@@ -7,7 +7,9 @@ import {
   NftOfferEvent,
   NftSaleEvent,
   NftTransferEvent,
-  TwitterTweetEvent
+  TwitterTweetEvent,
+  UserStakedEvent,
+  UserVoteEvent
 } from '@infinityxyz/lib/types/core/feed';
 import { NftActivity } from '@infinityxyz/lib/types/dto/collections/nfts';
 
@@ -196,6 +198,56 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
         timestamp: coin.timestamp,
         likes: coin.likes,
         comments: coin.comments
+      };
+      break;
+    }
+    case EventType.UserVote: {
+      const vote: UserVoteEvent = item;
+      activity = {
+        id: id,
+        type: EventType.UserVote,
+        address: '',
+        collectionName: '',
+        collectionSlug: '',
+        hasBlueCheck: false,
+        tokenId: '',
+        chainId: {} as ChainId,
+        from: '',
+        fromDisplayName: '',
+        to: '',
+        toDisplayName: '',
+        price: 0,
+        paymentToken: '',
+        internalUrl: '',
+        externalUrl: '',
+        timestamp: vote.timestamp,
+        likes: vote.likes,
+        comments: vote.comments
+      };
+      break;
+    }
+    case EventType.TokensStaked: {
+      const vote: UserStakedEvent = item;
+      activity = {
+        id: id,
+        type: EventType.TokensStaked,
+        address: '',
+        collectionName: '',
+        collectionSlug: '',
+        hasBlueCheck: false,
+        tokenId: '',
+        chainId: {} as ChainId,
+        from: '',
+        fromDisplayName: '',
+        to: '',
+        toDisplayName: '',
+        price: 0,
+        paymentToken: '',
+        internalUrl: '',
+        externalUrl: '',
+        timestamp: vote.timestamp,
+        likes: vote.likes,
+        comments: vote.comments
       };
       break;
     }
