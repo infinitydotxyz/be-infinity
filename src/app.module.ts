@@ -57,7 +57,7 @@ import { RewardsModule } from './rewards/rewards.module';
     GemModule,
     ThrottlerModule.forRoot({
       ttl: 60,
-      limit: 20,
+      limit: 60,
       storage: undefined
     }),
     ApiUserModule,
