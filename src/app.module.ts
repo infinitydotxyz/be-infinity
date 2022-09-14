@@ -67,7 +67,7 @@ import { RewardsModule } from './rewards/rewards.module';
         }
         return {
           ttl: 60,
-          limit: 20,
+          limit: 60,
           storage
         };
       }
