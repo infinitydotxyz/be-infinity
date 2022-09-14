@@ -206,19 +206,20 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
       activity = {
         id: id,
         type: EventType.UserVote,
-        address: '',
-        collectionName: '',
-        collectionSlug: '',
-        hasBlueCheck: false,
+        address: vote.collectionAddress,
+        collectionName: vote.collectionName,
+        collectionSlug: vote.collectionSlug,
+        hasBlueCheck: vote.hasBlueCheck,
         tokenId: '',
-        chainId: {} as ChainId,
-        from: '',
-        fromDisplayName: '',
-        to: '',
-        toDisplayName: '',
-        price: 0,
-        paymentToken: '',
-        internalUrl: '',
+        image: vote.collectionProfileImage,
+        chainId: vote.chainId as ChainId,
+        from: vote.userAddress,
+        fromDisplayName: vote.userDisplayName || vote.userUsername,
+        to: vote.userProfileImage,
+        toDisplayName: vote.usersInvolved?.length.toString() ?? '',
+        price: vote.votesAdded,
+        paymentToken: vote.userUsername,
+        internalUrl: vote.internalUrl,
         externalUrl: '',
         timestamp: vote.timestamp,
         likes: vote.likes,
@@ -227,7 +228,8 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
       break;
     }
     case EventType.TokensStaked: {
-      const vote: UserStakedEvent = item;
+      const stake: UserStakedEvent = item;
+
       activity = {
         id: id,
         type: EventType.TokensStaked,
@@ -236,18 +238,19 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
         collectionSlug: '',
         hasBlueCheck: false,
         tokenId: '',
-        chainId: {} as ChainId,
-        from: '',
-        fromDisplayName: '',
+        chainId: '' as ChainId,
+        from: stake.userAddress,
+        fromDisplayName: stake.userDisplayName || stake.userUsername,
         to: '',
+        image: stake.userProfileImage,
         toDisplayName: '',
-        price: 0,
-        paymentToken: '',
+        price: stake.duration,
+        paymentToken: stake.amount,
         internalUrl: '',
-        externalUrl: '',
-        timestamp: vote.timestamp,
-        likes: vote.likes,
-        comments: vote.comments
+        externalUrl: stake.stakePower.toString(),
+        timestamp: stake.timestamp,
+        likes: stake.likes,
+        comments: stake.comments
       };
       break;
     }
