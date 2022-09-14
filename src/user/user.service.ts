@@ -35,7 +35,6 @@ import {
 import { NftsService } from '../collections/nfts/nfts.service';
 import { AlchemyNft } from '@infinityxyz/lib/types/services/alchemy';
 import { attemptToIndexCollection } from 'utils/collection-indexing';
-import { EventType } from '@infinityxyz/lib/types/core/feed';
 import { CurationService } from 'collections/curation/curation.service';
 
 @Injectable()
