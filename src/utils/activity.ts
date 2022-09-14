@@ -7,7 +7,9 @@ import {
   NftOfferEvent,
   NftSaleEvent,
   NftTransferEvent,
-  TwitterTweetEvent
+  TwitterTweetEvent,
+  UserStakedEvent,
+  UserVoteEvent
 } from '@infinityxyz/lib/types/core/feed';
 import { NftActivity } from '@infinityxyz/lib/types/dto/collections/nfts';
 
@@ -196,6 +198,59 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
         timestamp: coin.timestamp,
         likes: coin.likes,
         comments: coin.comments
+      };
+      break;
+    }
+    case EventType.UserVote: {
+      const vote: UserVoteEvent = item;
+      activity = {
+        id: id,
+        type: EventType.UserVote,
+        address: vote.collectionAddress,
+        collectionName: vote.collectionName,
+        collectionSlug: vote.collectionSlug,
+        hasBlueCheck: vote.hasBlueCheck,
+        tokenId: '',
+        image: vote.collectionProfileImage,
+        chainId: vote.chainId as ChainId,
+        from: vote.userAddress,
+        fromDisplayName: vote.userDisplayName || vote.userUsername,
+        to: vote.userProfileImage,
+        toDisplayName: vote.usersInvolved?.length.toString() ?? '',
+        price: vote.votesAdded,
+        paymentToken: vote.userUsername,
+        internalUrl: vote.internalUrl,
+        externalUrl: '',
+        timestamp: vote.timestamp,
+        likes: vote.likes,
+        comments: vote.comments
+      };
+      break;
+    }
+    case EventType.TokensStaked: {
+      const stake: UserStakedEvent = item;
+
+      activity = {
+        id: id,
+        type: EventType.TokensStaked,
+        address: '',
+        collectionName: '',
+        collectionSlug: '',
+        hasBlueCheck: false,
+        tokenId: '',
+        chainId: '' as ChainId,
+        from: stake.userAddress,
+        fromDisplayName: stake.userDisplayName || stake.userUsername,
+        to: '',
+        image: stake.userProfileImage,
+        toDisplayName: '',
+        price: stake.duration,
+        paymentToken: stake.amount,
+        internalUrl: '',
+        externalUrl: stake.stakePower.toString(),
+        timestamp: stake.timestamp,
+        likes: stake.likes,
+        comments: stake.comments
       };
       break;
     }

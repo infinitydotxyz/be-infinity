@@ -35,7 +35,6 @@ import {
 import { NftsService } from '../collections/nfts/nfts.service';
 import { AlchemyNft } from '@infinityxyz/lib/types/services/alchemy';
 import { attemptToIndexCollection } from 'utils/collection-indexing';
-import { EventType } from '@infinityxyz/lib/types/core/feed';
 import { CurationService } from 'collections/curation/curation.service';
 
 @Injectable()
@@ -450,7 +449,7 @@ export class UserService {
   }
 
   async getActivity(user: ParsedUserId, query: UserActivityQueryDto): Promise<UserActivityArrayDto> {
-    const events = query.events && query?.events.length > 0 ? query.events : Object.values(EventType).slice(10); // slice because firestore 'IN' query can only support 10 items
+    const events = query.events && query.events.length > 10 ? query.events.slice(0, 10) : query.events; // slice because firestore 'IN' query can only support 10 items
 
     let userEventsQuery = this.firebaseService.firestore
       .collection(firestoreConstants.FEED_COLL)

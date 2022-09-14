@@ -44,7 +44,10 @@ export class FeedService {
 
   async getActivity(filter: NftActivityFiltersDto) {
     const eventTypes = typeof filter.eventType === 'string' ? [filter.eventType] : filter.eventType;
-    const events = eventTypes?.filter((item) => !!item);
+    let events = eventTypes?.filter((item) => !!item);
+
+    // slice because firestore 'IN' query can only support 10 items
+    events = events && events.length > 10 ? events.slice(0, 10) : events;
 
     let activityQuery = this.firebaseService.firestore
       .collection(firestoreConstants.FEED_COLL)
