@@ -547,6 +547,60 @@
       ]
     },
     {
+      "collectionGroup": "curationPeriodRewards",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "metadata.isAggregated",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.stakerContractAddress",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.timestamp",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "curationPeriodRewards",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "metadata.isAggregated",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.stakerContractAddress",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "curationPeriodRewards",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "metadata.stakerContractAddress",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.stakerContractChainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.timestamp",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.collectionAddress",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "curationSnippets",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
@@ -589,7 +643,59 @@
           "order": "ASCENDING"
         },
         {
+          "fieldPath": "metadata.collectionAddress",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "curationSnippetUsers",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "metadata.stakerContractAddress",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.stakerContractChainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.userAddress",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "stats.votes",
+          "order": "ASCENDING"
+        },
+        {
           "fieldPath": "metadata.timestamp",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "curationSnippetUsers",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "metadata.stakerContractAddress",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.stakerContractChainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.userAddress",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "stats.votes",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "metadata.collectionAddress",
           "order": "DESCENDING"
         }
       ]
@@ -5543,6 +5649,38 @@
       ]
     },
     {
+      "collectionGroup": "stakerContractCurationPeriodsUsers",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "metadata.stakerContractAddress",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.stakerContractChainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.timestamp",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "stakerContractCurationPeriodsUsers",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "metadata.stakerContractAddress",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.userAddress",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "stakingLedger",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
@@ -5566,6 +5704,34 @@
         },
         {
           "fieldPath": "pendingSince",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "userRewardPhases",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "phase",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "userTransactionFeeRewardsLedger",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "isAggregated",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
           "order": "ASCENDING"
         }
       ]
