@@ -273,11 +273,6 @@ export class CollectionsController {
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId
   ): Promise<CuratedCollectionDto> {
     const curated = await this.curationService.findUserCurated(user, collection);
-
-    if (!curated) {
-      throw new NotFoundException(`Failed to find user curation data for collection ${collection.address}`);
-    }
-
     return curated;
   }
 
