@@ -1,4 +1,4 @@
-import { ChainId, CurationBlockUser, OrderDirection } from '@infinityxyz/lib/types/core';
+import { ChainId, CurationBlockUser, OrderDirection, UserDisplayData } from '@infinityxyz/lib/types/core';
 import { AlchemyNftToInfinityNft } from '../common/transformers/alchemy-nft-to-infinity-nft.pipe';
 import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
 import { Injectable, Optional } from '@nestjs/common';
@@ -113,6 +113,40 @@ export class UserService {
     }
 
     return profile;
+  }
+
+  async getUserProfilesDisplayData(users: string[] | ParsedUserId[]): Promise<UserDisplayData[]> {
+    const userRefs = users.map((item) => {
+      if (typeof item === 'string') {
+        return this.firebaseService.firestore
+          .collection(firestoreConstants.USERS_COLL)
+          .doc(item) as FirebaseFirestore.DocumentReference<UserProfileDto>;
+      }
+      return item.ref;
+    });
+    const userProfilesSnapshots = await this.firebaseService.firestore.getAll(...userRefs);
+
+    const userProfiles = userProfilesSnapshots.map((snap) => {
+      const data = snap.data();
+      if (!data) {
+        return {
+          address: snap.ref.id,
+          displayName: '',
+          username: '',
+          profileImage: '',
+          bannerImage: ''
+        } as UserDisplayData;
+      }
+      return {
+        address: data.address || snap.ref.id,
+        displayName: data.displayName || '',
+        username: data.username || '',
+        profileImage: data.profileImage || '',
+        bannerImage: data.bannerImage || ''
+      } as UserDisplayData;
+    });
+
+    return userProfiles;
   }
 
   async getCollectionsBeingFollowed(user: ParsedUserId) {
