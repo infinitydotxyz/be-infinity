@@ -18,7 +18,8 @@ import { ParsedBulkVotes } from './bulk-votes.pipe';
 import {
   CurationBlockUser,
   CurationLedgerEvent,
-  CurationVotesAdded
+  CurationVotesAdded,
+  CurrentCurationSnippetDoc
 } from '@infinityxyz/lib/types/core/curation-ledger';
 import { CurationQuotaDto } from '@infinityxyz/lib/types/dto/collections/curation/curation-quota.dto';
 import { EthereumService } from 'ethereum/ethereum.service';
@@ -278,22 +279,46 @@ export class CurationService {
   async findUserCurated(
     user: Omit<ParsedUserId, 'ref'>,
     collection: Omit<ParsedCollectionId, 'ref'>
-  ): Promise<CuratedCollectionDto | null> {
+  ): Promise<CuratedCollectionDto> {
     const stakingContractChainId = user.userChainId;
     const stakingContractAddress = this.getStakerAddress(stakingContractChainId);
-    const curatorRef = this.firebaseService.firestore
+    const curationSnippetRef = this.firebaseService.firestore
       .collection(`${firestoreConstants.COLLECTIONS_COLL}`)
       .doc(`${collection.chainId}:${collection.address}`)
       .collection(firestoreConstants.COLLECTION_CURATION_COLL)
       .doc(`${stakingContractChainId}:${stakingContractAddress}`)
       .collection('curationSnippets')
-      .doc(firestoreConstants.CURATION_SNIPPET_DOC)
+      .doc(firestoreConstants.CURATION_SNIPPET_DOC) as FirebaseFirestore.DocumentReference<CurrentCurationSnippetDoc>;
+
+    const curatorRef = curationSnippetRef
       .collection(firestoreConstants.CURATION_SNIPPET_USERS_COLL)
       .doc(user.userAddress) as FirebaseFirestore.DocumentReference<CurationBlockUser>;
+
     const curatorSnap = await curatorRef.get();
     const curator = curatorSnap.data();
     if (!curator) {
-      return null;
+      const curationSnippetSnap = await curationSnippetRef.get();
+      const curationSnippet = curationSnippetSnap.data();
+      const tokenContract = getTokenAddressByStakerAddress(stakingContractChainId, stakingContractAddress);
+      const curatedCollection: CuratedCollectionDto = {
+        address: collection.address,
+        chainId: collection.chainId,
+        stakerContractAddress: stakingContractAddress,
+        stakerContractChainId: stakingContractChainId,
+        tokenContractAddress: tokenContract.tokenContractAddress,
+        tokenContractChainId: tokenContract.tokenContractChainId,
+        userAddress: user.userAddress,
+        userChainId: user.userChainId,
+        votes: 0,
+        fees: 0,
+        feesAPR: 0,
+        timestamp: Date.now(),
+        slug: curationSnippet?.collection?.slug ?? '',
+        numCuratorVotes: curationSnippet?.mostRecentCompletedBlock?.stats?.numCuratorVotes ?? 0,
+        profileImage: curationSnippet?.collection?.profileImage ?? '',
+        name: curationSnippet?.collection?.name ?? ''
+      };
+      return curatedCollection;
     }
 
     const curatedCollection: CuratedCollectionDto = {

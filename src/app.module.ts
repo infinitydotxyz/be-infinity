@@ -29,6 +29,7 @@ import { envFileName } from './constants';
 import { SalesModule } from 'sales/sales.module';
 import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
 import { RewardsModule } from './rewards/rewards.module';
+import { RaffleModule } from './raffle/raffle.module';
 
 @Module({
   imports: [
@@ -74,7 +75,8 @@ import { RewardsModule } from './rewards/rewards.module';
     }),
     ApiUserModule,
     SalesModule,
-    RewardsModule
+    RewardsModule,
+    RaffleModule
   ],
   providers: [
     {
