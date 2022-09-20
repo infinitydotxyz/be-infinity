@@ -278,7 +278,8 @@ export class CurationService {
    */
   async findUserCurated(
     user: Omit<ParsedUserId, 'ref'>,
-    collection: Omit<ParsedCollectionId, 'ref'>
+    collection: Omit<ParsedCollectionId, 'ref'>,
+    collectionData: Partial<Collection>
   ): Promise<CuratedCollectionDto> {
     const stakingContractChainId = user.userChainId;
     const stakingContractAddress = this.getStakerAddress(stakingContractChainId);
@@ -313,10 +314,10 @@ export class CurationService {
         fees: 0,
         feesAPR: 0,
         timestamp: Date.now(),
-        slug: curationSnippet?.collection?.slug ?? '',
+        slug: curationSnippet?.collection?.slug ?? collectionData?.slug ?? '',
         numCuratorVotes: curationSnippet?.mostRecentCompletedBlock?.stats?.numCuratorVotes ?? 0,
-        profileImage: curationSnippet?.collection?.profileImage ?? '',
-        name: curationSnippet?.collection?.name ?? ''
+        profileImage: curationSnippet?.collection?.profileImage ?? collectionData?.metadata?.profileImage ?? '',
+        name: curationSnippet?.collection?.name ?? collectionData?.metadata?.name ?? ''
       };
       return curatedCollection;
     }
