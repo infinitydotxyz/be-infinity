@@ -240,7 +240,7 @@ export class CollectionsController {
   }
 
   @Get('curated/:userId')
-  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
+  @Auth(SiteRole.Guest, ApiRole.Guest, 'userId')
   @ApiOperation({
     description:
       'Fetch all curated collections. Each curated collection object that has been voted for by the current user will contain more info, like the amount of votes.',
@@ -258,7 +258,7 @@ export class CollectionsController {
   }
 
   @Get('/:id/curated/:userId')
-  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
+  @Auth(SiteRole.Guest, ApiRole.Guest, 'userId')
   @ApiParamCollectionId('collectionId')
   @ApiOperation({
     description: 'Fetch curation details and estimations of the collection',
@@ -272,7 +272,8 @@ export class CollectionsController {
     @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId
   ): Promise<CuratedCollectionDto> {
-    const curated = await this.curationService.findUserCurated(user, collection);
+    const collectionData = (await this.collectionsService.getCollectionByAddress(collection)) ?? {};
+    const curated = await this.curationService.findUserCurated(user, collection, collectionData);
     return curated;
   }
 
