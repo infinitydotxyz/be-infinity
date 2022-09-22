@@ -444,7 +444,8 @@ export default class CollectionsService {
         numCuratorVotes:
           item?.currentBlock?.stats?.numCuratorVotes ?? item?.mostRecentCompletedBlock?.stats?.numCuratorVotes ?? 0,
         profileImage: item?.collection?.profileImage ?? '',
-        name: item?.collection?.name ?? ''
+        name: item?.collection?.name ?? '',
+        hasBlueCheck: item?.collection?.hasBlueCheck ?? false
       };
       return curatedCollection;
     });

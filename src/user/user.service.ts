@@ -545,7 +545,8 @@ export class UserService {
         slug: curator.collection.slug,
         numCuratorVotes: curator.stats.numCuratorVotes,
         profileImage: curator.collection.profileImage,
-        name: curator.collection.name
+        name: curator.collection.name,
+        hasBlueCheck: curator.collection.hasBlueCheck
       };
       return curatedCollection;
     });
