@@ -1,4 +1,10 @@
-import { ChainId, CurationBlockUser, OrderDirection, UserDisplayData } from '@infinityxyz/lib/types/core';
+import {
+  ChainId,
+  CurationBlockUser,
+  OrderDirection,
+  UserDisplayData,
+  UserFeedEvent
+} from '@infinityxyz/lib/types/core';
 import { AlchemyNftToInfinityNft } from '../common/transformers/alchemy-nft-to-infinity-nft.pipe';
 import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
 import { Injectable, Optional } from '@nestjs/common';
@@ -24,8 +30,7 @@ import {
   UserNftsOrderType,
   UserProfileDto,
   UserActivityQueryDto,
-  UserActivityArrayDto,
-  UserActivity
+  UserActivityArrayDto
 } from '@infinityxyz/lib/types/dto/user';
 import { BackfillService } from 'backfill/backfill.service';
 import {
@@ -466,7 +471,7 @@ export class UserService {
     }
     const snapshot = await userEventsQuery.get();
 
-    const data = snapshot.docs.map((item) => item.data() as UserActivity);
+    const data = snapshot.docs.map((item) => item.data() as UserFeedEvent);
 
     const hasNextPage = data.length > query.limit;
     if (hasNextPage) {
