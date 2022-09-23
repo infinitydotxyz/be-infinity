@@ -545,6 +545,7 @@ export class UserService {
         slug: curator.collection.slug,
         numCuratorVotes: curator.stats.numCuratorVotes,
         profileImage: curator.collection.profileImage,
+        bannerImage: curator.collection.bannerImage,
         name: curator.collection.name,
         hasBlueCheck: curator.collection.hasBlueCheck
       };

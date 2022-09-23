@@ -204,6 +204,7 @@ export class CurationService {
       chainId: vote.parsedCollectionId.chainId,
       name: collection?.metadata?.name ?? '',
       profileImage: collection?.metadata?.profileImage ?? '',
+      bannerImage: collection?.metadata?.bannerImage ?? '',
       slug: collection?.slug ?? '',
       fees: 0,
       feesAPR: 0,
@@ -318,6 +319,7 @@ export class CurationService {
         slug: curationSnippet?.collection?.slug ?? collectionData?.slug ?? '',
         numCuratorVotes: curationSnippet?.mostRecentCompletedBlock?.stats?.numCuratorVotes ?? 0,
         profileImage: curationSnippet?.collection?.profileImage ?? collectionData?.metadata?.profileImage ?? '',
+        bannerImage: curationSnippet?.collection.bannerImage ?? '',
         name: curationSnippet?.collection?.name ?? collectionData?.metadata?.name ?? '',
         hasBlueCheck: curationSnippet?.collection?.hasBlueCheck ?? collectionData?.hasBlueCheck ?? false
       };
@@ -340,6 +342,7 @@ export class CurationService {
       slug: curator.collection.slug,
       numCuratorVotes: curator.stats.numCuratorVotes,
       profileImage: curator.collection.profileImage,
+      bannerImage: curator.collection.bannerImage,
       name: curator.collection.name,
       hasBlueCheck: curator.collection.hasBlueCheck
     };
