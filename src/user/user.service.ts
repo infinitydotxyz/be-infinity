@@ -454,12 +454,16 @@ export class UserService {
   }
 
   async getActivity(user: ParsedUserId, query: UserActivityQueryDto): Promise<UserActivityArrayDto> {
-    const events = query.events && query.events.length > 10 ? query.events.slice(0, 10) : query.events; // slice because firestore 'IN' query can only support 10 items
+    const events = query.events && query.events.length > 10 ? query.events.slice(0, 10) : query.events ?? []; // slice because firestore 'IN' query can only support 10 items
 
     let userEventsQuery = this.firebaseService.firestore
       .collection(firestoreConstants.FEED_COLL)
-      .where('type', 'in', events)
       .where('usersInvolved', 'array-contains', user.userAddress);
+
+    // crashes if this is undefined or []
+    if (events && events.length > 0) {
+      userEventsQuery = userEventsQuery.where('type', 'in', events);
+    }
 
     const cursor = this.paginationService.decodeCursorToNumber(query.cursor);
     const orderDirection = OrderDirection.Descending;
