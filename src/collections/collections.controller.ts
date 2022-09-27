@@ -170,6 +170,7 @@ export class CollectionsController {
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 10 })) // 10 mins
   async getCollectionStats(@Query() query: CollectionTrendingStatsQueryDto): Promise<CollectionStatsArrayDto> {
     const queryBy = query.queryBy as mnemonicByParam;
+    const limit = query.limit ?? 50;
     const queryPeriod = query.period;
     const trendingCollectionsRef = this.firebaseService.firestore.collection(
       firestoreConstants.TRENDING_COLLECTIONS_COLL
@@ -217,6 +218,10 @@ export class CollectionsController {
             }
           };
           results.push(collectionData);
+
+          if (results.length >= limit) {
+            break;
+          }
         }
       }
     }

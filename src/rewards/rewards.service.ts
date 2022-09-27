@@ -67,29 +67,29 @@ export class RewardsService {
     const userPhaseRewards = userPhasesSnap.docs.map((item) => item.data());
 
     const rewards = {} as Record<Epoch, UserEpochRewardDto>;
-
-    for (const e of Object.values(Epoch)) {
-      const epoch = program[e];
-      if (epoch) {
-        const phases: UserPhaseRewardDto[] = epoch.phases.map((phase) => {
-          const userPhaseReward = userPhaseRewards.find((item) => item.phase === phase.name);
-          return {
-            name: phase.name,
-            userVolume: userPhaseReward?.volumeEth ?? 0,
-            userRewards: userPhaseReward?.rewards ?? 0,
-            [RewardProgram.TradingFee]: phase[RewardProgram.TradingFee] ?? null,
-            [RewardProgram.NftReward]: phase[RewardProgram.NftReward] ?? null,
-            [RewardProgram.Curation]: phase[RewardProgram.Curation],
-            userSells: userPhaseReward?.userSells ?? 0,
-            userBuys: userPhaseReward?.userBuys ?? 0
-          };
-        });
-        rewards[epoch.name] = {
-          name: epoch.name,
-          phases
-        };
-      }
-    }
+    // TODO redo this, epochs are no longer used
+    // for (const e of Object.values(Epoch)) {
+    //   const epoch = program[e];
+    //   if (epoch) {
+    //     const phases: UserPhaseRewardDto[] = epoch.phases.map((phase) => {
+    //       const userPhaseReward = userPhaseRewards.find((item) => item.phase === phase.name);
+    //       return {
+    //         name: phase.name,
+    //         userVolume: userPhaseReward?.volumeEth ?? 0,
+    //         userRewards: userPhaseReward?.rewards ?? 0,
+    //         [RewardProgram.TradingFee]: phase[RewardProgram.TradingFee] ?? null,
+    //         [RewardProgram.NftReward]: phase[RewardProgram.NftReward] ?? null,
+    //         [RewardProgram.Curation]: phase[RewardProgram.Curation],
+    //         userSells: userPhaseReward?.userSells ?? 0,
+    //         userBuys: userPhaseReward?.userBuys ?? 0
+    //       };
+    //     });
+    //     rewards[epoch.name] = {
+    //       name: epoch.name,
+    //       phases
+    //     };
+    //   }
+    // }
 
     const userTotalSnap = await userAllTimeRewards.get();
     const userTotalRewards = userTotalSnap.data() ?? null;

@@ -75,7 +75,10 @@ export async function* streamQueryWithRef<
       pageQuery = pageQuery.startAfter(...startAfter);
     }
     const pageSnapshot = await pageQuery.limit(options.pageSize).get();
-    const pageData = pageSnapshot.docs.map((item) => ({ data: item.data(), ref: item.ref }));
+    const pageData = pageSnapshot.docs.map((item) => ({
+      data: item.data(),
+      ref: item.ref as FirebaseFirestore.DocumentReference
+    }));
 
     const transformedPage: TransformedPage[] = (
       typeof options.transformPage === 'function' ? await options.transformPage(pageData) : pageData
