@@ -31,6 +31,7 @@ import {
   trimLowerCase
 } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
+import { INSTANCE_METADATA_SYMBOL } from '@nestjs/core/injector/instance-wrapper';
 import CollectionsService from 'collections/collections.service';
 import { NftsService } from 'collections/nfts/nfts.service';
 import { BadQueryError } from 'common/errors/bad-query.error';
@@ -185,6 +186,8 @@ export default class OrdersService {
 
         // write order to feed
         this.writeOrderToFeed(makerUsername, order, orderItems, fsBatchHandler);
+        const currentBlockNumber = await this.ethereumService.getCurrentBlockNumber(order.chainId as ChainId);
+        this.writeOrderToRaffles(order, orderItems, fsBatchHandler, currentBlockNumber);
       }
       // commit batch
       await fsBatchHandler.flush();
@@ -718,6 +721,53 @@ export default class OrdersService {
       attributes: token.attributes
     };
     return data;
+  }
+
+  protected writeOrderToRaffles(
+    order: SignedOBOrderWithoutMetadataDto,
+    orderItems: (FirestoreOrderItem & { orderItemId: string })[],
+    batchHandler: FirestoreBatchHandler,
+    currentBlockNumber: number
+  ) {
+    const isListing = order.signedOrder.isSellOrder;
+    const blockNumber = currentBlockNumber;
+    const items = orderItems.map((item) => {
+      return {
+        isTopCollection: false, // TODO where should this come from?
+        floorPriceEth: 0, // TODO where should this come from?
+        isSellOrder: item.isSellOrder,
+        startTimeMs: item.startTimeMs,
+        endTimeMs: item.endTimeMs,
+        hasBlueCheck: item.hasBlueCheck,
+        collectionAddress: item.collectionAddress,
+        collectionSlug: item.collectionSlug,
+        startPriceEth: item.startPriceEth,
+        endPriceEth: item.endPriceEth,
+        tokenId: item.tokenId,
+        numTokens: item.numTokens,
+        makerAddress: item.makerAddress
+      };
+    });
+    const entrantOrder = {
+      discriminator: isListing ? 'LISTING' : 'OFFER',
+      order: {
+        id: order.id,
+        chainId: order.chainId,
+        numItems: order.numItems,
+        items
+      },
+      blockNumber,
+      stakeLevel: 0, // TODO
+      isMerged: false,
+      isAggregated: false
+    };
+
+    const ref = this.firebaseService.firestore
+      .collection(firestoreConstants.USERS_COLL)
+      .doc(order.makerAddress)
+      .collection('userRaffleOrdersLedger')
+      .doc(order.id);
+    batchHandler.add(ref, entrantOrder, { merge: false });
   }
 
   private writeOrderToFeed(
