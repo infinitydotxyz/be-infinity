@@ -1,0 +1,61 @@
+import { ChainId } from '@infinityxyz/lib/types/core';
+import { Injectable } from '@nestjs/common';
+import firebaseAdmin from 'firebase-admin';
+import { StakerContractService } from 'ethereum/contracts/staker.contract.service';
+import { FirebaseService } from 'firebase/firebase.service';
+import { ParsedUserId } from 'user/parser/parsed-user-id';
+import { FavoriteCollectionDto } from './favorites.dto';
+
+@Injectable()
+export class FavoritesService {
+  constructor(private firebaseService: FirebaseService, private stakerContractService: StakerContractService) {}
+
+  private getRootCollectionRef(chainId = ChainId.Mainnet) {
+    const stakerContract = this.stakerContractService.getStakerAddress(chainId);
+    return this.firebaseService.firestore.collection('favorites').doc(`${chainId}:${stakerContract}`);
+  }
+
+  private getCurrentPhaseId() {
+    return '1'; // TODO: get current active phase from firestore (CC @Joe) // const ref = db.collection(firestoreConstants.REWARDS_COLL).doc(collection.chainId) as FirebaseFirestore.DocumentReference<TokenomicsConfigDto>;
+  }
+
+  /**
+   * Submit a favorite collection for a specific user during this phase.
+   *
+   * @param collection The collection to vote for.
+   * @param user The user who is submitting the vote.
+   */
+  async saveFavorite({ collection: collectionAddress, chainId }: FavoriteCollectionDto, user: ParsedUserId) {
+    const phaseId = this.getCurrentPhaseId();
+
+    await this.getRootCollectionRef(chainId)
+      .collection('userFavorites')
+      .doc(`${user.userAddress}:${phaseId}`)
+      .set({
+        chainId: chainId,
+        collection: collectionAddress
+      } as FavoriteCollectionDto);
+
+    await this.getRootCollectionRef(chainId)
+      .collection('collectionFavorites')
+      .doc(phaseId)
+      .collection('collections')
+      .doc(collectionAddress)
+      .set({
+        totalNumFavorited: firebaseAdmin.firestore.FieldValue.increment(1)
+      });
+  }
+
+  /**
+   * Returns the current user-favorited collection.
+   * @param user
+   * @param chainId
+   * @returns
+   */
+  async getFavoriteCollection(user: ParsedUserId, chainId?: ChainId) {
+    const phaseId = this.getCurrentPhaseId();
+    const docRef = this.getRootCollectionRef(chainId).collection('userFavorites').doc(`${user.userAddress}:${phaseId}`);
+    const snap = await docRef.get();
+    return snap.exists ? (snap.data() as FavoriteCollectionDto) : null;
+  }
+}
