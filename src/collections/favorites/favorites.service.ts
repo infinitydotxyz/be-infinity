@@ -36,7 +36,7 @@ export class FavoritesService {
     const rootRef = this.getRootCollectionRef(collection.chainId);
 
     this.fsBatchHandler.add(
-      rootRef.collection('userFavorites').doc(`${user.userAddress}:${phaseId}`),
+      rootRef.collection('userFavorites').doc(phaseId).collection('users').doc(`${user.userAddress}`),
       {
         chainId: collection.chainId,
         collection: collection.address
