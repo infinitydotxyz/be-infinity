@@ -4,8 +4,8 @@ import firebaseAdmin from 'firebase-admin';
 import { StakerContractService } from 'ethereum/contracts/staker.contract.service';
 import { FirebaseService } from 'firebase/firebase.service';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
-import { FavoriteCollectionDto } from './favorites.dto';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
+import { ParsedCollectionId } from 'collections/collection-id.pipe';
 
 @Injectable()
 export class FavoritesService {
@@ -30,21 +30,21 @@ export class FavoritesService {
    * @param collection The collection to vote for.
    * @param user The user who is submitting the vote.
    */
-  async saveFavorite({ collection: collectionAddress, chainId }: FavoriteCollectionDto, user: ParsedUserId) {
+  async saveFavorite(collection: ParsedCollectionId, user: ParsedUserId) {
     const phaseId = this.getCurrentPhaseId();
 
-    const rootRef = this.getRootCollectionRef(chainId);
+    const rootRef = this.getRootCollectionRef(collection.chainId);
 
     this.fsBatchHandler.add(
       rootRef.collection('userFavorites').doc(`${user.userAddress}:${phaseId}`),
       {
-        chainId: chainId,
-        collection: collectionAddress
-      } as FavoriteCollectionDto,
+        chainId: collection.chainId,
+        collection: collection.address
+      },
       { merge: false }
     );
     this.fsBatchHandler.add(
-      rootRef.collection('collectionFavorites').doc(phaseId).collection('collections').doc(collectionAddress),
+      rootRef.collection('collectionFavorites').doc(phaseId).collection('collections').doc(collection.address),
       {
         totalNumFavorited: firebaseAdmin.firestore.FieldValue.increment(1)
       },
@@ -64,6 +64,6 @@ export class FavoritesService {
     const phaseId = this.getCurrentPhaseId();
     const docRef = this.getRootCollectionRef(chainId).collection('userFavorites').doc(`${user.userAddress}:${phaseId}`);
     const snap = await docRef.get();
-    return snap.exists ? (snap.data() as FavoriteCollectionDto) : null;
+    return snap.exists ? snap.data() : null;
   }
 }
