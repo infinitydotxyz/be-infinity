@@ -1,10 +1,11 @@
-import { BadRequestException, Body, Controller, ForbiddenException, Post } from '@nestjs/common';
+import { BadRequestException, Body, Controller, ForbiddenException, Get, Post } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBody,
   ApiCreatedResponse,
   ApiInternalServerErrorResponse,
   ApiNotFoundResponse,
+  ApiOkResponse,
   ApiOperation
 } from '@nestjs/swagger';
 import { ApiTag } from 'common/api-tags';
@@ -55,5 +56,19 @@ export class FavoritesController {
     }
 
     await this.favoritesService.saveFavorite(collection, user);
+  }
+
+  @Get('favorites/:userId')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
+  @ApiOperation({
+    description: 'Get the user-favorite collection for the current phase',
+    tags: [ApiTag.Collection, ApiTag.Curation]
+  })
+  @ApiOkResponse()
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  async getUserFavorite(@ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId) {
+    return this.favoritesService.getFavoriteCollection(user);
   }
 }
