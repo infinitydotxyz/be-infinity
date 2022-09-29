@@ -5,10 +5,15 @@ import { StakerContractService } from 'ethereum/contracts/staker.contract.servic
 import { FirebaseService } from 'firebase/firebase.service';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 import { FavoriteCollectionDto } from './favorites.dto';
+import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
 
 @Injectable()
 export class FavoritesService {
-  constructor(private firebaseService: FirebaseService, private stakerContractService: StakerContractService) {}
+  private fsBatchHandler: FirestoreBatchHandler;
+
+  constructor(private firebaseService: FirebaseService, private stakerContractService: StakerContractService) {
+    this.fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
+  }
 
   private getRootCollectionRef(chainId = ChainId.Mainnet) {
     const stakerContract = this.stakerContractService.getStakerAddress(chainId);
@@ -28,22 +33,25 @@ export class FavoritesService {
   async saveFavorite({ collection: collectionAddress, chainId }: FavoriteCollectionDto, user: ParsedUserId) {
     const phaseId = this.getCurrentPhaseId();
 
-    await this.getRootCollectionRef(chainId)
-      .collection('userFavorites')
-      .doc(`${user.userAddress}:${phaseId}`)
-      .set({
+    const rootRef = this.getRootCollectionRef(chainId);
+
+    this.fsBatchHandler.add(
+      rootRef.collection('userFavorites').doc(`${user.userAddress}:${phaseId}`),
+      {
         chainId: chainId,
         collection: collectionAddress
-      } as FavoriteCollectionDto);
-
-    await this.getRootCollectionRef(chainId)
-      .collection('collectionFavorites')
-      .doc(phaseId)
-      .collection('collections')
-      .doc(collectionAddress)
-      .set({
+      } as FavoriteCollectionDto,
+      { merge: false }
+    );
+    this.fsBatchHandler.add(
+      rootRef.collection('collectionFavorites').doc(phaseId).collection('collections').doc(collectionAddress),
+      {
         totalNumFavorited: firebaseAdmin.firestore.FieldValue.increment(1)
-      });
+      },
+      { merge: false }
+    );
+
+    await this.fsBatchHandler.flush();
   }
 
   /**
