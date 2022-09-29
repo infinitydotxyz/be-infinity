@@ -2,6 +2,8 @@ import {
   ChainId,
   Collection,
   CreationFlow,
+  EntrantLedgerItemVariant,
+  EntrantOrderItem,
   Erc721Metadata,
   FirestoreOrder,
   FirestoreOrderItem,
@@ -10,6 +12,7 @@ import {
   OBOrderStatus,
   OBTokenInfo,
   OrderDirection,
+  PreMergeEntrantOrderLedgerItem,
   Token
 } from '@infinityxyz/lib/types/core';
 import { EventType, MultiOrderEvent, OrderBookEvent, OrderItemData } from '@infinityxyz/lib/types/core/feed';
@@ -31,7 +34,6 @@ import {
   trimLowerCase
 } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
-import { INSTANCE_METADATA_SYMBOL } from '@nestjs/core/injector/instance-wrapper';
 import CollectionsService from 'collections/collections.service';
 import { NftsService } from 'collections/nfts/nfts.service';
 import { BadQueryError } from 'common/errors/bad-query.error';
@@ -187,7 +189,7 @@ export default class OrdersService {
         // write order to feed
         this.writeOrderToFeed(makerUsername, order, orderItems, fsBatchHandler);
         const currentBlockNumber = await this.ethereumService.getCurrentBlockNumber(order.chainId as ChainId);
-        this.writeOrderToRaffles(order, orderItems, fsBatchHandler, currentBlockNumber);
+        await this.writeOrderToRaffles(order, orderItems, fsBatchHandler, currentBlockNumber);
       }
       // commit batch
       await fsBatchHandler.flush();
@@ -723,18 +725,43 @@ export default class OrdersService {
     return data;
   }
 
-  protected writeOrderToRaffles(
+  protected async writeOrderToRaffles(
     order: SignedOBOrderWithoutMetadataDto,
     orderItems: (FirestoreOrderItem & { orderItemId: string })[],
     batchHandler: FirestoreBatchHandler,
     currentBlockNumber: number
   ) {
+    if (order.chainId !== ChainId.Mainnet) {
+      // skip raffles for non-mainnet orders, we cannot get a floor price for these
+      return;
+    }
+
+    const itemsWithFloorPrices = await Promise.all(
+      orderItems.map(async (item) => {
+        try {
+          const floorPriceEth = await this.collectionService.getFloorPrice({
+            chainId: item.chainId as ChainId,
+            address: item.collectionAddress
+          });
+          return {
+            ...item,
+            floorPriceEth
+          };
+        } catch (err) {
+          return {
+            ...item,
+            floorPriceEth: null
+          };
+        }
+      })
+    );
+
     const isListing = order.signedOrder.isSellOrder;
     const blockNumber = currentBlockNumber;
-    const items = orderItems.map((item) => {
-      return {
-        isTopCollection: false, // TODO where should this come from?
-        floorPriceEth: 0, // TODO where should this come from?
+    const items = itemsWithFloorPrices.map((item) => {
+      const orderItem: EntrantOrderItem = {
+        isTopCollection: item.hasBlueCheck, // TODO where should this come from?
+        floorPriceEth: item.floorPriceEth,
         isSellOrder: item.isSellOrder,
         startTimeMs: item.startTimeMs,
         endTimeMs: item.endTimeMs,
@@ -747,19 +774,21 @@ export default class OrdersService {
         numTokens: item.numTokens,
         makerAddress: item.makerAddress
       };
+      return orderItem;
     });
-    const entrantOrder = {
-      discriminator: isListing ? 'LISTING' : 'OFFER',
+    const entrantOrder: PreMergeEntrantOrderLedgerItem = {
+      discriminator: isListing ? EntrantLedgerItemVariant.Listing : EntrantLedgerItemVariant.Offer,
       order: {
         id: order.id,
-        chainId: order.chainId,
+        chainId: order.chainId as ChainId,
         numItems: order.numItems,
         items
       },
       blockNumber,
-      stakeLevel: 0, // TODO
-      isMerged: false,
-      isAggregated: false
+      isAggregated: false,
+      chainId: order.chainId as ChainId,
+      updatedAt: Date.now(),
+      entrantAddress: order.makerAddress
     };
 
     const ref = this.firebaseService.firestore
