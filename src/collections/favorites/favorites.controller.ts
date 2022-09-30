@@ -38,7 +38,7 @@ export class FavoritesController {
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   async submitFavorite(
-    @ParamUserId('userId', ParseCollectionIdPipe) collection: ParsedCollectionId,
+    @ParamUserId('collectionId', ParseCollectionIdPipe) collection: ParsedCollectionId,
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId
   ) {
     const userStakeLevel = await this.stakerService.getStakeLevel(user);
