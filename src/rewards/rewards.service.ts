@@ -2,14 +2,12 @@ import {
   AllTimeTransactionFeeRewardsDoc,
   ChainId,
   Epoch,
-  RewardProgram,
   TransactionFeePhaseRewardsDoc
 } from '@infinityxyz/lib/types/core';
 import {
   RewardsProgramByEpochDto,
   RewardsProgramDto,
   UserEpochRewardDto,
-  UserPhaseRewardDto,
   UserRewardsDto
 } from '@infinityxyz/lib/types/dto/rewards';
 import { firestoreConstants } from '@infinityxyz/lib/utils';

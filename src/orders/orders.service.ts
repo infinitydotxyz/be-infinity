@@ -760,7 +760,7 @@ export default class OrdersService {
     const blockNumber = currentBlockNumber;
     const items = itemsWithFloorPrices.map((item) => {
       const orderItem: EntrantOrderItem = {
-        isTopCollection: item.hasBlueCheck, // TODO where should this come from?
+        isTopCollection: item.hasBlueCheck,
         floorPriceEth: item.floorPriceEth,
         isSellOrder: item.isSellOrder,
         startTimeMs: item.startTimeMs,
