@@ -433,6 +433,7 @@ export class CurationService {
     const stake = await this.getUserCurationInfo(user);
     const quota: CurationQuotaDto = {
       stake,
+      stakeLevel: 0, // TODO adi this was added to get it to compile
       tokenBalance,
       totalStaked: getTotalStaked(stake.stakeInfo, 8),
       availableVotes: stake.stakePower - stake.totalCuratedVotes
