@@ -44,18 +44,19 @@ export class FavoritesService {
 
     const rootRef = this.getRootRef(user.userChainId);
     const usersRef = rootRef
-      .collection(`${firestoreConstants.USERS_COLL}/${phaseId}`)
+      .collection(`${firestoreConstants.USERS_COLL}`)
+      .doc(phaseId)
+      .collection(`${firestoreConstants.USERS_COLL}`)
       .doc(`${user.userChainId}:${user.userAddress}`);
     const collectionsRef = rootRef
-      .collection(`${firestoreConstants.COLLECTIONS_COLL}/${phaseId}`)
+      .collection(`${firestoreConstants.COLLECTIONS_COLL}`)
+      .doc(phaseId)
+      .collection(`${firestoreConstants.COLLECTIONS_COLL}`)
       .doc(`${collection.chainId}:${collection.address}`);
 
     // get the current favorited collection.
     // it is used to update it before writing the new favorite below..
     const oldFavoritedCollection = (await usersRef.get()).data() as UserFavoriteCollectionDto;
-    const oldCollectionRef = rootRef
-      .collection(`${firestoreConstants.COLLECTIONS_COLL}/${phaseId}`)
-      .doc(`${oldFavoritedCollection.collectionChainId}:${oldFavoritedCollection.collectionAddress}`);
 
     const timestamp = Date.now();
 
@@ -68,14 +69,22 @@ export class FavoritesService {
       } as UserFavoriteCollectionDto,
       { merge: false }
     );
-    this.fsBatchHandler.add(
-      oldCollectionRef,
-      {
-        numFavorites: firebaseAdmin.firestore.FieldValue.increment(-1) as any,
-        lastUpdatedAt: timestamp
-      } as FavoriteCollectionEntryDto,
-      { merge: true }
-    );
+    if (oldFavoritedCollection) {
+      const oldCollectionRef = rootRef
+        .collection(firestoreConstants.COLLECTIONS_COLL)
+        .doc(phaseId)
+        .collection(firestoreConstants.COLLECTIONS_COLL)
+        .doc(`${oldFavoritedCollection.collectionChainId}:${oldFavoritedCollection.collectionAddress}`);
+
+      this.fsBatchHandler.add(
+        oldCollectionRef,
+        {
+          numFavorites: firebaseAdmin.firestore.FieldValue.increment(-1) as any,
+          lastUpdatedAt: timestamp
+        } as FavoriteCollectionEntryDto,
+        { merge: true }
+      );
+    }
     this.fsBatchHandler.add(
       collectionsRef,
       {
@@ -99,7 +108,9 @@ export class FavoritesService {
   async getFavoriteCollection(user: ParsedUserId): Promise<null | UserFavoriteCollectionDto> {
     const phaseId = this.getCurrentPhaseId();
     const docRef = this.getRootRef(user.userChainId)
-      .collection(`users/${phaseId}`)
+      .collection(firestoreConstants.USERS_COLL)
+      .doc(phaseId)
+      .collection(firestoreConstants.USERS_COLL)
       .doc(`${user.userChainId}:${user.userAddress}`);
     const snap = await docRef.get();
     return snap.exists ? (snap.data() as UserFavoriteCollectionDto) : null;
@@ -118,7 +129,9 @@ export class FavoritesService {
     const limit = +query.limit + 1;
 
     const leaderboardQuery = rootRef
-      .collection(`${firestoreConstants.COLLECTIONS_COLL}/${phaseId}`)
+      .collection(firestoreConstants.COLLECTIONS_COLL)
+      .doc(phaseId)
+      .collection(firestoreConstants.COLLECTIONS_COLL)
       .orderBy('numFavorites', query.orderDirection ?? OrderDirection.Ascending)
       .startAt(queryCursor.collection ?? 0)
       .limit(limit);
