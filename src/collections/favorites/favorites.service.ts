@@ -1,4 +1,4 @@
-import { ChainId } from '@infinityxyz/lib/types/core';
+import { ChainId, OrderDirection } from '@infinityxyz/lib/types/core';
 import { Injectable } from '@nestjs/common';
 import firebaseAdmin from 'firebase-admin';
 import { StakerContractService } from 'ethereum/contracts/staker.contract.service';
@@ -6,16 +6,24 @@ import { FirebaseService } from 'firebase/firebase.service';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
+import { FavoriteCollectionEntryDto, UserFavoriteCollectionDto } from './favorites.dto';
+import { FavoriteCollectionsQueryDto } from '@infinityxyz/lib/types/dto';
+import { CursorService } from 'pagination/cursor.service';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
 
 @Injectable()
 export class FavoritesService {
   private fsBatchHandler: FirestoreBatchHandler;
 
-  constructor(private firebaseService: FirebaseService, private stakerContractService: StakerContractService) {
+  constructor(
+    private firebaseService: FirebaseService,
+    private stakerContractService: StakerContractService,
+    private cursorService: CursorService
+  ) {
     this.fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
   }
 
-  private getRootCollectionRef(chainId = ChainId.Mainnet) {
+  private getRootRef(chainId = ChainId.Mainnet) {
     const stakerContract = this.stakerContractService.getStakerAddress(chainId);
     return this.firebaseService.firestore.collection('favorites').doc(`${chainId}:${stakerContract}`);
   }
@@ -26,6 +34,7 @@ export class FavoritesService {
 
   /**
    * Submit a favorite collection for a specific user during this phase.
+   * This method may overwrite previous saves.
    *
    * @param collection The collection to vote for.
    * @param user The user who is submitting the vote.
@@ -33,22 +42,49 @@ export class FavoritesService {
   async saveFavorite(collection: ParsedCollectionId, user: ParsedUserId) {
     const phaseId = this.getCurrentPhaseId();
 
-    const rootRef = this.getRootCollectionRef(collection.chainId);
+    const rootRef = this.getRootRef(user.userChainId);
+    const usersRef = rootRef
+      .collection(`${firestoreConstants.USERS_COLL}/${phaseId}`)
+      .doc(`${user.userChainId}:${user.userAddress}`);
+    const collectionsRef = rootRef
+      .collection(`${firestoreConstants.COLLECTIONS_COLL}/${phaseId}`)
+      .doc(`${collection.chainId}:${collection.address}`);
+
+    // get the current favorited collection.
+    // it is used to update it before writing the new favorite below..
+    const oldFavoritedCollection = (await usersRef.get()).data() as UserFavoriteCollectionDto;
+    const oldCollectionRef = rootRef
+      .collection(`${firestoreConstants.COLLECTIONS_COLL}/${phaseId}`)
+      .doc(`${oldFavoritedCollection.collectionChainId}:${oldFavoritedCollection.collectionAddress}`);
+
+    const timestamp = Date.now();
 
     this.fsBatchHandler.add(
-      rootRef.collection('userFavorites').doc(phaseId).collection('users').doc(`${user.userAddress}`),
+      usersRef,
       {
-        chainId: collection.chainId,
-        collection: collection.address
-      },
+        collectionChainId: collection.chainId,
+        collectionAddress: collection.address,
+        votedAt: timestamp
+      } as UserFavoriteCollectionDto,
       { merge: false }
     );
     this.fsBatchHandler.add(
-      rootRef.collection('collectionFavorites').doc(phaseId).collection('collections').doc(collection.address),
+      oldCollectionRef,
       {
-        totalNumFavorited: firebaseAdmin.firestore.FieldValue.increment(1)
-      },
-      { merge: false }
+        numFavorites: firebaseAdmin.firestore.FieldValue.increment(-1) as any,
+        lastUpdatedAt: timestamp
+      } as FavoriteCollectionEntryDto,
+      { merge: true }
+    );
+    this.fsBatchHandler.add(
+      collectionsRef,
+      {
+        collectionChainId: collection.chainId,
+        collectionAddress: collection.address,
+        numFavorites: firebaseAdmin.firestore.FieldValue.increment(1) as any,
+        lastUpdatedAt: timestamp
+      } as FavoriteCollectionEntryDto,
+      { merge: true }
     );
 
     await this.fsBatchHandler.flush();
@@ -60,10 +96,48 @@ export class FavoritesService {
    * @param chainId
    * @returns
    */
-  async getFavoriteCollection(user: ParsedUserId, chainId?: ChainId) {
+  async getFavoriteCollection(user: ParsedUserId): Promise<null | UserFavoriteCollectionDto> {
     const phaseId = this.getCurrentPhaseId();
-    const docRef = this.getRootCollectionRef(chainId).collection('userFavorites').doc(`${user.userAddress}:${phaseId}`);
+    const docRef = this.getRootRef(user.userChainId)
+      .collection(`users/${phaseId}`)
+      .doc(`${user.userChainId}:${user.userAddress}`);
     const snap = await docRef.get();
-    return snap.exists ? snap.data() : null;
+    return snap.exists ? (snap.data() as UserFavoriteCollectionDto) : null;
+  }
+
+  /**
+   * Returns a paginated list of favorited collections during this phase.
+   * @param query
+   * @returns
+   */
+  async getFavoriteCollectionsLeaderboard(query: FavoriteCollectionsQueryDto) {
+    const rootRef = this.getRootRef();
+    const phaseId = this.getCurrentPhaseId();
+    type Cursor = { collection: string };
+    const queryCursor = this.cursorService.decodeCursorToObject<Cursor>(query.cursor);
+    const limit = +query.limit + 1;
+
+    const leaderboardQuery = rootRef
+      .collection(`${firestoreConstants.COLLECTIONS_COLL}/${phaseId}`)
+      .orderBy('numFavorites', query.orderDirection ?? OrderDirection.Ascending)
+      .startAt(queryCursor.collection ?? 0)
+      .limit(limit);
+
+    const leaderboardSnapshot = await leaderboardQuery.get();
+
+    const leaderboard = leaderboardSnapshot.docs.map((doc) => doc.data()) as FavoriteCollectionEntryDto[];
+    const hasNextPage = leaderboard.length > query.limit;
+    const last = leaderboard[leaderboard.length - 1];
+    const updatedCursorObj: Cursor = {
+      collection: last ? `${last.collectionChainId}:${last.collectionAddress}` : queryCursor.collection
+    };
+
+    const leaderboardResults = leaderboard.slice(0, query.limit);
+
+    return {
+      hasNextPage,
+      data: leaderboardResults,
+      cursor: this.cursorService.encodeCursor(updatedCursorObj)
+    };
   }
 }

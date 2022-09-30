@@ -1,4 +1,4 @@
-import { BadRequestException, Controller, ForbiddenException, Get, Post } from '@nestjs/common';
+import { BadRequestException, Controller, ForbiddenException, Get, Post, Query } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiCreatedResponse,
@@ -20,6 +20,8 @@ import { FavoritesService } from './favorites.service';
 import { StakerContractService } from 'ethereum/contracts/staker.contract.service';
 import { StakeLevel } from '@infinityxyz/lib/types/core';
 import { ParseCollectionIdPipe, ParsedCollectionId } from 'collections/collection-id.pipe';
+import { UserFavoriteCollectionDto } from './favorites.dto';
+import { FavoriteCollectionsQueryDto } from '@infinityxyz/lib/types/dto';
 
 @Controller('collections')
 export class FavoritesController {
@@ -42,15 +44,11 @@ export class FavoritesController {
     const userStakeLevel = await this.stakerService.getStakeLevel(user);
 
     if (userStakeLevel < StakeLevel.Bronze) {
-      throw new ForbiddenException('You must have a bronze staking level or higher to vote!');
+      throw new ForbiddenException('You must have a bronze staking level or higher to vote');
     }
 
-    const existingFavorite = await this.favoritesService.getFavoriteCollection(user);
-
-    if (existingFavorite != null) {
-      throw new BadRequestException(
-        'You have already favorited a collection. Collections can only be favorited once each phase!'
-      );
+    if (!(await collection.ref.get()).exists) {
+      throw new BadRequestException(`Collection ${collection.chainId}:${collection.address} does not exist`);
     }
 
     await this.favoritesService.saveFavorite(collection, user);
@@ -62,11 +60,25 @@ export class FavoritesController {
     description: 'Get the user-favorite collection for the current phase',
     tags: [ApiTag.Collection, ApiTag.Curation]
   })
-  @ApiOkResponse()
+  @ApiOkResponse({ type: UserFavoriteCollectionDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   async getUserFavorite(@ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId) {
     return this.favoritesService.getFavoriteCollection(user);
+  }
+
+  @Get(':collectionId/favorites')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
+  @ApiOperation({
+    description: 'Get a list of the most favorited collections during the current phase',
+    tags: [ApiTag.Collection, ApiTag.Curation]
+  })
+  @ApiOkResponse()
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  async getFavorites(@Query() query: FavoriteCollectionsQueryDto) {
+    return this.favoritesService.getFavoriteCollectionsLeaderboard(query);
   }
 }
