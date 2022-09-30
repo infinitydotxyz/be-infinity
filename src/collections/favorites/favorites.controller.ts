@@ -20,8 +20,11 @@ import { FavoritesService } from './favorites.service';
 import { StakerContractService } from 'ethereum/contracts/staker.contract.service';
 import { StakeLevel } from '@infinityxyz/lib/types/core';
 import { ParseCollectionIdPipe, ParsedCollectionId } from 'collections/collection-id.pipe';
-import { UserFavoriteCollectionDto } from './favorites.dto';
-import { FavoriteCollectionsQueryDto } from '@infinityxyz/lib/types/dto';
+import {
+  CollectionFavoriteQueryResultDto,
+  FavoriteCollectionsQueryDto,
+  UserFavoriteDto
+} from '@infinityxyz/lib/types/dto';
 
 @Controller('collections')
 export class FavoritesController {
@@ -60,7 +63,7 @@ export class FavoritesController {
     description: 'Get the user-favorite collection for the current phase',
     tags: [ApiTag.Collection, ApiTag.Curation]
   })
-  @ApiOkResponse({ type: UserFavoriteCollectionDto })
+  @ApiOkResponse({ type: UserFavoriteDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
@@ -68,13 +71,12 @@ export class FavoritesController {
     return this.favoritesService.getFavoriteCollection(user);
   }
 
-  @Get(':collectionId/favorites')
-  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
+  @Get('phase/favorites')
   @ApiOperation({
     description: 'Get a list of the most favorited collections during the current phase',
     tags: [ApiTag.Collection, ApiTag.Curation]
   })
-  @ApiOkResponse()
+  @ApiOkResponse({ type: CollectionFavoriteQueryResultDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
