@@ -138,6 +138,7 @@ export class FavoritesService {
     let leaderboardQuery = rootRef
       .collection(firestoreConstants.COLLECTIONS_COLL)
       .orderBy('numFavorites', query.orderDirection ?? OrderDirection.Descending)
+      .where('numFavorites', '>', 0)
       .limit(limit);
 
     if (queryCursor.collection) {
