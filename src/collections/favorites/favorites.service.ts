@@ -25,7 +25,12 @@ export class FavoritesService {
 
   private getRootRef(chainId = ChainId.Mainnet) {
     const stakerContract = this.stakerContractService.getStakerAddress(chainId);
-    return this.firebaseService.firestore.collection('favorites').doc(`${chainId}:${stakerContract}`);
+    const phaseId = this.getCurrentPhaseId();
+    return this.firebaseService.firestore
+      .collection('favorites')
+      .doc(`${chainId}:${stakerContract}`)
+      .collection(phaseId)
+      .doc('entries');
   }
 
   private getCurrentPhaseId() {
@@ -40,17 +45,11 @@ export class FavoritesService {
    * @param user The user who is submitting the vote.
    */
   async saveFavorite(collection: ParsedCollectionId, user: ParsedUserId) {
-    const phaseId = this.getCurrentPhaseId();
-
     const rootRef = this.getRootRef(user.userChainId);
     const usersRef = rootRef
       .collection(`${firestoreConstants.USERS_COLL}`)
-      .doc(phaseId)
-      .collection(`${firestoreConstants.USERS_COLL}`)
       .doc(`${user.userChainId}:${user.userAddress}`);
     const collectionsRef = rootRef
-      .collection(`${firestoreConstants.COLLECTIONS_COLL}`)
-      .doc(phaseId)
       .collection(`${firestoreConstants.COLLECTIONS_COLL}`)
       .doc(`${collection.chainId}:${collection.address}`);
 
@@ -71,8 +70,6 @@ export class FavoritesService {
     );
     if (oldFavoritedCollection) {
       const oldCollectionRef = rootRef
-        .collection(firestoreConstants.COLLECTIONS_COLL)
-        .doc(phaseId)
         .collection(firestoreConstants.COLLECTIONS_COLL)
         .doc(`${oldFavoritedCollection.collectionChainId}:${oldFavoritedCollection.collectionAddress}`);
 
@@ -106,10 +103,7 @@ export class FavoritesService {
    * @returns
    */
   async getFavoriteCollection(user: ParsedUserId): Promise<null | UserFavoriteCollectionDto> {
-    const phaseId = this.getCurrentPhaseId();
     const docRef = this.getRootRef(user.userChainId)
-      .collection(firestoreConstants.USERS_COLL)
-      .doc(phaseId)
       .collection(firestoreConstants.USERS_COLL)
       .doc(`${user.userChainId}:${user.userAddress}`);
     const snap = await docRef.get();
@@ -123,14 +117,11 @@ export class FavoritesService {
    */
   async getFavoriteCollectionsLeaderboard(query: FavoriteCollectionsQueryDto) {
     const rootRef = this.getRootRef();
-    const phaseId = this.getCurrentPhaseId();
     type Cursor = { collection: string };
     const queryCursor = this.cursorService.decodeCursorToObject<Cursor>(query.cursor);
     const limit = +query.limit + 1;
 
     const leaderboardQuery = rootRef
-      .collection(firestoreConstants.COLLECTIONS_COLL)
-      .doc(phaseId)
       .collection(firestoreConstants.COLLECTIONS_COLL)
       .orderBy('numFavorites', query.orderDirection ?? OrderDirection.Ascending)
       .startAt(queryCursor.collection ?? 0)
