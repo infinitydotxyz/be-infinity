@@ -6,7 +6,12 @@ import { FirebaseService } from 'firebase/firebase.service';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
-import { CollectionFavoriteDto, FavoriteCollectionsQueryDto, UserFavoriteDto } from '@infinityxyz/lib/types/dto';
+import {
+  CollectionFavoriteDto,
+  FavoriteCollectionsQueryDto,
+  TokenomicsConfigDto,
+  UserFavoriteDto
+} from '@infinityxyz/lib/types/dto';
 import { CursorService } from 'pagination/cursor.service';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 
@@ -22,9 +27,9 @@ export class FavoritesService {
     this.fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
   }
 
-  private getRootRef(chainId = ChainId.Mainnet) {
+  private async getRootRef(chainId = ChainId.Mainnet) {
     const stakerContract = this.stakerContractService.getStakerAddress(chainId);
-    const phaseId = this.getCurrentPhaseId();
+    const phaseId = await this.getCurrentPhaseId();
     return this.firebaseService.firestore
       .collection('favorites')
       .doc(`${chainId}:${stakerContract}`)
@@ -32,8 +37,17 @@ export class FavoritesService {
       .doc('entries');
   }
 
-  private getCurrentPhaseId() {
-    return '1'; // TODO: get current active phase from firestore (CC @Joe) // const ref = db.collection(firestoreConstants.REWARDS_COLL).doc(collection.chainId) as FirebaseFirestore.DocumentReference<TokenomicsConfigDto>;
+  private async getCurrentPhaseId(chainId = ChainId.Mainnet) {
+    const ref = this.firebaseService.firestore
+      .collection(firestoreConstants.REWARDS_COLL)
+      .doc(chainId) as FirebaseFirestore.DocumentReference<TokenomicsConfigDto>;
+    const docRef = await ref.get();
+    const doc = docRef.data();
+    const activePhase = doc?.phases.find((phase) => phase.isActive);
+    if (!activePhase) {
+      throw new Error('Current active phase not found');
+    }
+    return activePhase.id;
   }
 
   private fromCollection(collection: BaseCollection): Omit<CollectionFavoriteDto, 'numFavorites' | 'timestamp'> {
@@ -56,7 +70,7 @@ export class FavoritesService {
    * @param user The user who is submitting the vote.
    */
   async saveFavorite(collection: ParsedCollectionId, user: ParsedUserId) {
-    const rootRef = this.getRootRef(user.userChainId);
+    const rootRef = await this.getRootRef(user.userChainId);
     const usersRef = rootRef.collection(firestoreConstants.USERS_COLL).doc(`${user.userChainId}:${user.userAddress}`);
     const collectionsRef = rootRef
       .collection(firestoreConstants.COLLECTIONS_COLL)
@@ -117,9 +131,8 @@ export class FavoritesService {
    * @returns
    */
   async getFavoriteCollection(user: ParsedUserId): Promise<null | UserFavoriteDto> {
-    const docRef = this.getRootRef(user.userChainId)
-      .collection(firestoreConstants.USERS_COLL)
-      .doc(`${user.userChainId}:${user.userAddress}`);
+    const rootRef = await this.getRootRef(user.userChainId);
+    const docRef = rootRef.collection(firestoreConstants.USERS_COLL).doc(`${user.userChainId}:${user.userAddress}`);
     const snap = await docRef.get();
     return snap.exists ? (snap.data() as UserFavoriteDto) : null;
   }
@@ -130,7 +143,7 @@ export class FavoritesService {
    * @returns
    */
   async getFavoriteCollectionsLeaderboard(query: FavoriteCollectionsQueryDto) {
-    const rootRef = this.getRootRef();
+    const rootRef = await this.getRootRef();
     type Cursor = { collection: string };
     const queryCursor = this.cursorService.decodeCursorToObject<Cursor>(query.cursor);
     const limit = (query.limit as number) + 1;
