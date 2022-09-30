@@ -4,7 +4,6 @@ import {
   NonFinalizedUserRaffleTickets,
   OrderDirection,
   Phase,
-  RaffleTicketPhaseDoc,
   UserRaffleTickets
 } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
@@ -33,7 +32,7 @@ export class RaffleService {
   async getRaffle(query: RaffleQueryDto, phase: Phase): Promise<null | PhaseRaffleDto> {
     const { phaseRaffleRef } = this.getRaffleRefs(query, phase);
     const phaseRaffleSnapshot = await phaseRaffleRef.get();
-    const phaseRaffleDoc = phaseRaffleSnapshot.data() as RaffleTicketPhaseDoc;
+    const phaseRaffleDoc = phaseRaffleSnapshot.data();
     if (!phaseRaffleDoc) {
       return null;
     }
@@ -124,7 +123,7 @@ export class RaffleService {
       .collection(firestoreConstants.RAFFLE_TICKETS_COLL)
       .doc(`${chainId}:${stakerContract}`)
       .collection(firestoreConstants.RAFFLE_TICKETS_PHASES_COLL)
-      .doc(phase) as FirebaseFirestore.DocumentReference<RaffleTicketPhaseDoc>;
+      .doc(phase) as FirebaseFirestore.DocumentReference<any>;
 
     const phaseRaffleUsersRef = phaseRaffleRef.collection(
       firestoreConstants.RAFFLE_TICKETS_PHASE_USERS_COLL

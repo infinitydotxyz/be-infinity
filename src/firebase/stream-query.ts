@@ -50,7 +50,7 @@ interface StreamQueryWithRefOptions<
 > {
   pageSize: number;
   transformPage?: (
-    docs: { data: DocumentData; ref: FirebaseFirestore.DocumentReference }[]
+    docs: { data: DocumentData; ref: FirebaseFirestore.DocumentReference<DocumentData> }[]
   ) => Promise<TransformedPage[]> | TransformedPage[];
   transformItem?: (pageItem?: TransformedPage) => Promise<TransformedItem> | TransformedItem;
 }
@@ -75,10 +75,7 @@ export async function* streamQueryWithRef<
       pageQuery = pageQuery.startAfter(...startAfter);
     }
     const pageSnapshot = await pageQuery.limit(options.pageSize).get();
-    const pageData = pageSnapshot.docs.map((item) => ({
-      data: item.data(),
-      ref: item.ref as FirebaseFirestore.DocumentReference
-    }));
+    const pageData = pageSnapshot.docs.map((item) => ({ data: item.data(), ref: item.ref }));
 
     const transformedPage: TransformedPage[] = (
       typeof options.transformPage === 'function' ? await options.transformPage(pageData) : pageData
