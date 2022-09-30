@@ -57,11 +57,9 @@ export class FavoritesService {
    */
   async saveFavorite(collection: ParsedCollectionId, user: ParsedUserId) {
     const rootRef = this.getRootRef(user.userChainId);
-    const usersRef = rootRef
-      .collection(`${firestoreConstants.USERS_COLL}`)
-      .doc(`${user.userChainId}:${user.userAddress}`);
+    const usersRef = rootRef.collection(firestoreConstants.USERS_COLL).doc(`${user.userChainId}:${user.userAddress}`);
     const collectionsRef = rootRef
-      .collection(`${firestoreConstants.COLLECTIONS_COLL}`)
+      .collection(firestoreConstants.COLLECTIONS_COLL)
       .doc(`${collection.chainId}:${collection.address}`);
 
     // Get the current favorited collection.
@@ -135,14 +133,16 @@ export class FavoritesService {
     const rootRef = this.getRootRef();
     type Cursor = { collection: string };
     const queryCursor = this.cursorService.decodeCursorToObject<Cursor>(query.cursor);
-    console.log(queryCursor);
-    const limit = +query.limit + 1;
+    const limit = (query.limit as number) + 1;
 
-    const leaderboardQuery = rootRef
+    let leaderboardQuery = rootRef
       .collection(firestoreConstants.COLLECTIONS_COLL)
-      .orderBy('numFavorites', query.orderDirection ?? OrderDirection.Ascending)
-      .startAt(queryCursor.collection ?? 0)
+      .orderBy('numFavorites', query.orderDirection ?? OrderDirection.Descending)
       .limit(limit);
+
+    if (queryCursor.collection) {
+      leaderboardQuery = leaderboardQuery.startAt(queryCursor.collection);
+    }
 
     const leaderboardSnapshot = await leaderboardQuery.get();
 
