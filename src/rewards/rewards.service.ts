@@ -2,16 +2,9 @@ import {
   AllTimeTransactionFeeRewardsDoc,
   ChainId,
   Epoch,
-  RewardProgram,
   TransactionFeePhaseRewardsDoc
 } from '@infinityxyz/lib/types/core';
-import {
-  RewardsProgramByEpochDto,
-  RewardsProgramDto,
-  UserEpochRewardDto,
-  UserPhaseRewardDto,
-  UserRewardsDto
-} from '@infinityxyz/lib/types/dto/rewards';
+import { TokenomicsConfigDto, UserEpochRewardDto, UserRewardsDto } from '@infinityxyz/lib/types/dto/rewards';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { CurationService } from 'collections/curation/curation.service';
@@ -22,10 +15,10 @@ import { ParsedUserId } from 'user/parser/parsed-user-id';
 export class RewardsService {
   constructor(protected firebaseService: FirebaseService, protected curationService: CurationService) {}
 
-  async getPrograms(chainId: ChainId): Promise<RewardsProgramByEpochDto | null> {
+  async getConfig(chainId: ChainId): Promise<TokenomicsConfigDto | null> {
     const rewardsProgramRef = this.firebaseService.firestore
       .collection(firestoreConstants.REWARDS_COLL)
-      .doc(chainId) as FirebaseFirestore.DocumentReference<RewardsProgramDto>;
+      .doc(chainId) as FirebaseFirestore.DocumentReference<TokenomicsConfigDto>;
 
     const snap = await rewardsProgramRef.get();
     const program = snap.data();
@@ -33,22 +26,11 @@ export class RewardsService {
       return null;
     }
 
-    const epochs: RewardsProgramByEpochDto = {} as any;
-    for (const epoch of Object.values(Epoch)) {
-      const rewardEpoch = program.epochs.find((item) => item.name === epoch);
-      if (!rewardEpoch) {
-        console.warn(`No rewards found for epoch: ${epoch}`);
-        epochs[epoch] = {} as any;
-      } else {
-        epochs[epoch] = rewardEpoch;
-      }
-    }
-
-    return epochs;
+    return program;
   }
 
   async getUserRewards(chainId: ChainId, parsedUser: ParsedUserId): Promise<UserRewardsDto | null> {
-    const program = await this.getPrograms(chainId);
+    const program = await this.getConfig(chainId);
     if (!program) {
       return null;
     }
