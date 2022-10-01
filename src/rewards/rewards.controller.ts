@@ -10,11 +10,11 @@ export class RewardsController {
   constructor(protected rewardsService: RewardsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get rewards programs with current stats' })
+  @ApiOperation({ summary: 'Get rewards config with current stats' })
   @ApiOkResponse({ description: ResponseDescription.Success, type: RewardsProgramByEpochDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  async getPrograms() {
-    const rewards = await this.rewardsService.getPrograms(ChainId.Mainnet);
+  async config() {
+    const rewards = await this.rewardsService.getConfig(ChainId.Mainnet);
     if (!rewards) {
       throw new NotFoundException(`No rewards found for chain: ${ChainId.Mainnet}`);
     }
