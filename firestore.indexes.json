@@ -613,12 +613,82 @@
           "order": "ASCENDING"
         },
         {
+          "fieldPath": "currentBlock.stats.blockApr",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "currentBlock.metadata.collectionAddress",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "curationSnippets",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "metadata.stakerContractAddress",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.stakerContractChainId",
+          "order": "ASCENDING"
+        },
+        {
           "fieldPath": "mostRecentCompletedBlock.stats.numCuratorVotes",
           "order": "ASCENDING"
         },
         {
           "fieldPath": "mostRecentCompletedBlock.metadata.collectionAddress",
           "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "curationSnippets",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "metadata.stakerContractAddress",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.stakerContractChainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "mostRecentCompletedBlock.stats.numCuratorVotes",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "mostRecentCompletedBlock.metadata.collectionAddress",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "curationSnippetUsers",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "metadata.stakerContractAddress",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.stakerContractChainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.userAddress",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "stats.blockApr",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "metadata.collectionAddress",
+          "order": "DESCENDING"
         }
       ]
     },
@@ -795,6 +865,50 @@
         {
           "fieldPath": "votes",
           "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "curators",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "stakerContractAddress",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "stakerContractChainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "user",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "address",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "curators",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "stakerContractAddress",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "stakerContractChainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "userAddress",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "address",
+          "order": "ASCENDING"
         }
       ]
     },
@@ -1039,6 +1153,20 @@
         {
           "fieldPath": "userAddress",
           "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "feed",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "usersInvolved",
+          "arrayConfig": "CONTAINS"
         },
         {
           "fieldPath": "timestamp",
@@ -5447,6 +5575,48 @@
       ]
     },
     {
+      "collectionGroup": "raffleEntrantLedger",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "isAggregated",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "raffleRewardsLedger",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "isAggregated",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "raffleTotals",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "isAggregated",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "totalsUpdatedAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "sales",
       "queryScope": "COLLECTION",
       "fields": [
@@ -5695,6 +5865,20 @@
       ]
     },
     {
+      "collectionGroup": "treasuryLedger",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "isAggregated",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "twitterListMembers",
       "queryScope": "COLLECTION",
       "fields": [
@@ -5709,6 +5893,20 @@
       ]
     },
     {
+      "collectionGroup": "userRaffleOrdersLedger",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "isAggregated",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "userRewardPhases",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
@@ -5718,6 +5916,20 @@
         },
         {
           "fieldPath": "phase",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "userRewardPhases",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "isCopiedToRaffles",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
           "order": "ASCENDING"
         }
       ]
