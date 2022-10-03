@@ -26,6 +26,15 @@ export class RewardsService {
       return null;
     }
 
+    let encounteredActivePhase = false;
+    for (const phase of program.phases) {
+      if (phase.isActive && !encounteredActivePhase) {
+        encounteredActivePhase = true;
+      } else if (phase.isActive && encounteredActivePhase) {
+        phase.isActive = false;
+      }
+    }
+
     return program;
   }
 
