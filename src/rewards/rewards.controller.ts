@@ -1,5 +1,4 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { RewardsProgramByEpochDto } from '@infinityxyz/lib/types/dto/rewards';
 import { Controller, Get, NotFoundException } from '@nestjs/common';
 import { ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { ResponseDescription } from 'common/response-description';
@@ -11,7 +10,7 @@ export class RewardsController {
 
   @Get()
   @ApiOperation({ summary: 'Get rewards config with current stats' })
-  @ApiOkResponse({ description: ResponseDescription.Success, type: RewardsProgramByEpochDto })
+  @ApiOkResponse({ description: ResponseDescription.Success }) // TODO add type
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   async config() {
     const rewards = await this.rewardsService.getConfig(ChainId.Mainnet);
