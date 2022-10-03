@@ -1,5 +1,5 @@
-import { ChainId } from '@infinityxyz/lib/types/core';
-import { TokenomicsConfigDto } from '@infinityxyz/lib/types/dto/rewards';
+import { AllTimeTransactionFeeRewardsDoc, ChainId } from '@infinityxyz/lib/types/core';
+import { TokenomicsConfigDto, UserRewardsDto } from '@infinityxyz/lib/types/dto/rewards';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { CurationService } from 'collections/curation/curation.service';
@@ -24,56 +24,29 @@ export class RewardsService {
     return program;
   }
 
-  async getUserRewards(chainId: ChainId, parsedUser: ParsedUserId): Promise<null> {
-    // const program = await this.getConfig(chainId);
-    // if (!program) {
-    //   return null;
-    // }
+  async getUserRewards(chainId: ChainId, parsedUser: ParsedUserId): Promise<null | UserRewardsDto> {
+    const userRewardRef = parsedUser.ref.collection(firestoreConstants.USER_REWARDS_COLL).doc(chainId);
+    const userAllTimeRewards = userRewardRef
+      .collection(firestoreConstants.USER_ALL_TIME_REWARDS_COLL)
+      .doc(
+        firestoreConstants.USER_ALL_TIME_TXN_FEE_REWARDS_DOC
+      ) as FirebaseFirestore.DocumentReference<AllTimeTransactionFeeRewardsDoc>;
 
-    // const userRewardRef = parsedUser.ref.collection(firestoreConstants.USER_REWARDS_COLL).doc(chainId);
-    // const userAllTimeRewards = userRewardRef
-    //   .collection(firestoreConstants.USER_ALL_TIME_REWARDS_COLL)
-    //   .doc(
-    //     firestoreConstants.USER_ALL_TIME_TXN_FEE_REWARDS_DOC
-    //   ) as FirebaseFirestore.DocumentReference<AllTimeTransactionFeeRewardsDoc>;
-    // const userRewardPhasesRef = userRewardRef.collection(
-    //   firestoreConstants.USER_REWARD_PHASES_COLL
-    // ) as FirebaseFirestore.CollectionReference<TransactionFeePhaseRewardsDoc>;
+    const userTotalSnap = await userAllTimeRewards.get();
+    const userTotalRewards = userTotalSnap.data() ?? null;
 
-    // const userPhasesSnap = await userRewardPhasesRef.get();
-    // const userPhaseRewards = userPhasesSnap.docs.map((item) => item.data());
+    const userCurationTotals = await this.curationService.getUserRewards(parsedUser);
 
-    // const rewards = {} as Record<Epoch, UserEpochRewardDto>;
-    // TODO redo this, epochs are no longer used
-    // for (const e of Object.values(Epoch)) {
-    //   const epoch = program[e];
-    //   if (epoch) {
-    //     const phases: UserPhaseRewardDto[] = epoch.phases.map((phase) => {
-    //       const userPhaseReward = userPhaseRewards.find((item) => item.phase === phase.name);
-    //       return {
-    //         name: phase.name,
-    //         userVolume: userPhaseReward?.volumeEth ?? 0,
-    //         userRewards: userPhaseReward?.rewards ?? 0,
-    //         [RewardProgram.TradingFee]: phase[RewardProgram.TradingFee] ?? null,
-    //         [RewardProgram.NftReward]: phase[RewardProgram.NftReward] ?? null,
-    //         [RewardProgram.Curation]: phase[RewardProgram.Curation],
-    //         userSells: userPhaseReward?.userSells ?? 0,
-    //         userBuys: userPhaseReward?.userBuys ?? 0
-    //       };
-    //     });
-    //     rewards[epoch.name] = {
-    //       name: epoch.name,
-    //       phases
-    //     };
-    //   }
-    // }
-
-    // const userTotalSnap = await userAllTimeRewards.get();
-    // const userTotalRewards = userTotalSnap.data() ?? null;
-
-    // const userCurationTotals = await this.curationService.getUserRewards(parsedUser);
-
-    await Promise.resolve();
-    return null;
+    return {
+      chainId,
+      totals: {
+        userVolume: userTotalRewards?.volumeEth ?? 0,
+        userRewards: userTotalRewards?.rewards ?? 0,
+        userSells: userTotalRewards?.userSells ?? 0,
+        userBuys: userTotalRewards?.userBuys ?? 0,
+        userCurationRewardsWei: userCurationTotals.totalProtocolFeesAccruedWei,
+        userCurationRewardsEth: userCurationTotals.totalProtocolFeesAccruedEth
+      }
+    };
   }
 }
