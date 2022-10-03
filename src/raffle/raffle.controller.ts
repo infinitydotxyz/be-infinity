@@ -1,11 +1,4 @@
-import { Phase } from '@infinityxyz/lib/types/core';
-import {
-  PhaseRaffleDto,
-  RaffleLeaderboardArrayDto,
-  RaffleLeaderboardQueryDto,
-  RaffleQueryDto,
-  UserRaffleTicketsDto
-} from '@infinityxyz/lib/types/dto';
+import { RaffleLeaderboardArrayDto, RaffleLeaderboardQueryDto, RaffleQueryDto } from '@infinityxyz/lib/types/dto';
 import { Controller, Get, NotFoundException, Param, Query } from '@nestjs/common';
 import { ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { ParamUserId } from 'auth/param-user-id.decorator';
@@ -20,13 +13,13 @@ export class RaffleController {
 
   @Get('/:phase')
   @ApiOperation({ summary: 'Get the raffle for a given phase' })
-  @ApiOkResponse({ description: ResponseDescription.Success, type: PhaseRaffleDto })
+  @ApiOkResponse({ description: ResponseDescription.Success }) // TODO add type
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  async getRaffle(@Param('phase') phase: Phase, @Query() query: RaffleQueryDto) {
-    const raffle = await this.raffleService.getRaffle(query, phase);
+  async getRaffle(@Param('phase') phaseId: string, @Query() query: RaffleQueryDto) {
+    const raffle = await this.raffleService.getRaffle(query, phaseId);
     if (!raffle) {
-      throw new NotFoundException(`No raffle found for phase ${phase}`);
+      throw new NotFoundException(`No raffle found for phase ${phaseId}`);
     }
     return raffle;
   }
@@ -36,27 +29,27 @@ export class RaffleController {
   @ApiOkResponse({ description: ResponseDescription.Success, type: RaffleLeaderboardArrayDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  async getLeaderboard(@Param('phase') phase: Phase, @Query() query: RaffleLeaderboardQueryDto) {
-    const leaderboard = await this.raffleService.getLeaderboard(query, phase);
+  async getLeaderboard(@Param('phase') phaseId: string, @Query() query: RaffleLeaderboardQueryDto) {
+    const leaderboard = await this.raffleService.getLeaderboard(query, phaseId);
     if (!leaderboard) {
-      throw new NotFoundException(`No raffle leaderboard found for phase ${phase}`);
+      throw new NotFoundException(`No raffle leaderboard found for phase ${phaseId}`);
     }
     return leaderboard;
   }
 
   @Get('/:phase/user/:userId')
   @ApiOperation({ summary: "Get a user's raffle tickets" })
-  @ApiOkResponse({ description: ResponseDescription.Success, type: UserRaffleTicketsDto })
+  @ApiOkResponse({ description: ResponseDescription.Success }) // TODO add type
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   async getUserTickets(
-    @Param('phase') phase: Phase,
+    @Param('phase') phaseId: string,
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
     @Query() query: RaffleQueryDto
   ) {
-    const userRaffleTickets = await this.raffleService.getUserRaffleTickets(query, phase, user);
+    const userRaffleTickets = await this.raffleService.getUserRaffleTickets(query, phaseId, user);
     if (!userRaffleTickets) {
-      throw new NotFoundException(`User ${user.userAddress} has no raffle tickets for phase ${phase}`);
+      throw new NotFoundException(`User ${user.userAddress} has no raffle tickets for phase ${phaseId}`);
     }
     return userRaffleTickets;
   }
