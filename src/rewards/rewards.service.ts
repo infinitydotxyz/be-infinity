@@ -24,7 +24,7 @@ export class RewardsService {
     return program;
   }
 
-  async getUserRewards(chainId: ChainId, parsedUser: ParsedUserId): Promise<null | UserRewardsDto> {
+  async getUserRewards(chainId: ChainId, parsedUser: ParsedUserId): Promise<UserRewardsDto> {
     const userRewardRef = parsedUser.ref.collection(firestoreConstants.USER_REWARDS_COLL).doc(chainId);
     const userAllTimeRewards = userRewardRef
       .collection(firestoreConstants.USER_ALL_TIME_REWARDS_COLL)
