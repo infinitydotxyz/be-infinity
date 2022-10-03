@@ -265,6 +265,7 @@ export class UserController {
     description: 'Update user images',
     tags: [ApiTag.User]
   })
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiParamUserId('userId')
   @ApiConsumes('multipart/form-data')
@@ -343,8 +344,8 @@ export class UserController {
   }
 
   @Put(':userId/collections/:collectionId')
-  @HttpCode(HttpStatus.NO_CONTENT)
   @Auth(SiteRole.User, ApiRole.Guest, 'userId')
+  @HttpCode(HttpStatus.NO_CONTENT)
   @UseInterceptors(FileInterceptor('profileImage'))
   @ApiOperation({
     description: 'Update collection information',
