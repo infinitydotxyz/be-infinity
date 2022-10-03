@@ -361,8 +361,8 @@ export default class CollectionsService {
         secondary: 'currentBlock.metadata.collectionAddress'
       },
       [CuratedCollectionsOrderBy.Votes]: {
-        primary: 'mostRecentCompletedBlock.stats.numCuratorVotes',
-        secondary: 'mostRecentCompletedBlock.metadata.collectionAddress'
+        primary: 'stats.numCuratorVotes',
+        secondary: 'metadata.collectionAddress'
       }
     };
 
