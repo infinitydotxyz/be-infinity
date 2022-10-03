@@ -255,6 +255,7 @@ export class UserController {
   }
 
   @Put('/:userId/images')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @UseInterceptors(
     FileFieldsInterceptor([
       { name: 'profileImage', maxCount: 1 },
@@ -265,7 +266,6 @@ export class UserController {
     description: 'Update user images',
     tags: [ApiTag.User]
   })
-  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiParamUserId('userId')
   @ApiConsumes('multipart/form-data')
@@ -344,8 +344,8 @@ export class UserController {
   }
 
   @Put(':userId/collections/:collectionId')
-  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @UseInterceptors(FileInterceptor('profileImage'))
   @ApiOperation({
     description: 'Update collection information',
