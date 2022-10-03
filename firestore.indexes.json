@@ -613,6 +613,28 @@
           "order": "ASCENDING"
         },
         {
+          "fieldPath": "currentBlock.stats.blockApr",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "currentBlock.metadata.collectionAddress",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "curationSnippets",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "metadata.stakerContractAddress",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.stakerContractChainId",
+          "order": "ASCENDING"
+        },
+        {
           "fieldPath": "mostRecentCompletedBlock.stats.numCuratorVotes",
           "order": "ASCENDING"
         },
