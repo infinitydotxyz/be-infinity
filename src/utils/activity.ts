@@ -79,7 +79,7 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
         collectionName: offer.collectionName,
         collectionSlug: offer.collectionSlug,
         hasBlueCheck: offer.hasBlueCheck,
-        image: offer.image,
+        image: offer.image || offer.collectionProfileImage,
         tokenId: offer.tokenId,
         chainId: offer.chainId as ChainId,
         from: offer.makerAddress,
