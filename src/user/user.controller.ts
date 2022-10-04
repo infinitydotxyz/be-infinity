@@ -82,7 +82,7 @@ import { ApiParamUserId, Auth } from 'auth/api-auth.decorator';
 import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
 import { Throttle } from '@nestjs/throttler';
 import { RewardsService } from 'rewards/rewards.service';
-import { UserRewardsDto } from '@infinityxyz/lib/types/dto/rewards';
+import { UserRewardsDto } from '@infinityxyz/lib/types/dto';
 
 @Controller('user')
 export class UserController {
@@ -255,6 +255,7 @@ export class UserController {
   }
 
   @Put('/:userId/images')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @UseInterceptors(
     FileFieldsInterceptor([
       { name: 'profileImage', maxCount: 1 },

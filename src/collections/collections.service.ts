@@ -361,8 +361,8 @@ export default class CollectionsService {
         secondary: 'currentBlock.metadata.collectionAddress'
       },
       [CuratedCollectionsOrderBy.Votes]: {
-        primary: 'mostRecentCompletedBlock.stats.numCuratorVotes',
-        secondary: 'mostRecentCompletedBlock.metadata.collectionAddress'
+        primary: 'stats.numCuratorVotes',
+        secondary: 'metadata.collectionAddress'
       }
     };
 
@@ -441,8 +441,7 @@ export default class CollectionsService {
         feesAPR: item.curator?.stats?.blockApr ?? 0,
         timestamp: item.metadata.updatedAt,
         slug: item?.collection?.slug,
-        numCuratorVotes:
-          item?.currentBlock?.stats?.numCuratorVotes ?? item?.mostRecentCompletedBlock?.stats?.numCuratorVotes ?? 0,
+        numCuratorVotes: item.stats.numCuratorVotes,
         profileImage: item?.collection?.profileImage ?? '',
         bannerImage: item?.collection?.bannerImage ?? '',
         name: item?.collection?.name ?? '',
