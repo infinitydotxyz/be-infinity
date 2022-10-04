@@ -133,7 +133,7 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
         collectionSlug: tweet.collectionSlug,
         hasBlueCheck: tweet.hasBlueCheck,
         image: tweet.image,
-        tokenId: '',
+        tokenId: `https://twitter.com/${tweet.username}/status/${tweet.id}`,
         chainId: tweet.chainId as ChainId,
         from: tweet.username,
         fromDisplayName: tweet.authorName,
