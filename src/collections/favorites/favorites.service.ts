@@ -78,7 +78,7 @@ export class FavoritesService {
 
       // Get the current favorited collection.
       const previousFavoritedCollectionSnap = await txn.get(
-        rootRef.collection(firestoreConstants.COLLECTION_PHASE_FAVORITES).doc(user.userAddress)
+        rootRef.collection(firestoreConstants.USER_PHASE_FAVORITES).doc(user.userAddress)
       );
 
       // If we already voted on another collection, decrement the votes on it.
