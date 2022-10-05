@@ -71,10 +71,10 @@ export class FavoritesService {
       .collection(firestoreConstants.COLLECTION_PHASE_FAVORITES)
       .doc(`${collection.chainId}:${collection.address}`);
 
+    const favoritedCollection = (await collection.ref.get()).data() as BaseCollection;
+
     await this.firebaseService.firestore.runTransaction(async (txn) => {
       const timestamp = Date.now();
-
-      const favoritedCollection = (await txn.get(collection.ref)).data() as BaseCollection;
 
       // Get the current favorited collection.
       const previousFavoritedCollectionSnap = await txn.get(
