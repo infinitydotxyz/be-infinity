@@ -126,9 +126,6 @@ export class FavoritesService {
 
   /**
    * Returns the current user-favorited collection.
-   * @param user
-   * @param chainId
-   * @returns
    */
   async getFavoriteCollection(user: ParsedUserId): Promise<null | UserFavoriteDto> {
     const rootRef = await this.getRootRef(user.userChainId);
@@ -139,14 +136,12 @@ export class FavoritesService {
 
   /**
    * Returns a paginated list of favorited collections during this phase.
-   * @param query
-   * @returns
    */
   async getFavoriteCollectionsLeaderboard(query: FavoriteCollectionsQueryDto) {
     const rootRef = await this.getRootRef();
     type Cursor = { collection: string };
     const queryCursor = this.cursorService.decodeCursorToObject<Cursor>(query.cursor);
-    const limit = (query.limit as number) + 1;
+    const limit = query.limit + 1;
 
     let leaderboardQuery = rootRef
       .collection(firestoreConstants.COLLECTIONS_COLL)
