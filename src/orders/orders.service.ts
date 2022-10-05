@@ -189,7 +189,7 @@ export default class OrdersService {
         // write order to feed
         this.writeOrderToFeed(makerUsername, order, orderItems, fsBatchHandler);
         const currentBlockNumber = await this.ethereumService.getCurrentBlockNumber(order.chainId as ChainId);
-        await this.writeOrderToRaffles(order, orderItems, fsBatchHandler, currentBlockNumber);
+        await this.writeOrderToRaffles(dataToStore, orderItems, fsBatchHandler, currentBlockNumber);
       }
       // commit batch
       await fsBatchHandler.flush();
@@ -726,7 +726,7 @@ export default class OrdersService {
   }
 
   protected async writeOrderToRaffles(
-    order: SignedOBOrderWithoutMetadataDto,
+    order: FirestoreOrder,
     orderItems: (FirestoreOrderItem & { orderItemId: string })[],
     batchHandler: FirestoreBatchHandler,
     currentBlockNumber: number
@@ -796,6 +796,7 @@ export default class OrdersService {
       .doc(order.makerAddress)
       .collection('userRaffleOrdersLedger')
       .doc(order.id);
+
     batchHandler.add(ref, entrantOrder, { merge: false });
   }
 
