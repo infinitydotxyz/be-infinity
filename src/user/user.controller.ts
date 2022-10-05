@@ -255,6 +255,7 @@ export class UserController {
   }
 
   @Put('/:userId/images')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @UseInterceptors(
     FileFieldsInterceptor([
       { name: 'profileImage', maxCount: 1 },
