@@ -1,9 +1,17 @@
 // import { RaffleLeaderboardArrayDto, RaffleLeaderboardQueryDto, RaffleQueryDto } from '@infinityxyz/lib/types/dto';
-import { RaffleLeaderboardArrayDto, RaffleLeaderboardQueryDto } from '@infinityxyz/lib/types/dto';
+import {
+  RaffleLeaderboardArrayDto,
+  RaffleLeaderboardQueryDto,
+  RaffleLeaderboardUser,
+  RaffleQueryDto
+} from '@infinityxyz/lib/types/dto';
 import { Controller, Get, NotFoundException, Param, Query } from '@nestjs/common';
 import { ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { ParamUserId } from 'auth/param-user-id.decorator';
 // import { ParamUserId } from 'auth/param-user-id.decorator';
 import { ResponseDescription } from 'common/response-description';
+import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
+import { ParsedUserId } from 'user/parser/parsed-user-id';
 // import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
 // import { ParsedUserId } from 'user/parser/parsed-user-id';
 import { RafflesService } from './raffles.service';
@@ -50,20 +58,20 @@ export class RafflesController {
     return leaderboard;
   }
 
-  // @Get('/:phase/user/:userId')
-  // @ApiOperation({ summary: "Get a user's raffle tickets" })
-  // @ApiOkResponse({ description: ResponseDescription.Success }) // TODO add type
-  // @ApiNotFoundResponse({ description: ResponseDescription.NotFound })
-  // @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  // async getUserTickets(
-  //   @Param('phase') phaseId: string,
-  //   @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
-  //   @Query() query: RaffleQueryDto
-  // ) {
-  //   const userRaffleTickets = await this.rafflesService.getUserRaffleTickets(query, phaseId, user);
-  //   if (!userRaffleTickets) {
-  //     throw new NotFoundException(`User ${user.userAddress} has no raffle tickets for phase ${phaseId}`);
-  //   }
-  //   return userRaffleTickets;
-  // }
+  @Get('/:raffleId/entrants/:userId')
+  @ApiOperation({ summary: "Get a user's raffle tickets" })
+  @ApiOkResponse({ description: ResponseDescription.Success })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  async getUserTickets(
+    @Param('raffleId') raffleId: string,
+    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
+    @Query() query: RaffleQueryDto
+  ) {
+    const userRaffleTickets = await this.rafflesService.getUserRaffleTickets(query, raffleId, user);
+    if (!userRaffleTickets) {
+      throw new NotFoundException(`User ${user.userAddress} has no raffle tickets for raffle ${raffleId}`);
+    }
+    return userRaffleTickets;
+  }
 }

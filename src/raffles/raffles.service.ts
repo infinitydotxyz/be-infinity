@@ -4,6 +4,7 @@ import {
   FinalizedUserRaffleEntrant,
   OrderDirection,
   RaffleEntrant,
+  RaffleRewardsDoc,
   RaffleState,
   RaffleTicketTotalsDoc,
   RaffleType,
@@ -17,17 +18,26 @@ import { StakerContractService } from 'ethereum/contracts/staker.contract.servic
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
-import { RaffleQueryDto, RaffleLeaderboardQueryDto, TokenomicsConfigDto } from '@infinityxyz/lib/types/dto';
+import {
+  RaffleQueryDto,
+  RaffleLeaderboardQueryDto,
+  TokenomicsConfigDto,
+  RaffleLeaderboardUser
+} from '@infinityxyz/lib/types/dto';
 import { UserService } from 'user/user.service';
 import { RaffleQueryState, RafflesQueryDto } from './types';
 import { raffleStateByRaffleQueryState } from './constants';
 import { RewardsService } from 'rewards/rewards.service';
 
-type RaffleLeaderboardUser = Pick<
-  RaffleEntrant,
-  'stakerContractAddress' | 'raffleId' | 'entrant' | 'numTickets' | 'updatedAt' | 'data' | 'chainId'
-> &
-  ({ tickets: null } | Pick<FinalizedUserRaffleEntrant, 'tickets'>) & { probability: number };
+type Raffle = UserRaffle & {
+  progress: number;
+  totals: {
+    numUniqueEntrants: number;
+    totalNumTickets: number;
+    prizePoolEth: number;
+    prizePoolWei: string;
+  };
+};
 
 @Injectable()
 export class RafflesService {
@@ -55,7 +65,7 @@ export class RafflesService {
   //   return null;
   // }
 
-  async getRaffles(query: RafflesQueryDto): Promise<StakingContractRaffle[] | null> {
+  async getRaffles(query: RafflesQueryDto): Promise<Raffle[] | null> {
     const tokenomicsConfig = await this.rewardsService.getConfig(query.chainId ?? ChainId.Mainnet);
     if (!tokenomicsConfig) {
       return null;
@@ -65,54 +75,103 @@ export class RafflesService {
       query.states = [RaffleQueryState.Active];
     }
     const states: RaffleState[] = query.states.flatMap((item) => raffleStateByRaffleQueryState[item]);
-    const raffles = await this._getRafflesInStates(query, states);
+    const validRaffles = await this._getRafflesInStates(query, states);
 
-    const raffleData = raffles.map((item) => ({
-      ...item.data,
-      progress: this._getRaffleProgress(item.data, tokenomicsConfig)
-    }));
+    const raffleTotalsRefs = validRaffles.map((item) => {
+      const totalsRef = item.ref.collection(firestoreConstants.RAFFLE_TOTALS_COLL);
+      const ticketTotalsRef = totalsRef.doc(
+        firestoreConstants.RAFFLE_TICKET_TOTALS_DOC
+      ) as FirebaseFirestore.DocumentReference<RaffleTicketTotalsDoc>;
+      const rewardsTotalsRef = totalsRef.doc(
+        firestoreConstants.RAFFLE_TOTALS_REWARDS_DOC
+      ) as FirebaseFirestore.DocumentReference<RaffleRewardsDoc>;
 
-    return raffleData;
+      return {
+        ticketTotalsRef,
+        rewardsTotalsRef
+      };
+    });
+
+    const raffleTicketTotals = await this.firebaseService.firestore.getAll(
+      ...raffleTotalsRefs.map((item) => item.ticketTotalsRef)
+    );
+    const raffleRewards = await this.firebaseService.firestore.getAll(
+      ...raffleTotalsRefs.map((item) => item.rewardsTotalsRef)
+    );
+
+    const raffles = validRaffles.map(({ data }, index) => {
+      const ticketTotals = (raffleTicketTotals[index]?.data() ?? {}) as Partial<RaffleTicketTotalsDoc>;
+      const rewards = (raffleRewards[index]?.data() ?? {}) as Partial<RaffleRewardsDoc>;
+      return this._transformRaffle(data, ticketTotals, rewards, tokenomicsConfig);
+    });
+
+    return raffles;
   }
 
-  async getUserRaffleTickets(query: RaffleQueryDto, phase: string, user: ParsedUserId): Promise<null> {
-    // const { phaseRaffleUsersRef } = this.getRaffleRefs(query, phase);
-    // const userRaffleTicketsRef = phaseRaffleUsersRef.doc(user.userAddress);
+  async getUserRaffleTickets(
+    raffleQuery: RaffleQueryDto,
+    raffleId: string,
+    user: ParsedUserId
+  ): Promise<RaffleLeaderboardUser | null> {
+    const raffleRef = this._getPhaseRaffleRef(raffleQuery, raffleId);
 
-    // const userSnapshot = await userRaffleTicketsRef.get();
-    // let userRaffleTicketsDoc = userSnapshot.data() as UserRaffleTickets;
+    const raffleSnap = await raffleRef.get();
+    const raffle = raffleSnap.data();
+    if (!raffle) {
+      return null;
+    }
 
-    // if (!userRaffleTicketsDoc) {
-    //   const raffle = await this.getRaffle(query, phase);
-    //   if (!raffle) {
-    //     return null;
-    //   }
-    //   userRaffleTicketsDoc = {
-    //     userAddress: user.userAddress,
-    //     numTickets: 0,
-    //     chainId: raffle.chainId,
-    //     stakerContractAddress: raffle.stakerContractAddress,
-    //     blockNumber: 0,
-    //     epoch: raffle.epoch,
-    //     phase: raffle.phase,
-    //     volumeUSDC: 0,
-    //     chanceOfWinning: 0,
-    //     rank: Number.NaN,
-    //     isFinalized: raffle.isFinalized,
-    //     updatedAt: Date.now()
-    //   } as NonFinalizedUserRaffleTickets;
-    // }
+    const raffleTicketTotals = await this._getRaffleTicketTotals(raffleRef);
 
-    // const userRaffleTicketsArray = await this.transformUserRaffleTickets([userRaffleTicketsDoc]);
-    // const userRaffleTickets = userRaffleTicketsArray[0];
+    const entrantsRef = raffleRef.collection(
+      firestoreConstants.RAFFLE_ENTRANTS_COLL
+    ) as FirebaseFirestore.CollectionReference<RaffleEntrant>;
 
-    // if (!userRaffleTickets) {
-    //   return null;
-    // }
+    const entrantRef = entrantsRef.doc(user.userAddress);
+    const doc = await entrantRef.get();
+    const raffleEntrant = doc.data();
 
-    // return userRaffleTickets;
-    await Promise.resolve();
-    return null;
+    const defaultEntrant: RaffleLeaderboardUser = {
+      stakerContractAddress: raffle.stakerContractAddress,
+      raffleId: raffle.id,
+      entrant: {
+        address: user.userAddress,
+        displayName: '',
+        username: '',
+        profileImage: '',
+        bannerImage: ''
+      },
+      numTickets: 0,
+      updatedAt: Date.now(),
+      data: {
+        volumeUSDC: 0,
+        numValidOffers: 0,
+        numValidListings: 0,
+        numTicketsFromOffers: 0,
+        numTicketsFromListings: 0,
+        numTicketsFromVolume: 0
+      },
+      chainId: raffle.chainId,
+      tickets: null,
+      probability: 0
+    };
+
+    if (!raffleEntrant) {
+      return defaultEntrant;
+    }
+
+    const results = this._transformUserRaffleTickets(
+      [raffleEntrant],
+      raffleTicketTotals?.totalNumTickets != null
+        ? BigInt(raffleTicketTotals?.totalNumTickets as number | bigint)
+        : BigInt(0)
+    );
+
+    if (!results[0]) {
+      defaultEntrant;
+    }
+
+    return results[0];
   }
 
   async getLeaderboard(
@@ -163,7 +222,12 @@ export class RafflesService {
       entrantAddress: lastItem?.entrant.address ?? cursor?.entrantAddress
     };
 
-    const results = this._transformUserRaffleTickets(raffleEntrants, raffleTicketTotals?.totalNumTickets ?? BigInt(0));
+    const results = this._transformUserRaffleTickets(
+      raffleEntrants,
+      raffleTicketTotals?.totalNumTickets != null
+        ? BigInt(raffleTicketTotals?.totalNumTickets as number | bigint)
+        : BigInt(0)
+    );
 
     return {
       hasNextPage,
@@ -204,7 +268,7 @@ export class RafflesService {
       .doc(`${chainId}:${stakerContract}`)
       .collection(
         firestoreConstants.STAKING_CONTRACT_RAFFLES_COLL
-      ) as FirebaseFirestore.CollectionReference<StakingContractRaffle>;
+      ) as FirebaseFirestore.CollectionReference<UserRaffle>;
 
     return rafflesRef;
   }
@@ -242,10 +306,10 @@ export class RafflesService {
     const results = raffleEntrants.map((item) => {
       const probabilityBigInt =
         totalNumTickets > BigInt(0) && item.numTickets > 0
-          ? (BigInt(item.numTickets) / totalNumTickets) * BigInt(100_000_000)
+          ? BigInt(item.numTickets * 100_000) / totalNumTickets
           : BigInt(0);
 
-      const probability = Number(probabilityBigInt) / 1_000_000;
+      const probability = parseInt(probabilityBigInt.toString(), 10) / 1_000;
 
       const res: RaffleLeaderboardUser = {
         chainId: item.chainId,
@@ -263,5 +327,25 @@ export class RafflesService {
     });
 
     return results;
+  }
+
+  protected _transformRaffle(
+    userRaffle: UserRaffle,
+    ticketTotals: Partial<RaffleTicketTotalsDoc>,
+    rewardsTotals: Partial<RaffleRewardsDoc>,
+    tokenomicsConfig: TokenomicsConfigDto
+  ): Raffle {
+    const raffle: Raffle = {
+      ...userRaffle,
+      progress: this._getRaffleProgress(userRaffle, tokenomicsConfig),
+      totals: {
+        numUniqueEntrants: ticketTotals?.numUniqueEntrants ?? 0,
+        totalNumTickets: parseInt((ticketTotals?.totalNumTickets ?? BigInt(0)).toString(), 10),
+        prizePoolWei: rewardsTotals?.prizePoolWei ?? '0',
+        prizePoolEth: rewardsTotals?.prizePoolEth ?? 0
+      }
+    };
+
+    return raffle;
   }
 }
