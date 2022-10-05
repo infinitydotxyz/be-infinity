@@ -4,7 +4,6 @@ import firebaseAdmin from 'firebase-admin';
 import { StakerContractService } from 'ethereum/contracts/staker.contract.service';
 import { FirebaseService } from 'firebase/firebase.service';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
-import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
 import {
   CollectionFavoriteDto,
@@ -17,15 +16,11 @@ import { firestoreConstants } from '@infinityxyz/lib/utils';
 
 @Injectable()
 export class FavoritesService {
-  private fsBatchHandler: FirestoreBatchHandler;
-
   constructor(
     private firebaseService: FirebaseService,
     private stakerContractService: StakerContractService,
     private cursorService: CursorService
-  ) {
-    this.fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
-  }
+  ) {}
 
   private async getRootRef(chainId = ChainId.Mainnet) {
     const stakerContract = this.stakerContractService.getStakerAddress(chainId);
@@ -73,55 +68,58 @@ export class FavoritesService {
     const rootRef = await this.getRootRef(user.userChainId);
     const usersRef = rootRef.collection('userPhaseFavorites').doc(user.userAddress);
     const collectionsRef = rootRef
-      .collection(firestoreConstants.COLLECTIONS_COLL)
+      .collection('collectionPhaseFavorites')
       .doc(`${collection.chainId}:${collection.address}`);
 
-    // Get the current favorited collection.
-    // It is used to update it before writing the new favorite below..
-    const oldFavoritedCollection = await this.getFavoriteCollection(user);
+    await this.firebaseService.firestore.runTransaction(async (txn) => {
+      const timestamp = Date.now();
 
-    const currentFavoritedCollection = (await collection.ref.get()).data() as BaseCollection;
+      // Get the current favorited collection.
+      const previousFavoritedCollectionSnap = await txn.get(
+        rootRef.collection('collectionPhaseFavorites').doc(user.userAddress)
+      );
 
-    const timestamp = Date.now();
+      // If we already voted on another collection, decrement the votes on it.
+      if (previousFavoritedCollectionSnap.exists) {
+        const previousFavoritedCollection = previousFavoritedCollectionSnap.data() as UserFavoriteDto;
+        const ref = rootRef
+          .collection('collectionPhaseFavorites')
+          .doc(`${previousFavoritedCollection.collectionChainId}:${previousFavoritedCollection.collectionAddress}`);
 
-    this.fsBatchHandler.add(
-      usersRef,
-      {
-        collectionChainId: collection.chainId,
-        collectionAddress: collection.address,
-        userAddress: user.userAddress,
-        userChainId: user.userChainId,
-        timestamp
-      } as UserFavoriteDto,
-      { merge: false }
-    );
-    // If we already voted on another collection, decrement the votes on it.
-    if (oldFavoritedCollection) {
-      const oldCollectionRef = rootRef
-        .collection(firestoreConstants.COLLECTIONS_COLL)
-        .doc(`${oldFavoritedCollection.collectionChainId}:${oldFavoritedCollection.collectionAddress}`);
+        txn.set(
+          ref,
+          {
+            numFavorites: firebaseAdmin.firestore.FieldValue.increment(-1) as any,
+            timestamp
+          } as CollectionFavoriteDto,
+          { merge: true }
+        );
+      }
 
-      this.fsBatchHandler.add(
-        oldCollectionRef,
+      // Update user favorited collection
+      txn.set(
+        usersRef,
         {
-          numFavorites: firebaseAdmin.firestore.FieldValue.increment(-1) as any,
+          collectionChainId: collection.chainId,
+          collectionAddress: collection.address,
+          userAddress: user.userAddress,
+          userChainId: user.userChainId,
+          timestamp
+        } as UserFavoriteDto,
+        { merge: false }
+      );
+
+      // Update collection favorites
+      txn.set(
+        collectionsRef,
+        {
+          ...this.fromCollection((await txn.get(collection.ref)).data() as BaseCollection),
+          numFavorites: firebaseAdmin.firestore.FieldValue.increment(1) as any,
           timestamp
         } as CollectionFavoriteDto,
         { merge: true }
       );
-    }
-    // Vote on the specified collection.
-    this.fsBatchHandler.add(
-      collectionsRef,
-      {
-        ...this.fromCollection(currentFavoritedCollection),
-        numFavorites: firebaseAdmin.firestore.FieldValue.increment(1) as any,
-        timestamp
-      } as CollectionFavoriteDto,
-      { merge: true }
-    );
-
-    await this.fsBatchHandler.flush();
+    });
   }
 
   /**
@@ -144,7 +142,7 @@ export class FavoritesService {
     const limit = query.limit + 1;
 
     let leaderboardQuery = rootRef
-      .collection(firestoreConstants.COLLECTIONS_COLL)
+      .collection('collectionPhaseFavorites')
       .orderBy('numFavorites', query.orderDirection ?? OrderDirection.Descending)
       .where('numFavorites', '>', 0)
       .limit(limit);
