@@ -1,16 +1,12 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   ChainId,
-  FinalizedUserRaffleEntrant,
-  OrderDirection,
   RaffleEntrant,
   RaffleRewardsDoc,
   RaffleState,
   RaffleTicketTotalsDoc,
   RaffleType,
   StakingContractRaffle,
-  UserRaffle,
-  UserRaffleConfig
+  UserRaffle
 } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
@@ -22,22 +18,13 @@ import {
   RaffleQueryDto,
   RaffleLeaderboardQueryDto,
   TokenomicsConfigDto,
-  RaffleLeaderboardUser
+  RaffleLeaderboardUser,
+  UserRaffleDto
 } from '@infinityxyz/lib/types/dto';
 import { UserService } from 'user/user.service';
 import { RaffleQueryState, RafflesQueryDto } from './types';
 import { raffleStateByRaffleQueryState } from './constants';
 import { RewardsService } from 'rewards/rewards.service';
-
-type Raffle = UserRaffle & {
-  progress: number;
-  totals: {
-    numUniqueEntrants: number;
-    totalNumTickets: number;
-    prizePoolEth: number;
-    prizePoolWei: string;
-  };
-};
 
 @Injectable()
 export class RafflesService {
@@ -49,23 +36,7 @@ export class RafflesService {
     protected rewardsService: RewardsService
   ) {}
 
-  // async getRaffle(query: RaffleQueryDto, phaseId: 'current' | string): Promise<null> {
-  //   const phaseRafflesRef = this.getRaffleRefs(query);
-
-  //   // const { phaseRaffleRef } = this.getRaffleRefs(query, phaseId);
-  //   // const phaseRaffleSnapshot = await phaseRaffleRef.get();
-  //   // const phaseRaffleDoc = phaseRaffleSnapshot.data();
-  //   // if (!phaseRaffleDoc) {
-  //   //   return null;
-  //   // }
-  //   // const { blockNumber, ...phaseRaffle } = phaseRaffleDoc;
-
-  //   // return phaseRaffle;
-  //   await Promise.resolve();
-  //   return null;
-  // }
-
-  async getRaffles(query: RafflesQueryDto): Promise<Raffle[] | null> {
+  async getRaffles(query: RafflesQueryDto): Promise<UserRaffleDto[] | null> {
     const tokenomicsConfig = await this.rewardsService.getConfig(query.chainId ?? ChainId.Mainnet);
     if (!tokenomicsConfig) {
       return null;
@@ -334,8 +305,8 @@ export class RafflesService {
     ticketTotals: Partial<RaffleTicketTotalsDoc>,
     rewardsTotals: Partial<RaffleRewardsDoc>,
     tokenomicsConfig: TokenomicsConfigDto
-  ): Raffle {
-    const raffle: Raffle = {
+  ): UserRaffleDto {
+    const raffle: UserRaffleDto = {
       ...userRaffle,
       progress: this._getRaffleProgress(userRaffle, tokenomicsConfig),
       totals: {
