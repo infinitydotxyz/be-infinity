@@ -28,7 +28,7 @@ import { UserModule } from './user/user.module';
 import { envFileName } from './constants';
 import { SalesModule } from 'sales/sales.module';
 import { RewardsModule } from './rewards/rewards.module';
-import { RaffleModule } from './raffle/raffle.module';
+import { RafflesModule } from './raffles/raffles.module';
 
 @Module({
   imports: [
@@ -64,7 +64,7 @@ import { RaffleModule } from './raffle/raffle.module';
     ApiUserModule,
     SalesModule,
     RewardsModule,
-    RaffleModule
+    RafflesModule
   ],
   providers: [
     {
