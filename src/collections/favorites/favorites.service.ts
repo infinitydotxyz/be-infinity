@@ -66,9 +66,9 @@ export class FavoritesService {
    */
   async saveFavorite(collection: ParsedCollectionId, user: ParsedUserId) {
     const rootRef = await this.getRootRef(user.userChainId);
-    const usersRef = rootRef.collection('userPhaseFavorites').doc(user.userAddress);
+    const usersRef = rootRef.collection(firestoreConstants.USER_PHASE_FAVORITES).doc(user.userAddress);
     const collectionsRef = rootRef
-      .collection('collectionPhaseFavorites')
+      .collection(firestoreConstants.COLLECTION_PHASE_FAVORITES)
       .doc(`${collection.chainId}:${collection.address}`);
 
     await this.firebaseService.firestore.runTransaction(async (txn) => {
@@ -76,14 +76,14 @@ export class FavoritesService {
 
       // Get the current favorited collection.
       const previousFavoritedCollectionSnap = await txn.get(
-        rootRef.collection('collectionPhaseFavorites').doc(user.userAddress)
+        rootRef.collection(firestoreConstants.COLLECTION_PHASE_FAVORITES).doc(user.userAddress)
       );
 
       // If we already voted on another collection, decrement the votes on it.
       if (previousFavoritedCollectionSnap.exists) {
         const previousFavoritedCollection = previousFavoritedCollectionSnap.data() as UserFavoriteDto;
         const ref = rootRef
-          .collection('collectionPhaseFavorites')
+          .collection(firestoreConstants.COLLECTION_PHASE_FAVORITES)
           .doc(`${previousFavoritedCollection.collectionChainId}:${previousFavoritedCollection.collectionAddress}`);
 
         txn.set(
@@ -127,7 +127,7 @@ export class FavoritesService {
    */
   async getFavoriteCollection(user: ParsedUserId): Promise<null | UserFavoriteDto> {
     const rootRef = await this.getRootRef(user.userChainId);
-    const docRef = rootRef.collection('collectionPhaseFavorites').doc(user.userAddress);
+    const docRef = rootRef.collection(firestoreConstants.COLLECTION_PHASE_FAVORITES).doc(user.userAddress);
     const snap = await docRef.get();
     return snap.exists ? (snap.data() as UserFavoriteDto) : null;
   }
@@ -142,7 +142,7 @@ export class FavoritesService {
     const limit = query.limit + 1;
 
     let leaderboardQuery = rootRef
-      .collection('collectionPhaseFavorites')
+      .collection(firestoreConstants.COLLECTION_PHASE_FAVORITES)
       .orderBy('numFavorites', query.orderDirection ?? OrderDirection.Descending)
       .where('numFavorites', '>', 0)
       .limit(limit);
