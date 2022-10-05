@@ -380,10 +380,8 @@ export default class CollectionsService {
         secondary: 'currentBlock.metadata.collectionAddress'
       },
       [CuratedCollectionsOrderBy.Votes]: {
-        // primary: 'stats.numCuratorVotes',
-        // secondary: 'metadata.collectionAddress'
-        primary: 'mostRecentCompletedBlock.stats.numCuratorVotes',
-        secondary: 'mostRecentCompletedBlock.metadata.collectionAddress'
+        primary: 'stats.numCuratorVotes',
+        secondary: 'metadata.collectionAddress'
       }
     };
 
@@ -437,7 +435,7 @@ export default class CollectionsService {
             collectionAddress: startAtItem.metadata.collectionAddress
           },
           [CuratedCollectionsOrderBy.Votes]: {
-            value: startAtItem.mostRecentCompletedBlock?.stats.numCuratorVotes ?? Number.NaN,
+            value: startAtItem.stats.numCuratorVotes,
             collectionAddress: startAtItem.metadata.collectionAddress
           }
         };
@@ -462,9 +460,7 @@ export default class CollectionsService {
         feesAPR: item.curator?.stats?.blockApr ?? 0,
         timestamp: item.metadata.updatedAt,
         slug: item?.collection?.slug,
-        // numCuratorVotes: item.stats.numCuratorVotes,
-        numCuratorVotes:
-          item?.currentBlock?.stats?.numCuratorVotes ?? item?.mostRecentCompletedBlock?.stats?.numCuratorVotes ?? 0,
+        numCuratorVotes: item.stats.numCuratorVotes,
         profileImage: item?.collection?.profileImage ?? '',
         bannerImage: item?.collection?.bannerImage ?? '',
         name: item?.collection?.name ?? '',
