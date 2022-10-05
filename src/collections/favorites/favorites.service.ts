@@ -71,7 +71,7 @@ export class FavoritesService {
    */
   async saveFavorite(collection: ParsedCollectionId, user: ParsedUserId) {
     const rootRef = await this.getRootRef(user.userChainId);
-    const usersRef = rootRef.collection('userPhaseFavorites').doc(`${user.userChainId}:${user.userAddress}`);
+    const usersRef = rootRef.collection('userPhaseFavorites').doc(user.userAddress);
     const collectionsRef = rootRef
       .collection(firestoreConstants.COLLECTIONS_COLL)
       .doc(`${collection.chainId}:${collection.address}`);
@@ -129,7 +129,7 @@ export class FavoritesService {
    */
   async getFavoriteCollection(user: ParsedUserId): Promise<null | UserFavoriteDto> {
     const rootRef = await this.getRootRef(user.userChainId);
-    const docRef = rootRef.collection('collectionPhaseFavorites').doc(`${user.userChainId}:${user.userAddress}`);
+    const docRef = rootRef.collection('collectionPhaseFavorites').doc(user.userAddress);
     const snap = await docRef.get();
     return snap.exists ? (snap.data() as UserFavoriteDto) : null;
   }
