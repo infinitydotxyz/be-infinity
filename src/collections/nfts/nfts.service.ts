@@ -14,7 +14,6 @@ import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { BackfillService } from 'backfill/backfill.service';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
-import CollectionsService from 'collections/collections.service';
 import { EthereumService } from 'ethereum/ethereum.service';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
@@ -24,7 +23,6 @@ import { typeToActivity } from 'utils/activity';
 export class NftsService {
   constructor(
     private firebaseService: FirebaseService,
-    private collectionsService: CollectionsService,
     private paginationService: CursorService,
     private ethereumService: EthereumService,
     private backfillService: BackfillService
