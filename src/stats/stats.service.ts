@@ -19,7 +19,7 @@ import { DiscordService } from '../discord/discord.service';
 import { FirebaseService } from '../firebase/firebase.service';
 import { TwitterService } from '../twitter/twitter.service';
 import { mnemonicByParam, MnemonicService } from 'mnemonic/mnemonic.service';
-import { calcPercentChange } from '../utils';
+import { calcPercentChange, safelyWrapPromise } from '../utils';
 import { CursorService } from 'pagination/cursor.service';
 import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
 import {
@@ -33,6 +33,7 @@ import { ONE_HOUR } from '../constants';
 import { MnemonicPricesForStatsPeriod, MnemonicVolumesForStatsPeriod } from 'mnemonic/mnemonic.types';
 import { ZoraService } from 'zora/zora.service';
 import { ReservoirService } from 'reservoir/reservoir.service';
+import { AlchemyService } from 'alchemy/alchemy.service';
 
 @Injectable()
 export class StatsService {
@@ -56,7 +57,8 @@ export class StatsService {
     private mnemonicService: MnemonicService,
     private paginationService: CursorService,
     private zoraService: ZoraService,
-    private reservoirService: ReservoirService
+    private reservoirService: ReservoirService,
+    private alchemyService: AlchemyService
   ) {
     this.fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
   }
@@ -339,10 +341,20 @@ export class StatsService {
     };
   }
 
+  async getCollectionFloorPrice(collection: { address: string; chainId: ChainId }): Promise<number | null> {
+    try {
+      const floorPrice = await this.alchemyService.getFloorPrice(collection.chainId, collection.address);
+      return floorPrice;
+    } catch (err) {
+      return null;
+    }
+  }
+
   async getCollectionStats(
     collection: { address: string; chainId: ChainId },
     options: { period: StatsPeriod; date: number }
   ) {
+    const floorPricePromise = safelyWrapPromise(this.getCollectionFloorPrice(collection));
     const collectionRef = await this.firebaseService.getCollectionRef(collection);
     const stats = await this.getCollectionStatsForPeriod(
       collectionRef,
@@ -361,10 +373,19 @@ export class StatsService {
 
     if (stats && socialStats) {
       const collectionStats = await this.mergeStats(stats, socialStats, collection);
+      const floorPrice = await floorPricePromise;
+      if (floorPrice != null) {
+        collectionStats.floorPrice = floorPrice;
+      }
       return collectionStats;
     }
 
-    return new CollectionStatsDto();
+    const floorPrice = await floorPricePromise;
+    const collectionStats = new CollectionStatsDto();
+    if (floorPrice != null) {
+      collectionStats.floorPrice = floorPrice;
+    }
+    return collectionStats;
   }
 
   /**

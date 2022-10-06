@@ -104,3 +104,13 @@ export function partitionArray<T>(array: T[], size: number): T[][] {
   }
   return result;
 }
+
+export async function safelyWrapPromise<T>(promise: Promise<T>): Promise<T | null> {
+  try {
+    const result = await promise;
+    return result;
+  } catch (err) {
+    console.error(err);
+    return null;
+  }
+}

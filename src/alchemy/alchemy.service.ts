@@ -1,5 +1,9 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { AlchemyNftWithMetadata, AlchemyUserNftsResponse } from '@infinityxyz/lib/types/services/alchemy';
+import {
+  AlchemyFloorPriceResponse,
+  AlchemyNftWithMetadata,
+  AlchemyUserNftsResponse
+} from '@infinityxyz/lib/types/services/alchemy';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config/dist/config.service';
 import axios, { AxiosInstance } from 'axios';
@@ -11,12 +15,12 @@ export class AlchemyService {
   private readonly client: AxiosInstance;
   private readonly apiKey: string;
 
-  /**
-   *
-   */
-  private getBaseUrl(chainId: ChainId | string, path: string) {
+  private getBaseUrl(chainId: ChainId | string, path: string, api?: 'nft') {
     switch (chainId) {
       case ChainId.Mainnet:
+        if (api) {
+          return new URL(normalize(`https://eth-mainnet.g.alchemy.com/${api}/v2/${this.apiKey}/${path}`));
+        }
         return new URL(normalize(`https://eth-mainnet.alchemyapi.io/v2/${this.apiKey}/${path}`));
       case ChainId.Goerli:
         return new URL(normalize(`https://eth-goerli.alchemyapi.io/v2/${this.apiKey}/${path}`));
@@ -83,6 +87,35 @@ export class AlchemyService {
     } catch (err) {
       console.error('failed to get user nfts from alchemy', err);
       return undefined;
+    }
+  }
+
+  async getFloorPrice(chainId: ChainId, collectionAddress: string): Promise<number | null> {
+    const url = this.getBaseUrl(chainId, '/getFloorPrice', 'nft');
+
+    if (chainId !== ChainId.Mainnet) {
+      throw new Error(`Unsupported chainId: ${chainId}`);
+    }
+
+    try {
+      const response = await this.client.get(url.toString(), {
+        params: {
+          contractAddress: collectionAddress
+        }
+      });
+      const data = response.data as AlchemyFloorPriceResponse;
+
+      if (typeof data?.openSea?.floorPrice === 'number') {
+        return data.openSea.floorPrice;
+      } else if (typeof data?.looksRare?.floorPrice === 'number') {
+        return data.looksRare.floorPrice;
+      }
+
+      console.error('failed to get floor price from alchemy', data);
+      return null;
+    } catch (err) {
+      console.error('failed to get floor price from alchemy', err);
+      return null;
     }
   }
 }
