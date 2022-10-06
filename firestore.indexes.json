@@ -1211,6 +1211,20 @@
       ]
     },
     {
+      "collectionGroup": "intervalSales",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "isDeleted",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "mentions",
       "queryScope": "COLLECTION",
       "fields": [
