@@ -2,6 +2,8 @@ import {
   ChainId,
   Collection,
   CreationFlow,
+  EntrantLedgerItemVariant,
+  EntrantOrderItem,
   Erc721Metadata,
   FirestoreOrder,
   FirestoreOrderItem,
@@ -10,6 +12,7 @@ import {
   OBOrderStatus,
   OBTokenInfo,
   OrderDirection,
+  PreMergeEntrantOrderLedgerItem,
   Token
 } from '@infinityxyz/lib/types/core';
 import { EventType, MultiOrderEvent, OrderBookEvent, OrderItemData } from '@infinityxyz/lib/types/core/feed';
@@ -185,6 +188,8 @@ export default class OrdersService {
 
         // write order to feed
         this.writeOrderToFeed(makerUsername, order, orderItems, fsBatchHandler);
+        const currentBlockNumber = await this.ethereumService.getCurrentBlockNumber(order.chainId as ChainId);
+        await this.writeOrderToRaffles(dataToStore, orderItems, fsBatchHandler, currentBlockNumber);
       }
       // commit batch
       await fsBatchHandler.flush();
@@ -718,6 +723,81 @@ export default class OrdersService {
       attributes: token.attributes
     };
     return data;
+  }
+
+  protected async writeOrderToRaffles(
+    order: FirestoreOrder,
+    orderItems: (FirestoreOrderItem & { orderItemId: string })[],
+    batchHandler: FirestoreBatchHandler,
+    currentBlockNumber: number
+  ) {
+    if (order.chainId !== ChainId.Mainnet) {
+      // skip raffles for non-mainnet orders, we cannot get a floor price for these
+      return;
+    }
+
+    const itemsWithFloorPrices = await Promise.all(
+      orderItems.map(async (item) => {
+        try {
+          const floorPriceEth = await this.collectionService.getFloorPrice({
+            chainId: item.chainId as ChainId,
+            address: item.collectionAddress
+          });
+          return {
+            ...item,
+            floorPriceEth
+          };
+        } catch (err) {
+          return {
+            ...item,
+            floorPriceEth: null
+          };
+        }
+      })
+    );
+
+    const isListing = order.signedOrder.isSellOrder;
+    const blockNumber = currentBlockNumber;
+    const items = itemsWithFloorPrices.map((item) => {
+      const orderItem: EntrantOrderItem = {
+        isTopCollection: item.hasBlueCheck,
+        floorPriceEth: item.floorPriceEth,
+        isSellOrder: item.isSellOrder,
+        startTimeMs: item.startTimeMs,
+        endTimeMs: item.endTimeMs,
+        hasBlueCheck: item.hasBlueCheck,
+        collectionAddress: item.collectionAddress,
+        collectionSlug: item.collectionSlug,
+        startPriceEth: item.startPriceEth,
+        endPriceEth: item.endPriceEth,
+        tokenId: item.tokenId,
+        numTokens: item.numTokens,
+        makerAddress: item.makerAddress
+      };
+      return orderItem;
+    });
+    const entrantOrder: PreMergeEntrantOrderLedgerItem = {
+      discriminator: isListing ? EntrantLedgerItemVariant.Listing : EntrantLedgerItemVariant.Offer,
+      order: {
+        id: order.id,
+        chainId: order.chainId as ChainId,
+        numItems: order.numItems,
+        items
+      },
+      blockNumber,
+      isAggregated: false,
+      chainId: order.chainId as ChainId,
+      updatedAt: Date.now(),
+      entrantAddress: order.makerAddress
+    };
+
+    const ref = this.firebaseService.firestore
+      .collection(firestoreConstants.USERS_COLL)
+      .doc(order.makerAddress)
+      .collection('userRaffleOrdersLedger')
+      .doc(order.id);
+
+    batchHandler.add(ref, entrantOrder, { merge: false });
   }
 
   private writeOrderToFeed(

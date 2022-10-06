@@ -5,6 +5,7 @@ import {
   CreationFlow,
   CurationBlockUser,
   CurrentCurationSnippetDoc,
+  StatsPeriod,
   TopOwner
 } from '@infinityxyz/lib/types/core';
 import {
@@ -25,6 +26,7 @@ import { BackfillService } from 'backfill/backfill.service';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
 import { ReservoirService } from 'reservoir/reservoir.service';
+import { StatsService } from 'stats/stats.service';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 import { ZoraService } from 'zora/zora.service';
 import { ParsedCollectionId } from './collection-id.pipe';
@@ -47,7 +49,8 @@ export default class CollectionsService {
     private reservoirService: ReservoirService,
     private paginationService: CursorService,
     private backfillService: BackfillService,
-    private curationService: CurationService
+    private curationService: CurationService,
+    private statsService: StatsService
   ) {}
 
   private get defaultCollectionQueryOptions(): CollectionQueryOptions {
@@ -235,6 +238,22 @@ export default class CollectionsService {
     return result as Collection;
   }
 
+  async getFloorPrice(collection: { address: string; chainId: ChainId }): Promise<number | null> {
+    const floorPrice = await this.statsService.getCollectionFloorPrice(collection);
+    if (typeof floorPrice === 'number') {
+      return floorPrice;
+    }
+    const res = await this.statsService.getCollectionStats(collection, {
+      period: StatsPeriod.Hourly,
+      date: Date.now()
+    });
+    if (typeof res?.floorPrice === 'number') {
+      return res.floorPrice;
+    }
+
+    return null;
+  }
+
   async getCollectionsByAddress(collections: { address: string; chainId: ChainId }[]) {
     const docIds = [
       ...new Set(
@@ -416,7 +435,7 @@ export default class CollectionsService {
             collectionAddress: startAtItem.metadata.collectionAddress
           },
           [CuratedCollectionsOrderBy.Votes]: {
-            value: startAtItem.mostRecentCompletedBlock?.stats.numCuratorVotes ?? Number.NaN,
+            value: startAtItem.stats.numCuratorVotes,
             collectionAddress: startAtItem.metadata.collectionAddress
           }
         };
