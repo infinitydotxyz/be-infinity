@@ -636,7 +636,7 @@
         },
         {
           "fieldPath": "mostRecentCompletedBlock.stats.numCuratorVotes",
-          "order": "ASCENDING"
+          "order": "DESCENDING"
         },
         {
           "fieldPath": "mostRecentCompletedBlock.metadata.collectionAddress",
@@ -657,11 +657,11 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "mostRecentCompletedBlock.stats.numCuratorVotes",
+          "fieldPath": "stats.numCuratorVotes",
           "order": "DESCENDING"
         },
         {
-          "fieldPath": "mostRecentCompletedBlock.metadata.collectionAddress",
+          "fieldPath": "metadata.collectionAddress",
           "order": "ASCENDING"
         }
       ]
@@ -5589,6 +5589,20 @@
       ]
     },
     {
+      "collectionGroup": "raffleEntrants",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "numTickets",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "entrant.address",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "raffleRewardsLedger",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
@@ -5916,6 +5930,20 @@
         },
         {
           "fieldPath": "phase",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "userRewardPhases",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "phaseId",
           "order": "ASCENDING"
         }
       ]
