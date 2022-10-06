@@ -316,7 +316,7 @@ export class CurationService {
         feesAPR: 0,
         timestamp: Date.now(),
         slug: curationSnippet?.collection?.slug ?? collectionData?.slug ?? '',
-        numCuratorVotes: curationSnippet?.mostRecentCompletedBlock?.stats?.numCuratorVotes ?? 0,
+        numCuratorVotes: curationSnippet?.stats?.numCuratorVotes ?? 0,
         profileImage: curationSnippet?.collection?.profileImage ?? collectionData?.metadata?.profileImage ?? '',
         bannerImage: curationSnippet?.collection.bannerImage ?? '',
         name: curationSnippet?.collection?.name ?? collectionData?.metadata?.name ?? '',
