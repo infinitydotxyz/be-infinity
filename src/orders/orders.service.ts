@@ -366,7 +366,9 @@ export default class OrdersService {
 
     const hasNextPage = firestoreOrderItems.size > reqQuery.limit;
     if (hasNextPage) {
-      data.pop();
+      if (data.length > reqQuery.limit) {
+        data.pop();
+      }
     }
 
     const lastItem = data[data.length - 1] ?? {};
@@ -602,7 +604,6 @@ export default class OrdersService {
       const signedOBOrder = getSignedOBOrder(orderItem, orderDocData);
       resultsMap[orderDocId] = signedOBOrder;
     }
-
     return Object.values(resultsMap);
   }
 
