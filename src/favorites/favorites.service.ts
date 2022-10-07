@@ -134,10 +134,7 @@ export class FavoritesService {
     return snap.exists ? (snap.data() as UserFavoriteDto) : null;
   }
 
-  /**
-   * Returns a paginated list of favorited collections during this phase.
-   */
-  async getFavoriteCollectionsLeaderboard(query: FavoriteCollectionsQueryDto) {
+  async getFavoriteCollections(query: FavoriteCollectionsQueryDto) {
     const rootRef = await this.getRootRef();
     type Cursor = { collection: string };
     const queryCursor = this.cursorService.decodeCursorToObject<Cursor>(query.cursor);

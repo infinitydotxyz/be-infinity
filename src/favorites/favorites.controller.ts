@@ -26,11 +26,11 @@ import {
   UserFavoriteDto
 } from '@infinityxyz/lib/types/dto';
 
-@Controller('collections')
+@Controller('favorites')
 export class FavoritesController {
   constructor(private favoritesService: FavoritesService, private stakerService: StakerContractService) {}
 
-  @Post(':collectionId/favorites/:userId')
+  @Post(':collectionId/:userId')
   @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOperation({
     description: 'Favorite a collection for the current phase',
@@ -57,7 +57,7 @@ export class FavoritesController {
     await this.favoritesService.saveFavorite(collection, user);
   }
 
-  @Get('favorites/:userId')
+  @Get(':userId')
   @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOperation({
     description: 'Get the user-favorite collection for the current phase',
@@ -71,16 +71,16 @@ export class FavoritesController {
     return this.favoritesService.getFavoriteCollection(user);
   }
 
-  @Get('phase/favorites')
+  @Get()
   @ApiOperation({
-    description: 'Get a list of the most favorited collections during the current phase',
+    description: 'Get favorite collections',
     tags: [ApiTag.Collection, ApiTag.Curation]
   })
   @ApiOkResponse({ type: CollectionFavoriteQueryResultDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  async getFavorites(@Query() query: FavoriteCollectionsQueryDto) {
-    return this.favoritesService.getFavoriteCollectionsLeaderboard(query);
+  getFavorites(@Query() query: FavoriteCollectionsQueryDto) {
+    return this.favoritesService.getFavoriteCollections(query);
   }
 }
