@@ -316,7 +316,7 @@ export class CurationService {
         feesAPR: 0,
         timestamp: Date.now(),
         slug: curationSnippet?.collection?.slug ?? collectionData?.slug ?? '',
-        numCuratorVotes: curationSnippet?.mostRecentCompletedBlock?.stats?.numCuratorVotes ?? 0,
+        numCuratorVotes: curationSnippet?.stats?.numCuratorVotes ?? 0,
         profileImage: curationSnippet?.collection?.profileImage ?? collectionData?.metadata?.profileImage ?? '',
         bannerImage: curationSnippet?.collection.bannerImage ?? '',
         name: curationSnippet?.collection?.name ?? collectionData?.metadata?.name ?? '',
@@ -430,9 +430,10 @@ export class CurationService {
   async getUserCurationQuota(user: ParsedUserId) {
     const tokenBalance = await this.getTokenBalance(user);
     const stake = await this.getUserCurationInfo(user);
+    const stakeLevel = await this.stakerContractService.getStakeLevel(user);
     const quota: CurationQuotaDto = {
       stake,
-      stakeLevel: 0, // TODO adi this was added to get it to compile
+      stakeLevel,
       tokenBalance,
       totalStaked: getTotalStaked(stake.stakeInfo, 8),
       availableVotes: stake.stakePower - stake.totalCuratedVotes
