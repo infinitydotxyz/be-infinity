@@ -24,27 +24,45 @@ export default class FirestoreBatchHandler {
     object: Partial<FirebaseFirestore.DocumentData>,
     options: FirebaseFirestore.SetOptions
   ): void {
-    if (this.currentBatch.size >= MAX_SIZE) {
-      this.flush().catch((err) => {
-        console.error(err);
-        throw err;
-      });
-    }
-
+    this.checkSize();
     this.currentBatch.batch.set(doc, object, options);
     this.currentBatch.size += 1;
   }
 
+  async addAsync(
+    doc: FirebaseFirestore.DocumentReference,
+    object: Partial<FirebaseFirestore.DocumentData>,
+    options: FirebaseFirestore.SetOptions
+  ): Promise<void> {
+    await this.checkSizeAsync();
+    this.currentBatch.batch.set(doc, object, options);
+    this.currentBatch.size += 1;
+  }
+
+  async deleteAsync(doc: FirebaseFirestore.DocumentReference): Promise<void> {
+    await this.checkSizeAsync();
+    this.currentBatch.batch.delete(doc);
+    this.currentBatch.size += 1;
+  }
+
   delete(doc: FirebaseFirestore.DocumentReference): void {
+    this.checkSize();
+    this.currentBatch.batch.delete(doc);
+    this.currentBatch.size += 1;
+  }
+
+  private checkSize(): void {
     if (this.currentBatch.size >= MAX_SIZE) {
       this.flush().catch((err) => {
         console.error(err);
-        throw err;
       });
     }
+  }
 
-    this.currentBatch.batch.delete(doc);
-    this.currentBatch.size += 1;
+  private async checkSizeAsync(): Promise<void> {
+    if (this.currentBatch.size >= MAX_SIZE) {
+      await this.flush();
+    }
   }
 
   async flush(): Promise<void> {
@@ -58,7 +76,7 @@ export default class FirestoreBatchHandler {
         try {
           await batch.commit();
           return;
-        } catch (err: any) {
+        } catch (err) {
           // Logger.error('Failed to commit batch', err);
           if (attempt > maxAttempts) {
             console.error(`Failed to commit batch`);

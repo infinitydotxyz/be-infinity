@@ -79,7 +79,6 @@ export class CurationService {
   }
 
   protected async _voteOnBulkChunk(votes: ParsedBulkVotes[], parsedUser: ParsedUserId) {
-    // TODO update functions and this to support a live list of collections a user has voted on
     const totalVotes = votes.reduce((acc, { votes }) => acc + votes, 0);
     if (votes.length > CurationService.BULK_VOTE_CHUNK_LIMIT) {
       throw new Error('Bulk vote chunk limit exceeded.');
@@ -317,7 +316,7 @@ export class CurationService {
         feesAPR: 0,
         timestamp: Date.now(),
         slug: curationSnippet?.collection?.slug ?? collectionData?.slug ?? '',
-        numCuratorVotes: curationSnippet?.mostRecentCompletedBlock?.stats?.numCuratorVotes ?? 0,
+        numCuratorVotes: curationSnippet?.stats?.numCuratorVotes ?? 0,
         profileImage: curationSnippet?.collection?.profileImage ?? collectionData?.metadata?.profileImage ?? '',
         bannerImage: curationSnippet?.collection.bannerImage ?? '',
         name: curationSnippet?.collection?.name ?? collectionData?.metadata?.name ?? '',

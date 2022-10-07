@@ -5,6 +5,7 @@ import {
   CreationFlow,
   CurationBlockUser,
   CurrentCurationSnippetDoc,
+  StatsPeriod,
   TopOwner
 } from '@infinityxyz/lib/types/core';
 import {
@@ -25,6 +26,7 @@ import { BackfillService } from 'backfill/backfill.service';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
 import { ReservoirService } from 'reservoir/reservoir.service';
+import { StatsService } from 'stats/stats.service';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 import { ZoraService } from 'zora/zora.service';
 import { ParsedCollectionId } from './collection-id.pipe';
@@ -47,7 +49,8 @@ export default class CollectionsService {
     private reservoirService: ReservoirService,
     private paginationService: CursorService,
     private backfillService: BackfillService,
-    private curationService: CurationService
+    private curationService: CurationService,
+    private statsService: StatsService
   ) {}
 
   private get defaultCollectionQueryOptions(): CollectionQueryOptions {
@@ -149,12 +152,15 @@ export default class CollectionsService {
     };
   }
 
-  async searchByName(search: CollectionSearchQueryDto) {
-    let firestoreQuery: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> =
-      this.firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL);
-
-    if (search.query) {
-      const startsWith = getSearchFriendlyString(search.query);
+  _searchBySlug(
+    firestoreQuery: FirebaseFirestore.Query<Collection>,
+    query: string,
+    limit: number,
+    startAfter: string,
+    chainId: ChainId
+  ) {
+    if (query) {
+      const startsWith = getSearchFriendlyString(query);
       const endCode = getEndCode(startsWith);
 
       if (startsWith && endCode) {
@@ -162,51 +168,107 @@ export default class CollectionsService {
       }
     }
 
-    firestoreQuery = firestoreQuery.orderBy('slug');
+    firestoreQuery = firestoreQuery.where('chainId', '==', chainId).orderBy('slug');
 
-    const cursor = this.paginationService.decodeCursor(search.cursor);
-    if (cursor) {
-      firestoreQuery = firestoreQuery.startAfter(cursor);
+    if (startAfter) {
+      firestoreQuery = firestoreQuery.startAfter(startAfter);
     }
 
-    const snapshot = await firestoreQuery
-      .select(
-        'address',
-        'chainId',
-        'slug',
-        'metadata.name',
-        'metadata.profileImage',
-        'metadata.description',
-        'metadata.bannerImage',
-        'hasBlueCheck'
-      )
-      .limit(search.limit + 1) // +1 to check if there are more results
-      .get();
+    firestoreQuery = firestoreQuery.limit(limit);
+    return firestoreQuery;
+  }
 
-    const collections = snapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        address: data.address as string,
-        chainId: data.chainId as string,
-        slug: data.slug as string,
-        name: data.metadata.name as string,
-        hasBlueCheck: data.hasBlueCheck as boolean,
-        profileImage: data.metadata.profileImage as string,
-        bannerImage: data.metadata.bannerImage as string,
-        description: data.metadata.description as string
-      };
+  async searchByName(search: CollectionSearchQueryDto) {
+    type Keys = 'verified' | 'unverified';
+
+    type Cursor = Record<Keys, { slug: string }>;
+
+    const cursor: Cursor = this.paginationService.decodeCursorToObject<Cursor>(search.cursor);
+
+    const collectionsRef = this.firebaseService.firestore.collection(
+      firestoreConstants.COLLECTIONS_COLL
+    ) as FirebaseFirestore.CollectionReference<Collection>;
+    const verifiedCollectionsQuery = collectionsRef.where('hasBlueCheck', '==', true);
+    const nonVerifiedCollectionsQuery = collectionsRef.where('hasBlueCheck', '==', false);
+
+    const chainId = search.chainId ?? ChainId.Mainnet;
+
+    const queries: { key: Keys; query: FirebaseFirestore.Query<Collection> }[] = [
+      {
+        key: 'verified',
+        query: verifiedCollectionsQuery
+      },
+      {
+        key: 'unverified',
+        query: nonVerifiedCollectionsQuery
+      }
+    ];
+
+    const results = await Promise.all(
+      queries.map(async (item) => {
+        const startAfter = cursor[item.key]?.slug ?? '';
+        const query = this._searchBySlug(item.query, search.query ?? '', search.limit + 1, startAfter, chainId);
+
+        const snapshot = await query
+          .select(
+            'address',
+            'chainId',
+            'slug',
+            'metadata.name',
+            'metadata.profileImage',
+            'metadata.description',
+            'metadata.bannerImage',
+            'hasBlueCheck'
+          )
+          .get();
+
+        const data = snapshot.docs.map((doc, index) => {
+          const data = doc.data();
+          let hasNextPage = false;
+          if (index + 1 > snapshot.docs.length) {
+            hasNextPage = true;
+          } else if (index + 1 === snapshot.docs.length) {
+            hasNextPage = snapshot.docs.length === search.limit + 1;
+          }
+
+          return {
+            hasNextPage,
+            key: item.key,
+            data: {
+              address: data.address,
+              chainId: data.chainId,
+              slug: data.slug,
+              name: data.metadata.name,
+              hasBlueCheck: data.hasBlueCheck,
+              profileImage: data.metadata.profileImage,
+              bannerImage: data.metadata.bannerImage,
+              description: data.metadata.description
+            }
+          };
+        });
+
+        return {
+          key: item.key,
+          data
+        };
+      })
+    );
+
+    let returnData = results.flatMap((item) => {
+      return item.data;
     });
 
-    const hasNextPage = collections.length > search.limit;
-    if (hasNextPage) {
-      collections.pop(); // Remove item used to check if there are more results
+    const hasNextPage = returnData.length > search.limit;
+    returnData = returnData.slice(0, search.limit);
+
+    for (const item of returnData) {
+      cursor[item.key] = item.data.slug;
     }
-    const updatedCursor = this.paginationService.encodeCursor(collections?.[collections?.length - 1]?.slug ?? ''); // Must be after we pop the item used for pagination
 
     return {
-      data: collections,
-      cursor: updatedCursor,
-      hasNextPage
+      data: returnData.map((item) => item.data),
+      cursor: this.paginationService.encodeCursor(cursor),
+      hasNextPage: hasNextPage
     };
   }
 
@@ -233,6 +295,22 @@ export default class CollectionsService {
       return undefined;
     }
     return result as Collection;
+  }
+
+  async getFloorPrice(collection: { address: string; chainId: ChainId }): Promise<number | null> {
+    const floorPrice = await this.statsService.getCollectionFloorPrice(collection);
+    if (typeof floorPrice === 'number') {
+      return floorPrice;
+    }
+    const res = await this.statsService.getCollectionStats(collection, {
+      period: StatsPeriod.Hourly,
+      date: Date.now()
+    });
+    if (typeof res?.floorPrice === 'number') {
+      return res.floorPrice;
+    }
+
+    return null;
   }
 
   async getCollectionsByAddress(collections: { address: string; chainId: ChainId }[]) {
@@ -361,10 +439,8 @@ export default class CollectionsService {
         secondary: 'currentBlock.metadata.collectionAddress'
       },
       [CuratedCollectionsOrderBy.Votes]: {
-        // primary: 'stats.numCuratorVotes',
-        // secondary: 'metadata.collectionAddress'
-        primary: 'mostRecentCompletedBlock.stats.numCuratorVotes',
-        secondary: 'mostRecentCompletedBlock.metadata.collectionAddress'
+        primary: 'stats.numCuratorVotes',
+        secondary: 'metadata.collectionAddress'
       }
     };
 
@@ -418,7 +494,7 @@ export default class CollectionsService {
             collectionAddress: startAtItem.metadata.collectionAddress
           },
           [CuratedCollectionsOrderBy.Votes]: {
-            value: startAtItem.mostRecentCompletedBlock?.stats.numCuratorVotes ?? Number.NaN,
+            value: startAtItem.stats.numCuratorVotes,
             collectionAddress: startAtItem.metadata.collectionAddress
           }
         };
@@ -443,9 +519,7 @@ export default class CollectionsService {
         feesAPR: item.curator?.stats?.blockApr ?? 0,
         timestamp: item.metadata.updatedAt,
         slug: item?.collection?.slug,
-        // numCuratorVotes: item.stats.numCuratorVotes,
-        numCuratorVotes:
-          item?.currentBlock?.stats?.numCuratorVotes ?? item?.mostRecentCompletedBlock?.stats?.numCuratorVotes ?? 0,
+        numCuratorVotes: item.stats.numCuratorVotes,
         profileImage: item?.collection?.profileImage ?? '',
         bannerImage: item?.collection?.bannerImage ?? '',
         name: item?.collection?.name ?? '',
