@@ -7,24 +7,27 @@ import { ParsedUserId } from 'user/parser/parsed-user-id';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
 import {
   CollectionFavoriteDto,
+  FavoriteCollectionPhaseDto,
   FavoriteCollectionsQueryDto,
-  TokenomicsConfigDto,
+  TokenomicsPhaseDto,
   UserFavoriteDto
 } from '@infinityxyz/lib/types/dto';
 import { CursorService } from 'pagination/cursor.service';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
+import { RewardsService } from 'rewards/rewards.service';
 
 @Injectable()
 export class FavoritesService {
   constructor(
     private firebaseService: FirebaseService,
     private stakerContractService: StakerContractService,
-    private cursorService: CursorService
+    private cursorService: CursorService,
+    private rewardsService: RewardsService
   ) {}
 
-  private async getRootRef(chainId = ChainId.Mainnet) {
+  private getRootRef(chainId = ChainId.Mainnet, phaseId: string) {
     const stakerContract = this.stakerContractService.getStakerAddress(chainId);
-    const phaseId = await this.getCurrentPhaseId();
+
     return this.firebaseService.firestore
       .collection('favorites')
       .doc(`${chainId}:${stakerContract}`)
@@ -32,20 +35,9 @@ export class FavoritesService {
       .doc(phaseId);
   }
 
-  private async getCurrentPhaseId(chainId = ChainId.Mainnet) {
-    const ref = this.firebaseService.firestore
-      .collection(firestoreConstants.REWARDS_COLL)
-      .doc(chainId) as FirebaseFirestore.DocumentReference<TokenomicsConfigDto>;
-    const docRef = await ref.get();
-    const doc = docRef.data();
-    const activePhase = doc?.phases.find((phase) => phase.isActive);
-    if (!activePhase) {
-      throw new Error('Current active phase not found');
-    }
-    return activePhase.id;
-  }
-
-  private fromCollection(collection: BaseCollection): Omit<CollectionFavoriteDto, 'numFavorites' | 'timestamp'> {
+  private fromCollection(
+    collection: BaseCollection
+  ): Omit<CollectionFavoriteDto, 'numFavorites' | 'timestamp' | 'phaseId'> {
     return {
       bannerImage: collection.metadata.bannerImage,
       collectionAddress: collection.address,
@@ -65,7 +57,8 @@ export class FavoritesService {
    * @param user The user who is submitting the vote.
    */
   async saveFavorite(collection: ParsedCollectionId, user: ParsedUserId) {
-    const rootRef = await this.getRootRef(user.userChainId);
+    const phase = await this.rewardsService.getActivePhase(user.userChainId);
+    const rootRef = this.getRootRef(user.userChainId, phase.id);
     const usersRef = rootRef.collection(firestoreConstants.USER_PHASE_FAVORITES).doc(user.userAddress);
     const collectionsRef = rootRef
       .collection(firestoreConstants.COLLECTION_PHASE_FAVORITES)
@@ -98,15 +91,21 @@ export class FavoritesService {
         );
       }
 
+      const collectionData: Partial<CollectionFavoriteDto> = {
+        ...this.fromCollection(favoritedCollection),
+        phaseId: phase.id,
+        timestamp
+      };
+
       // Update user favorited collection
       txn.set(
         usersRef,
         {
+          ...collectionData,
           collectionChainId: collection.chainId,
           collectionAddress: collection.address,
           userAddress: user.userAddress,
-          userChainId: user.userChainId,
-          timestamp
+          userChainId: user.userChainId
         } as UserFavoriteDto,
         { merge: false }
       );
@@ -115,9 +114,8 @@ export class FavoritesService {
       txn.set(
         collectionsRef,
         {
-          ...this.fromCollection(favoritedCollection),
-          numFavorites: firebaseAdmin.firestore.FieldValue.increment(1) as any,
-          timestamp
+          ...collectionData,
+          numFavorites: firebaseAdmin.firestore.FieldValue.increment(1) as any
         } as CollectionFavoriteDto,
         { merge: true }
       );
@@ -125,17 +123,25 @@ export class FavoritesService {
   }
 
   /**
-   * Returns the current user-favorited collection.
+   * Returns a user-favorited collection.
    */
-  async getFavoriteCollection(user: ParsedUserId): Promise<null | UserFavoriteDto> {
-    const rootRef = await this.getRootRef(user.userChainId);
-    const docRef = rootRef.collection(firestoreConstants.COLLECTION_PHASE_FAVORITES).doc(user.userAddress);
+  async getFavoriteCollection(user: ParsedUserId, phaseId?: string): Promise<UserFavoriteDto | null> {
+    if (!phaseId) {
+      const phase = await this.rewardsService.getActivePhase(user.userChainId);
+      phaseId = phase.id;
+    }
+    const rootRef = this.getRootRef(user.userChainId, phaseId);
+    const docRef = rootRef.collection(firestoreConstants.USER_PHASE_FAVORITES).doc(user.userAddress);
     const snap = await docRef.get();
     return snap.exists ? (snap.data() as UserFavoriteDto) : null;
   }
 
-  async getFavoriteCollections(query: FavoriteCollectionsQueryDto) {
-    const rootRef = await this.getRootRef();
+  async getFavoriteCollectionsLeaderboard(query: FavoriteCollectionsQueryDto, phaseId: string) {
+    const chainId = query.chainId || ChainId.Mainnet;
+    const phase = await this.rewardsService.getPhase(chainId, phaseId);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const rootRef = this.getRootRef(chainId, phase!.id);
+
     type Cursor = { collection: string };
     const queryCursor = this.cursorService.decodeCursorToObject<Cursor>(query.cursor);
     const limit = query.limit + 1;
@@ -166,5 +172,35 @@ export class FavoritesService {
       data: leaderboardResults,
       cursor: this.cursorService.encodeCursor(updatedCursorObj)
     };
+  }
+
+  async getPhases(chainId: ChainId = ChainId.Mainnet) {
+    const tokenomicsConfig = await this.rewardsService.getConfig(chainId);
+
+    if (!tokenomicsConfig?.phases) {
+      return [];
+    }
+
+    let includePhase = true; // scoped var to keep track of the phases to include in the filter below
+
+    return tokenomicsConfig.phases
+      .map((phase) => {
+        const mapped: FavoriteCollectionPhaseDto = {
+          id: phase.id,
+          isActive: phase.isActive,
+          name: phase.name,
+          progress: phase.progress
+        };
+        return mapped;
+      })
+      .filter((phase) => {
+        if (phase.isActive && includePhase) {
+          includePhase = false;
+          return true;
+        }
+
+        return includePhase;
+      })
+      .sort((x) => (x.isActive ? -1 : 0));
   }
 }

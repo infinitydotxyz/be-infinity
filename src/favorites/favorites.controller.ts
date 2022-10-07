@@ -1,4 +1,4 @@
-import { BadRequestException, Controller, ForbiddenException, Get, Post, Query } from '@nestjs/common';
+import { BadRequestException, Controller, ForbiddenException, Get, Param, Post, Query } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiCreatedResponse,
@@ -18,10 +18,11 @@ import { ParamUserId } from 'auth/param-user-id.decorator';
 import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
 import { FavoritesService } from './favorites.service';
 import { StakerContractService } from 'ethereum/contracts/staker.contract.service';
-import { StakeLevel } from '@infinityxyz/lib/types/core';
+import { ChainId, StakeLevel } from '@infinityxyz/lib/types/core';
 import { ParseCollectionIdPipe, ParsedCollectionId } from 'collections/collection-id.pipe';
 import {
   CollectionFavoriteQueryResultDto,
+  FavoriteCollectionPhaseDto,
   FavoriteCollectionsQueryDto,
   UserFavoriteDto
 } from '@infinityxyz/lib/types/dto';
@@ -60,27 +61,43 @@ export class FavoritesController {
   @Get(':userId')
   @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOperation({
-    description: 'Get the user-favorite collection for the current phase',
+    description: 'Get the user-favorite collection for the current or specified phase',
     tags: [ApiTag.Collection, ApiTag.Curation]
   })
   @ApiOkResponse({ type: UserFavoriteDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  async getUserFavorite(@ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId) {
-    return this.favoritesService.getFavoriteCollection(user);
+  async getUserFavorite(
+    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
+    @Query('phaseId') phaseId?: string
+  ) {
+    return this.favoritesService.getFavoriteCollection(user, phaseId);
   }
 
-  @Get()
+  @Get(':phaseId/leaderboard')
   @ApiOperation({
-    description: 'Get favorite collections',
+    description: 'Get favorite collections leaderboard of the specified phase',
     tags: [ApiTag.Collection, ApiTag.Curation]
   })
   @ApiOkResponse({ type: CollectionFavoriteQueryResultDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  getFavorites(@Query() query: FavoriteCollectionsQueryDto) {
-    return this.favoritesService.getFavoriteCollections(query);
+  getFavorites(@Query() query: FavoriteCollectionsQueryDto, @Param('phaseId') phaseId: ChainId = ChainId.Mainnet) {
+    return this.favoritesService.getFavoriteCollectionsLeaderboard(query, phaseId);
+  }
+
+  @Get()
+  @ApiOperation({
+    description: 'Get phases',
+    tags: [ApiTag.Collection]
+  })
+  @ApiOkResponse({ type: FavoriteCollectionPhaseDto, isArray: true })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  getPhases(@Query('chainId') chainId: ChainId) {
+    return this.favoritesService.getPhases(chainId);
   }
 }

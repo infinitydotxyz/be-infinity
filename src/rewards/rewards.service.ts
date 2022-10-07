@@ -1,5 +1,5 @@
 import { AllTimeTransactionFeeRewardsDoc, ChainId } from '@infinityxyz/lib/types/core';
-import { TokenomicsConfigDto, UserRewardsDto } from '@infinityxyz/lib/types/dto/rewards';
+import { TokenomicsConfigDto, TokenomicsPhaseDto, UserRewardsDto } from '@infinityxyz/lib/types/dto/rewards';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { CurationService } from 'collections/curation/curation.service';
@@ -57,5 +57,30 @@ export class RewardsService {
         userCurationRewardsEth: userCurationTotals.totalProtocolFeesAccruedEth
       }
     };
+  }
+
+  async getActivePhase(chainId: ChainId): Promise<TokenomicsPhaseDto> {
+    const tokenomicsConfig = await this.getConfig(chainId);
+
+    const activePhase = tokenomicsConfig?.phases.find((phase) => phase.isActive);
+
+    if (!activePhase) {
+      throw new Error('Current active phase not found');
+    }
+
+    return activePhase;
+  }
+
+  async getInactivePhases(chainId: ChainId): Promise<TokenomicsPhaseDto[]> {
+    const tokenomicsConfig = await this.getConfig(chainId);
+
+    const inactivePhases = tokenomicsConfig?.phases.filter((phase) => !phase.isActive);
+
+    return inactivePhases ?? [];
+  }
+
+  async getPhase(chainId: ChainId, phaseId: string): Promise<TokenomicsPhaseDto | undefined> {
+    const tokenomicsConfig = await this.getConfig(chainId);
+    return tokenomicsConfig?.phases.find((phase) => phase.id == phaseId);
   }
 }
