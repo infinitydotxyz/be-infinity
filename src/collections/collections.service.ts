@@ -435,8 +435,8 @@ export default class CollectionsService {
 
     const orderByField = {
       [CuratedCollectionsOrderBy.Apr]: {
-        primary: 'currentBlock.stats.blockApr',
-        secondary: 'currentBlock.metadata.collectionAddress'
+        primary: 'stats.feesAPR',
+        secondary: 'metadata.collectionAddress'
       },
       [CuratedCollectionsOrderBy.Votes]: {
         primary: 'stats.numCuratorVotes',
@@ -447,7 +447,7 @@ export default class CollectionsService {
     const orderBy = orderByField[collectionsQuery.orderBy];
     query = query
       .orderBy(orderBy.primary, collectionsQuery.orderDirection)
-      .orderBy(orderBy.secondary, 'asc')
+      .orderBy(orderBy.secondary, collectionsQuery.orderDirection)
       .limit(collectionsQuery.limit + 1);
 
     type Cursor = Record<CuratedCollectionsOrderBy, { value: number; collectionAddress: string }>;
@@ -514,9 +514,9 @@ export default class CollectionsService {
         tokenContractChainId: item.metadata.tokenContractChainId,
         userAddress: item.curator?.metadata?.userAddress ?? '',
         userChainId: item.metadata.collectionChainId,
+        fees: item.stats?.feesAccruedEth ?? 0,
+        feesAPR: item.stats?.feesAPR ?? 0,
         votes: item.curator?.stats?.votes ?? 0,
-        fees: item.curator?.stats?.totalProtocolFeesAccruedEth ?? 0,
-        feesAPR: item.curator?.stats?.blockApr ?? 0,
         timestamp: item.metadata.updatedAt,
         slug: item?.collection?.slug,
         numCuratorVotes: item.stats.numCuratorVotes,

@@ -43,6 +43,8 @@ export class RewardsService {
 
     const userTotalSnap = await userAllTimeRewards.get();
     const userTotalRewards = userTotalSnap.data() ?? null;
+    const v1Airdrop = userTotalRewards?.v1Airdrop ?? 0;
+    const totalUserReward = (userTotalRewards?.rewards ?? 0) + v1Airdrop;
 
     const userCurationTotals = await this.curationService.getUserRewards(parsedUser);
 
@@ -50,7 +52,7 @@ export class RewardsService {
       chainId,
       totals: {
         userVolume: userTotalRewards?.volumeEth ?? 0,
-        userRewards: userTotalRewards?.rewards ?? 0,
+        userRewards: totalUserReward,
         userSells: userTotalRewards?.userSells ?? 0,
         userBuys: userTotalRewards?.userBuys ?? 0,
         userCurationRewardsWei: userCurationTotals.totalProtocolFeesAccruedWei,
