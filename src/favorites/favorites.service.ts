@@ -9,7 +9,6 @@ import {
   CollectionFavoriteDto,
   FavoriteCollectionPhaseDto,
   FavoriteCollectionsQueryDto,
-  TokenomicsPhaseDto,
   UserFavoriteDto
 } from '@infinityxyz/lib/types/dto';
 import { CursorService } from 'pagination/cursor.service';
@@ -189,7 +188,8 @@ export class FavoritesService {
           id: phase.id,
           isActive: phase.isActive,
           name: phase.name,
-          progress: phase.progress
+          progress: phase.progress,
+          collectionPotFeesGenerated: phase.collectionPotFeesGenerated
         };
         return mapped;
       })
