@@ -162,6 +162,10 @@ export class StatsService {
 
         // fetch prices for the period
         const prices = await this.fetchPricesForStatsPeriod(coll.contractAddress, queryPeriod);
+        const floorPrice = await this.getCollectionFloorPrice({
+          address: coll.contractAddress,
+          chainId: (coll.chainId as ChainId) ?? ChainId.Mainnet
+        });
 
         // fetch sales for the period
         const sales = await this.fetchSalesForStatsPeriod(coll.contractAddress, queryPeriod);
@@ -175,6 +179,7 @@ export class StatsService {
           minPrice: prices.minPrice,
           maxPrice: prices.maxPrice,
           avgPrice: prices.avgPrice,
+          floorPrice: floorPrice ?? 0,
           updatedAt: Date.now()
         };
 
