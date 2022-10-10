@@ -212,6 +212,7 @@ export class CollectionsController {
               salesVolume: statsData.salesVolume,
               avgPrice: statsData.avgPrice,
               minPrice: statsData.minPrice,
+              floorPrice: statsData.floorPrice,
               maxPrice: statsData.maxPrice,
               numSales: statsData.numSales,
               period: queryPeriod
