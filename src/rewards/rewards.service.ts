@@ -30,6 +30,8 @@ export class RewardsService {
       }
     }
 
+    program.phases = program.phases.filter((item) => item.id !== '5');
+
     return program;
   }
 
