@@ -453,7 +453,7 @@ export default class CollectionsService {
     type Cursor = Record<CuratedCollectionsOrderBy, { value: number; collectionAddress: string }>;
     const cursor = this.paginationService.decodeCursorToObject<Partial<Cursor>>(collectionsQuery.cursor);
     const startAt = cursor[collectionsQuery.orderBy];
-    if (typeof startAt?.value === 'number' && startAt.collectionAddress) {
+    if (startAt && 'value' in startAt && 'collectionAddress' in startAt) {
       query = query.startAt(startAt.value, startAt.collectionAddress);
     }
 
@@ -490,11 +490,11 @@ export default class CollectionsService {
       if (startAtItem) {
         const rawCursor: Cursor = {
           [CuratedCollectionsOrderBy.Apr]: {
-            value: startAtItem.currentBlock?.stats.blockApr ?? Number.NaN,
+            value: startAtItem.currentBlock?.stats.blockApr ?? 0,
             collectionAddress: startAtItem.metadata.collectionAddress
           },
           [CuratedCollectionsOrderBy.Votes]: {
-            value: startAtItem.stats.numCuratorVotes,
+            value: startAtItem.stats.numCuratorVotes ?? 0,
             collectionAddress: startAtItem.metadata.collectionAddress
           }
         };
