@@ -127,13 +127,10 @@ export class NftsService {
       };
     });
 
-    const nftDtos = [];
     const nftsToBackfill = [];
 
     for (const nft of nftsMergedWithSnapshot) {
-      if (nft && (nft.image?.url || nft.image?.originalUrl)) {
-        nftDtos.push(nft);
-      } else {
+      if (!nft || !(nft.image?.url || nft.image?.originalUrl)) {
         const address = nft.address || nft.collectionAddress;
         if (nft.tokenId && address && nft.chainId) {
           nftsToBackfill.push({
@@ -150,7 +147,7 @@ export class NftsService {
       console.error(err);
     });
 
-    return nftDtos;
+    return nftsMergedWithSnapshot;
   }
 
   async getCollectionNfts(collection: ParsedCollectionId, query: NftsQueryDto): Promise<NftArrayDto> {
