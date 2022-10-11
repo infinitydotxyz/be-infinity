@@ -357,6 +357,9 @@ export default class CollectionsService {
   }
 
   async setCollectionMetadata(collection: ParsedCollectionId, metadata: CollectionMetadata) {
+    if (metadata?.links?.twitter) {
+      metadata.links.twitter = metadata.links.twitter.toLowerCase();
+    }
     await collection.ref.set({ metadata }, { merge: true });
   }
 
