@@ -1,5 +1,5 @@
 import { BaseCollection, ChainId, OrderDirection } from '@infinityxyz/lib/types/core';
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import firebaseAdmin from 'firebase-admin';
 import { StakerContractService } from 'ethereum/contracts/staker.contract.service';
 import { FirebaseService } from 'firebase/firebase.service';
@@ -73,21 +73,9 @@ export class FavoritesService {
         rootRef.collection(firestoreConstants.USER_PHASE_FAVORITES).doc(user.userAddress)
       );
 
-      // If we already voted on another collection, decrement the votes on it.
+      // If we already voted on another collection, throw because users can't change their votes until the phase has ended to prevent abuse.
       if (previousFavoritedCollectionSnap.exists) {
-        const previousFavoritedCollection = previousFavoritedCollectionSnap.data() as UserFavoriteDto;
-        const ref = rootRef
-          .collection(firestoreConstants.COLLECTION_PHASE_FAVORITES)
-          .doc(`${previousFavoritedCollection.collectionChainId}:${previousFavoritedCollection.collectionAddress}`);
-
-        txn.set(
-          ref,
-          {
-            numFavorites: firebaseAdmin.firestore.FieldValue.increment(-1) as any,
-            timestamp
-          } as CollectionFavoriteDto,
-          { merge: true }
-        );
+        throw new ConflictException('Already favorited another collection during this phase');
       }
 
       const collectionData: Partial<CollectionFavoriteDto> = {

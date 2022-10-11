@@ -786,7 +786,7 @@ export class StatsService {
       twitterId: twitterResponse?.account?.id ?? '',
       twitterHandle: twitterResponse?.account?.username ?? '',
       twitterLink: twitterResponse?.account?.username
-        ? TwitterService.appendTwitterUsername(twitterResponse.account.username)
+        ? TwitterService.appendTwitterUsername(twitterResponse.account.username.toLowerCase())
         : ''
     };
 
