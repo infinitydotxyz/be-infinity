@@ -10,10 +10,11 @@ import {
 } from '@infinityxyz/lib/types/core';
 import {
   CollectionSearchQueryDto,
-  CuratedCollectionDto,
   CuratedCollectionsDto,
   TopOwnerDto,
-  TopOwnersQueryDto
+  TopOwnersQueryDto,
+  UserCuratedCollectionDto,
+  UserCuratedCollectionsDto
 } from '@infinityxyz/lib/types/dto/collections';
 import {
   CuratedCollectionsOrderBy,
@@ -421,7 +422,9 @@ export default class CollectionsService {
     return externalCollection;
   }
 
-  async getCurated(collectionsQuery: CuratedCollectionsQuery, user?: ParsedUserId): Promise<CuratedCollectionsDto> {
+  async getCurated(collectionQuery: CuratedCollectionsQuery, user: undefined): Promise<CuratedCollectionsDto>;
+  async getCurated(collectionQuery: CuratedCollectionsQuery, user: ParsedUserId): Promise<UserCuratedCollectionsDto>;
+  async getCurated(collectionsQuery: CuratedCollectionsQuery, user?: ParsedUserId) {
     const stakerContractChainId = collectionsQuery.chainId ?? ChainId.Mainnet;
     const stakerContractAddress = this.curationService.getStakerAddress(stakerContractChainId);
     let query = this.firebaseService.firestore
@@ -453,7 +456,7 @@ export default class CollectionsService {
     type Cursor = Record<CuratedCollectionsOrderBy, { value: number; collectionAddress: string }>;
     const cursor = this.paginationService.decodeCursorToObject<Partial<Cursor>>(collectionsQuery.cursor);
     const startAt = cursor[collectionsQuery.orderBy];
-    if (typeof startAt?.value === 'number' && startAt.collectionAddress) {
+    if (startAt && 'value' in startAt && 'collectionAddress' in startAt) {
       query = query.startAt(startAt.value, startAt.collectionAddress);
     }
 
@@ -490,11 +493,11 @@ export default class CollectionsService {
       if (startAtItem) {
         const rawCursor: Cursor = {
           [CuratedCollectionsOrderBy.Apr]: {
-            value: startAtItem.currentBlock?.stats.blockApr ?? Number.NaN,
+            value: startAtItem.currentBlock?.stats.blockApr ?? 0,
             collectionAddress: startAtItem.metadata.collectionAddress
           },
           [CuratedCollectionsOrderBy.Votes]: {
-            value: startAtItem.stats.numCuratorVotes,
+            value: startAtItem.stats.numCuratorVotes ?? 0,
             collectionAddress: startAtItem.metadata.collectionAddress
           }
         };
@@ -505,18 +508,21 @@ export default class CollectionsService {
     }
 
     const curatedCollections = results.map((item) => {
-      const curatedCollection: CuratedCollectionDto = {
+      const curatedCollection: UserCuratedCollectionDto = {
         address: item.metadata.collectionAddress,
         chainId: item.metadata.collectionChainId,
         stakerContractAddress: item.metadata.stakerContractAddress,
         stakerContractChainId: item.metadata.stakerContractChainId,
         tokenContractAddress: item.metadata.tokenContractAddress,
         tokenContractChainId: item.metadata.tokenContractChainId,
-        userAddress: item.curator?.metadata?.userAddress ?? '',
-        userChainId: item.metadata.collectionChainId,
+        curator: {
+          address: item.curator?.metadata?.userAddress ?? user?.userAddress ?? '',
+          fees: item.curator?.stats?.totalProtocolFeesAccruedEth ?? 0,
+          votes: item.curator?.stats?.votes ?? 0,
+          feesAPR: item.curator?.stats?.blockApr ?? 0
+        },
         fees: item.stats?.feesAccruedEth ?? 0,
         feesAPR: item.stats?.feesAPR ?? 0,
-        votes: item.curator?.stats?.votes ?? 0,
         timestamp: item.metadata.updatedAt,
         slug: item?.collection?.slug,
         numCuratorVotes: item.stats.numCuratorVotes,
