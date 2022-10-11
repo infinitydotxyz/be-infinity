@@ -17,7 +17,11 @@ import { CursorService } from 'pagination/cursor.service';
 import { StatsService } from 'stats/stats.service';
 import { ParsedUserId } from './parser/parsed-user-id';
 import { BadQueryError } from 'common/errors/bad-query.error';
-import { CuratedCollectionDto, CuratedCollectionsDto, RankingQueryDto } from '@infinityxyz/lib/types/dto/collections';
+import {
+  RankingQueryDto,
+  UserCuratedCollectionDto,
+  UserCuratedCollectionsDto
+} from '@infinityxyz/lib/types/dto/collections';
 import { NftCollectionDto, NftDto, NftArrayDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import {
   UserFollowingCollection,
@@ -494,7 +498,7 @@ export class UserService {
   /**
    * Fetch all user-curated collections.
    */
-  async getAllCurated(user: ParsedUserId, query: CuratedCollectionsQuery): Promise<CuratedCollectionsDto> {
+  async getAllCurated(user: ParsedUserId, query: CuratedCollectionsQuery): Promise<UserCuratedCollectionsDto> {
     const stakingContractChainId = user.userChainId;
     const stakingContractAddress = this.curationService.getStakerAddress(stakingContractChainId);
     const orderBy = {
@@ -533,16 +537,19 @@ export class UserService {
     }
 
     const curatedCollections = curationBlockUsers.map((curator) => {
-      const curatedCollection: CuratedCollectionDto = {
+      const curatedCollection: UserCuratedCollectionDto = {
         address: curator.metadata.collectionAddress,
         chainId: curator.metadata.collectionChainId,
         stakerContractAddress: curator.metadata.stakerContractAddress,
         stakerContractChainId: curator.metadata.stakerContractChainId,
         tokenContractAddress: curator.metadata.tokenContractAddress,
         tokenContractChainId: curator.metadata.tokenContractChainId,
-        userAddress: curator.metadata.userAddress,
-        userChainId: curator.metadata.collectionChainId,
-        votes: curator.stats.votes,
+        curator: {
+          address: curator.metadata.userAddress,
+          votes: curator.stats.votes,
+          fees: curator.stats.totalProtocolFeesAccruedEth,
+          feesAPR: curator.stats.blockApr
+        },
         fees: curator.stats.totalProtocolFeesAccruedEth ?? 0,
         feesAPR: curator.stats.blockApr ?? 0,
         timestamp: curator.metadata.updatedAt,

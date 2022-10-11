@@ -1,5 +1,4 @@
 import { ChainId, Collection, StakeDuration, StakerContractPeriodUserDoc } from '@infinityxyz/lib/types/core';
-import { CuratedCollectionDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 import { UserStakeDto } from '@infinityxyz/lib/types/dto/user';
 import {
   calculateStatsBigInt,
@@ -25,6 +24,7 @@ import { CurationQuotaDto } from '@infinityxyz/lib/types/dto/collections/curatio
 import { EthereumService } from 'ethereum/ethereum.service';
 import { partitionArray } from 'utils';
 import { streamQuery } from 'firebase/stream-query';
+import { UserCuratedCollectionDto } from '@infinityxyz/lib/types/dto';
 
 @Injectable()
 export class CurationService {
@@ -122,7 +122,7 @@ export class CurationService {
           .collection(firestoreConstants.COLLECTION_CURATION_COLL)
           .doc(`${stakingContractChainId}:${stakingContractAddress}`)
           .collection(firestoreConstants.COLLECTION_CURATORS_COLL)
-          .doc(parsedUser.ref.id) as FirebaseFirestore.DocumentReference<CuratedCollectionDto>;
+          .doc(parsedUser.ref.id) as FirebaseFirestore.DocumentReference<UserCuratedCollectionDto>;
         return curatorDocRef;
       });
       const curatedCollectionSnaps = await txn.getAll(...curatedCollectionRefs);
@@ -176,7 +176,7 @@ export class CurationService {
     vote: ParsedBulkVotes,
     parsedUser: ParsedUserId,
     collectionSnap: FirebaseFirestore.DocumentSnapshot<Partial<Collection>>,
-    curatedCollectionSnap: FirebaseFirestore.DocumentSnapshot<CuratedCollectionDto>,
+    curatedCollectionSnap: FirebaseFirestore.DocumentSnapshot<UserCuratedCollectionDto>,
     totalCurated: number,
     totalCuratedVotes: number,
     currentBlock: { number: number; timestamp: number },
@@ -191,13 +191,16 @@ export class CurationService {
     totalCuratedVotes: number;
   } {
     const collection = collectionSnap.data() ?? {};
-    const curatedCollection: Partial<CuratedCollectionDto> = curatedCollectionSnap.data() ?? {};
-    const curatedCollectionVotes = curatedCollection.votes ?? 0;
+    const curatedCollection: Partial<UserCuratedCollectionDto> = curatedCollectionSnap.data() ?? {};
+    const curatedCollectionVotes = curatedCollection.curator?.votes ?? 0;
 
-    const curatedCollectionUpdate: CuratedCollectionDto = {
-      votes: curatedCollectionVotes + vote.votes,
-      userAddress: parsedUser.userAddress,
-      userChainId: parsedUser.userChainId,
+    const curatedCollectionUpdate: UserCuratedCollectionDto = {
+      curator: {
+        address: parsedUser.userAddress,
+        votes: curatedCollectionVotes + vote.votes,
+        fees: 0,
+        feesAPR: 0
+      },
       timestamp: Date.now(),
       address: vote.parsedCollectionId.address,
       chainId: vote.parsedCollectionId.chainId,
@@ -281,7 +284,7 @@ export class CurationService {
     user: Omit<ParsedUserId, 'ref'>,
     collection: Omit<ParsedCollectionId, 'ref'>,
     collectionData: Partial<Collection>
-  ): Promise<CuratedCollectionDto> {
+  ): Promise<UserCuratedCollectionDto> {
     const stakingContractChainId = user.userChainId;
     const stakingContractAddress = this.getStakerAddress(stakingContractChainId);
     const curationSnippetRef = this.firebaseService.firestore
@@ -298,22 +301,25 @@ export class CurationService {
 
     const curatorSnap = await curatorRef.get();
     const curator = curatorSnap.data();
+    const curationSnippetSnap = await curationSnippetRef.get();
+    const curationSnippet = curationSnippetSnap.data();
     if (!curator) {
-      const curationSnippetSnap = await curationSnippetRef.get();
-      const curationSnippet = curationSnippetSnap.data();
       const tokenContract = getTokenAddressByStakerAddress(stakingContractChainId, stakingContractAddress);
-      const curatedCollection: CuratedCollectionDto = {
+      const curatedCollection: UserCuratedCollectionDto = {
         address: collection.address,
         chainId: collection.chainId,
         stakerContractAddress: stakingContractAddress,
         stakerContractChainId: stakingContractChainId,
         tokenContractAddress: tokenContract.tokenContractAddress,
         tokenContractChainId: tokenContract.tokenContractChainId,
-        userAddress: user.userAddress,
-        userChainId: user.userChainId,
-        votes: 0,
-        fees: 0,
-        feesAPR: 0,
+        curator: {
+          address: user.userAddress,
+          votes: 0,
+          fees: 0,
+          feesAPR: 0
+        },
+        fees: curationSnippet?.stats.feesAccruedEth ?? 0,
+        feesAPR: curationSnippet?.stats.feesAPR ?? 0,
         timestamp: Date.now(),
         slug: curationSnippet?.collection?.slug ?? collectionData?.slug ?? '',
         numCuratorVotes: curationSnippet?.stats?.numCuratorVotes ?? 0,
@@ -325,18 +331,21 @@ export class CurationService {
       return curatedCollection;
     }
 
-    const curatedCollection: CuratedCollectionDto = {
+    const curatedCollection: UserCuratedCollectionDto = {
       address: curator.metadata.collectionAddress,
       chainId: curator.metadata.collectionChainId,
       stakerContractAddress: curator.metadata.stakerContractAddress,
       stakerContractChainId: curator.metadata.stakerContractChainId,
       tokenContractAddress: curator.metadata.tokenContractAddress,
       tokenContractChainId: curator.metadata.tokenContractChainId,
-      userAddress: curator.metadata.userAddress,
-      userChainId: curator.metadata.collectionChainId,
-      votes: curator.stats.votes,
-      fees: curator.stats.totalProtocolFeesAccruedEth ?? 0,
-      feesAPR: curator.stats.blockApr ?? 0,
+      curator: {
+        address: curator.metadata.userAddress,
+        votes: curator.stats.votes,
+        fees: curator.stats.totalProtocolFeesAccruedEth,
+        feesAPR: curator.stats.blockApr
+      },
+      fees: curationSnippet?.stats.feesAccruedEth ?? 0,
+      feesAPR: curationSnippet?.stats.feesAPR ?? 0,
       timestamp: curator.metadata.updatedAt,
       slug: curator.collection.slug,
       numCuratorVotes: curator.stats.numCuratorVotes,

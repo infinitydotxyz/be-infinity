@@ -36,7 +36,8 @@ import {
   RankingQueryDto,
   TopOwnersArrayResponseDto,
   TopOwnersQueryDto,
-  PaginatedCollectionsDto
+  UserCuratedCollectionDto,
+  UserCuratedCollectionsDto
 } from '@infinityxyz/lib/types/dto/collections';
 import { NftActivityArrayDto, NftActivityFiltersDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { TweetArrayDto } from '@infinityxyz/lib/types/dto/twitter';
@@ -63,10 +64,7 @@ import { CuratedCollectionsQuery } from '@infinityxyz/lib/types/dto/collections/
 import { CurationService } from './curation/curation.service';
 import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
-import {
-  CuratedCollectionDto,
-  CuratedCollectionsDto
-} from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
+import { CuratedCollectionsDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 import { Auth } from 'auth/api-auth.decorator';
 import { SiteRole } from 'auth/auth.constants';
 import { ParamUserId } from 'auth/param-user-id.decorator';
@@ -237,12 +235,12 @@ export class CollectionsController {
     description: 'Fetch all curated collections',
     tags: [ApiTag.Collection, ApiTag.Curation]
   })
-  @ApiOkResponse({ type: PaginatedCollectionsDto })
+  @ApiOkResponse({ type: CuratedCollectionsDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  async getAllCurated(@Query() query: CuratedCollectionsQuery) {
-    return this.collectionsService.getCurated(query);
+  async getAllCurated(@Query() query: CuratedCollectionsQuery): Promise<CuratedCollectionsDto> {
+    return this.collectionsService.getCurated(query, undefined);
   }
 
   @Get('curated/:userId')
@@ -252,14 +250,14 @@ export class CollectionsController {
       'Fetch all curated collections. Each curated collection object that has been voted for by the current user will contain more info, like the amount of votes.',
     tags: [ApiTag.Collection, ApiTag.Curation]
   })
-  @ApiOkResponse({ type: PaginatedCollectionsDto })
+  @ApiOkResponse({ type: UserCuratedCollectionsDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   async getAllCuratedByUserId(
     @Query() query: CuratedCollectionsQuery,
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId
-  ): Promise<CuratedCollectionsDto> {
+  ): Promise<UserCuratedCollectionsDto> {
     return this.collectionsService.getCurated(query, user);
   }
 
@@ -270,14 +268,14 @@ export class CollectionsController {
     description: 'Fetch curation details and estimations of the collection',
     tags: [ApiTag.Collection, ApiTag.Curation]
   })
-  @ApiOkResponse({ type: CuratedCollectionDto })
+  @ApiOkResponse({ type: UserCuratedCollectionDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  async getCurated(
+  async getUserCurated(
     @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId
-  ): Promise<CuratedCollectionDto> {
+  ): Promise<UserCuratedCollectionDto> {
     const collectionData = (await this.collectionsService.getCollectionByAddress(collection)) ?? {};
     const curated = await this.curationService.findUserCurated(user, collection, collectionData);
     return curated;

@@ -1,8 +1,11 @@
 import { CollectionMetadata } from '@infinityxyz/lib/types/core';
-import { RankingQueryDto, UpdateCollectionDto } from '@infinityxyz/lib/types/dto/collections';
+import {
+  RankingQueryDto,
+  UpdateCollectionDto,
+  UserCuratedCollectionsDto
+} from '@infinityxyz/lib/types/dto/collections';
 import { CuratedCollectionsQuery } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
 import { CurationQuotaDto } from '@infinityxyz/lib/types/dto/collections/curation/curation-quota.dto';
-import { CuratedCollectionsDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 import { ExternalNftArrayDto, NftActivityArrayDto, NftArrayDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { CollectionStatsArrayResponseDto } from '@infinityxyz/lib/types/dto/stats';
 import {
@@ -416,13 +419,13 @@ export class UserController {
     description: "Get the specified user's curated collections",
     tags: [ApiTag.User, ApiTag.Collection, ApiTag.Curation]
   })
-  @ApiOkResponse({ description: ResponseDescription.Success, type: CuratedCollectionsDto })
+  @ApiOkResponse({ description: ResponseDescription.Success, type: UserCuratedCollectionsDto })
   @ApiParamUserId('userId')
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   getCurated(
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
     @Query() query: CuratedCollectionsQuery
-  ): Promise<CuratedCollectionsDto> {
+  ): Promise<UserCuratedCollectionsDto> {
     return this.userService.getAllCurated(user, query);
   }
 
