@@ -106,13 +106,20 @@ export class MerkleTreeService {
 
     const getCumulativeClaimed = async () => {
       let cumulativeClaimed = '0';
-      if (merkleRootDoc.config.type === AirdropType.Curation) {
-        cumulativeClaimed = await this.cmDistributor.getCumulativeETHClaimed(merkleRootDoc.config.chainId, userAddress);
-      } else {
-        cumulativeClaimed = await this.cmDistributor.getCumulativeINFTClaimed(
-          merkleRootDoc.config.chainId,
-          userAddress
-        );
+      try {
+        if (merkleRootDoc.config.type === AirdropType.Curation) {
+          cumulativeClaimed = await this.cmDistributor.getCumulativeETHClaimed(
+            merkleRootDoc.config.chainId,
+            userAddress
+          );
+        } else {
+          cumulativeClaimed = await this.cmDistributor.getCumulativeINFTClaimed(
+            merkleRootDoc.config.chainId,
+            userAddress
+          );
+        }
+      } catch (err) {
+        console.error(err);
       }
       return cumulativeClaimed;
     };
