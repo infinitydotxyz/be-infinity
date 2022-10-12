@@ -29,29 +29,28 @@ export class NftsService {
   ) {}
 
   async getNft(nftQuery: NftQueryDto): Promise<NftDto | undefined> {
-    // const collection = await this.collectionsService.getCollectionByAddress(nftQuery, {
-    //   limitToCompleteCollections: false
-    // });
-    // if (collection) {
     const [nft] = await this.getNfts([
       { address: nftQuery.address, chainId: nftQuery.chainId, tokenId: nftQuery.tokenId }
     ]);
 
-    if (nft && (!nft.owner || typeof nft.owner !== 'string')) {
-      // to handle stale opensea ownership data
-      const owner = await this.ethereumService.getErc721Owner({
-        address: nftQuery.address,
-        tokenId: nftQuery.tokenId,
-        chainId: nftQuery.chainId
-      });
-      if (owner) {
-        nft.owner = owner;
-        this.updateOwnershipInFirestore(nft);
+    if (nft) {
+      try {
+        // to handle stale opensea ownership data
+        const owner = await this.ethereumService.getErc721Owner({
+          address: nftQuery.address,
+          tokenId: nftQuery.tokenId,
+          chainId: nftQuery.chainId
+        });
+        if (owner && nft.owner !== owner) {
+          nft.owner = owner;
+          this.updateOwnershipInFirestore(nft);
+        }
+      } catch (err) {
+        console.error(`failed to get owner for NFT: ${nftQuery.chainId}:${nftQuery.address}:${nftQuery.tokenId}`);
       }
     }
 
     return nft;
-    // }
   }
 
   private updateOwnershipInFirestore(nft: NftDto): void {

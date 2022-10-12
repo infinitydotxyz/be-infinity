@@ -65,6 +65,20 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
+          "fieldPath": "hasBlueCheck",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.links.twitter",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "collections",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
           "fieldPath": "state.create.step",
           "order": "ASCENDING"
         },
@@ -6949,6 +6963,28 @@
         },
         {
           "order": "DESCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "userAllTimeRewards",
+      "fieldPath": "chainId",
+      "indexes": [
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "DESCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "arrayConfig": "CONTAINS",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "ASCENDING",
           "queryScope": "COLLECTION_GROUP"
         }
       ]
