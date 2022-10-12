@@ -48,18 +48,21 @@ export class RewardsService {
         firestoreConstants.USER_ALL_TIME_TXN_FEE_REWARDS_DOC
       ) as FirebaseFirestore.DocumentReference<AllTimeTransactionFeeRewardsDoc>;
 
-    const userTotalSnap = await userAllTimeRewards.get();
+    const [tradingFeeConfig, curationConfig, userTotalSnap, userCurationTotals] = await Promise.all([
+      this.merkleTreeService.getMerkleRootConfig(chainId, AirdropType.TxFees),
+      this.merkleTreeService.getMerkleRootConfig(chainId, AirdropType.Curation),
+      userAllTimeRewards.get(),
+      this.curationService.getUserRewards(parsedUser)
+    ]);
+    const [tradingFeeLeaf, curationLeaf] = await Promise.all([
+      this.merkleTreeService.getLeaf(tradingFeeConfig, parsedUser.userAddress),
+      this.merkleTreeService.getLeaf(curationConfig, parsedUser.userAddress)
+    ]);
+
     const userTotalRewards = userTotalSnap.data() ?? null;
+
     const v1Airdrop = userTotalRewards?.v1Airdrop ?? 0;
     const totalUserReward = (userTotalRewards?.rewards ?? 0) + v1Airdrop;
-
-    const userCurationTotals = await this.curationService.getUserRewards(parsedUser);
-
-    const tradingFeeConfig = await this.merkleTreeService.getMerkleRootConfig(chainId, AirdropType.TxFees);
-    const tradingFeeLeaf = await this.merkleTreeService.getLeaf(tradingFeeConfig, parsedUser.userAddress);
-
-    const curationConfig = await this.merkleTreeService.getMerkleRootConfig(chainId, AirdropType.Curation);
-    const curationLeaf = await this.merkleTreeService.getLeaf(curationConfig, parsedUser.userAddress);
 
     const rewards: UserRewardsDto = {
       chainId,

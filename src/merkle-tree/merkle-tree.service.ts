@@ -104,16 +104,22 @@ export class MerkleTreeService {
     const versionedConfigRef = this.versionedConfigRef(configRef, nonce);
     const leafRef = this.leafRef(versionedConfigRef, userAddress);
 
-    const leafSnap = await leafRef.get();
+    const getCumulativeClaimed = async () => {
+      let cumulativeClaimed = '0';
+      if (merkleRootDoc.config.type === AirdropType.Curation) {
+        cumulativeClaimed = await this.cmDistributor.getCumulativeETHClaimed(merkleRootDoc.config.chainId, userAddress);
+      } else {
+        cumulativeClaimed = await this.cmDistributor.getCumulativeINFTClaimed(
+          merkleRootDoc.config.chainId,
+          userAddress
+        );
+      }
+      return cumulativeClaimed;
+    };
+
+    const [leafSnap, cumulativeClaimed] = await Promise.all([leafRef.get(), getCumulativeClaimed()]);
+
     const leafData = leafSnap.data();
-
-    let cumulativeClaimed = '0';
-    if (merkleRootDoc.config.type === AirdropType.Curation) {
-      cumulativeClaimed = await this.cmDistributor.getCumulativeETHClaimed(merkleRootDoc.config.chainId, userAddress);
-    } else {
-      cumulativeClaimed = await this.cmDistributor.getCumulativeINFTClaimed(merkleRootDoc.config.chainId, userAddress);
-    }
-
     if (!leafData) {
       return defaultLeaf;
     }
