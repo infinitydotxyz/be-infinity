@@ -30,6 +30,7 @@ import { SalesModule } from 'sales/sales.module';
 import { RewardsModule } from './rewards/rewards.module';
 import { RafflesModule } from './raffles/raffles.module';
 import { FavoritesModule } from 'favorites/favorites.module';
+import { MerkleTreeModule } from './merkle-tree/merkle-tree.module';
 
 @Module({
   imports: [
@@ -66,7 +67,8 @@ import { FavoritesModule } from 'favorites/favorites.module';
     SalesModule,
     RewardsModule,
     RafflesModule,
-    FavoritesModule
+    FavoritesModule,
+    MerkleTreeModule
   ],
   providers: [
     {

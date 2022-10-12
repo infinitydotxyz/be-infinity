@@ -1,14 +1,19 @@
-import { AllTimeTransactionFeeRewardsDoc, ChainId } from '@infinityxyz/lib/types/core';
+import { AirdropType, AllTimeTransactionFeeRewardsDoc, ChainId } from '@infinityxyz/lib/types/core';
 import { TokenomicsConfigDto, TokenomicsPhaseDto, UserRewardsDto } from '@infinityxyz/lib/types/dto/rewards';
-import { firestoreConstants } from '@infinityxyz/lib/utils';
+import { firestoreConstants, formatEth } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { CurationService } from 'collections/curation/curation.service';
 import { FirebaseService } from 'firebase/firebase.service';
+import { MerkleTreeService } from 'merkle-tree/merkle-tree.service';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 
 @Injectable()
 export class RewardsService {
-  constructor(protected firebaseService: FirebaseService, protected curationService: CurationService) {}
+  constructor(
+    protected firebaseService: FirebaseService,
+    protected curationService: CurationService,
+    protected merkleTreeService: MerkleTreeService
+  ) {}
 
   async getConfig(chainId: ChainId): Promise<TokenomicsConfigDto | null> {
     const rewardsProgramRef = this.firebaseService.firestore
@@ -49,7 +54,12 @@ export class RewardsService {
     const totalUserReward = (userTotalRewards?.rewards ?? 0) + v1Airdrop;
 
     const userCurationTotals = await this.curationService.getUserRewards(parsedUser);
-    const claimingAddress = '0xbada55c9c42e573047c76eb65e29d853f7b77b9c'.toLowerCase();
+
+    const tradingFeeConfig = await this.merkleTreeService.getMerkleRootConfig(chainId, AirdropType.TxFees);
+    const tradingFeeLeaf = await this.merkleTreeService.getLeaf(tradingFeeConfig, parsedUser.userAddress);
+
+    const curationConfig = await this.merkleTreeService.getMerkleRootConfig(chainId, AirdropType.Curation);
+    const curationLeaf = await this.merkleTreeService.getLeaf(curationConfig, parsedUser.userAddress);
 
     const rewards: UserRewardsDto = {
       chainId,
@@ -60,70 +70,36 @@ export class RewardsService {
           sells: userTotalRewards?.userSells ?? 0,
           buys: userTotalRewards?.userBuys ?? 0,
           claim: {
-            contractAddress: '',
-            claimedWei: '0',
-            claimedEth: 0,
-            claimableWei: '0',
-            claimableEth: 0,
+            contractAddress: tradingFeeConfig.config.airdropContractAddress,
+            claimedWei: tradingFeeLeaf.cumulativeClaimed,
+            claimedEth: formatEth(tradingFeeLeaf.cumulativeClaimed),
+            claimableWei: tradingFeeLeaf.claimable,
+            claimableEth: formatEth(tradingFeeLeaf.claimable),
             account: parsedUser.userAddress,
-            cumulativeAmount: '0',
-            merkleRoot: '',
-            merkleProof: []
+            cumulativeAmount: tradingFeeLeaf.cumulativeAmount,
+            merkleRoot: tradingFeeLeaf.expectedMerkleRoot,
+            merkleProof: tradingFeeLeaf.proof
           }
         },
         curation: {
           totalRewardsWei: userCurationTotals.totalProtocolFeesAccruedWei,
           totalRewardsEth: userCurationTotals.totalProtocolFeesAccruedEth,
           claim: {
-            contractAddress: '',
-            claimedWei: '0',
-            claimedEth: 0,
-            claimableWei: '0',
-            claimableEth: 0,
+            contractAddress: curationConfig.config.airdropContractAddress,
+            claimedWei: curationLeaf.cumulativeClaimed,
+            claimedEth: formatEth(curationLeaf.cumulativeClaimed),
+            claimableWei: curationLeaf.claimable,
+            claimableEth: formatEth(curationLeaf.claimable),
             account: parsedUser.userAddress,
-            cumulativeAmount: '0',
-            merkleRoot: '',
-            merkleProof: []
+            cumulativeAmount: curationLeaf.cumulativeAmount,
+            merkleRoot: curationLeaf.expectedMerkleRoot,
+            merkleProof: curationLeaf.proof
           }
         }
       }
     };
 
     return rewards;
-
-    // return {
-    //   chainId,
-    //   totals: {
-    //     userVolume: userTotalRewards?.volumeEth ?? 0,
-    //     userRewards: totalUserReward,
-    //     userSells: userTotalRewards?.userSells ?? 0,
-    //     userBuys: userTotalRewards?.userBuys ?? 0,
-    //     userCurationRewardsWei: userCurationTotals.totalProtocolFeesAccruedWei,
-    //     userCurationRewardsEth: userCurationTotals.totalProtocolFeesAccruedEth
-    //     tradingRefund: {
-    //       claimingAddress,
-    //       volume: userTotalRewards?.volumeEth ?? 0,
-    //       sells: userTotalRewards?.userSells ?? 0,
-    //       buys: userTotalRewards?.userBuys ?? 0,
-    //       rewardsWei: userCurationTotals.totalProtocolFeesAccruedWei,
-    //       rewardsEth: userCurationTotals.totalProtocolFeesAccruedEth
-    //       claimedWei: '0',
-    //       claimedEth: 0,
-    //       claimableWei: '0',
-    //       claimableEth: 0
-    //     };
-
-    //     curation: {
-    //       claimingAddress: string;
-    //       rewardsWei: string;
-    //       totalRewardsEth: number;
-    //       claimableWei: string;
-    //       claimableEth: number;
-    //       claimedWei: string;
-    //       claimedEth: number;
-    //     };
-
-    //   }
   }
 
   async getActivePhase(chainId: ChainId): Promise<TokenomicsPhaseDto> {
