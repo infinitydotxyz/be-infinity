@@ -6,7 +6,7 @@ describe('MerkleTreeService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [MerkleTreeService],
+      providers: [MerkleTreeService]
     }).compile();
 
     service = module.get<MerkleTreeService>(MerkleTreeService);
