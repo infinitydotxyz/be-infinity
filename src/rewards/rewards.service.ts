@@ -49,18 +49,81 @@ export class RewardsService {
     const totalUserReward = (userTotalRewards?.rewards ?? 0) + v1Airdrop;
 
     const userCurationTotals = await this.curationService.getUserRewards(parsedUser);
+    const claimingAddress = '0xbada55c9c42e573047c76eb65e29d853f7b77b9c'.toLowerCase();
 
-    return {
+    const rewards: UserRewardsDto = {
       chainId,
       totals: {
-        userVolume: userTotalRewards?.volumeEth ?? 0,
-        userRewards: totalUserReward,
-        userSells: userTotalRewards?.userSells ?? 0,
-        userBuys: userTotalRewards?.userBuys ?? 0,
-        userCurationRewardsWei: userCurationTotals.totalProtocolFeesAccruedWei,
-        userCurationRewardsEth: userCurationTotals.totalProtocolFeesAccruedEth
+        tradingRefund: {
+          volume: userTotalRewards?.volumeEth ?? 0,
+          rewards: totalUserReward,
+          sells: userTotalRewards?.userSells ?? 0,
+          buys: userTotalRewards?.userBuys ?? 0,
+          claim: {
+            contractAddress: '',
+            claimedWei: '0',
+            claimedEth: 0,
+            claimableWei: '0',
+            claimableEth: 0,
+            account: parsedUser.userAddress,
+            cumulativeAmount: '0',
+            merkleRoot: '',
+            merkleProof: []
+          }
+        },
+        curation: {
+          totalRewardsWei: userCurationTotals.totalProtocolFeesAccruedWei,
+          totalRewardsEth: userCurationTotals.totalProtocolFeesAccruedEth,
+          claim: {
+            contractAddress: '',
+            claimedWei: '0',
+            claimedEth: 0,
+            claimableWei: '0',
+            claimableEth: 0,
+            account: parsedUser.userAddress,
+            cumulativeAmount: '0',
+            merkleRoot: '',
+            merkleProof: []
+          }
+        }
       }
     };
+
+    return rewards;
+
+    // return {
+    //   chainId,
+    //   totals: {
+    //     userVolume: userTotalRewards?.volumeEth ?? 0,
+    //     userRewards: totalUserReward,
+    //     userSells: userTotalRewards?.userSells ?? 0,
+    //     userBuys: userTotalRewards?.userBuys ?? 0,
+    //     userCurationRewardsWei: userCurationTotals.totalProtocolFeesAccruedWei,
+    //     userCurationRewardsEth: userCurationTotals.totalProtocolFeesAccruedEth
+    //     tradingRefund: {
+    //       claimingAddress,
+    //       volume: userTotalRewards?.volumeEth ?? 0,
+    //       sells: userTotalRewards?.userSells ?? 0,
+    //       buys: userTotalRewards?.userBuys ?? 0,
+    //       rewardsWei: userCurationTotals.totalProtocolFeesAccruedWei,
+    //       rewardsEth: userCurationTotals.totalProtocolFeesAccruedEth
+    //       claimedWei: '0',
+    //       claimedEth: 0,
+    //       claimableWei: '0',
+    //       claimableEth: 0
+    //     };
+
+    //     curation: {
+    //       claimingAddress: string;
+    //       rewardsWei: string;
+    //       totalRewardsEth: number;
+    //       claimableWei: string;
+    //       claimableEth: number;
+    //       claimedWei: string;
+    //       claimedEth: number;
+    //     };
+
+    //   }
   }
 
   async getActivePhase(chainId: ChainId): Promise<TokenomicsPhaseDto> {
