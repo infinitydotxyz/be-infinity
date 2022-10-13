@@ -255,6 +255,27 @@ export class RafflesService {
     return progress;
   }
 
+  protected _getRaffleExpectedPot(raffle: StakingContractRaffle, rewardsConfig: TokenomicsConfigDto) {
+    const activePhases = raffle.activePhaseIds;
+    const isGrandPrize = activePhases.length > 1;
+    const phases = rewardsConfig.phases.filter((item) => activePhases.includes(item.id));
+    if (phases.length === 0) {
+      return 0;
+    }
+
+    const totalFees = phases.reduce((acc, phase) => {
+      const phaseTotalFees =
+        ((phase.tradingFeeRefund?.rewardSupply ?? 0) * (phase.tradingFeeRefund?.rewardRateDenominator ?? 0)) /
+        (phase.tradingFeeRefund?.rewardRateNumerator ?? 1);
+      const rafflePercentage =
+        (isGrandPrize ? phase.raffleConfig?.grandPrize?.percentage : phase.raffleConfig?.phasePrize?.percentage) ?? 0;
+      const raffleFees = phaseTotalFees * (phase.split.RAFFLE.percentage / 100) * ((rafflePercentage ?? 0) / 100);
+      return acc + raffleFees;
+    }, 0);
+
+    return totalFees;
+  }
+
   protected async _getRaffleTicketTotals(
     raffleRef: FirebaseFirestore.DocumentReference<StakingContractRaffle>
   ): Promise<RaffleTicketTotalsDoc | null> {
@@ -313,7 +334,8 @@ export class RafflesService {
         numUniqueEntrants: ticketTotals?.numUniqueEntrants ?? 0,
         totalNumTickets: parseInt((ticketTotals?.totalNumTickets ?? BigInt(0)).toString(), 10),
         prizePoolWei: rewardsTotals?.prizePoolWei ?? '0',
-        prizePoolEth: rewardsTotals?.prizePoolEth ?? 0
+        prizePoolEth: rewardsTotals?.prizePoolEth ?? 0,
+        expectedPrizePoolUSDC: this._getRaffleExpectedPot(userRaffle, tokenomicsConfig)
       }
     };
 
