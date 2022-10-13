@@ -9,6 +9,7 @@ import {
   CollectionFavoriteDto,
   FavoriteCollectionPhaseDto,
   FavoriteCollectionsQueryDto,
+  TokenomicsPhaseDto,
   UserFavoriteDto
 } from '@infinityxyz/lib/types/dto';
 import { CursorService } from 'pagination/cursor.service';
@@ -177,7 +178,8 @@ export class FavoritesService {
           isActive: phase.isActive,
           name: phase.name,
           progress: phase.progress,
-          collectionPotFeesGenerated: phase.collectionPotFeesGenerated
+          collectionPotFeesGenerated: phase.collectionPotFeesGenerated,
+          expectedPrizePoolUSDC: this._getExpectedPot(phase)
         };
         return mapped;
       })
@@ -190,5 +192,14 @@ export class FavoritesService {
         return includePhase;
       })
       .sort((x) => (x.isActive ? -1 : 0));
+  }
+
+  protected _getExpectedPot(phase: TokenomicsPhaseDto) {
+    const phaseTotalFees =
+      ((phase.tradingFeeRefund?.rewardSupply ?? 0) * (phase.tradingFeeRefund?.rewardRateDenominator ?? 0)) /
+      (phase.tradingFeeRefund?.rewardRateNumerator ?? 1);
+    const favoritesPercentage = phase.split.COLLECTION_POT.percentage ?? 0;
+    const expectedPot = phaseTotalFees * (favoritesPercentage / 100);
+    return expectedPot;
   }
 }
