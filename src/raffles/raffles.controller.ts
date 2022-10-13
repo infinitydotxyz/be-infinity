@@ -8,6 +8,7 @@ import { Controller, Get, NotFoundException, Param, Query } from '@nestjs/common
 import { ApiInternalServerErrorResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { ParamUserId } from 'auth/param-user-id.decorator';
 import { ResponseDescription } from 'common/response-description';
+import { EthereumService } from 'ethereum/ethereum.service';
 import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 import { RafflesService } from './raffles.service';
@@ -15,22 +16,28 @@ import { RafflesQueryDto } from './types';
 
 @Controller('raffles')
 export class RafflesController {
-  constructor(protected rafflesService: RafflesService) {}
+  constructor(protected rafflesService: RafflesService, protected ethereumService: EthereumService) {}
 
   @Get()
   @ApiOperation({ summary: 'Get raffles' })
   @ApiOkResponse({ description: ResponseDescription.Success, type: UserRafflesArrayDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  async getRaffles(@Query() query: RafflesQueryDto) {
-    const raffles = await this.rafflesService.getRaffles(query);
+  async getRaffles(@Query() query: RafflesQueryDto): Promise<UserRafflesArrayDto> {
+    const [raffles, ethPrice] = await Promise.all([
+      this.rafflesService.getRaffles(query),
+      this.ethereumService.getEthPrice()
+    ]);
 
     if (!raffles) {
       throw new NotFoundException(`No raffles found for chainId: ${query.chainId}`);
     }
 
     return {
-      data: raffles,
+      data: {
+        raffles,
+        ethPrice: ethPrice
+      },
       hasNextPage: false,
       cursor: ''
     };
