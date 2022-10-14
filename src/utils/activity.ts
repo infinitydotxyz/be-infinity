@@ -15,6 +15,9 @@ import { NftActivity } from '@infinityxyz/lib/types/dto/collections/nfts';
 
 export const typeToActivity = (item: any, id: string): NftActivity | null => {
   let activity: NftActivity | null = null;
+  
+  // this is reqd because some old data in firebase has wrong internal url for asset activity type
+  const assetInternalUrlBase = 'https://infinity.xyz/asset';
 
   switch (item.type) {
     case EventType.NftSale: {
@@ -35,7 +38,7 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
         toDisplayName: sale.buyerDisplayName,
         price: sale.price,
         paymentToken: sale.paymentToken,
-        internalUrl: sale.internalUrl,
+        internalUrl: `${assetInternalUrlBase}/${sale.chainId}/${sale.collectionAddress}/${sale.tokenId}`,
         externalUrl: sale.externalUrl,
         timestamp: sale.timestamp,
         likes: sale.likes,
@@ -61,7 +64,7 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
         toDisplayName: listing.takerUsername,
         price: listing.startPriceEth,
         paymentToken: listing.paymentToken,
-        internalUrl: listing.internalUrl,
+        internalUrl: `${assetInternalUrlBase}/${listing.chainId}/${listing.collectionAddress}/${listing.tokenId}`,
         externalUrl: '',
         timestamp: listing.timestamp,
         likes: listing.likes,
@@ -88,7 +91,7 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
         toDisplayName: offer.takerUsername,
         price: offer.startPriceEth,
         paymentToken: offer.paymentToken,
-        internalUrl: offer.internalUrl,
+        internalUrl: `${assetInternalUrlBase}/${offer.chainId}/${offer.collectionAddress}/${offer.tokenId}`,
         externalUrl: '',
         timestamp: offer.timestamp,
         likes: offer.likes,
@@ -115,7 +118,7 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
         toDisplayName: transfer.toDisplayName,
         price: 0,
         paymentToken: '',
-        internalUrl: transfer.internalUrl,
+        internalUrl: `${assetInternalUrlBase}/${transfer.chainId}/${transfer.collectionAddress}/${transfer.tokenId}`,
         externalUrl: transfer.externalUrl,
         timestamp: transfer.timestamp,
         likes: transfer.likes,
