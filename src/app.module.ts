@@ -31,6 +31,7 @@ import { RewardsModule } from './rewards/rewards.module';
 import { RafflesModule } from './raffles/raffles.module';
 import { FavoritesModule } from 'favorites/favorites.module';
 import { MerkleTreeModule } from './merkle-tree/merkle-tree.module';
+import { SearchModule } from './search/search.module';
 
 @Module({
   imports: [
@@ -68,7 +69,8 @@ import { MerkleTreeModule } from './merkle-tree/merkle-tree.module';
     RewardsModule,
     RafflesModule,
     FavoritesModule,
-    MerkleTreeModule
+    MerkleTreeModule,
+    SearchModule
   ],
   providers: [
     {
