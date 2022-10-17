@@ -18,7 +18,7 @@ export class SearchController {
   @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  @Throttle(10, 1) // 10 reqs per second; overrides global config
+  @Throttle(10, 1)
   async search(@Query() search: SubQueryDto<any, any, any>) {
     const res = await this.searchService.search(search);
     return res;
