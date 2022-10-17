@@ -70,7 +70,7 @@ export class SearchService {
     if ('subType' in query && query.subType) {
       const collection = collections.data?.[0] ?? {};
       let res;
-      switch (query.subTypeQuery) {
+      switch (query.subType) {
         case 'nft':
           res = await this.searchCollectionNfts(query, collection, cursor);
           break;
