@@ -98,6 +98,11 @@ export class RewardsService {
             merkleRoot: curationLeaf.expectedMerkleRoot,
             merkleProof: curationLeaf.proof
           }
+        },
+        referrals: {
+          totalRewardsWei: '0',
+          totalRewardsEth: 0,
+          numReferrals: 0
         }
       }
     };
