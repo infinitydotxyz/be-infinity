@@ -5,7 +5,10 @@ import { paths } from '@reservoir0x/reservoir-kit-client';
 import { SignedOBOrderDto } from '@infinityxyz/lib/types/dto/orders/signed-ob-order.dto';
 import { ChainId } from '@infinityxyz/lib/types/core';
 
-sdk.auth('');
+// TODO - put in env
+const RESERVOIR_API_KEY = 'f0d48941-4084-4480-a50a-deb448752f5f';
+
+sdk.auth(RESERVOIR_API_KEY);
 
 // ==============================================================
 
