@@ -1,11 +1,73 @@
+import { AssetReferralDoc, AssetReferralVariant, ChainId, ReferralTotals } from '@infinityxyz/lib/types/core';
 import { AssetReferralDto } from '@infinityxyz/lib/types/dto';
 import { Injectable } from '@nestjs/common';
+import { FirebaseService } from 'firebase/firebase.service';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 
 @Injectable()
 export class ReferralsService {
-  saveReferral(user: ParsedUserId, referral: AssetReferralDto): Promise<void> {
-    console.log('saveReferral', user.userAddress, referral);
-    throw new Error('Method not implemented.');
+  constructor(protected firebaseService: FirebaseService) {}
+
+  async getReferralRewards(referrer: ParsedUserId, chainId: ChainId): Promise<ReferralTotals> {
+    const totalsRef = referrer.ref
+      .collection('referrals')
+      .doc(chainId) as FirebaseFirestore.DocumentReference<ReferralTotals>;
+
+    const totalsSnap = await totalsRef.get();
+    const totals = totalsSnap.data() ?? {
+      referrer: {
+        address: referrer.userAddress,
+        displayName: '',
+        username: '',
+        profileImage: '',
+        bannerImage: ''
+      },
+      metadata: {
+        chainId,
+        updatedAt: 0
+      },
+      stats: {
+        numReferralSales: 0,
+        totalFeesGenerated: {
+          feesGeneratedWei: '0',
+          feesGeneratedEth: 0,
+          feesGeneratedUSDC: 0
+        }
+      }
+    };
+
+    return totals;
+  }
+
+  async saveReferral(user: ParsedUserId, referral: AssetReferralDto): Promise<void> {
+    const collectionDocId = `${referral.assetChainId}:${referral.assetAddress}`;
+    const assetDocId =
+      typeof referral.assetTokenId === 'string' && referral.assetTokenId
+        ? `${collectionDocId}:${referral.assetTokenId}`
+        : collectionDocId;
+    const assetReferralRef = user.ref
+      .collection('referrals')
+      .doc(referral.assetChainId)
+      .collection('assetReferrals')
+      .doc(assetDocId) as FirebaseFirestore.DocumentReference<AssetReferralDoc>;
+
+    let referralData: AssetReferralDoc = {
+      discriminator: AssetReferralVariant.Collection,
+      referrer: referral.referrer,
+      assetAddress: referral.assetAddress,
+      assetChainId: referral.assetChainId,
+      referredUser: user.userAddress,
+      referredAt: Date.now()
+    };
+
+    if (referral.assetTokenId) {
+      referralData = {
+        ...referralData,
+        assetTokenId: referral.assetTokenId,
+        discriminator: AssetReferralVariant.Nft
+      };
+    }
+
+    await assetReferralRef.set(referralData, { merge: true });
   }
 }

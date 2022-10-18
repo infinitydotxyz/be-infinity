@@ -6,13 +6,15 @@ import { CurationService } from 'collections/curation/curation.service';
 import { FirebaseService } from 'firebase/firebase.service';
 import { MerkleTreeService } from 'merkle-tree/merkle-tree.service';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
+import { ReferralsService } from 'user/referrals/referrals.service';
 
 @Injectable()
 export class RewardsService {
   constructor(
     protected firebaseService: FirebaseService,
     protected curationService: CurationService,
-    protected merkleTreeService: MerkleTreeService
+    protected merkleTreeService: MerkleTreeService,
+    protected referralsService: ReferralsService
   ) {}
 
   async getConfig(chainId: ChainId): Promise<TokenomicsConfigDto | null> {
@@ -48,11 +50,12 @@ export class RewardsService {
         firestoreConstants.USER_ALL_TIME_TXN_FEE_REWARDS_DOC
       ) as FirebaseFirestore.DocumentReference<AllTimeTransactionFeeRewardsDoc>;
 
-    const [tradingFeeConfig, curationConfig, userTotalSnap, userCurationTotals] = await Promise.all([
+    const [tradingFeeConfig, curationConfig, userTotalSnap, userCurationTotals, referralTotals] = await Promise.all([
       this.merkleTreeService.getMerkleRootConfig(chainId, AirdropType.TxFees),
       this.merkleTreeService.getMerkleRootConfig(chainId, AirdropType.Curation),
       userAllTimeRewards.get(),
-      this.curationService.getUserRewards(parsedUser)
+      this.curationService.getUserRewards(parsedUser),
+      this.referralsService.getReferralRewards(parsedUser, chainId)
     ]);
     const [tradingFeeLeaf, curationLeaf] = await Promise.all([
       this.merkleTreeService.getLeaf(tradingFeeConfig, parsedUser.userAddress),
@@ -98,6 +101,11 @@ export class RewardsService {
             merkleRoot: curationLeaf.expectedMerkleRoot,
             merkleProof: curationLeaf.proof
           }
+        },
+        referrals: {
+          totalRewardsWei: referralTotals.stats.totalFeesGenerated.feesGeneratedWei,
+          totalRewardsEth: referralTotals.stats.totalFeesGenerated.feesGeneratedEth,
+          numReferrals: referralTotals.stats.numReferralSales
         }
       }
     };

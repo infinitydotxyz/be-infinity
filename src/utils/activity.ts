@@ -15,7 +15,7 @@ import { NftActivity } from '@infinityxyz/lib/types/dto/collections/nfts';
 
 export const typeToActivity = (item: any, id: string): NftActivity | null => {
   let activity: NftActivity | null = null;
-  
+
   // this is reqd because some old data in firebase has wrong internal url for asset activity type
   const assetInternalUrlBase = 'https://infinity.xyz/asset';
 
