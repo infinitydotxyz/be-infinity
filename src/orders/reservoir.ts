@@ -4,6 +4,7 @@ const sdk = api('@reservoirprotocol/v1.0#4vl21xl9d4zcp0');
 import { paths } from '@reservoir0x/reservoir-kit-client';
 import { SignedOBOrderDto } from '@infinityxyz/lib/types/dto/orders/signed-ob-order.dto';
 import { ChainId } from '@infinityxyz/lib/types/core';
+import { getSearchFriendlyString } from '@infinityxyz/lib/utils/formatters';
 
 // TODO - put in env
 const RESERVOIR_API_KEY = 'f0d48941-4084-4480-a50a-deb448752f5f';
@@ -76,7 +77,7 @@ export const getAsks = async (): Promise<SignedOBOrderDto[]> => {
             startTimeMs: x.validFrom * 1000,
             endTimeMs: x.validUntil * 1000,
             maxGasPriceWei: '0',
-            nonce: 1234567,
+            nonce: 1234567, // TODO - where do we get this?
             makerAddress: x.maker,
             makerUsername: '',
             nfts: [
@@ -85,7 +86,7 @@ export const getAsks = async (): Promise<SignedOBOrderDto[]> => {
                 collectionAddress: collectionAddress,
                 collectionImage: '',
                 collectionName: x.metadata?.data?.collectionName ?? '',
-                collectionSlug: '',
+                collectionSlug: getSearchFriendlyString(x.metadata?.data?.collectionName ?? ''),
                 hasBlueCheck: false,
                 tokens: [
                   {
@@ -117,7 +118,7 @@ export const getAsks = async (): Promise<SignedOBOrderDto[]> => {
               constraints: [],
               execParams: [],
               extraParams: '',
-              sig: ''
+              sig: '' // TODO - where?
             },
             execParams: {
               complicationAddress: '',
