@@ -1,5 +1,6 @@
 import { AssetReferralDoc, AssetReferralVariant, ChainId, ReferralTotals } from '@infinityxyz/lib/types/core';
 import { AssetReferralDto } from '@infinityxyz/lib/types/dto';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { FirebaseService } from 'firebase/firebase.service';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
@@ -10,7 +11,7 @@ export class ReferralsService {
 
   async getReferralRewards(referrer: ParsedUserId, chainId: ChainId): Promise<ReferralTotals> {
     const totalsRef = referrer.ref
-      .collection('referrals')
+      .collection(firestoreConstants.REFERRALS_COLL)
       .doc(chainId) as FirebaseFirestore.DocumentReference<ReferralTotals>;
 
     const totalsSnap = await totalsRef.get();
@@ -46,9 +47,9 @@ export class ReferralsService {
         ? `${collectionDocId}:${referral.assetTokenId}`
         : collectionDocId;
     const assetReferralRef = user.ref
-      .collection('referrals')
+      .collection(firestoreConstants.REFERRALS_COLL)
       .doc(referral.assetChainId)
-      .collection('assetReferrals')
+      .collection(firestoreConstants.ASSET_REFERRALS_COLL)
       .doc(assetDocId) as FirebaseFirestore.DocumentReference<AssetReferralDoc>;
 
     let referralData: AssetReferralDoc = {
