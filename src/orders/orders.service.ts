@@ -49,6 +49,7 @@ import { ParsedUserId } from '../user/parser/parsed-user-id';
 import { UserParserService } from '../user/parser/parser.service';
 import { UserService } from '../user/user.service';
 import { OrderItemTokenMetadata, OrderMetadata } from './order.types';
+import { getAsks, getBids } from './reservoir';
 
 @Injectable()
 export default class OrdersService {
@@ -482,6 +483,23 @@ export default class OrdersService {
     }
 
     return metadata;
+  }
+
+  async getReservoirOrders(limit: number, sellOrders: boolean, buyOrders: boolean): Promise<SignedOBOrderDto[]> {
+    let result: SignedOBOrderDto[] = [];
+
+    if (sellOrders) {
+      result = result.concat(await getAsks(limit));
+    }
+
+    if (buyOrders) {
+      result = result.concat(await getBids(limit));
+    }
+
+    // sort again combining lists
+
+    // console.log(JSON.stringify(result, null, 2));
+    return result;
   }
 
   private async getOrders(

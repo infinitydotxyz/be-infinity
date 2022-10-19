@@ -33,16 +33,18 @@ export const getSales = () => {
 
 // ==============================================================
 
-export const getAsks = async (): Promise<SignedOBOrderDto[]> => {
+export const getAsks = async (limit: number): Promise<SignedOBOrderDto[]> => {
   const result: SignedOBOrderDto[] = [];
 
   try {
     const res = await sdk.getOrdersAsksV3({
-      includePrivate: 'true',
+      includePrivate: 'false',
       includeMetadata: 'true',
       includeRawData: 'false',
       sortBy: 'createdAt',
-      limit: '50',
+      // continuation: undefined, // cursor
+      status: 'active',
+      limit: limit.toString(),
       accept: '*/*'
     });
 
@@ -50,85 +52,7 @@ export const getAsks = async (): Promise<SignedOBOrderDto[]> => {
 
     if (response) {
       for (const x of response.orders ?? []) {
-        if (x.status === 'active') {
-          //   console.log('=====================================================');
-          //   console.log(JSON.stringify(x, null, 2));
-
-          let collectionAddress = '';
-          let tokenId = '';
-
-          if (x.tokenSetId) {
-            // "token:0x1a8046b6f194f9f5a84bf001e133a4df0a298ad8:198",
-            const tokenInfo = x.tokenSetId.split(':');
-
-            if (tokenInfo.length === 3) {
-              collectionAddress = tokenInfo[1];
-              tokenId = tokenInfo[2];
-            }
-          }
-
-          const order: SignedOBOrderDto = {
-            id: x.id ?? '',
-            chainId: '1',
-            isSellOrder: x.side === 'sell',
-            numItems: 1,
-            startPriceEth: x.price?.amount?.native ?? 0,
-            endPriceEth: x.price?.amount?.native ?? 0,
-            startTimeMs: x.validFrom * 1000,
-            endTimeMs: x.validUntil * 1000,
-            maxGasPriceWei: '0',
-            nonce: 1234567, // TODO - where do we get this?
-            makerAddress: x.maker,
-            makerUsername: '',
-            nfts: [
-              {
-                chainId: ChainId.Mainnet,
-                collectionAddress: collectionAddress,
-                collectionImage: '',
-                collectionName: x.metadata?.data?.collectionName ?? '',
-                collectionSlug: getSearchFriendlyString(x.metadata?.data?.collectionName ?? ''),
-                hasBlueCheck: false,
-                tokens: [
-                  {
-                    attributes: [],
-                    numTokens: 1,
-                    takerAddress: '',
-                    takerUsername: '',
-                    tokenId: tokenId,
-                    tokenImage: x.metadata?.data?.image ?? '',
-                    tokenName: x.metadata?.data?.tokenName ?? ''
-                  }
-                ]
-              }
-            ],
-            signedOrder: {
-              isSellOrder: x.side === 'sell',
-              signer: '',
-              nfts: [
-                {
-                  collection: collectionAddress,
-                  tokens: [
-                    {
-                      numTokens: 1,
-                      tokenId: tokenId
-                    }
-                  ]
-                }
-              ],
-              constraints: [],
-              execParams: [],
-              extraParams: '',
-              sig: '' // TODO - where?
-            },
-            execParams: {
-              complicationAddress: '',
-              currencyAddress: ''
-            },
-            extraParams: { buyer: '' }
-          };
-
-          result.push(order);
-        }
+        result.push(dataToOrder(x));
       }
     }
 
@@ -144,27 +68,114 @@ export const getAsks = async (): Promise<SignedOBOrderDto[]> => {
 
 // ==============================================================
 
-export const getBids = () => {
-  sdk
-    .getOrdersBidsV4({
-      includePrivate: 'true',
+export const getBids = async (limit: number): Promise<SignedOBOrderDto[]> => {
+  const result: SignedOBOrderDto[] = [];
+
+  try {
+    const res = await sdk.getOrdersBidsV4({
+      includePrivate: 'false',
       includeMetadata: 'true',
       includeRawData: 'false',
+      status: 'active',
       sortBy: 'createdAt',
-      limit: '50',
+      // continuation: undefined, // cursor
+      limit: limit.toString(),
       accept: '*/*'
-    })
-    .then((res: unknown) => {
+    });
+
+    if (res) {
       const response = res as paths['/orders/bids/v4']['get']['responses']['200']['schema'];
 
       if (response) {
         for (const x of response.orders ?? []) {
-          console.log('=====================================================');
-          console.log(JSON.stringify(x, null, 2));
+          //  console.log(JSON.stringify(x, null, 2));
+          result.push(dataToOrder(x));
         }
       }
+    }
+  } catch (err) {
+    console.error(err);
+  }
 
-      return;
-    })
-    .catch((err: unknown) => console.error(err));
+  return result;
+};
+
+const dataToOrder = (x: any): SignedOBOrderDto => {
+  //   console.log('=====================================================');
+  //   console.log(JSON.stringify(x, null, 2));
+
+  let collectionAddress = '';
+  let tokenId = '';
+
+  if (x.tokenSetId) {
+    // "token:0x1a8046b6f194f9f5a84bf001e133a4df0a298ad8:198",
+    const tokenInfo = x.tokenSetId.split(':');
+
+    if (tokenInfo.length === 3) {
+      collectionAddress = tokenInfo[1];
+      tokenId = tokenInfo[2];
+    }
+  }
+
+  const order: SignedOBOrderDto = {
+    id: x.id ?? '',
+    chainId: '1',
+    isSellOrder: x.side === 'sell',
+    numItems: 1,
+    startPriceEth: x.price?.amount?.native ?? 0,
+    endPriceEth: x.price?.amount?.native ?? 0,
+    startTimeMs: x.validFrom * 1000,
+    endTimeMs: x.validUntil * 1000,
+    maxGasPriceWei: '0',
+    nonce: 1234567, // TODO - where do we get this?
+    makerAddress: x.maker,
+    makerUsername: '',
+    nfts: [
+      {
+        chainId: ChainId.Mainnet,
+        collectionAddress: collectionAddress,
+        collectionImage: '',
+        collectionName: x.metadata?.data?.collectionName ?? '',
+        collectionSlug: getSearchFriendlyString(x.metadata?.data?.collectionName ?? ''),
+        hasBlueCheck: false,
+        tokens: [
+          {
+            attributes: [],
+            numTokens: 1,
+            takerAddress: '',
+            takerUsername: '',
+            tokenId: tokenId,
+            tokenImage: x.metadata?.data?.image ?? '',
+            tokenName: x.metadata?.data?.tokenName ?? ''
+          }
+        ]
+      }
+    ],
+    signedOrder: {
+      isSellOrder: x.side === 'sell',
+      signer: '',
+      nfts: [
+        {
+          collection: collectionAddress,
+          tokens: [
+            {
+              numTokens: 1,
+              tokenId: tokenId
+            }
+          ]
+        }
+      ],
+      constraints: [],
+      execParams: [],
+      extraParams: '',
+      sig: '' // TODO - where?
+    },
+    execParams: {
+      complicationAddress: '',
+      currencyAddress: ''
+    },
+    extraParams: { buyer: '' }
+  };
+
+  return order;
 };
