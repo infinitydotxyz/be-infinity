@@ -100,7 +100,7 @@ export class MerkleTreeService {
       updatedAt: merkleRootDoc.updatedAt,
       cumulativeClaimed: '0',
       claimable: '0',
-      sourcesAmounts: this.getDefaultSourceAmountsByType(merkleRootDoc.config.type)
+      sourceAmounts: this.getDefaultSourceAmountsByType<T>(merkleRootDoc.config.type as T)
     };
 
     if (!merkleRootDoc) {
@@ -151,7 +151,7 @@ export class MerkleTreeService {
     };
   }
 
-  protected getDefaultSourceAmountsByType(type: DistributionType) {
-    return Object.values(distributionSourcesByType[type]).reduce((acc, item) => ({ ...acc, [item]: '0' }), {});
+  protected getDefaultSourceAmountsByType<T extends DistributionType>(type: T) {
+    return Object.values(distributionSourcesByType[type] ?? {}).reduce((acc, item) => ({ ...acc, [item]: '0' }), {});
   }
 }
