@@ -1,4 +1,4 @@
-import { AirdropType, AllTimeTransactionFeeRewardsDoc, ChainId } from '@infinityxyz/lib/types/core';
+import { DistributionType, AllTimeTransactionFeeRewardsDoc, ChainId } from '@infinityxyz/lib/types/core';
 import { TokenomicsConfigDto, TokenomicsPhaseDto, UserRewardsDto } from '@infinityxyz/lib/types/dto/rewards';
 import { firestoreConstants, formatEth } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
@@ -48,15 +48,15 @@ export class RewardsService {
         firestoreConstants.USER_ALL_TIME_TXN_FEE_REWARDS_DOC
       ) as FirebaseFirestore.DocumentReference<AllTimeTransactionFeeRewardsDoc>;
 
-    const [tradingFeeConfig, curationConfig, userTotalSnap, userCurationTotals] = await Promise.all([
-      this.merkleTreeService.getMerkleRootConfig(chainId, AirdropType.TxFees),
-      this.merkleTreeService.getMerkleRootConfig(chainId, AirdropType.Curation),
+    const [INFTConfig, ethConfig, userTotalSnap, userCurationTotals] = await Promise.all([
+      this.merkleTreeService.getMerkleRootConfig(chainId, DistributionType.INFT),
+      this.merkleTreeService.getMerkleRootConfig(chainId, DistributionType.ETH),
       userAllTimeRewards.get(),
       this.curationService.getUserRewards(parsedUser)
     ]);
     const [tradingFeeLeaf, curationLeaf] = await Promise.all([
-      this.merkleTreeService.getLeaf(tradingFeeConfig, parsedUser.userAddress),
-      this.merkleTreeService.getLeaf(curationConfig, parsedUser.userAddress)
+      this.merkleTreeService.getLeaf(INFTConfig, parsedUser.userAddress),
+      this.merkleTreeService.getLeaf(ethConfig, parsedUser.userAddress)
     ]);
 
     const userTotalRewards = userTotalSnap.data() ?? null;
@@ -73,7 +73,7 @@ export class RewardsService {
           sells: userTotalRewards?.userSells ?? 0,
           buys: userTotalRewards?.userBuys ?? 0,
           claim: {
-            contractAddress: tradingFeeConfig.config.airdropContractAddress,
+            contractAddress: INFTConfig.config.airdropContractAddress,
             claimedWei: tradingFeeLeaf.cumulativeClaimed,
             claimedEth: formatEth(tradingFeeLeaf.cumulativeClaimed),
             claimableWei: tradingFeeLeaf.claimable,
@@ -88,7 +88,7 @@ export class RewardsService {
           totalRewardsWei: userCurationTotals.totalProtocolFeesAccruedWei,
           totalRewardsEth: userCurationTotals.totalProtocolFeesAccruedEth,
           claim: {
-            contractAddress: curationConfig.config.airdropContractAddress,
+            contractAddress: ethConfig.config.airdropContractAddress,
             claimedWei: curationLeaf.cumulativeClaimed,
             claimedEth: formatEth(curationLeaf.cumulativeClaimed),
             claimableWei: curationLeaf.claimable,
