@@ -110,6 +110,19 @@ export class OrdersController {
       sellOrders = false;
     }
 
+    // let sortByPrice = false;
+    // switch (reqQuery.orderBy) {
+    //   case 'startPriceEth':
+    //     sortByPrice = true;
+    //     break;
+    //   case 'startTimeMs':
+    //     break;
+    // }
+
+    // orderBy: 'startPriceEth',
+    // orderByDirection: 'desc'
+    // orderByDirection: 'asc'
+
     console.log(reqQuery);
 
     const results = await this.ordersService.getReservoirOrders(limit, sellOrders, buyOrders);

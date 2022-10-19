@@ -44,9 +44,12 @@ export const getAsks = async (limit: number): Promise<ReservoirResponse> => {
 
   try {
     const res = await sdk.getOrdersAsksV3({
+      // token: 'tokenId',
       includePrivate: 'false',
       includeMetadata: 'true',
       includeRawData: 'false',
+      // Sorting by price allowed only when filtering by token
+      // sortBy: sortByPrice ? 'price' : 'createdAt',
       sortBy: 'createdAt',
       // continuation: undefined, // cursor
       status: 'active',
@@ -80,10 +83,13 @@ export const getBids = async (limit: number): Promise<ReservoirResponse> => {
 
   try {
     const res = await sdk.getOrdersBidsV4({
+      // token: 'tokenId',
       includePrivate: 'false',
       includeMetadata: 'true',
       includeRawData: 'false',
       status: 'active',
+      // Sorting by price allowed only when filtering by token
+      // sortBy: sortByPrice ? 'price' : 'createdAt',
       sortBy: 'createdAt',
       // continuation: undefined, // cursor
       limit: limit.toString(),
@@ -100,6 +106,60 @@ export const getBids = async (limit: number): Promise<ReservoirResponse> => {
         }
 
         cursor = response.continuation ?? '';
+      }
+    }
+  } catch (err) {
+    console.error(err);
+  }
+
+  return { orders: result, cursor: cursor };
+};
+
+// ==============================================================
+
+export const getActivity = async (limit: number): Promise<ReservoirResponse> => {
+  const result: SignedOBOrderDto[] = [];
+  let cursor = '';
+
+  try {
+    const res = await sdk.getActivityV2({
+      limit: limit.toString(),
+      accept: '*/*'
+    });
+
+    if (res) {
+      const response = res as paths['/activity/v2']['get']['responses']['200']['schema'];
+
+      if (response) {
+        for (const x of response.activities ?? []) {
+          console.log(JSON.stringify(x, null, 2));
+
+          // {
+          //   "id": 1,
+          //   "type": "ask",
+          //   "contract": "0xd75b811814fff5f110dcc37f25285d90d3e7f63b",
+          //   "collectionId": "0xd75b811814fff5f110dcc37f25285d90d3e7f63b",
+          //   "tokenId": "3840",
+          //   "fromAddress": "0x39adae38cea67916bb5ae2eeb91df0e5b3a6ffa4",
+          //   "toAddress": null,
+          //   "price": 0.03,
+          //   "amount": 1,
+          //   "timestamp": 1654105352,
+          //   "order": {
+          //     "id": "0xb804d16ba4b5e76e25ae8e66bf24adb2a8aa256a6f462175745a48adbf98927b",
+          //     "side": "ask",
+          //     "source": {
+          //       "domain": "opensea.io",
+          //       "name": "OpenSea",
+          //       "icon": "https://raw.githubusercontent.com/reservoirprotocol/indexer/v5/src/models/sources/opensea-logo.svg"
+          //     }
+          //   }
+          // }
+
+          result.push(dataToOrder(x));
+        }
+
+        cursor = response.continuation?.toString() ?? '';
       }
     }
   } catch (err) {
