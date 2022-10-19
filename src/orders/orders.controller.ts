@@ -99,7 +99,6 @@ export class OrdersController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   public async getReservoirOrders(@Query() reqQuery: OrderItemsQueryDto): Promise<SignedOBOrderArrayDto> {
-    console.log(reqQuery);
     const limit = reqQuery.limit;
     let sellOrders = true;
     let buyOrders = true;
@@ -123,14 +122,12 @@ export class OrdersController {
     // orderByDirection: 'desc'
     // orderByDirection: 'asc'
 
-    console.log(reqQuery);
-
-    const results = await this.ordersService.getReservoirOrders(limit, sellOrders, buyOrders);
+    const results = await this.ordersService.getReservoirOrders(limit, sellOrders, buyOrders, reqQuery.cursor ?? '');
 
     return {
-      data: results,
-      cursor: '',
-      hasNextPage: false
+      data: results.orders,
+      cursor: results.cursor,
+      hasNextPage: results.orders.length > 0
     };
   }
 

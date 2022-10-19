@@ -49,7 +49,7 @@ import { ParsedUserId } from '../user/parser/parsed-user-id';
 import { UserParserService } from '../user/parser/parser.service';
 import { UserService } from '../user/user.service';
 import { OrderItemTokenMetadata, OrderMetadata } from './order.types';
-import { getAsks, getBids } from './reservoir';
+import { getAsks, getBids, ReservoirResponse } from './reservoir';
 
 @Injectable()
 export default class OrdersService {
@@ -485,25 +485,51 @@ export default class OrdersService {
     return metadata;
   }
 
-  async getReservoirOrders(limit: number, sellOrders: boolean, buyOrders: boolean): Promise<SignedOBOrderDto[]> {
+  async getReservoirOrders(
+    limit: number,
+    sellOrders: boolean,
+    buyOrders: boolean,
+    cursor: string
+  ): Promise<ReservoirResponse> {
     let result: SignedOBOrderDto[] = [];
+    let buyResponse;
+    let sellResponse;
+
+    let sellCursor;
+    let buyCursor;
+    if (cursor) {
+      const cursorObj = JSON.parse(cursor);
+
+      if (cursorObj.buyCursor) {
+        buyCursor = cursorObj.buyCursor;
+      }
+      if (cursorObj.sellCursor) {
+        sellCursor = cursorObj.sellCursor;
+      }
+    }
 
     if (sellOrders) {
-      const response = await getAsks(limit);
+      sellResponse = await getAsks(limit, sellCursor);
 
-      result = result.concat(response.orders);
+      result = result.concat(sellResponse.orders);
     }
 
     if (buyOrders) {
-      const response = await getBids(limit);
+      buyResponse = await getBids(limit, buyCursor);
 
-      result = result.concat(response.orders);
+      result = result.concat(buyResponse.orders);
     }
 
+    // get the cursor
+    const cursorObj = { buyCursor: buyResponse?.cursor ?? '', sellCursor: sellResponse?.cursor ?? '' };
+
     // sort again combining lists
+    result.sort((a, b) => {
+      return a.endTimeMs - b.endTimeMs;
+    });
 
     // console.log(JSON.stringify(result, null, 2));
-    return result;
+    return { orders: result, cursor: JSON.stringify(cursorObj) };
   }
 
   private async getOrders(

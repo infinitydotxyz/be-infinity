@@ -38,9 +38,9 @@ export const getSales = () => {
 
 // ==============================================================
 
-export const getAsks = async (limit: number): Promise<ReservoirResponse> => {
+export const getAsks = async (limit: number, cursor: string): Promise<ReservoirResponse> => {
   const result: SignedOBOrderDto[] = [];
-  let cursor = '';
+  let outCursor = '';
 
   try {
     const res = await sdk.getOrdersAsksV3({
@@ -51,7 +51,7 @@ export const getAsks = async (limit: number): Promise<ReservoirResponse> => {
       // Sorting by price allowed only when filtering by token
       // sortBy: sortByPrice ? 'price' : 'createdAt',
       sortBy: 'createdAt',
-      // continuation: undefined, // cursor
+      continuation: cursor ? cursor : undefined,
       status: 'active',
       limit: limit.toString(),
       accept: '*/*'
@@ -64,7 +64,7 @@ export const getAsks = async (limit: number): Promise<ReservoirResponse> => {
         result.push(dataToOrder(x));
       }
 
-      cursor = response.continuation ?? '';
+      outCursor = response.continuation ?? '';
     }
 
     // console.log(result);
@@ -72,14 +72,14 @@ export const getAsks = async (limit: number): Promise<ReservoirResponse> => {
     console.log(err);
   }
 
-  return { orders: result, cursor: cursor };
+  return { orders: result, cursor: outCursor };
 };
 
 // ==============================================================
 
-export const getBids = async (limit: number): Promise<ReservoirResponse> => {
+export const getBids = async (limit: number, cursor: string): Promise<ReservoirResponse> => {
   const result: SignedOBOrderDto[] = [];
-  let cursor = '';
+  let outCursor = '';
 
   try {
     const res = await sdk.getOrdersBidsV4({
@@ -91,7 +91,7 @@ export const getBids = async (limit: number): Promise<ReservoirResponse> => {
       // Sorting by price allowed only when filtering by token
       // sortBy: sortByPrice ? 'price' : 'createdAt',
       sortBy: 'createdAt',
-      // continuation: undefined, // cursor
+      continuation: cursor ? cursor : undefined,
       limit: limit.toString(),
       accept: '*/*'
     });
@@ -105,14 +105,14 @@ export const getBids = async (limit: number): Promise<ReservoirResponse> => {
           result.push(dataToOrder(x));
         }
 
-        cursor = response.continuation ?? '';
+        outCursor = response.continuation ?? '';
       }
     }
   } catch (err) {
     console.error(err);
   }
 
-  return { orders: result, cursor: cursor };
+  return { orders: result, cursor: outCursor };
 };
 
 // ==============================================================
