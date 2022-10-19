@@ -62,16 +62,14 @@ export class MerkleTreeService {
         stakingContractAddress: '',
         tokenContractAddress: '',
         airdropContractAddress: address,
-        maxTimestamp: 0,
-        sources: this.getDefaultSourceAmountsByType(DistributionType.ETH)
+        maxTimestamp: 0
       };
       const defaultINFTConfig: INFTDistribution = {
         type: DistributionType.INFT,
         chainId,
         tokenContractAddress: '',
         airdropContractAddress: address,
-        phaseIds: [],
-        sources: this.getDefaultSourceAmountsByType(type)
+        phaseIds: []
       };
 
       return {
