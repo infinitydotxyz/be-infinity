@@ -11,6 +11,11 @@ const RESERVOIR_API_KEY = 'f0d48941-4084-4480-a50a-deb448752f5f';
 
 sdk.auth(RESERVOIR_API_KEY);
 
+export interface ReservoirResponse {
+  cursor: string;
+  orders: SignedOBOrderDto[];
+}
+
 // ==============================================================
 
 export const getSales = () => {
@@ -33,8 +38,9 @@ export const getSales = () => {
 
 // ==============================================================
 
-export const getAsks = async (limit: number): Promise<SignedOBOrderDto[]> => {
+export const getAsks = async (limit: number): Promise<ReservoirResponse> => {
   const result: SignedOBOrderDto[] = [];
+  let cursor = '';
 
   try {
     const res = await sdk.getOrdersAsksV3({
@@ -54,22 +60,23 @@ export const getAsks = async (limit: number): Promise<SignedOBOrderDto[]> => {
       for (const x of response.orders ?? []) {
         result.push(dataToOrder(x));
       }
+
+      cursor = response.continuation ?? '';
     }
 
     // console.log(result);
-
-    return result;
   } catch (err) {
     console.log(err);
   }
 
-  return [];
+  return { orders: result, cursor: cursor };
 };
 
 // ==============================================================
 
-export const getBids = async (limit: number): Promise<SignedOBOrderDto[]> => {
+export const getBids = async (limit: number): Promise<ReservoirResponse> => {
   const result: SignedOBOrderDto[] = [];
+  let cursor = '';
 
   try {
     const res = await sdk.getOrdersBidsV4({
@@ -91,14 +98,18 @@ export const getBids = async (limit: number): Promise<SignedOBOrderDto[]> => {
           //  console.log(JSON.stringify(x, null, 2));
           result.push(dataToOrder(x));
         }
+
+        cursor = response.continuation ?? '';
       }
     }
   } catch (err) {
     console.error(err);
   }
 
-  return result;
+  return { orders: result, cursor: cursor };
 };
+
+// ==============================================================
 
 const dataToOrder = (x: any): SignedOBOrderDto => {
   //   console.log('=====================================================');

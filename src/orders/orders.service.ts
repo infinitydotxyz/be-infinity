@@ -489,11 +489,15 @@ export default class OrdersService {
     let result: SignedOBOrderDto[] = [];
 
     if (sellOrders) {
-      result = result.concat(await getAsks(limit));
+      const response = await getAsks(limit);
+
+      result = result.concat(response.orders);
     }
 
     if (buyOrders) {
-      result = result.concat(await getBids(limit));
+      const response = await getBids(limit);
+
+      result = result.concat(response.orders);
     }
 
     // sort again combining lists
