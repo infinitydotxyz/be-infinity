@@ -54,7 +54,7 @@ export class RewardsService {
       userAllTimeRewards.get(),
       this.curationService.getUserRewards(parsedUser)
     ]);
-    const [tradingFeeLeaf, curationLeaf] = await Promise.all([
+    const [inftLeaf, ethLeaf] = await Promise.all([
       this.merkleTreeService.getLeaf(INFTConfig, parsedUser.userAddress),
       this.merkleTreeService.getLeaf(ethConfig, parsedUser.userAddress)
     ]);
@@ -74,14 +74,14 @@ export class RewardsService {
           buys: userTotalRewards?.userBuys ?? 0,
           claim: {
             contractAddress: INFTConfig.config.airdropContractAddress,
-            claimedWei: tradingFeeLeaf.cumulativeClaimed,
-            claimedEth: formatEth(tradingFeeLeaf.cumulativeClaimed),
-            claimableWei: tradingFeeLeaf.claimable,
-            claimableEth: formatEth(tradingFeeLeaf.claimable),
+            claimedWei: inftLeaf.cumulativeClaimed,
+            claimedEth: formatEth(inftLeaf.cumulativeClaimed),
+            claimableWei: inftLeaf.claimable,
+            claimableEth: formatEth(inftLeaf.claimable),
             account: parsedUser.userAddress,
-            cumulativeAmount: tradingFeeLeaf.cumulativeAmount,
-            merkleRoot: tradingFeeLeaf.expectedMerkleRoot,
-            merkleProof: tradingFeeLeaf.proof
+            cumulativeAmount: inftLeaf.cumulativeAmount,
+            merkleRoot: inftLeaf.expectedMerkleRoot,
+            merkleProof: inftLeaf.proof
           }
         },
         curation: {
@@ -89,14 +89,14 @@ export class RewardsService {
           totalRewardsEth: userCurationTotals.totalProtocolFeesAccruedEth,
           claim: {
             contractAddress: ethConfig.config.airdropContractAddress,
-            claimedWei: curationLeaf.cumulativeClaimed,
-            claimedEth: formatEth(curationLeaf.cumulativeClaimed),
-            claimableWei: curationLeaf.claimable,
-            claimableEth: formatEth(curationLeaf.claimable),
+            claimedWei: ethLeaf.cumulativeClaimed,
+            claimedEth: formatEth(ethLeaf.cumulativeClaimed),
+            claimableWei: ethLeaf.claimable,
+            claimableEth: formatEth(ethLeaf.claimable),
             account: parsedUser.userAddress,
-            cumulativeAmount: curationLeaf.cumulativeAmount,
-            merkleRoot: curationLeaf.expectedMerkleRoot,
-            merkleProof: curationLeaf.proof
+            cumulativeAmount: ethLeaf.cumulativeAmount,
+            merkleRoot: ethLeaf.expectedMerkleRoot,
+            merkleProof: ethLeaf.proof
           }
         },
         referrals: {
