@@ -19,7 +19,8 @@ import {
   RaffleLeaderboardQueryDto,
   TokenomicsConfigDto,
   RaffleLeaderboardUser,
-  UserRaffleDto
+  UserRaffleDto,
+  TokenomicsPhaseDto
 } from '@infinityxyz/lib/types/dto';
 import { UserService } from 'user/user.service';
 import { RaffleQueryState, RafflesQueryDto } from './types';
@@ -250,8 +251,20 @@ export class RafflesService {
     if (phases.length === 0) {
       return 0;
     }
-    const phaseContribution = 1 / phases.length;
-    const progress = phases.reduce((acc, item) => acc + item.progress * phaseContribution, 0);
+    const getPhaseTotalFees = (item: TokenomicsPhaseDto) => {
+      const phaseTotalFees =
+        ((item.tradingFeeRefund?.rewardSupply ?? 0) * (item.tradingFeeRefund?.rewardRateDenominator ?? 0)) /
+        (item.tradingFeeRefund?.rewardRateNumerator ?? 1);
+      return phaseTotalFees;
+    };
+
+    const totalFees = phases.reduce((acc, item) => {
+      return acc + getPhaseTotalFees(item);
+    }, 0);
+    const progress = phases.reduce((acc, item) => {
+      const phaseContribution = getPhaseTotalFees(item) / totalFees;
+      return acc + item.progress * phaseContribution;
+    }, 0);
     return progress;
   }
 
