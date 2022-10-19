@@ -90,6 +90,47 @@ export class OrdersController {
     return results;
   }
 
+  @Get('reservoir')
+  @ApiOperation({
+    description: 'Get reservoir orders',
+    tags: [ApiTag.Orders]
+  })
+  @ApiOkResponse({ description: ResponseDescription.Success, type: SignedOBOrderArrayDto })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  public async getReservoirOrders(@Query() reqQuery: OrderItemsQueryDto): Promise<SignedOBOrderArrayDto> {
+    const limit = reqQuery.limit;
+    let sellOrders = true;
+    let buyOrders = true;
+
+    if (reqQuery.isSellOrder === true) {
+      buyOrders = false;
+    } else if (reqQuery.isSellOrder === false) {
+      sellOrders = false;
+    }
+
+    // let sortByPrice = false;
+    // switch (reqQuery.orderBy) {
+    //   case 'startPriceEth':
+    //     sortByPrice = true;
+    //     break;
+    //   case 'startTimeMs':
+    //     break;
+    // }
+
+    // orderBy: 'startPriceEth',
+    // orderByDirection: 'desc'
+    // orderByDirection: 'asc'
+
+    const results = await this.ordersService.getReservoirOrders(limit, sellOrders, buyOrders, reqQuery.cursor ?? '');
+
+    return {
+      data: results.orders,
+      cursor: results.cursor,
+      hasNextPage: results.orders.length > 0
+    };
+  }
+
   @Get(':userId/collections')
   @ApiOperation({
     description: 'Get collections from user orders',
