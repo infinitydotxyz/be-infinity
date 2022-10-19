@@ -11,6 +11,11 @@ const RESERVOIR_API_KEY = 'f0d48941-4084-4480-a50a-deb448752f5f';
 
 sdk.auth(RESERVOIR_API_KEY);
 
+export interface ReservoirResponse {
+  cursor: string;
+  orders: SignedOBOrderDto[];
+}
+
 // ==============================================================
 
 export const getSales = () => {
@@ -33,16 +38,22 @@ export const getSales = () => {
 
 // ==============================================================
 
-export const getAsks = async (): Promise<SignedOBOrderDto[]> => {
+export const getAsks = async (limit: number, cursor: string): Promise<ReservoirResponse> => {
   const result: SignedOBOrderDto[] = [];
+  let outCursor = '';
 
   try {
     const res = await sdk.getOrdersAsksV3({
-      includePrivate: 'true',
+      // token: 'tokenId',
+      includePrivate: 'false',
       includeMetadata: 'true',
       includeRawData: 'false',
+      // Sorting by price allowed only when filtering by token
+      // sortBy: sortByPrice ? 'price' : 'createdAt',
       sortBy: 'createdAt',
-      limit: '50',
+      continuation: cursor ? cursor : undefined,
+      status: 'active',
+      limit: limit.toString(),
       accept: '*/*'
     });
 
@@ -50,121 +61,192 @@ export const getAsks = async (): Promise<SignedOBOrderDto[]> => {
 
     if (response) {
       for (const x of response.orders ?? []) {
-        if (x.status === 'active') {
-          //   console.log('=====================================================');
-          //   console.log(JSON.stringify(x, null, 2));
-
-          let collectionAddress = '';
-          let tokenId = '';
-
-          if (x.tokenSetId) {
-            // "token:0x1a8046b6f194f9f5a84bf001e133a4df0a298ad8:198",
-            const tokenInfo = x.tokenSetId.split(':');
-
-            if (tokenInfo.length === 3) {
-              collectionAddress = tokenInfo[1];
-              tokenId = tokenInfo[2];
-            }
-          }
-
-          const order: SignedOBOrderDto = {
-            id: x.id ?? '',
-            chainId: '1',
-            isSellOrder: x.side === 'sell',
-            numItems: 1,
-            startPriceEth: x.price?.amount?.native ?? 0,
-            endPriceEth: x.price?.amount?.native ?? 0,
-            startTimeMs: x.validFrom * 1000,
-            endTimeMs: x.validUntil * 1000,
-            maxGasPriceWei: '0',
-            nonce: 1234567, // TODO - where do we get this?
-            makerAddress: x.maker,
-            makerUsername: '',
-            nfts: [
-              {
-                chainId: ChainId.Mainnet,
-                collectionAddress: collectionAddress,
-                collectionImage: '',
-                collectionName: x.metadata?.data?.collectionName ?? '',
-                collectionSlug: getSearchFriendlyString(x.metadata?.data?.collectionName ?? ''),
-                hasBlueCheck: false,
-                tokens: [
-                  {
-                    attributes: [],
-                    numTokens: 1,
-                    takerAddress: '',
-                    takerUsername: '',
-                    tokenId: tokenId,
-                    tokenImage: x.metadata?.data?.image ?? '',
-                    tokenName: x.metadata?.data?.tokenName ?? ''
-                  }
-                ]
-              }
-            ],
-            signedOrder: {
-              isSellOrder: x.side === 'sell',
-              signer: '',
-              nfts: [
-                {
-                  collection: collectionAddress,
-                  tokens: [
-                    {
-                      numTokens: 1,
-                      tokenId: tokenId
-                    }
-                  ]
-                }
-              ],
-              constraints: [],
-              execParams: [],
-              extraParams: '',
-              sig: '' // TODO - where?
-            },
-            execParams: {
-              complicationAddress: '',
-              currencyAddress: ''
-            },
-            extraParams: { buyer: '' }
-          };
-
-          result.push(order);
-        }
+        result.push(dataToOrder(x));
       }
+
+      outCursor = response.continuation ?? '';
     }
 
     // console.log(result);
-
-    return result;
   } catch (err) {
     console.log(err);
   }
 
-  return [];
+  return { orders: result, cursor: outCursor };
 };
 
 // ==============================================================
 
-export const getBids = () => {
-  sdk
-    .getOrdersBidsV4({
-      includePrivate: 'true',
+export const getBids = async (limit: number, cursor: string): Promise<ReservoirResponse> => {
+  const result: SignedOBOrderDto[] = [];
+  let outCursor = '';
+
+  try {
+    const res = await sdk.getOrdersBidsV4({
+      // token: 'tokenId',
+      includePrivate: 'false',
       includeMetadata: 'true',
       includeRawData: 'false',
+      status: 'active',
+      // Sorting by price allowed only when filtering by token
+      // sortBy: sortByPrice ? 'price' : 'createdAt',
       sortBy: 'createdAt',
-      limit: '50',
+      continuation: cursor ? cursor : undefined,
+      limit: limit.toString(),
       accept: '*/*'
-    })
-    .then((res: unknown) => {
+    });
+
+    if (res) {
       const response = res as paths['/orders/bids/v4']['get']['responses']['200']['schema'];
 
       if (response) {
         for (const x of response.orders ?? []) {
-          console.log('=====================================================');
-          console.log(JSON.stringify(x, null, 2));
+          //  console.log(JSON.stringify(x, null, 2));
+          result.push(dataToOrder(x));
         }
-      }
 
-      return;
-    })
-    .catch((err: unknown) => console.error(err));
+        outCursor = response.continuation ?? '';
+      }
+    }
+  } catch (err) {
+    console.error(err);
+  }
+
+  return { orders: result, cursor: outCursor };
+};
+
+// ==============================================================
+
+export const getActivity = async (limit: number): Promise<ReservoirResponse> => {
+  const result: SignedOBOrderDto[] = [];
+  let cursor = '';
+
+  try {
+    const res = await sdk.getActivityV2({
+      limit: limit.toString(),
+      accept: '*/*'
+    });
+
+    if (res) {
+      const response = res as paths['/activity/v2']['get']['responses']['200']['schema'];
+
+      if (response) {
+        for (const x of response.activities ?? []) {
+          console.log(JSON.stringify(x, null, 2));
+
+          // {
+          //   "id": 1,
+          //   "type": "ask",
+          //   "contract": "0xd75b811814fff5f110dcc37f25285d90d3e7f63b",
+          //   "collectionId": "0xd75b811814fff5f110dcc37f25285d90d3e7f63b",
+          //   "tokenId": "3840",
+          //   "fromAddress": "0x39adae38cea67916bb5ae2eeb91df0e5b3a6ffa4",
+          //   "toAddress": null,
+          //   "price": 0.03,
+          //   "amount": 1,
+          //   "timestamp": 1654105352,
+          //   "order": {
+          //     "id": "0xb804d16ba4b5e76e25ae8e66bf24adb2a8aa256a6f462175745a48adbf98927b",
+          //     "side": "ask",
+          //     "source": {
+          //       "domain": "opensea.io",
+          //       "name": "OpenSea",
+          //       "icon": "https://raw.githubusercontent.com/reservoirprotocol/indexer/v5/src/models/sources/opensea-logo.svg"
+          //     }
+          //   }
+          // }
+
+          result.push(dataToOrder(x));
+        }
+
+        cursor = response.continuation?.toString() ?? '';
+      }
+    }
+  } catch (err) {
+    console.error(err);
+  }
+
+  return { orders: result, cursor: cursor };
+};
+
+// ==============================================================
+
+const dataToOrder = (x: any): SignedOBOrderDto => {
+  //   console.log('=====================================================');
+  //   console.log(JSON.stringify(x, null, 2));
+
+  let collectionAddress = '';
+  let tokenId = '';
+
+  if (x.tokenSetId) {
+    // "token:0x1a8046b6f194f9f5a84bf001e133a4df0a298ad8:198",
+    const tokenInfo = x.tokenSetId.split(':');
+
+    if (tokenInfo.length === 3) {
+      collectionAddress = tokenInfo[1];
+      tokenId = tokenInfo[2];
+    }
+  }
+
+  const order: SignedOBOrderDto = {
+    id: x.id ?? '',
+    chainId: '1',
+    isSellOrder: x.side === 'sell',
+    numItems: 1,
+    startPriceEth: x.price?.amount?.native ?? 0,
+    endPriceEth: x.price?.amount?.native ?? 0,
+    startTimeMs: x.validFrom * 1000,
+    endTimeMs: x.validUntil * 1000,
+    maxGasPriceWei: '0',
+    nonce: 1234567, // TODO - where do we get this?
+    makerAddress: x.maker,
+    makerUsername: '',
+    nfts: [
+      {
+        chainId: ChainId.Mainnet,
+        collectionAddress: collectionAddress,
+        collectionImage: '',
+        collectionName: x.metadata?.data?.collectionName ?? '',
+        collectionSlug: getSearchFriendlyString(x.metadata?.data?.collectionName ?? ''),
+        hasBlueCheck: false,
+        tokens: [
+          {
+            attributes: [],
+            numTokens: 1,
+            takerAddress: '',
+            takerUsername: '',
+            tokenId: tokenId,
+            tokenImage: x.metadata?.data?.image ?? '',
+            tokenName: x.metadata?.data?.tokenName ?? ''
+          }
+        ]
+      }
+    ],
+    signedOrder: {
+      isSellOrder: x.side === 'sell',
+      signer: '',
+      nfts: [
+        {
+          collection: collectionAddress,
+          tokens: [
+            {
+              numTokens: 1,
+              tokenId: tokenId
+            }
+          ]
+        }
+      ],
+      constraints: [],
+      execParams: [],
+      extraParams: '',
+      sig: '' // TODO - where?
+    },
+    execParams: {
+      complicationAddress: '',
+      currencyAddress: ''
+    },
+    extraParams: { buyer: '' }
+  };
+
+  return order;
 };
