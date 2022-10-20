@@ -3,8 +3,8 @@ const sdk = api('@reservoirprotocol/v1.0#4vl21xl9d4zcp0');
 
 import { paths } from '@reservoir0x/reservoir-kit-client';
 import { SignedOBOrderDto } from '@infinityxyz/lib/types/dto/orders/signed-ob-order.dto';
-import { ChainId } from '@infinityxyz/lib/types/core';
-import { getSearchFriendlyString } from '@infinityxyz/lib/utils/formatters';
+import { reservoirTokenToNFT, reservoirAskToOrder, reservoirBidToOrder } from './reservoir-types';
+import { NftDto } from '@infinityxyz/lib/types/dto';
 
 // TODO - put in env
 const RESERVOIR_API_KEY = 'f0d48941-4084-4480-a50a-deb448752f5f';
@@ -14,6 +14,11 @@ sdk.auth(RESERVOIR_API_KEY);
 export interface ReservoirResponse {
   cursor: string;
   orders: SignedOBOrderDto[];
+}
+
+export interface ReservoirTokenResponse {
+  cursor: string;
+  nfts: NftDto[];
 }
 
 // ==============================================================
@@ -53,15 +58,14 @@ export const getAsks = async (limit: number, cursor: string): Promise<ReservoirR
       sortBy: 'createdAt',
       continuation: cursor ? cursor : undefined,
       status: 'active',
-      limit: limit.toString(),
-      accept: '*/*'
+      limit: limit.toString()
     });
 
     const response = res as paths['/orders/asks/v3']['get']['responses']['200']['schema'];
 
     if (response) {
       for (const x of response.orders ?? []) {
-        result.push(dataToOrder(x));
+        result.push(reservoirAskToOrder(x));
       }
 
       outCursor = response.continuation ?? '';
@@ -92,8 +96,7 @@ export const getBids = async (limit: number, cursor: string): Promise<ReservoirR
       // sortBy: sortByPrice ? 'price' : 'createdAt',
       sortBy: 'createdAt',
       continuation: cursor ? cursor : undefined,
-      limit: limit.toString(),
-      accept: '*/*'
+      limit: limit.toString()
     });
 
     if (res) {
@@ -102,7 +105,7 @@ export const getBids = async (limit: number, cursor: string): Promise<ReservoirR
       if (response) {
         for (const x of response.orders ?? []) {
           //  console.log(JSON.stringify(x, null, 2));
-          result.push(dataToOrder(x));
+          result.push(reservoirBidToOrder(x));
         }
 
         outCursor = response.continuation ?? '';
@@ -123,8 +126,7 @@ export const getActivity = async (limit: number): Promise<ReservoirResponse> => 
 
   try {
     const res = await sdk.getActivityV2({
-      limit: limit.toString(),
-      accept: '*/*'
+      limit: limit.toString()
     });
 
     if (res) {
@@ -155,8 +157,6 @@ export const getActivity = async (limit: number): Promise<ReservoirResponse> => 
           //     }
           //   }
           // }
-
-          result.push(dataToOrder(x));
         }
 
         cursor = response.continuation?.toString() ?? '';
@@ -171,82 +171,38 @@ export const getActivity = async (limit: number): Promise<ReservoirResponse> => 
 
 // ==============================================================
 
-const dataToOrder = (x: any): SignedOBOrderDto => {
-  //   console.log('=====================================================');
-  //   console.log(JSON.stringify(x, null, 2));
+export const getTokens = async (limit: number, cursor: string): Promise<ReservoirTokenResponse> => {
+  const result: NftDto[] = [];
+  let outCursor = '';
 
-  let collectionAddress = '';
-  let tokenId = '';
+  try {
+    const res = await sdk.getTokensV5({
+      collection: '0x8d04a8c79ceb0889bdd12acdf3fa9d207ed3ff63',
+      includeAttributes: 'false',
+      includeTopBid: 'false',
+      sortBy: 'floorAskPrice', // 'tokenId' 'rarity'
+      sortDirection: 'asc',
+      continuation: cursor ? cursor : undefined,
+      limit: limit.toString()
+    });
 
-  if (x.tokenSetId) {
-    // "token:0x1a8046b6f194f9f5a84bf001e133a4df0a298ad8:198",
-    const tokenInfo = x.tokenSetId.split(':');
+    if (res) {
+      const response = res as paths['/tokens/v5']['get']['responses']['200']['schema'];
 
-    if (tokenInfo.length === 3) {
-      collectionAddress = tokenInfo[1];
-      tokenId = tokenInfo[2];
+      if (response) {
+        for (const x of response.tokens ?? []) {
+          // console.log(JSON.stringify(x, null, 2));
+          result.push(reservoirTokenToNFT(x));
+        }
+
+        outCursor = response.continuation ?? '';
+      }
     }
+  } catch (err) {
+    console.error(err);
   }
 
-  const order: SignedOBOrderDto = {
-    id: x.id ?? '',
-    chainId: '1',
-    isSellOrder: x.side === 'sell',
-    numItems: 1,
-    startPriceEth: x.price?.amount?.native ?? 0,
-    endPriceEth: x.price?.amount?.native ?? 0,
-    startTimeMs: x.validFrom * 1000,
-    endTimeMs: x.validUntil * 1000,
-    maxGasPriceWei: '0',
-    nonce: 1234567, // TODO - where do we get this?
-    makerAddress: x.maker,
-    makerUsername: '',
-    nfts: [
-      {
-        chainId: ChainId.Mainnet,
-        collectionAddress: collectionAddress,
-        collectionImage: '',
-        collectionName: x.metadata?.data?.collectionName ?? '',
-        collectionSlug: getSearchFriendlyString(x.metadata?.data?.collectionName ?? ''),
-        hasBlueCheck: false,
-        tokens: [
-          {
-            attributes: [],
-            numTokens: 1,
-            takerAddress: '',
-            takerUsername: '',
-            tokenId: tokenId,
-            tokenImage: x.metadata?.data?.image ?? '',
-            tokenName: x.metadata?.data?.tokenName ?? ''
-          }
-        ]
-      }
-    ],
-    signedOrder: {
-      isSellOrder: x.side === 'sell',
-      signer: '',
-      nfts: [
-        {
-          collection: collectionAddress,
-          tokens: [
-            {
-              numTokens: 1,
-              tokenId: tokenId
-            }
-          ]
-        }
-      ],
-      constraints: [],
-      execParams: [],
-      extraParams: '',
-      sig: '' // TODO - where?
-    },
-    execParams: {
-      complicationAddress: '',
-      currencyAddress: ''
-    },
-    extraParams: { buyer: '' }
-  };
+  // console.log(JSON.stringify(result, null, 2));
 
-  return order;
+  return { nfts: result, cursor: outCursor };
 };
