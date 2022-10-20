@@ -1,4 +1,4 @@
-import { AirdropType, AllTimeTransactionFeeRewardsDoc, ChainId } from '@infinityxyz/lib/types/core';
+import { DistributionType, AllTimeTransactionFeeRewardsDoc, ChainId } from '@infinityxyz/lib/types/core';
 import { TokenomicsConfigDto, TokenomicsPhaseDto, UserRewardsDto } from '@infinityxyz/lib/types/dto/rewards';
 import { firestoreConstants, formatEth } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
@@ -6,13 +6,15 @@ import { CurationService } from 'collections/curation/curation.service';
 import { FirebaseService } from 'firebase/firebase.service';
 import { MerkleTreeService } from 'merkle-tree/merkle-tree.service';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
+import { ReferralsService } from 'user/referrals/referrals.service';
 
 @Injectable()
 export class RewardsService {
   constructor(
     protected firebaseService: FirebaseService,
     protected curationService: CurationService,
-    protected merkleTreeService: MerkleTreeService
+    protected merkleTreeService: MerkleTreeService,
+    protected referralsService: ReferralsService
   ) {}
 
   async getConfig(chainId: ChainId): Promise<TokenomicsConfigDto | null> {
@@ -48,15 +50,16 @@ export class RewardsService {
         firestoreConstants.USER_ALL_TIME_TXN_FEE_REWARDS_DOC
       ) as FirebaseFirestore.DocumentReference<AllTimeTransactionFeeRewardsDoc>;
 
-    const [tradingFeeConfig, curationConfig, userTotalSnap, userCurationTotals] = await Promise.all([
-      this.merkleTreeService.getMerkleRootConfig(chainId, AirdropType.TxFees),
-      this.merkleTreeService.getMerkleRootConfig(chainId, AirdropType.Curation),
+    const [INFTConfig, ethConfig, userTotalSnap, userCurationTotals, referralTotals] = await Promise.all([
+      this.merkleTreeService.getMerkleRootConfig(chainId, DistributionType.INFT),
+      this.merkleTreeService.getMerkleRootConfig(chainId, DistributionType.ETH),
       userAllTimeRewards.get(),
-      this.curationService.getUserRewards(parsedUser)
+      this.curationService.getUserRewards(parsedUser),
+      this.referralsService.getReferralRewards(parsedUser, chainId)
     ]);
-    const [tradingFeeLeaf, curationLeaf] = await Promise.all([
-      this.merkleTreeService.getLeaf(tradingFeeConfig, parsedUser.userAddress),
-      this.merkleTreeService.getLeaf(curationConfig, parsedUser.userAddress)
+    const [inftLeaf, ethLeaf] = await Promise.all([
+      this.merkleTreeService.getLeaf(INFTConfig, parsedUser.userAddress),
+      this.merkleTreeService.getLeaf(ethConfig, parsedUser.userAddress)
     ]);
 
     const userTotalRewards = userTotalSnap.data() ?? null;
@@ -73,31 +76,36 @@ export class RewardsService {
           sells: userTotalRewards?.userSells ?? 0,
           buys: userTotalRewards?.userBuys ?? 0,
           claim: {
-            contractAddress: tradingFeeConfig.config.airdropContractAddress,
-            claimedWei: tradingFeeLeaf.cumulativeClaimed,
-            claimedEth: formatEth(tradingFeeLeaf.cumulativeClaimed),
-            claimableWei: tradingFeeLeaf.claimable,
-            claimableEth: formatEth(tradingFeeLeaf.claimable),
+            contractAddress: INFTConfig.config.airdropContractAddress,
+            claimedWei: inftLeaf.cumulativeClaimed,
+            claimedEth: formatEth(inftLeaf.cumulativeClaimed),
+            claimableWei: inftLeaf.claimable,
+            claimableEth: formatEth(inftLeaf.claimable),
             account: parsedUser.userAddress,
-            cumulativeAmount: tradingFeeLeaf.cumulativeAmount,
-            merkleRoot: tradingFeeLeaf.expectedMerkleRoot,
-            merkleProof: tradingFeeLeaf.proof
+            cumulativeAmount: inftLeaf.cumulativeAmount,
+            merkleRoot: inftLeaf.expectedMerkleRoot,
+            merkleProof: inftLeaf.proof
           }
         },
         curation: {
           totalRewardsWei: userCurationTotals.totalProtocolFeesAccruedWei,
           totalRewardsEth: userCurationTotals.totalProtocolFeesAccruedEth,
           claim: {
-            contractAddress: curationConfig.config.airdropContractAddress,
-            claimedWei: curationLeaf.cumulativeClaimed,
-            claimedEth: formatEth(curationLeaf.cumulativeClaimed),
-            claimableWei: curationLeaf.claimable,
-            claimableEth: formatEth(curationLeaf.claimable),
+            contractAddress: ethConfig.config.airdropContractAddress,
+            claimedWei: ethLeaf.cumulativeClaimed,
+            claimedEth: formatEth(ethLeaf.cumulativeClaimed),
+            claimableWei: ethLeaf.claimable,
+            claimableEth: formatEth(ethLeaf.claimable),
             account: parsedUser.userAddress,
-            cumulativeAmount: curationLeaf.cumulativeAmount,
-            merkleRoot: curationLeaf.expectedMerkleRoot,
-            merkleProof: curationLeaf.proof
+            cumulativeAmount: ethLeaf.cumulativeAmount,
+            merkleRoot: ethLeaf.expectedMerkleRoot,
+            merkleProof: ethLeaf.proof
           }
+        },
+        referrals: {
+          totalRewardsWei: referralTotals.stats.totalFeesGenerated.feesGeneratedWei,
+          totalRewardsEth: referralTotals.stats.totalFeesGenerated.feesGeneratedEth,
+          numReferrals: referralTotals.stats.numReferralSales
         }
       }
     };

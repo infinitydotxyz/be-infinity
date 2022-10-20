@@ -11,6 +11,7 @@ import { AlchemyModule } from 'alchemy/alchemy.module';
 import { PaginationModule } from 'pagination/pagination.module';
 import { BackfillModule } from 'backfill/backfill.module';
 import { RewardsModule } from 'rewards/rewards.module';
+import { ReferralsModule } from './referrals/referrals.module';
 
 @Module({
   imports: [
@@ -23,7 +24,8 @@ import { RewardsModule } from 'rewards/rewards.module';
     PaginationModule,
     AlchemyModule,
     BackfillModule,
-    RewardsModule
+    RewardsModule,
+    ReferralsModule
   ],
   providers: [UserService],
   controllers: [UserController],

@@ -1,4 +1,12 @@
-import { AirdropType, ChainId, MerkleRootDoc, MerkleRootLeafDoc } from '@infinityxyz/lib/types/core';
+import {
+  DistributionType,
+  ChainId,
+  MerkleRootDoc,
+  MerkleRootLeafDoc,
+  distributionSourcesByType,
+  ETHDistribution,
+  INFTDistribution
+} from '@infinityxyz/lib/types/core';
 import { NULL_HASH } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { CmDistributorContractService } from 'ethereum/contracts/cm-distributor.contract.service';
@@ -8,36 +16,39 @@ import { FirebaseService } from 'firebase/firebase.service';
 export class MerkleTreeService {
   constructor(protected firebaseService: FirebaseService, protected cmDistributor: CmDistributorContractService) {}
 
-  protected configRef(
+  protected configRef<T extends DistributionType>(
     chainId: ChainId,
-    type: AirdropType,
+    type: T,
     address: string
-  ): FirebaseFirestore.DocumentReference<MerkleRootDoc> {
+  ): FirebaseFirestore.DocumentReference<MerkleRootDoc<T>> {
     const docId = `${type}:${chainId}:${address}`;
     const ref = this.firebaseService.firestore
       .collection('merkleRoots')
-      .doc(docId) as FirebaseFirestore.DocumentReference<MerkleRootDoc>;
+      .doc(docId) as FirebaseFirestore.DocumentReference<MerkleRootDoc<T>>;
     return ref;
   }
 
-  protected versionedConfigRef(
-    configRef: FirebaseFirestore.DocumentReference<MerkleRootDoc>,
+  protected versionedConfigRef<T extends DistributionType>(
+    configRef: FirebaseFirestore.DocumentReference<MerkleRootDoc<T>>,
     nonce: number
-  ): FirebaseFirestore.DocumentReference<MerkleRootDoc> {
-    const ref = configRef
-      .collection('merkleRootVersions')
-      .doc(`${nonce}`) as FirebaseFirestore.DocumentReference<MerkleRootDoc>;
+  ): FirebaseFirestore.DocumentReference<MerkleRootDoc<T>> {
+    const ref = configRef.collection('merkleRootVersions').doc(`${nonce}`) as FirebaseFirestore.DocumentReference<
+      MerkleRootDoc<T>
+    >;
     return ref;
   }
 
-  protected leafRef(versionedConfigRef: FirebaseFirestore.DocumentReference<MerkleRootDoc>, userAddress: string) {
+  protected leafRef<T extends DistributionType>(
+    versionedConfigRef: FirebaseFirestore.DocumentReference<MerkleRootDoc<T>>,
+    userAddress: string
+  ) {
     const ref = versionedConfigRef
       .collection('merkleRootVersionLeaves')
-      .doc(userAddress) as FirebaseFirestore.DocumentReference<MerkleRootLeafDoc>;
+      .doc(userAddress) as FirebaseFirestore.DocumentReference<MerkleRootLeafDoc<T>>;
     return ref;
   }
 
-  async getMerkleRootConfig(chainId: ChainId, type: AirdropType): Promise<MerkleRootDoc> {
+  async getMerkleRootConfig<T extends DistributionType>(chainId: ChainId, type: T): Promise<MerkleRootDoc<T>> {
     const address = this.cmDistributor.getAddress(chainId);
     const configRef = this.configRef(chainId, type, address);
     const configSnap = await configRef.get();
@@ -45,41 +56,41 @@ export class MerkleTreeService {
     const config = configSnap.data();
 
     if (!config) {
-      const defaultConfig =
-        type === AirdropType.Curation
-          ? {
-              type,
-              chainId,
-              stakingContractAddress: '',
-              tokenContractAddress: '',
-              airdropContractAddress: address,
-              maxTimestamp: 0
-            }
-          : {
-              type,
-              chainId,
-              tokenContractAddress: '',
-              airdropContractAddress: address,
-              phaseIds: []
-            };
+      const defaultEthConfig: ETHDistribution = {
+        type: DistributionType.ETH,
+        chainId,
+        stakingContractAddress: '',
+        tokenContractAddress: '',
+        airdropContractAddress: address,
+        maxTimestamp: 0
+      };
+      const defaultINFTConfig: INFTDistribution = {
+        type: DistributionType.INFT,
+        chainId,
+        tokenContractAddress: '',
+        airdropContractAddress: address,
+        phaseIds: []
+      };
+
       return {
-        config: defaultConfig,
+        config: type === DistributionType.ETH ? defaultEthConfig : defaultINFTConfig,
         updatedAt: 0,
         nonce: -1,
         numEntries: 0,
         root: NULL_HASH,
-        totalCumulativeAmount: '0'
+        totalCumulativeAmount: '0',
+        sourceAmounts: this.getDefaultSourceAmountsByType(type)
       };
     }
 
     return config;
   }
 
-  async getLeaf(
-    merkleRootDoc: MerkleRootDoc,
+  async getLeaf<T extends DistributionType>(
+    merkleRootDoc: MerkleRootDoc<T>,
     userAddress: string
-  ): Promise<MerkleRootLeafDoc & { cumulativeClaimed: string; claimable: string }> {
-    const defaultLeaf: MerkleRootLeafDoc & { cumulativeClaimed: string; claimable: string } = {
+  ): Promise<MerkleRootLeafDoc<T> & { cumulativeClaimed: string; claimable: string }> {
+    const defaultLeaf: MerkleRootLeafDoc<T> & { cumulativeClaimed: string; claimable: string } = {
       nonce: merkleRootDoc.nonce,
       address: userAddress,
       cumulativeAmount: '0',
@@ -88,7 +99,8 @@ export class MerkleTreeService {
       leaf: '',
       updatedAt: merkleRootDoc.updatedAt,
       cumulativeClaimed: '0',
-      claimable: '0'
+      claimable: '0',
+      sourceAmounts: this.getDefaultSourceAmountsByType<T>(merkleRootDoc.config.type as T)
     };
 
     if (!merkleRootDoc) {
@@ -107,7 +119,7 @@ export class MerkleTreeService {
     const getCumulativeClaimed = async () => {
       let cumulativeClaimed = '0';
       try {
-        if (merkleRootDoc.config.type === AirdropType.Curation) {
+        if (merkleRootDoc.config.type === DistributionType.ETH) {
           cumulativeClaimed = await this.cmDistributor.getCumulativeETHClaimed(
             merkleRootDoc.config.chainId,
             userAddress
@@ -137,5 +149,9 @@ export class MerkleTreeService {
       cumulativeClaimed,
       claimable: claimable.toString()
     };
+  }
+
+  protected getDefaultSourceAmountsByType<T extends DistributionType>(type: T) {
+    return Object.values(distributionSourcesByType[type] ?? {}).reduce((acc, item) => ({ ...acc, [item]: '0' }), {});
   }
 }

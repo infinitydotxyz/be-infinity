@@ -55,6 +55,24 @@
           "order": "ASCENDING"
         },
         {
+          "fieldPath": "address",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "collections",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "hasBlueCheck",
+          "order": "ASCENDING"
+        },
+        {
           "fieldPath": "slug",
           "order": "ASCENDING"
         }
@@ -979,89 +997,9 @@
       "queryScope": "COLLECTION_GROUP",
       "fields": [
         {
-          "fieldPath": "address",
+          "fieldPath": "curator.address",
           "order": "ASCENDING"
         },
-        {
-          "fieldPath": "chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "userAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "userChainId",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "curators",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "address",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "userAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "userChainId",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "curators",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "collectionChainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "userAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "userChainId",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "curators",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "collectionAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "userAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "userChainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "votes",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "curators",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
         {
           "fieldPath": "stakerContractAddress",
           "order": "ASCENDING"
@@ -1071,74 +1009,8 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "user",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "address",
           "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "curators",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "stakerContractAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "stakerContractChainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "userAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "address",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "curators",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "userAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "userChainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "votes",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "curators",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "userAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "userChainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "votes",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "timestamp",
-          "order": "DESCENDING"
         }
       ]
     },
@@ -5835,6 +5707,20 @@
       ]
     },
     {
+      "collectionGroup": "referralsLedger",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "isAggregated",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "sales",
       "queryScope": "COLLECTION",
       "fields": [
@@ -6547,6 +6433,28 @@
         },
         {
           "order": "DESCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "referrals",
+      "fieldPath": "metadata.chainId",
+      "indexes": [
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "DESCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "arrayConfig": "CONTAINS",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "ASCENDING",
           "queryScope": "COLLECTION_GROUP"
         }
       ]

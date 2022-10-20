@@ -18,6 +18,7 @@ import { EthereumService } from 'ethereum/ethereum.service';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
 import { typeToActivity } from 'utils/activity';
+import { getReservoirTokens } from 'utils/reservoir';
 
 @Injectable()
 export class NftsService {
@@ -265,6 +266,17 @@ export class NftsService {
       data,
       cursor: encodedCursor,
       hasNextPage,
+      totalOwned: NaN
+    };
+  }
+
+  async getReservoirCollectionNfts(collection: ParsedCollectionId, query: NftsQueryDto): Promise<NftArrayDto> {
+    const result = await getReservoirTokens(collection.address, query.limit, query.cursor ?? '');
+
+    return {
+      data: result.nfts,
+      cursor: result.cursor,
+      hasNextPage: result.nfts.length > 0,
       totalOwned: NaN
     };
   }
