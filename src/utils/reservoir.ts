@@ -19,7 +19,7 @@ sdk.auth(RESERVOIR_API_KEY);
 
 // ==============================================================
 
-export const getSales = () => {
+export const getReservoirSales = () => {
   sdk
     .getSalesV4({ limit: '100', accept: '*/*' })
     .then((res: unknown) => {
@@ -39,7 +39,7 @@ export const getSales = () => {
 
 // ==============================================================
 
-export const getAsks = async (limit: number, cursor: string): Promise<ReservoirResponse> => {
+export const getReservoirAsks = async (limit: number, cursor: string): Promise<ReservoirResponse> => {
   const result: SignedOBOrderDto[] = [];
   let outCursor = '';
 
@@ -77,7 +77,7 @@ export const getAsks = async (limit: number, cursor: string): Promise<ReservoirR
 
 // ==============================================================
 
-export const getBids = async (limit: number, cursor: string): Promise<ReservoirResponse> => {
+export const getReservoirBids = async (limit: number, cursor: string): Promise<ReservoirResponse> => {
   const result: SignedOBOrderDto[] = [];
   let outCursor = '';
 
@@ -116,7 +116,7 @@ export const getBids = async (limit: number, cursor: string): Promise<ReservoirR
 
 // ==============================================================
 
-export const getActivity = async (limit: number): Promise<ReservoirResponse> => {
+export const getReservoirActivity = async (limit: number): Promise<ReservoirResponse> => {
   const result: SignedOBOrderDto[] = [];
   let cursor = '';
 
@@ -167,13 +167,17 @@ export const getActivity = async (limit: number): Promise<ReservoirResponse> => 
 
 // ==============================================================
 
-export const getTokens = async (limit: number, cursor: string): Promise<ReservoirTokenResponse> => {
+export const getReservoirTokens = async (
+  collectionAddress: string,
+  limit: number,
+  cursor: string
+): Promise<ReservoirTokenResponse> => {
   const result: NftDto[] = [];
   let outCursor = '';
 
   try {
     const res = await sdk.getTokensV5({
-      collection: '0x8d04a8c79ceb0889bdd12acdf3fa9d207ed3ff63',
+      collection: collectionAddress,
       includeAttributes: 'false',
       includeTopBid: 'false',
       sortBy: 'floorAskPrice', // 'tokenId' 'rarity'
