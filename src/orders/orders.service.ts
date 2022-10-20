@@ -49,7 +49,8 @@ import { ParsedUserId } from '../user/parser/parsed-user-id';
 import { UserParserService } from '../user/parser/parser.service';
 import { UserService } from '../user/user.service';
 import { OrderItemTokenMetadata, OrderMetadata } from './order.types';
-import { getAsks, getBids, ReservoirResponse } from './reservoir';
+import { getAsks, getBids } from '../utils/reservoir';
+import { ReservoirResponse } from '../utils/reservoir-types';
 
 @Injectable()
 export default class OrdersService {

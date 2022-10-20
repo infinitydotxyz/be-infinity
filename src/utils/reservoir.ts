@@ -11,16 +11,6 @@ const RESERVOIR_API_KEY = 'f0d48941-4084-4480-a50a-deb448752f5f';
 
 sdk.auth(RESERVOIR_API_KEY);
 
-export interface ReservoirResponse {
-  cursor: string;
-  orders: SignedOBOrderDto[];
-}
-
-export interface ReservoirTokenResponse {
-  cursor: string;
-  nfts: NftDto[];
-}
-
 // ==============================================================
 
 export const getSales = () => {
