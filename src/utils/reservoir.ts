@@ -3,7 +3,13 @@ const sdk = api('@reservoirprotocol/v1.0#4vl21xl9d4zcp0');
 
 import { paths } from '@reservoir0x/reservoir-kit-client';
 import { SignedOBOrderDto } from '@infinityxyz/lib/types/dto/orders/signed-ob-order.dto';
-import { reservoirTokenToNFT, reservoirAskToOrder, reservoirBidToOrder } from './reservoir-types';
+import {
+  reservoirTokenToNFT,
+  reservoirAskToOrder,
+  reservoirBidToOrder,
+  ReservoirResponse,
+  ReservoirTokenResponse
+} from './reservoir-types';
 import { NftDto } from '@infinityxyz/lib/types/dto';
 
 // TODO - put in env
