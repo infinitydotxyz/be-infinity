@@ -42,7 +42,8 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
         externalUrl: sale.externalUrl,
         timestamp: sale.timestamp,
         likes: sale.likes,
-        comments: sale.comments
+        comments: sale.comments,
+        source: sale.source
       };
       break;
     }

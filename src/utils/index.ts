@@ -114,3 +114,7 @@ export async function safelyWrapPromise<T>(promise: Promise<T>): Promise<T | nul
     return null;
   }
 }
+
+export const cl = (data: unknown) => {
+  console.log(JSON.stringify(data, null, 2));
+};
