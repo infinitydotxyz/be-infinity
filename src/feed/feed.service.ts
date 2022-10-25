@@ -51,8 +51,13 @@ export class FeedService {
 
     let activityQuery = this.firebaseService.firestore
       .collection(firestoreConstants.FEED_COLL)
-      .where('type', 'in', events)
-      .orderBy('timestamp', 'desc');
+      .where('type', 'in', events);
+
+    if (filter.source) {
+      activityQuery = activityQuery.where('source', '==', filter.source);
+    }
+
+    activityQuery = activityQuery.orderBy('timestamp', 'desc');
 
     activityQuery = activityQuery.limit(filter.limit); // +1 to check if there are more events
 
