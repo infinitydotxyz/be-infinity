@@ -294,19 +294,21 @@ export class NftsService {
         .where('collectionAddress', '==', nftQuery.address)
         .where('chainId', '==', nftQuery.chainId)
         .where('tokenId', '==', nftQuery.tokenId)
-        .where('type', 'in', events)
-        .orderBy('timestamp', 'desc');
+        .where('type', 'in', events);
     } else {
       // query for Collection Activity
       activityQuery = this.firebaseService.firestore
         .collection(firestoreConstants.FEED_COLL)
         .where('collectionAddress', '==', nftQuery.address)
         .where('chainId', '==', nftQuery.chainId)
-        .where('type', 'in', events)
-        .orderBy('timestamp', 'desc');
+        .where('type', 'in', events);
     }
 
-    activityQuery = activityQuery.limit(filter.limit); // +1 to check if there are more events
+    if (filter.source) {
+      activityQuery = activityQuery.where('source', '==', filter.source); // +1 to check if there are more events
+    }
+
+    activityQuery = activityQuery.orderBy('timestamp', 'desc').limit(filter.limit); // +1 to check if there are more events
 
     if (filter.cursor) {
       const decodedCursor = this.paginationService.decodeCursorToNumber(filter.cursor);
