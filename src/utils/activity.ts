@@ -11,7 +11,106 @@ import {
   UserStakedEvent,
   UserVoteEvent
 } from '@infinityxyz/lib/types/core/feed';
-import { NftActivity } from '@infinityxyz/lib/types/dto/collections/nfts';
+import { NftActivity, NftActivityArrayDto } from '@infinityxyz/lib/types/dto/collections/nfts';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
+import { CursorService } from 'pagination/cursor.service';
+
+interface Props {
+  firestore: FirebaseFirestore.Firestore;
+  paginationService: CursorService;
+  limit: number;
+  events: EventType[];
+  cursor?: string;
+  tokenId?: string;
+  collectionAddress?: string;
+  chainId?: string;
+  source?: string;
+}
+
+export const getNftActivity = async ({
+  firestore,
+  paginationService,
+  limit,
+  events,
+  cursor,
+  tokenId,
+  collectionAddress,
+  chainId,
+  source
+}: Props): Promise<NftActivityArrayDto> => {
+  let activityQuery = firestore.collection(firestoreConstants.FEED_COLL).where('type', 'in', events);
+
+  if (collectionAddress) {
+    activityQuery = activityQuery.where('collectionAddress', '==', collectionAddress);
+  }
+
+  if (collectionAddress) {
+    activityQuery = activityQuery.where('chainId', '==', chainId);
+  }
+
+  if (tokenId) {
+    activityQuery = activityQuery.where('tokenId', '==', tokenId);
+  }
+
+  // this will only return sales, not other events
+  // if (source && events.findIndex((x) => x === EventType.NftSale) !== -1) {
+  //   activityQuery = activityQuery.where('source', '==', source);
+  // }
+
+  activityQuery = activityQuery.orderBy('timestamp', 'desc').limit(limit + 1); // +1 to check if there are more events
+
+  if (cursor) {
+    const decodedCursor = paginationService.decodeCursorToNumber(cursor);
+    activityQuery = activityQuery.startAfter(decodedCursor);
+  }
+
+  const results = await activityQuery.get();
+
+  const activities: NftActivity[] = [];
+
+  let matchSource = false;
+  if (source && events.findIndex((x) => x === EventType.NftSale) !== -1) {
+    matchSource = true;
+  }
+
+  const dataArray: { data: any; id: string }[] = [];
+  results.docs.forEach((snap) => {
+    dataArray.push({ data: snap.data(), id: snap.id });
+  });
+
+  const hasNextPage = dataArray.length > limit;
+
+  if (hasNextPage) {
+    dataArray.pop(); // Remove item used for pagination
+  }
+
+  const rawCursor = `${dataArray?.[dataArray?.length - 1]?.data.timestamp ?? ''}`;
+  const resultCursor = paginationService.encodeCursor(rawCursor);
+
+  dataArray.forEach((item) => {
+    let activity = typeToActivity(item.data, item.id);
+
+    // filter out sales not matching source
+    if (matchSource && activity?.type === EventType.NftSale) {
+      if (activity.source !== source) {
+        activity = null;
+      }
+    }
+
+    // return activity;
+    if (activity) {
+      activities.push(activity);
+    }
+  });
+
+  return {
+    data: activities,
+    hasNextPage,
+    cursor: resultCursor
+  };
+};
+
+// =============================================================================
 
 export const typeToActivity = (item: any, id: string): NftActivity | null => {
   let activity: NftActivity | null = null;

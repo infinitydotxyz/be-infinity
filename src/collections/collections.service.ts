@@ -425,7 +425,7 @@ export default class CollectionsService {
     return externalCollection;
   }
 
-  async getCurated(collectionQuery: CuratedCollectionsQuery, user: undefined): Promise<CuratedCollectionsDto>;
+  async getCurated(collectionQuery: CuratedCollectionsQuery, user: undefined): Promise<UserCuratedCollectionsDto>;
   async getCurated(collectionQuery: CuratedCollectionsQuery, user: ParsedUserId): Promise<UserCuratedCollectionsDto>;
   async getCurated(collectionsQuery: CuratedCollectionsQuery, user?: ParsedUserId) {
     const stakerContractChainId = collectionsQuery.chainId ?? ChainId.Mainnet;

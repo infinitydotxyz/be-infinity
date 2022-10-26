@@ -60,17 +60,17 @@ import CollectionsService from './collections.service';
 import { enqueueCollection } from './collections.utils';
 import { CollectionStatsArrayDto } from './dto/collection-stats-array.dto';
 import { NftsService } from './nfts/nfts.service';
-import { CuratedCollectionsQuery } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
+import { CuratedCollectionsQueryWithUser } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
 import { CurationService } from './curation/curation.service';
 import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
-import { CuratedCollectionsDto } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections.dto';
 import { Auth } from 'auth/api-auth.decorator';
 import { SiteRole } from 'auth/auth.constants';
 import { ParamUserId } from 'auth/param-user-id.decorator';
 import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
 import { Throttle } from '@nestjs/throttler';
 import { ReservoirService } from 'reservoir/reservoir.service';
+import { UserParserService } from 'user/parser/parser.service';
 
 @Controller('collections')
 export class CollectionsController {
@@ -81,7 +81,8 @@ export class CollectionsController {
     private reservoirService: ReservoirService,
     private nftsService: NftsService,
     private curationService: CurationService,
-    private firebaseService: FirebaseService
+    private firebaseService: FirebaseService,
+    private userParserService: UserParserService
   ) {}
 
   @Get('search')
@@ -235,30 +236,17 @@ export class CollectionsController {
     description: 'Fetch all curated collections',
     tags: [ApiTag.Collection, ApiTag.Curation]
   })
-  @ApiOkResponse({ type: CuratedCollectionsDto })
-  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
-  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  async getAllCurated(@Query() query: CuratedCollectionsQuery): Promise<CuratedCollectionsDto> {
-    return this.collectionsService.getCurated(query, undefined);
-  }
-
-  @Get('curated/:userId')
-  @Auth(SiteRole.Guest, ApiRole.Guest, 'userId')
-  @ApiOperation({
-    description:
-      'Fetch all curated collections. Each curated collection object that has been voted for by the current user will contain more info, like the amount of votes.',
-    tags: [ApiTag.Collection, ApiTag.Curation]
-  })
   @ApiOkResponse({ type: UserCuratedCollectionsDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  async getAllCuratedByUserId(
-    @Query() query: CuratedCollectionsQuery,
-    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId
-  ): Promise<UserCuratedCollectionsDto> {
-    return this.collectionsService.getCurated(query, user);
+  async getAllCurated(@Query() query: CuratedCollectionsQueryWithUser): Promise<UserCuratedCollectionsDto> {
+    if (query.user) {
+      const transformer = new ParseUserIdPipe(this.userParserService);
+      const user = await transformer.transform(query.user);
+      return await this.collectionsService.getCurated(query, user);
+    }
+    return await this.collectionsService.getCurated(query, undefined);
   }
 
   @Get('/:id/curated/:userId')
