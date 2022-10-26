@@ -11,7 +11,91 @@ import {
   UserStakedEvent,
   UserVoteEvent
 } from '@infinityxyz/lib/types/core/feed';
-import { NftActivity } from '@infinityxyz/lib/types/dto/collections/nfts';
+import { NftActivity, NftActivityArrayDto } from '@infinityxyz/lib/types/dto/collections/nfts';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
+import { CursorService } from 'pagination/cursor.service';
+
+interface Props {
+  firestore: FirebaseFirestore.Firestore;
+  paginationService: CursorService;
+  limit: number;
+  events: EventType[];
+  cursor?: string;
+  tokenId?: string;
+  collectionAddress?: string;
+  chainId?: string;
+  source?: string;
+}
+
+export const getNftActivity = async ({
+  firestore,
+  paginationService,
+  limit,
+  events,
+  cursor,
+  tokenId,
+  collectionAddress,
+  chainId,
+  source
+}: Props): Promise<NftActivityArrayDto> => {
+  let activityQuery = firestore.collection(firestoreConstants.FEED_COLL).where('type', 'in', events);
+
+  if (collectionAddress) {
+    activityQuery = activityQuery.where('collectionAddress', '==', collectionAddress);
+  }
+
+  if (collectionAddress) {
+    activityQuery = activityQuery.where('chainId', '==', chainId);
+  }
+
+  if (tokenId) {
+    activityQuery = activityQuery.where('tokenId', '==', tokenId);
+  }
+
+  // this will only return sales, not other events
+  if (source && events.findIndex((x) => x === EventType.NftSale) !== -1) {
+    activityQuery = activityQuery.where('source', '==', source);
+  }
+
+  activityQuery = activityQuery.orderBy('timestamp', 'desc').limit(limit + 1); // +1 to check if there are more events
+
+  if (cursor) {
+    const decodedCursor = paginationService.decodeCursorToNumber(cursor);
+    activityQuery = activityQuery.startAfter(decodedCursor);
+  }
+
+  const results = await activityQuery.get();
+
+  const activities: NftActivity[] = [];
+
+  results.docs.forEach((snap) => {
+    const item = snap.data();
+
+    const activity = typeToActivity(item, snap.id);
+
+    // return activity;
+    if (activity) {
+      activities.push(activity);
+    }
+  });
+
+  const hasNextPage = results.docs.length > limit;
+
+  if (hasNextPage) {
+    activities.pop(); // Remove item used for pagination
+  }
+
+  const rawCursor = `${activities?.[activities?.length - 1]?.timestamp ?? ''}`;
+  const resultCursor = paginationService.encodeCursor(rawCursor);
+
+  return {
+    data: activities,
+    hasNextPage,
+    cursor: resultCursor
+  };
+};
+
+// =============================================================================
 
 export const typeToActivity = (item: any, id: string): NftActivity | null => {
   let activity: NftActivity | null = null;
