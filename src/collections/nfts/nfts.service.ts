@@ -17,7 +17,7 @@ import { ParsedCollectionId } from 'collections/collection-id.pipe';
 import { EthereumService } from 'ethereum/ethereum.service';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
-import { typeToActivity } from 'utils/activity';
+import { getNftActivity } from 'utils/activity';
 import { getReservoirTokens } from 'utils/reservoir';
 
 @Injectable()
@@ -283,66 +283,21 @@ export class NftsService {
 
   async getNftActivity(nftQuery: NftActivityQueryDto, filter: NftActivityFiltersDto) {
     const eventTypes = typeof filter.eventType === 'string' ? [filter.eventType] : filter.eventType;
-    const events = eventTypes?.filter((item) => !!item);
+    let events = eventTypes?.filter((item) => !!item);
 
-    let activityQuery = null;
+    // slice because firestore 'IN' query can only support 10 items
+    events = events && events.length > 10 ? events.slice(0, 10) : events;
 
-    if (nftQuery.tokenId) {
-      // query for NFT Token Activity
-      activityQuery = this.firebaseService.firestore
-        .collection(firestoreConstants.FEED_COLL)
-        .where('collectionAddress', '==', nftQuery.address)
-        .where('chainId', '==', nftQuery.chainId)
-        .where('tokenId', '==', nftQuery.tokenId)
-        .where('type', 'in', events);
-    } else {
-      // query for Collection Activity
-      activityQuery = this.firebaseService.firestore
-        .collection(firestoreConstants.FEED_COLL)
-        .where('collectionAddress', '==', nftQuery.address)
-        .where('chainId', '==', nftQuery.chainId)
-        .where('type', 'in', events);
-    }
-
-    if (filter.source) {
-      activityQuery = activityQuery.where('source', '==', filter.source); // +1 to check if there are more events
-    }
-
-    activityQuery = activityQuery.orderBy('timestamp', 'desc').limit(filter.limit); // +1 to check if there are more events
-
-    if (filter.cursor) {
-      const decodedCursor = this.paginationService.decodeCursorToNumber(filter.cursor);
-      activityQuery = activityQuery.startAfter(decodedCursor);
-    }
-
-    const results = await activityQuery.get();
-
-    const activities: FirebaseFirestore.DocumentData[] = [];
-
-    results.docs.forEach((snap) => {
-      const item = snap.data();
-
-      const activity = typeToActivity(item, snap.id);
-
-      // return activity;
-      if (activity) {
-        activities.push(activity);
-      }
+    return getNftActivity({
+      firestore: this.firebaseService.firestore,
+      paginationService: this.paginationService,
+      limit: filter.limit,
+      events: events,
+      cursor: filter.cursor,
+      tokenId: nftQuery.tokenId,
+      collectionAddress: nftQuery.address,
+      chainId: nftQuery.chainId,
+      source: filter.source
     });
-
-    const hasNextPage = results.docs.length > filter.limit;
-
-    if (hasNextPage) {
-      activities.pop(); // Remove item used for pagination
-    }
-
-    const rawCursor = `${activities?.[activities?.length - 1]?.timestamp ?? ''}`;
-    const cursor = this.paginationService.encodeCursor(rawCursor);
-
-    return {
-      data: activities,
-      hasNextPage,
-      cursor
-    };
   }
 }

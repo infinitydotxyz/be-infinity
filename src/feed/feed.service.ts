@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { FirebaseService } from 'firebase/firebase.service';
 import { FirestoreDistributedCounter } from 'firebase/firestore-counter';
 import { CursorService } from 'pagination/cursor.service';
-import { typeToActivity } from 'utils/activity';
+import { getNftActivity } from 'utils/activity';
 import { IncrementQuery, LikedLock } from './feed.types';
 
 @Injectable()
@@ -49,51 +49,13 @@ export class FeedService {
     // slice because firestore 'IN' query can only support 10 items
     events = events && events.length > 10 ? events.slice(0, 10) : events;
 
-    let activityQuery = this.firebaseService.firestore
-      .collection(firestoreConstants.FEED_COLL)
-      .where('type', 'in', events);
-
-    if (filter.source) {
-      activityQuery = activityQuery.where('source', '==', filter.source);
-    }
-
-    activityQuery = activityQuery.orderBy('timestamp', 'desc');
-
-    activityQuery = activityQuery.limit(filter.limit); // +1 to check if there are more events
-
-    if (filter.cursor) {
-      const decodedCursor = this.paginationService.decodeCursorToNumber(filter.cursor);
-      activityQuery = activityQuery.startAfter(decodedCursor);
-    }
-
-    const results = await activityQuery.get();
-
-    const activities: FirebaseFirestore.DocumentData[] = [];
-
-    results.docs.forEach((snap) => {
-      const item = snap.data();
-
-      const activity = typeToActivity(item, snap.id);
-
-      // return activity;
-      if (activity) {
-        activities.push(activity);
-      }
+    return getNftActivity({
+      firestore: this.firebaseService.firestore,
+      paginationService: this.paginationService,
+      limit: filter.limit,
+      events: events,
+      cursor: filter.cursor,
+      source: filter.source
     });
-
-    const hasNextPage = results.docs.length > filter.limit;
-
-    if (hasNextPage) {
-      activities.pop(); // Remove item used for pagination
-    }
-
-    const rawCursor = `${activities?.[activities?.length - 1]?.timestamp ?? ''}`;
-    const cursor = this.paginationService.encodeCursor(rawCursor);
-
-    return {
-      data: activities,
-      hasNextPage,
-      cursor
-    };
   }
 }
