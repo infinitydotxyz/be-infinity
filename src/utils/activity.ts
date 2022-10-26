@@ -53,9 +53,9 @@ export const getNftActivity = async ({
   }
 
   // this will only return sales, not other events
-  // if (source && events.findIndex((x) => x === EventType.NftSale) !== -1) {
-  //   activityQuery = activityQuery.where('source', '==', source);
-  // }
+  if (source && events.findIndex((x) => x === EventType.NftSale) !== -1) {
+    activityQuery = activityQuery.where('source', '==', source);
+  }
 
   activityQuery = activityQuery.orderBy('timestamp', 'desc').limit(limit + 1); // +1 to check if there are more events
 
@@ -68,40 +68,25 @@ export const getNftActivity = async ({
 
   const activities: NftActivity[] = [];
 
-  let matchSource = false;
-  if (source && events.findIndex((x) => x === EventType.NftSale) !== -1) {
-    matchSource = true;
-  }
-
-  const dataArray: { data: any; id: string }[] = [];
   results.docs.forEach((snap) => {
-    dataArray.push({ data: snap.data(), id: snap.id });
-  });
+    const item = snap.data();
 
-  const hasNextPage = dataArray.length > limit;
-
-  if (hasNextPage) {
-    dataArray.pop(); // Remove item used for pagination
-  }
-
-  const rawCursor = `${dataArray?.[dataArray?.length - 1]?.data.timestamp ?? ''}`;
-  const resultCursor = paginationService.encodeCursor(rawCursor);
-
-  dataArray.forEach((item) => {
-    let activity = typeToActivity(item.data, item.id);
-
-    // filter out sales not matching source
-    if (matchSource && activity?.type === EventType.NftSale) {
-      if (activity.source !== source) {
-        activity = null;
-      }
-    }
+    const activity = typeToActivity(item, snap.id);
 
     // return activity;
     if (activity) {
       activities.push(activity);
     }
   });
+
+  const hasNextPage = results.docs.length > limit;
+
+  if (hasNextPage) {
+    activities.pop(); // Remove item used for pagination
+  }
+
+  const rawCursor = `${activities?.[activities?.length - 1]?.timestamp ?? ''}`;
+  const resultCursor = paginationService.encodeCursor(rawCursor);
 
   return {
     data: activities,
