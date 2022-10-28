@@ -10,7 +10,6 @@ import {
 } from '@infinityxyz/lib/types/core';
 import {
   CollectionSearchQueryDto,
-  CuratedCollectionsDto,
   TopOwnerDto,
   TopOwnersQueryDto,
   UserCuratedCollectionDto,
