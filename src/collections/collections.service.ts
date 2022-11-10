@@ -51,7 +51,7 @@ export default class CollectionsService {
     private backfillService: BackfillService,
     private curationService: CurationService,
     private statsService: StatsService
-  ) {}
+  ) { }
 
   private get defaultCollectionQueryOptions(): CollectionQueryOptions {
     return {
@@ -150,6 +150,22 @@ export default class CollectionsService {
       hasNextPage,
       data: transformedData
     };
+  }
+
+  async getTopCollection(stakerContractAddress: string, stakerContractChainId: string) {
+    const snap = await this.firebaseService.firestore
+      .collectionGroup('curationSnippets')
+      .where('metadata.stakerContractAddress', '==', stakerContractAddress)
+      .where(
+        'metadata.stakerContractChainId',
+        '==',
+        stakerContractChainId
+      )
+      .orderBy('stats.numCuratorVotes', 'desc')
+      .orderBy('metadata.collectionAddress', 'desc')
+      .limit(1)
+      .get();
+    return snap.docs[0]?.data() as CurrentCurationSnippetDoc | null;
   }
 
   _searchBySlug(
@@ -437,6 +453,20 @@ export default class CollectionsService {
         '==',
         stakerContractChainId
       ) as FirebaseFirestore.Query<CurrentCurationSnippetDoc>;
+
+    if (collectionsQuery.orderBy === CuratedCollectionsOrderBy.Timestamp) {
+      const topCollection = await this.getTopCollection(stakerContractAddress, stakerContractChainId);
+      const topVotes = topCollection?.stats.numCuratorVotes || 0;
+      const percentage = 0.05;
+      const minRequiredCuratorVotes = Math.round(topVotes * percentage);
+      // There's a minor firestore limitation here: we need to orderBy on 'stats.numCuratorVotes' first (before ordering on timestamps) because we use .where() inequality filters (>, <) here.
+      // This will result in an order sorted by 'numCuratorVotes' first, followed by 'timestamps' afterwards.
+      // Preferably it would be the other way around but unfortunately that doesn't seem possible ¯\_(ツ)_/¯.
+      query = query
+        .where('stats.numCuratorVotes', '>', minRequiredCuratorVotes)
+        .where('stats.numCuratorVotes', '<', topVotes)
+        .orderBy('stats.numCuratorVotes', 'desc');
+    }
 
     const orderByField = {
       [CuratedCollectionsOrderBy.Apr]: {
