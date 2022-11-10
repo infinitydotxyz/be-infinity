@@ -446,6 +446,10 @@ export default class CollectionsService {
       [CuratedCollectionsOrderBy.Votes]: {
         primary: 'stats.numCuratorVotes',
         secondary: 'metadata.collectionAddress'
+      },
+      [CuratedCollectionsOrderBy.Timestamp]: {
+        primary: 'currentBlock.metadata.timestamp',
+        secondary: 'metadata.collectionAddress'
       }
     };
 
@@ -500,6 +504,10 @@ export default class CollectionsService {
           },
           [CuratedCollectionsOrderBy.Votes]: {
             value: startAtItem.stats.numCuratorVotes ?? 0,
+            collectionAddress: startAtItem.metadata.collectionAddress
+          },
+          [CuratedCollectionsOrderBy.Timestamp]: {
+            value: startAtItem.currentBlock?.metadata.timestamp ?? 0,
             collectionAddress: startAtItem.metadata.collectionAddress
           }
         };

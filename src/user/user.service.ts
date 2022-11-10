@@ -503,7 +503,8 @@ export class UserService {
     const stakingContractAddress = this.curationService.getStakerAddress(stakingContractChainId);
     const orderBy = {
       [CuratedCollectionsOrderBy.Votes]: 'stats.votes',
-      [CuratedCollectionsOrderBy.Apr]: 'stats.blockApr'
+      [CuratedCollectionsOrderBy.Apr]: 'stats.blockApr',
+      [CuratedCollectionsOrderBy.Timestamp]: 'metadata.updatedAt',
     };
     let q = this.firebaseService.firestore
       .collectionGroup(firestoreConstants.CURATION_SNIPPET_USERS_COLL)
