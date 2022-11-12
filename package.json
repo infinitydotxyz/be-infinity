@@ -11,7 +11,7 @@
     "start": "node dist/main",
     "start:dev": "npm run clean && cross-env INFINITY_NODE_ENV=dev nest start --watch",
     "dev": "npm run start:dev",
-    "start:debug": "npm run clean && nest start --debug --watch",
+    "start:debug": "npm run clean && cross-env INFINITY_NODE_ENV=dev nest start --debug --watch",
     "start:prod": "npm run clean && nest start --watch",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
@@ -25,7 +25,7 @@
     "deploy:prod": "npm run build && gcloud app deploy -q --appyaml=./app.yaml --project=nftc-infinity"
   },
   "dependencies": {
-    "@infinityxyz/lib": "^1.261.0",
+    "@infinityxyz/lib": "^1.262.0",
     "@nestjs/common": "^9.1.2",
     "@nestjs/config": "^2.2.0",
     "@nestjs/core": "^9.1.2",
