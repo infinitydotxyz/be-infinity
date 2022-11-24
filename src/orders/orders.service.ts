@@ -32,6 +32,7 @@ import { OrderItemTokenMetadata, OrderMetadata } from './order.types';
 import { getReservoirAsks, getReservoirBids } from '../utils/reservoir';
 import { ReservoirResponse } from '../utils/reservoir-types';
 import { BaseOrdersService } from './base-orders/base-orders.service';
+import { UserOrdersService } from './user-orders/user-orders.service';
 
 @Injectable()
 export default class OrdersService extends BaseOrdersService {
@@ -47,7 +48,8 @@ export default class OrdersService extends BaseOrdersService {
     private collectionService: CollectionsService,
     private nftsService: NftsService,
     private userParser: UserParserService,
-    private ethereumService: EthereumService
+    private ethereumService: EthereumService,
+    protected userOrdersService: UserOrdersService
   ) {
     super(firebaseService, cursorService);
     const ordersCounterDocRef = this.firebaseService.firestore
@@ -95,6 +97,11 @@ export default class OrdersService extends BaseOrdersService {
 
       for (const order of orders) {
         // get data
+        try {
+          await this.userOrdersService.claimNonce(order.makerAddress, order.chainId as ChainId, order.nonce);
+        } catch (err) {
+          throw new Error(`Invalid nonce ${order.nonce}`);
+        }
         const orderId = orderHash(order.signedOrder);
         const dataToStore = this.getFirestoreOrderFromSignedOBOrder(maker, makerUsername, order, orderId);
         // save
