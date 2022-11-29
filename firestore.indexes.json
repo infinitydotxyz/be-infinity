@@ -1,6 +1,42 @@
 {
   "indexes": [
     {
+      "collectionGroup": "_referralsLedger",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "requiresProcessing",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "_rewardsLedger",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "requiresProcessing",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "aggregatedCollectionSales",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
@@ -729,50 +765,6 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "mostRecentCompletedBlock.stats.blockApr",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "currentBlock.metadata.collectionAddress",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "curationSnippets",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "metadata.stakerContractAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.stakerContractChainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "mostRecentCompletedBlock.stats.numCuratorVotes",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "mostRecentCompletedBlock.metadata.collectionAddress",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "curationSnippets",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "metadata.stakerContractAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.stakerContractChainId",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "stats.feesAPR",
           "order": "ASCENDING"
         },
@@ -796,6 +788,32 @@
         },
         {
           "fieldPath": "stats.feesAPR",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "metadata.collectionAddress",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "curationSnippets",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "metadata.stakerContractAddress",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.stakerContractChainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "stats.numCuratorVotes",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "currentBlock.metadata.timestamp",
           "order": "DESCENDING"
         },
         {
@@ -893,32 +911,6 @@
         {
           "fieldPath": "stats.blockApr",
           "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.collectionAddress",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "curationSnippetUsers",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "metadata.stakerContractAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.stakerContractChainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.userAddress",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "stats.votes",
-          "order": "ASCENDING"
         },
         {
           "fieldPath": "metadata.collectionAddress",
@@ -5765,6 +5757,38 @@
       ]
     },
     {
+      "collectionGroup": "rewardsLedger",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "isAggregated",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "isMerged",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "rewardsLedger",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "isMerged",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "sales",
       "queryScope": "COLLECTION",
       "fields": [
@@ -6037,6 +6061,24 @@
         {
           "fieldPath": "pendingSince",
           "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "userNonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "contractAddress",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "nonce",
+          "order": "DESCENDING"
         }
       ]
     },
