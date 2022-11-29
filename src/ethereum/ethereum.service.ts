@@ -37,7 +37,7 @@ export class EthereumService {
     }
   }
 
-  private getProvider(chainId: ChainId) {
+  getProvider(chainId: ChainId) {
     const provider = this._providers.get(chainId);
     if (!provider) {
       throw new Error(`Provider is not configured for chainId: ${chainId}`);

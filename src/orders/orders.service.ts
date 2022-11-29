@@ -1,5 +1,6 @@
 import {
   ChainId,
+  ChainOBOrder,
   Collection,
   CreationFlow,
   EntrantLedgerItemVariant,
@@ -13,8 +14,8 @@ import {
   Token
 } from '@infinityxyz/lib/types/core';
 import { EventType, MultiOrderEvent, OrderBookEvent, OrderItemData } from '@infinityxyz/lib/types/core/feed';
-import { ChainNFTsDto, SignedOBOrderDto, SignedOBOrderWithoutMetadataDto } from '@infinityxyz/lib/types/dto/orders';
-import { firestoreConstants, getInfinityLink, orderHash, trimLowerCase } from '@infinityxyz/lib/utils';
+import { ChainNFTsDto, SignedOBOrderDto } from '@infinityxyz/lib/types/dto/orders';
+import { firestoreConstants, getInfinityLink, trimLowerCase } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import CollectionsService from 'collections/collections.service';
 import { NftsService } from 'collections/nfts/nfts.service';
@@ -33,6 +34,7 @@ import { getReservoirAsks, getReservoirBids } from '../utils/reservoir';
 import { ReservoirResponse } from '../utils/reservoir-types';
 import { BaseOrdersService } from './base-orders/base-orders.service';
 import { UserOrdersService } from './user-orders/user-orders.service';
+import { ChainOBOrderHelper } from './chain-ob-order-helper';
 
 @Injectable()
 export default class OrdersService extends BaseOrdersService {
@@ -75,8 +77,8 @@ export default class OrdersService extends BaseOrdersService {
     );
   }
 
-  private updateOrderCounters(order: SignedOBOrderWithoutMetadataDto) {
-    if (order.signedOrder.isSellOrder) {
+  private updateOrderCounters(order: ChainOBOrderHelper) {
+    if (order.isSellOrder) {
       this.numSellOrderItems.incrementBy(order.numItems);
       this.openSellInterest.incrementBy(order.startPriceEth);
     } else {
@@ -85,21 +87,24 @@ export default class OrdersService extends BaseOrdersService {
     }
   }
 
-  public async createOrder(maker: string, orders: SignedOBOrderWithoutMetadataDto[]): Promise<void> {
+  public async createOrder(chainId: ChainId, maker: string, orders: ChainOBOrderHelper[]): Promise<void> {
     try {
       const fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
       const ordersCollectionRef = this.firebaseService.firestore.collection(firestoreConstants.ORDERS_COLL);
       const makerProfile = await this.userService.getProfileForUserAddress(maker);
       const makerUsername = makerProfile?.username ?? '';
 
-      // fill order with metadata
-      const metadata = await this.getOrderMetadata(orders);
+      // get metadata for orders
+      const metadata = await this.getOrderMetadata(
+        chainId,
+        orders.map((item) => item.getSignedOrder())
+      );
 
       for (const order of orders) {
         // get data
-        await this.userOrdersService.claimNonce(order.makerAddress, order.chainId as ChainId, order.nonce);
-        const orderId = orderHash(order.signedOrder);
-        const dataToStore = this.getFirestoreOrderFromSignedOBOrder(maker, makerUsername, order, orderId);
+        await this.userOrdersService.claimNonce(order.signer, chainId, parseInt(order.nonce, 10));
+        const orderId = order.hash();
+        const dataToStore = this.getFirestoreOrder(chainId, makerUsername, order);
         // save
         const docRef = ordersCollectionRef.doc(orderId);
         fsBatchHandler.add(docRef, dataToStore, { merge: true });
@@ -114,7 +119,7 @@ export default class OrdersService extends BaseOrdersService {
         // get order items
         const orderItemsRef = docRef.collection(firestoreConstants.ORDER_ITEMS_SUB_COLL);
         const orderItems: (FirestoreOrderItem & { orderItemId: string })[] = [];
-        for (const nft of order.signedOrder.nfts) {
+        for (const nft of order.nfts) {
           if (nft.tokens.length === 0) {
             // to support any tokens from a collection type orders
             const emptyToken: OrderItemTokenMetadata = {
@@ -125,13 +130,13 @@ export default class OrdersService extends BaseOrdersService {
               tokenSlug: '',
               attributes: []
             };
-            const collection = metadata?.[order.chainId as ChainId]?.[nft.collection]?.collection ?? {};
-            const orderItemData = await this.getFirestoreOrderItemFromSignedOBOrder(
+            const collection = metadata?.[chainId]?.[nft.collection]?.collection ?? {};
+            const orderItemData = await this.getFirestoreOrderItem(
+              chainId,
               order,
               nft,
               emptyToken,
               orderId,
-              maker,
               makerUsername,
               collection
             );
@@ -142,7 +147,7 @@ export default class OrdersService extends BaseOrdersService {
             orderItems.push({ ...orderItemData, orderItemId: orderItemDocRef.id });
           } else {
             for (const token of nft.tokens) {
-              const orderItemMetadata = metadata?.[order.chainId as ChainId]?.[nft.collection];
+              const orderItemMetadata = metadata?.[chainId]?.[nft.collection];
               const tokenData = orderItemMetadata?.nfts?.[token.tokenId];
               const collection = orderItemMetadata?.collection ?? {};
               const orderItemTokenMetadata: OrderItemTokenMetadata = {
@@ -155,12 +160,12 @@ export default class OrdersService extends BaseOrdersService {
                 attributes: (tokenData?.metadata as Erc721Metadata)?.attributes ?? [] // todo: ERC1155?
               };
 
-              const orderItemData = await this.getFirestoreOrderItemFromSignedOBOrder(
+              const orderItemData = await this.getFirestoreOrderItem(
+                chainId,
                 order,
                 nft,
                 orderItemTokenMetadata,
                 orderId,
-                maker,
                 makerUsername,
                 collection
               );
@@ -174,8 +179,8 @@ export default class OrdersService extends BaseOrdersService {
         }
 
         // write order to feed
-        this.writeOrderToFeed(makerUsername, order, orderItems, fsBatchHandler);
-        const currentBlockNumber = await this.ethereumService.getCurrentBlockNumber(order.chainId as ChainId);
+        this.writeOrderToFeed(chainId, makerUsername, order, orderItems, fsBatchHandler);
+        const currentBlockNumber = await this.ethereumService.getCurrentBlockNumber(chainId);
         await this.writeOrderToRewards(dataToStore, orderItems, fsBatchHandler, currentBlockNumber);
       }
       // commit batch
@@ -186,14 +191,14 @@ export default class OrdersService extends BaseOrdersService {
     }
   }
 
-  private async getOrderMetadata(orders: SignedOBOrderWithoutMetadataDto[]): Promise<OrderMetadata> {
+  private async getOrderMetadata(chainId: ChainId, orders: ChainOBOrder[]): Promise<OrderMetadata> {
     type CollectionAddress = string;
     type TokenId = string;
     const tokens: Map<ChainId, Map<CollectionAddress, Set<TokenId>>> = new Map();
 
     for (const order of orders) {
-      const collectionsByChainId = tokens.get(order.chainId as ChainId) ?? new Map<CollectionAddress, Set<TokenId>>();
-      for (const nft of order.signedOrder.nfts) {
+      const collectionsByChainId = tokens.get(chainId) ?? new Map<CollectionAddress, Set<TokenId>>();
+      for (const nft of order.nfts) {
         const tokensByCollection = collectionsByChainId.get(nft.collection) ?? new Set();
         for (const token of nft.tokens) {
           tokensByCollection.add(token.tokenId);
@@ -203,7 +208,7 @@ export default class OrdersService extends BaseOrdersService {
         }
         collectionsByChainId.set(nft.collection, tokensByCollection);
       }
-      tokens.set(order.chainId as ChainId, collectionsByChainId);
+      tokens.set(chainId, collectionsByChainId);
     }
 
     const metadata: OrderMetadata = {};
@@ -330,34 +335,29 @@ export default class OrdersService extends BaseOrdersService {
     return { orders: result, cursor: JSON.stringify(cursorObj) };
   }
 
-  private getFirestoreOrderFromSignedOBOrder(
-    makerAddress: string,
-    makerUsername: string,
-    order: SignedOBOrderWithoutMetadataDto,
-    orderId: string
-  ): FirestoreOrder {
+  private getFirestoreOrder(chainId: ChainId, makerUsername: string, order: ChainOBOrderHelper): FirestoreOrder {
     try {
       const orderStatus =
         order.startTimeMs <= Date.now() && order.endTimeMs >= Date.now()
           ? OBOrderStatus.ValidActive
           : OBOrderStatus.ValidInactive;
       const data: FirestoreOrder = {
-        id: orderId,
+        id: order.hash(),
         orderStatus,
-        chainId: order.chainId,
-        isSellOrder: order.signedOrder.isSellOrder,
+        chainId: chainId,
+        isSellOrder: order.isSellOrder,
         numItems: order.numItems,
         startPriceEth: order.startPriceEth,
         endPriceEth: order.endPriceEth,
         startTimeMs: order.startTimeMs,
         endTimeMs: order.endTimeMs,
-        maxGasPriceWei: order.maxGasPriceWei,
-        nonce: order.nonce,
-        complicationAddress: order.execParams.complicationAddress,
-        currencyAddress: order.execParams.currencyAddress,
-        makerAddress: trimLowerCase(makerAddress),
-        makerUsername: trimLowerCase(makerUsername),
-        signedOrder: order.signedOrder
+        maxGasPriceWei: order.maxGasPrice,
+        nonce: parseInt(order.nonce, 10),
+        complicationAddress: order.complication,
+        currencyAddress: order.currency,
+        makerAddress: order.signer,
+        makerUsername: makerUsername,
+        signedOrder: order.getSignedOrder()
       };
       return data;
     } catch (err) {
@@ -366,23 +366,23 @@ export default class OrdersService extends BaseOrdersService {
     }
   }
 
-  private async getFirestoreOrderItemFromSignedOBOrder(
-    order: SignedOBOrderWithoutMetadataDto,
+  private async getFirestoreOrderItem(
+    chainId: ChainId,
+    order: ChainOBOrderHelper,
     nft: ChainNFTsDto,
     token: OrderItemTokenMetadata,
     orderId: string,
-    makerAddress: string,
     makerUsername: string,
     collection: Partial<Collection>
   ): Promise<FirestoreOrderItem> {
     let takerAddress = '';
     let takerUsername = '';
-    if (!order.signedOrder.isSellOrder && nft.collection && token.tokenId) {
+    if (!order.isSellOrder && nft.collection && token.tokenId) {
       // for buy orders, fetch the current owner of the token
       takerAddress = await this.ethereumService.getErc721Owner({
         address: nft.collection,
         tokenId: token.tokenId,
-        chainId: order.chainId
+        chainId: chainId
       });
       if (takerAddress) {
         const taker = await this.userParser.parse(takerAddress);
@@ -399,15 +399,15 @@ export default class OrdersService extends BaseOrdersService {
     const data: FirestoreOrderItem = {
       id: orderId,
       orderStatus,
-      chainId: order.chainId,
-      isSellOrder: order.signedOrder.isSellOrder,
+      chainId: chainId,
+      isSellOrder: order.isSellOrder,
       numItems: order.numItems,
       startPriceEth: order.startPriceEth,
       endPriceEth: order.endPriceEth,
-      currencyAddress: order.execParams.currencyAddress,
+      currencyAddress: order.currency,
       startTimeMs: order.startTimeMs,
       endTimeMs: order.endTimeMs,
-      makerAddress: trimLowerCase(makerAddress),
+      makerAddress: trimLowerCase(order.signer),
       makerUsername: trimLowerCase(makerUsername),
       takerAddress: trimLowerCase(takerAddress),
       takerUsername: trimLowerCase(takerUsername),
@@ -421,7 +421,7 @@ export default class OrdersService extends BaseOrdersService {
       tokenImage: token.tokenImage ?? '',
       tokenName: token.tokenName ?? '',
       tokenSlug: token.tokenSlug ?? '',
-      complicationAddress: order.execParams.complicationAddress,
+      complicationAddress: order.complication,
       attributes: token.attributes
     };
     return data;
@@ -568,22 +568,24 @@ export default class OrdersService extends BaseOrdersService {
   }
 
   private writeOrderToFeed(
+    chainId: ChainId,
     makerUsername: string,
-    order: SignedOBOrderWithoutMetadataDto,
+    order: ChainOBOrderHelper,
     orderItems: (FirestoreOrderItem & { orderItemId: string })[],
     batchHandler: FirestoreBatchHandler
   ) {
     // multi/any order type
     if (orderItems.length === 0 || orderItems.length > 1) {
-      this.writeMultiOrderToFeed(makerUsername, order, orderItems, batchHandler);
+      this.writeMultiOrderToFeed(chainId, makerUsername, order, orderItems, batchHandler);
     } else {
-      this.writeSingleOrderToFeed(makerUsername, order, orderItems[0], batchHandler);
+      this.writeSingleOrderToFeed(chainId, makerUsername, order, orderItems[0], batchHandler);
     }
   }
 
   private writeSingleOrderToFeed(
+    chainId: ChainId,
     makerUsername: string,
-    order: SignedOBOrderWithoutMetadataDto,
+    order: ChainOBOrderHelper,
     orderItem: FirestoreOrderItem & { orderItemId: string },
     batchHandler: FirestoreBatchHandler
   ) {
@@ -591,8 +593,8 @@ export default class OrdersService extends BaseOrdersService {
     const usersInvolved = [orderItem.makerAddress, orderItem.takerAddress].filter((address) => !!address);
     const feedEvent: OrderBookEvent = {
       orderId: orderItem.id,
-      isSellOrder: order.signedOrder.isSellOrder,
-      type: order.signedOrder.isSellOrder ? EventType.NftListing : EventType.NftOffer,
+      isSellOrder: order.isSellOrder,
+      type: order.isSellOrder ? EventType.NftListing : EventType.NftOffer,
       orderItemId: orderItem.orderItemId,
       paymentToken: orderItem.currencyAddress,
       quantity: orderItem.numTokens,
@@ -631,8 +633,9 @@ export default class OrdersService extends BaseOrdersService {
   }
 
   private writeMultiOrderToFeed(
+    chainId: ChainId,
     makerUsername: string,
-    order: SignedOBOrderWithoutMetadataDto,
+    order: ChainOBOrderHelper,
     orderItems: (FirestoreOrderItem & { orderItemId: string })[],
     batchHandler: FirestoreBatchHandler
   ) {
@@ -670,16 +673,16 @@ export default class OrdersService extends BaseOrdersService {
     const sampleImages = orderItems.map((orderItem) => orderItem.tokenImage);
     const orderData: MultiOrderEvent = {
       title: 'Multi Order',
-      orderId: order.id,
-      chainId: order.chainId,
-      isSellOrder: order.signedOrder.isSellOrder,
-      paymentToken: order.execParams.currencyAddress,
+      orderId: order.hash(),
+      chainId: chainId,
+      isSellOrder: order.isSellOrder,
+      paymentToken: order.currency,
       quantity: order.numItems,
       startPriceEth: order.startPriceEth,
       endPriceEth: order.endPriceEth,
       startTimeMs: order.startTimeMs,
       endTimeMs: order.endTimeMs,
-      makerAddress: order.signedOrder.signer,
+      makerAddress: order.signer,
       makerUsername,
       likes: 0,
       comments: 0,
