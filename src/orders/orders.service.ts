@@ -97,11 +97,7 @@ export default class OrdersService extends BaseOrdersService {
 
       for (const order of orders) {
         // get data
-        try {
-          await this.userOrdersService.claimNonce(order.makerAddress, order.chainId as ChainId, order.nonce);
-        } catch (err) {
-          throw new Error(`Invalid nonce ${order.nonce}`);
-        }
+        await this.userOrdersService.claimNonce(order.makerAddress, order.chainId as ChainId, order.nonce);
         const orderId = orderHash(order.signedOrder);
         const dataToStore = this.getFirestoreOrderFromSignedOBOrder(maker, makerUsername, order, orderId);
         // save

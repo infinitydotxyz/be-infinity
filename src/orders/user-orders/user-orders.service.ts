@@ -2,6 +2,7 @@ import { OBOrderItem, OBOrderStatus, OrderDirection, ChainId } from '@infinityxy
 import { UserOrderCollectionsQueryDto, OrderItemsOrderBy } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants, getSearchFriendlyString, getEndCode } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
+import { InvalidNonceError } from 'common/errors/invalid-nonce.error';
 import { ContractService } from 'ethereum/contract.service';
 import { FirebaseService } from 'firebase/firebase.service';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
@@ -54,13 +55,13 @@ export class UserOrdersService extends BaseOrdersService {
       const deprecatedNonce = await this.getDeprecatedNonce(userId, txn);
 
       if (nonce <= deprecatedNonce) {
-        throw new Error('Nonce already claimed');
+        throw new InvalidNonceError(nonce, chainId, 'Nonce already claimed');
       }
 
       const nextNonceDoc = await nonceRef.get();
 
       if (nextNonceDoc.exists) {
-        throw new Error('Nonce already claimed');
+        throw new InvalidNonceError(nonce, chainId, 'Nonce already claimed');
       }
 
       const nextNonceData: UserNonce = {

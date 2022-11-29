@@ -12,6 +12,7 @@ import { instanceToPlain } from 'class-transformer';
 import { ApiTag } from 'common/api-tags';
 import { ErrorResponseDto } from 'common/dto/error-response.dto';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
+import { InvalidNonceError } from 'common/errors/invalid-nonce.error';
 import { InvalidTokenError } from 'common/errors/invalid-token-error';
 import { ResponseDescription } from 'common/response-description';
 import OrdersService from './orders.service';
@@ -56,6 +57,8 @@ export class OrdersController {
       if (err instanceof InvalidCollectionError) {
         throw new BadRequestException(err.message);
       } else if (err instanceof InvalidTokenError) {
+        throw new BadRequestException(err.message);
+      } else if (err instanceof InvalidNonceError) {
         throw new BadRequestException(err.message);
       }
       throw err;
