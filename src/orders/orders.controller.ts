@@ -35,6 +35,9 @@ export class OrdersController {
     try {
       const chainId = body.chainId;
 
+      /**
+       * handles normalizing the order data (addresses, nfts)
+       */
       const orders = body.orders.map((item) => new ChainOBOrderHelper(chainId, item));
 
       const maker = orders[0]?.signer;
@@ -109,8 +112,10 @@ export class OrdersController {
         throw new BadRequestException('All orders must have the same chainId');
       }
 
+      /**
+       * handles normalizing the order data (addresses, nfts)
+       */
       const orders = body.orders.map((item) => {
-        console.log();
         return new ChainOBOrderHelper(chainId, item.signedOrder);
       });
 
