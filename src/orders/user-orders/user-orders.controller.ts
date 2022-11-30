@@ -1,4 +1,4 @@
-import { ApiRole, OBOrderItem } from '@infinityxyz/lib/types/core';
+import { ApiRole, ChainId, OBOrderItem } from '@infinityxyz/lib/types/core';
 import {
   SignedOBOrderArrayDto,
   ErrorResponseDto,
@@ -81,11 +81,10 @@ export class UserOrdersController {
     description: 'Get order nonce for user',
     tags: [ApiTag.Orders]
   })
-  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  public async getOrderNonce(@Param('userId') userId: string): Promise<number> {
-    return await this.userOrdersService.getOrderNonce(userId);
+  public async getOrderNonce(@Param('userId') userId: string, @Query('chainId') chainId?: ChainId): Promise<number> {
+    return await this.userOrdersService.getNonce(userId, chainId ?? ChainId.Mainnet);
   }
 }

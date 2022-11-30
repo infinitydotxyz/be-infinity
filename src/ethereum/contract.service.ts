@@ -1,7 +1,13 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { ERC20ABI } from '@infinityxyz/lib/abi/erc20';
 import { InfinityCmDistributorABI } from '@infinityxyz/lib/abi/infinityCmDistributor';
-import { getCmDistributorAddress, getStakerAddress, getTokenAddress, NULL_ADDRESS } from '@infinityxyz/lib/utils';
+import {
+  getCmDistributorAddress,
+  getExchangeAddress,
+  getStakerAddress,
+  getTokenAddress,
+  NULL_ADDRESS
+} from '@infinityxyz/lib/utils';
 import { InfinityStakerABI } from '@infinityxyz/lib/abi/infinityStaker';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { EthereumService } from './ethereum.service';
@@ -44,6 +50,12 @@ export class ContractService {
       address: tokenAddress,
       chainId: chainId
     });
+  }
+
+  getExchangeAddress(chainId: ChainId) {
+    const env = this.configService.get('INFINITY_NODE_ENV');
+    const exchange = getExchangeAddress(chainId, env);
+    return exchange;
   }
 
   getStakerAddress(chainId: ChainId) {
