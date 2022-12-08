@@ -82,7 +82,6 @@ export class OrdersController {
         }
       }
 
-      // call service
       await this.ordersService.createOrder(chainId, maker, orders);
     } catch (err) {
       if (err instanceof InvalidCollectionError) {

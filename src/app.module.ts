@@ -32,6 +32,7 @@ import { RafflesModule } from './raffles/raffles.module';
 import { FavoritesModule } from 'favorites/favorites.module';
 import { MerkleTreeModule } from './merkle-tree/merkle-tree.module';
 import { SearchModule } from './search/search.module';
+import { OrdersV2Module } from './orders-v2/orders-v2.module';
 
 @Module({
   imports: [
@@ -70,7 +71,8 @@ import { SearchModule } from './search/search.module';
     RafflesModule,
     FavoritesModule,
     MerkleTreeModule,
-    SearchModule
+    SearchModule,
+    OrdersV2Module
   ],
   providers: [
     {
