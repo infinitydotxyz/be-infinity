@@ -85,6 +85,7 @@ export class UserOrdersController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   public async getOrderNonce(@Param('userId') userId: string, @Query('chainId') chainId?: ChainId): Promise<number> {
-    return await this.userOrdersService.getNonce(userId, chainId ?? ChainId.Mainnet);
+    const nonce = await this.userOrdersService.getNonce(userId, chainId ?? ChainId.Mainnet);
+    return parseInt(nonce.toString(), 10);
   }
 }

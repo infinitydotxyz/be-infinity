@@ -2,20 +2,30 @@ import { OBOrderItem, OBOrderStatus, OrderDirection, ChainId } from '@infinityxy
 import { UserOrderCollectionsQueryDto, OrderItemsOrderBy } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants, getSearchFriendlyString, getEndCode } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
+import { InvalidNonceError } from 'common/errors/invalid-nonce.error';
 import { ContractService } from 'ethereum/contract.service';
 import { FirebaseService } from 'firebase/firebase.service';
-import { NonceService } from 'orders-v2/nonce/nonce.service';
+import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
+import { BaseOrdersService } from 'orders/base-orders/base-orders.service';
 import { CursorService } from 'pagination/cursor.service';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 
+interface UserNonce {
+  nonce: number;
+  userAddress: string;
+  chainId: ChainId;
+  contractAddress: string;
+  fillability: 'fillable' | 'cancelled' | 'filled';
+}
+
 @Injectable()
-export class UserOrdersService extends NonceService {
+export class UserOrdersService extends BaseOrdersService {
   constructor(
-    protected firebaseService: FirebaseService,
-    protected cursorService: CursorService,
+    firebaseService: FirebaseService,
+    cursorService: CursorService,
     protected contractService: ContractService
   ) {
-    super(firebaseService, contractService);
+    super(firebaseService, contractService, cursorService);
   }
 
   public async getUserOrderCollections(

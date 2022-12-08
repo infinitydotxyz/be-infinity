@@ -16,13 +16,21 @@ import {
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { BadQueryError } from 'common/errors/bad-query.error';
+import { ContractService } from 'ethereum/contract.service';
 import { FirebaseService } from 'firebase/firebase.service';
+import { NonceService } from 'orders-v2/nonce/nonce.service';
 import { CursorService } from 'pagination/cursor.service';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 
 @Injectable()
-export class BaseOrdersService {
-  constructor(protected firebaseService: FirebaseService, protected cursorService: CursorService) {}
+export class BaseOrdersService extends NonceService {
+  constructor(
+    protected firebaseService: FirebaseService,
+    contractService: ContractService,
+    protected cursorService: CursorService
+  ) {
+    super(firebaseService, contractService);
+  }
 
   public async getSignedOBOrders(
     reqQuery: UserOrderItemsQueryDto,
