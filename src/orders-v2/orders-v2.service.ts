@@ -165,6 +165,8 @@ export class OrdersV2Service extends BaseOrdersService {
       endTime: number;
       id: string;
     };
+
+    console.log(JSON.stringify(query, null, 2));
     const filterBySellOrder = query.isSellOrder != null;
     const filterByStatus = query.status != null;
 
@@ -200,7 +202,7 @@ export class OrdersV2Service extends BaseOrdersService {
       case OrderBy.Price: {
         firestoreQuery = firestoreQuery
           .where('order.startPriceEth', '>=', minPrice)
-          .where('order.startPriceEth', '<=', maxPrice)
+          .where('order.startPriceEth', '<', maxPrice)
           .orderBy('order.startPriceEth', orderDirection) // TODO support dynamic orders - use currentPriceEth and handle price updates
           .orderBy('metadata.id', orderDirection);
         if (cursor.id && cursor.startPrice) {
