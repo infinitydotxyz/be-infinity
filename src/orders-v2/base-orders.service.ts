@@ -1,4 +1,4 @@
-import { ChainId } from '@infinityxyz/lib/types/core';
+import { ChainId, OrderCreatedEvent, OrderEventKind } from '@infinityxyz/lib/types/core';
 import { Injectable } from '@nestjs/common';
 import { ContractService } from 'ethereum/contract.service';
 import { EthereumService } from 'ethereum/ethereum.service';
@@ -6,7 +6,6 @@ import { FirebaseService } from 'firebase/firebase.service';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
 import { ChainOBOrderHelper } from 'orders/chain-ob-order-helper';
 import { NonceService } from './nonce/nonce.service';
-import { OrderCreatedEvent, OrderEventKind } from './types';
 
 @Injectable()
 export class BaseOrdersService extends NonceService {
