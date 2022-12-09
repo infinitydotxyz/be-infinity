@@ -53,10 +53,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "order.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "metadata.chainId",
           "order": "ASCENDING"
         },
@@ -82,10 +78,6 @@
       "collectionGroup": "collectionV2Orders",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "ASCENDING"
-        },
         {
           "fieldPath": "metadata.chainId",
           "order": "ASCENDING"
@@ -253,10 +245,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "order.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "metadata.chainId",
           "order": "ASCENDING"
         },
@@ -282,10 +270,6 @@
       "collectionGroup": "tokenV2Orders",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "ASCENDING"
-        },
         {
           "fieldPath": "metadata.chainId",
           "order": "ASCENDING"
@@ -493,10 +477,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "order.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "metadata.chainId",
           "order": "ASCENDING"
         },
@@ -523,10 +503,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "order.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "metadata.chainId",
           "order": "ASCENDING"
         },
@@ -549,10 +525,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "order.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "metadata.chainId",
           "order": "ASCENDING"
         },
@@ -574,10 +546,6 @@
       "collectionGroup": "makerV2Orders",
       "queryScope": "COLLECTION",
       "fields": [
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "ASCENDING"
-        },
         {
           "fieldPath": "metadata.chainId",
           "order": "ASCENDING"
@@ -829,10 +797,6 @@
       "queryScope": "COLLECTION_GROUP",
       "fields": [
         {
-          "fieldPath": "order.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
           "fieldPath": "metadata.chainId",
           "order": "ASCENDING"
         },
@@ -862,10 +826,6 @@
       "collectionGroup": "tokenV2Orders",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "ASCENDING"
-        },
         {
           "fieldPath": "metadata.chainId",
           "order": "ASCENDING"
