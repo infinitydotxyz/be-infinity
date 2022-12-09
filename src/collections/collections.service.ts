@@ -274,7 +274,7 @@ export default class CollectionsService {
     returnData = returnData.slice(0, search.limit);
 
     for (const item of returnData) {
-      cursor[item.key] = item.data.slug;
+      cursor[item.key] = { slug: item.data.slug };
     }
 
     return {
