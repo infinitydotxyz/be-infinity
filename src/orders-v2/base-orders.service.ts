@@ -1,4 +1,5 @@
 import { ChainId, OrderCreatedEvent, OrderEventKind } from '@infinityxyz/lib/types/core';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { ContractService } from 'ethereum/contract.service';
 import { EthereumService } from 'ethereum/ethereum.service';
@@ -81,9 +82,9 @@ export class BaseOrdersService extends NonceService {
     return orders.map((item) => {
       const orderId = item.hash();
       const ref = this._firebaseService.firestore
-        .collection('ordersV2')
+        .collection(firestoreConstants.ORDERS_V2_COLL)
         .doc(orderId)
-        .collection('orderEvents')
+        .collection(firestoreConstants.ORDER_EVENTS_COLL)
         .doc() as FirebaseFirestore.DocumentReference<OrderCreatedEvent>;
       const event: OrderCreatedEvent = {
         metadata: {

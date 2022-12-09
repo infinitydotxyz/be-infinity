@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { BackfillModule } from 'backfill/backfill.module';
 import { EthereumModule } from 'ethereum/ethereum.module';
+import { OrdersV2Module } from 'orders-v2/orders-v2.module';
 import { PaginationModule } from 'pagination/pagination.module';
 import { ReservoirModule } from 'reservoir/reservoir.module';
 import { StatsModule } from 'stats/stats.module';
@@ -16,7 +17,16 @@ import { NftsController } from './nfts/nfts.controller';
 import { NftsService } from './nfts/nfts.service';
 
 @Module({
-  imports: [StatsModule, TwitterModule, ZoraModule, ReservoirModule, PaginationModule, EthereumModule, BackfillModule],
+  imports: [
+    StatsModule,
+    TwitterModule,
+    ZoraModule,
+    ReservoirModule,
+    PaginationModule,
+    EthereumModule,
+    BackfillModule,
+    OrdersV2Module
+  ],
   providers: [CollectionsService, NftsService, AttributesService, CurationService],
   controllers: [CollectionsController, NftsController, AttributesController, CurationController],
   exports: [CollectionsService, NftsService, AttributesService, CurationService]

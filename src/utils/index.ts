@@ -1,6 +1,6 @@
 import { trimLowerCase } from '@infinityxyz/lib/utils';
-import BigNumber from 'bignumber.js';
 import { createHash, randomInt } from 'crypto';
+import { BigNumber, BigNumberish } from 'ethers';
 import { List, uniqBy } from 'lodash';
 import { customAlphabet } from 'nanoid';
 
@@ -12,19 +12,9 @@ export function deepCopy(object: any) {
   return JSON.parse(JSON.stringify(object));
 }
 
-export function bn(num: BigNumber.Value) {
-  // @ts-expect-error not sure
-  const bigNum = BigNumber(num);
-  // Console.log(num + '   ====== bigNUm ' + bigNum);
-  // Console.log(__line);
+export function bn(num: BigNumberish) {
+  const bigNum = BigNumber.from(num);
   return bigNum;
-}
-
-export function toFixed5(num: BigNumber.Value) {
-  // eslint-disable-next-line no-undef
-  // Console.log(__line);
-  return +bn(num).toFixed(5);
-  // Return +num.toString().match(/^-?\d+(?:\.\d{0,5})?/)[0];
 }
 
 export function getUniqueItemsByProperties<T>(items: List<T> | null | undefined, property: string) {
