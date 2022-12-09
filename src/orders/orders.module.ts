@@ -9,11 +9,12 @@ import { UserOrdersController } from './user-orders/user-orders.controller';
 import { UserOrdersService } from './user-orders/user-orders.service';
 import { BaseOrdersService } from './base-orders/base-orders.service';
 import OrdersService from './orders.service';
+import { OrdersV2Module } from 'orders-v2/orders-v2.module';
 
 @Module({
   providers: [OrdersService, UserOrdersService, BaseOrdersService],
   controllers: [OrdersController, UserOrdersController],
   exports: [OrdersService],
-  imports: [UserModule, AuthModule, CollectionsModule, EthereumModule, PaginationModule]
+  imports: [UserModule, AuthModule, CollectionsModule, EthereumModule, PaginationModule, OrdersV2Module]
 })
 export class OrdersModule {}

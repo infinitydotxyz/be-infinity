@@ -20,6 +20,11 @@ export enum OrderStatus {
   Expired = 'expired'
 }
 
+export enum Side {
+  Maker = 'maker',
+  Taker = 'taker'
+}
+
 export class BaseOrderQuery {
   @ApiPropertyOptional({
     description: 'Filter by order type'
@@ -90,12 +95,15 @@ export class BaseOrderQuery {
 
 export class CollectionOrdersQuery extends BaseOrderQuery {}
 
-export class TokenOrdersQuery extends CollectionOrdersQuery {
-  // @ApiProperty({
-  //   description: 'Filter by token id'
-  // })
-  // @IsString()
-  // tokenId: string;
+export class TokenOrdersQuery extends CollectionOrdersQuery {}
+
+export class UserOrdersQuery extends BaseOrderQuery {
+  @ApiProperty({
+    description: "Filter by user's role",
+    enum: Side
+  })
+  @IsEnum(Side)
+  side: Side;
 }
 
-export type OrderQueries = CollectionOrdersQuery | TokenOrdersQuery;
+export type OrderQueries = CollectionOrdersQuery | TokenOrdersQuery | UserOrdersQuery;

@@ -1,4 +1,10 @@
-import { ChainId, FirestoreDisplayOrderWithoutError, OrderDirection, Order } from '@infinityxyz/lib/types/core';
+import {
+  ChainId,
+  FirestoreDisplayOrderWithoutError,
+  OrderDirection,
+  Order,
+  FirestoreDisplayOrder
+} from '@infinityxyz/lib/types/core';
 import { firestoreConstants, formatEth, getOBOrderPrice } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { ContractService } from 'ethereum/contract.service';
@@ -7,7 +13,7 @@ import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
 import { bn } from 'utils';
 import { BaseOrdersService } from './base-orders.service';
-import { BaseOrderQuery, OrderBy, OrderQueries } from './query';
+import { OrderBy, OrderQueries, Side } from './query';
 
 @Injectable()
 export class OrdersV2Service extends BaseOrdersService {
@@ -20,31 +26,65 @@ export class OrdersV2Service extends BaseOrdersService {
     super(firebaseService, contractService, ethereumService);
   }
 
-  public async getDisplayOrders(chainId: ChainId, query: OrderQueries, collection: string, tokenId?: string) {
-    let ref;
-    if (tokenId) {
+  public async getDisplayOrders(
+    chainId: ChainId,
+    query: OrderQueries,
+    asset: { collection: string } | { collection: string; tokenId: string } | { user: string }
+  ) {
+    let ref:
+      | FirebaseFirestore.CollectionReference<FirestoreDisplayOrderWithoutError>
+      | FirebaseFirestore.CollectionGroup<FirestoreDisplayOrderWithoutError>;
+    if ('tokenId' in asset) {
       ref = this._firebaseService.firestore
         .collection(firestoreConstants.COLLECTIONS_COLL)
-        .doc(`${chainId}:${collection}`)
+        .doc(`${chainId}:${asset.collection}`)
         .collection('nfts')
-        .doc(`${tokenId}`)
+        .doc(`${asset.tokenId}`)
         .collection(
           firestoreConstants.TOKEN_ORDERS_COLL
         ) as FirebaseFirestore.CollectionReference<FirestoreDisplayOrderWithoutError>;
-    } else {
+    } else if ('collection' in asset) {
       ref = this._firebaseService.firestore
         .collection(firestoreConstants.COLLECTIONS_COLL)
-        .doc(`${chainId}:${collection}`)
+        .doc(`${chainId}:${asset.collection}`)
         .collection(
           firestoreConstants.COLLECTION_ORDERS_COLL
         ) as FirebaseFirestore.CollectionReference<FirestoreDisplayOrderWithoutError>;
+    } else if ('user' in asset && 'side' in query) {
+      if (query.side === Side.Maker) {
+        ref = this._firebaseService.firestore
+          .collection('users')
+          .doc(asset.user)
+          .collection(
+            firestoreConstants.MAKER_ORDERS_COLL
+          ) as FirebaseFirestore.CollectionReference<FirestoreDisplayOrderWithoutError>;
+      } else {
+        ref = this._firebaseService.firestore
+          .collectionGroup(firestoreConstants.TOKEN_ORDERS_COLL)
+          .where(
+            'order.owners',
+            'array-contains',
+            asset.user
+          ) as FirebaseFirestore.CollectionGroup<FirestoreDisplayOrderWithoutError>;
+      }
+    } else {
+      throw new Error('Invalid asset');
     }
-    return this.getOrders(chainId, query, ref);
+
+    return this._getOrders(chainId, query, ref);
   }
 
-  public async transformDisplayOrders(chainId: ChainId, displayOrders: FirestoreDisplayOrderWithoutError[]) {
-    const gasPrice = await this._ethereumService.getGasPrice(chainId);
-    console.log(`Current Gas Price: ${gasPrice.baseFeeGwei} gwei`);
+  public transformDisplayOrders(
+    gasPrice: {
+      baseFee: string;
+      baseFeeGwei: string;
+      maxBaseFeeWei: string;
+      minBaseFeeWei: string;
+      maxBaseFeeGwei: string;
+      minBaseFeeGwei: string;
+    },
+    displayOrders: FirestoreDisplayOrderWithoutError[]
+  ) {
     return displayOrders.map((item: FirestoreDisplayOrderWithoutError) => {
       let startPriceWei = bn(item.order.startPrice);
       let endPriceWei = bn(item.order.endPrice);
@@ -88,6 +128,7 @@ export class OrdersV2Service extends BaseOrdersService {
         id: item.metadata.id,
         chainId: item.metadata.chainId,
         createdAt: item.metadata.createdAt,
+        isSellOrder: item.order.isSellOrder,
         startTimeMs: item.order.startTimeMs,
         endTimeMs: item.order.endTimeMs,
         currentPriceEth,
@@ -111,10 +152,12 @@ export class OrdersV2Service extends BaseOrdersService {
     });
   }
 
-  protected async getOrders(
+  protected async _getOrders(
     chainId: ChainId,
-    query: BaseOrderQuery,
-    ref: FirebaseFirestore.CollectionReference<FirestoreDisplayOrderWithoutError>
+    query: OrderQueries,
+    ref:
+      | FirebaseFirestore.CollectionReference<FirestoreDisplayOrderWithoutError>
+      | FirebaseFirestore.CollectionGroup<FirestoreDisplayOrderWithoutError>
   ) {
     type Cursor = {
       startPrice: number;
@@ -185,7 +228,10 @@ export class OrdersV2Service extends BaseOrdersService {
       }
     }
 
-    const snap = await firestoreQuery.limit(limit + 1).get();
+    const [gasPrice, snap] = await Promise.all([
+      this._ethereumService.getGasPrice(chainId),
+      firestoreQuery.limit(limit + 1).get()
+    ]);
 
     const orders = snap.docs.map((item) => item.data());
 
@@ -195,17 +241,17 @@ export class OrdersV2Service extends BaseOrdersService {
       orders.pop();
     }
 
-    const lastOrder = orders[orders.length - 1];
+    const lastOrder: FirestoreDisplayOrder | undefined = orders[orders.length - 1];
 
     const newCursor: Cursor = {
-      startPrice: lastOrder.order.startPriceEth,
-      startTime: lastOrder.order.startTimeMs,
-      endTime: lastOrder.order.endTimeMs,
-      id: lastOrder.metadata.id
+      startPrice: lastOrder?.order?.startPriceEth ?? cursor.startPrice ?? 0,
+      startTime: lastOrder?.order?.startTimeMs ?? cursor.startTime ?? 0,
+      endTime: lastOrder?.order?.endTimeMs ?? cursor.endTime ?? 0,
+      id: lastOrder?.metadata?.id ?? cursor.id ?? ''
     };
 
     const encodedCursor = this.cursorService.encodeCursor(newCursor);
-    const transformed = await this.transformDisplayOrders(chainId, orders);
+    const transformed = this.transformDisplayOrders(gasPrice, orders);
     return {
       data: transformed,
       cursor: encodedCursor,

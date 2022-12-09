@@ -266,7 +266,9 @@ export class CollectionsController {
     @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
     @Query() query: CollectionOrdersQuery
   ): Promise<any> {
-    const orders = await this.ordersService.getDisplayOrders(collection.chainId, query, collection.address);
+    const orders = await this.ordersService.getDisplayOrders(collection.chainId, query, {
+      collection: collection.address
+    });
 
     return orders;
   }

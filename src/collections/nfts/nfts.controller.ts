@@ -14,7 +14,6 @@ import { ErrorResponseDto } from 'common/dto/error-response.dto';
 import { BadQueryError } from 'common/errors/bad-query.error';
 import { CacheControlInterceptor } from 'common/interceptors/cache-control.interceptor';
 import { ResponseDescription } from 'common/response-description';
-import { FirebaseService } from 'firebase/firebase.service';
 import { NftsService } from './nfts.service';
 import {
   NftActivityArrayDto,
@@ -23,10 +22,12 @@ import {
   NftDto,
   NftsQueryDto
 } from '@infinityxyz/lib/types/dto/collections/nfts';
+import { OrdersV2Service } from 'orders-v2/orders-v2.service';
+import { TokenOrdersQuery } from 'orders-v2/query';
 
 @Controller('collections')
 export class NftsController {
-  constructor(private nftService: NftsService, private firebaseService: FirebaseService) {}
+  constructor(protected nftService: NftsService, protected ordersService: OrdersV2Service) {}
 
   @Get(':id/nfts')
   @ApiOperation({
@@ -104,6 +105,26 @@ export class NftsController {
     }
 
     return nft;
+  }
+
+  @Get(':id/nfts/:tokenId/orders')
+  @ApiOperation({
+    description: 'Get orders for a single nft',
+    tags: [ApiTag.Nft]
+  })
+  @ApiParamCollectionId('id')
+  @ApiParamTokenId('tokenId')
+  @ApiOkResponse({ description: ResponseDescription.Success, type: NftDto })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  async getNftOrders(
+    @ParamCollectionId('id', ParseCollectionIdPipe) { address, chainId }: ParsedCollectionId,
+    @ParamTokenId('tokenId') tokenId: string,
+    @Query() query: TokenOrdersQuery
+  ) {
+    const orders = await this.ordersService.getDisplayOrders(chainId, query, { collection: address, tokenId });
+    return orders;
   }
 
   @Get(':id/nfts/:tokenId/refresh-metadata')

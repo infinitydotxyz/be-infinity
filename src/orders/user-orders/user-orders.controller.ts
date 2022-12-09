@@ -3,8 +3,7 @@ import {
   SignedOBOrderArrayDto,
   ErrorResponseDto,
   UserOrderCollectionsQueryDto,
-  OBOrderItemDto,
-  UserOrderItemsQueryDto
+  OBOrderItemDto
 } from '@infinityxyz/lib/types/dto';
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiOperation, ApiOkResponse, ApiBadRequestResponse, ApiInternalServerErrorResponse } from '@nestjs/swagger';
@@ -13,6 +12,8 @@ import { SiteRole } from 'auth/auth.constants';
 import { ParamUserId } from 'auth/param-user-id.decorator';
 import { ApiTag } from 'common/api-tags';
 import { ResponseDescription } from 'common/response-description';
+import { OrdersV2Service } from 'orders-v2/orders-v2.service';
+import { UserOrdersQuery } from 'orders-v2/query';
 import { OBOrderCollectionsArrayDto } from 'orders/types';
 import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
@@ -20,24 +21,24 @@ import { UserOrdersService } from './user-orders.service';
 
 @Controller('userOrders')
 export class UserOrdersController {
-  constructor(protected userOrdersService: UserOrdersService) {}
+  constructor(protected userOrdersService: UserOrdersService, protected ordersService: OrdersV2Service) {}
 
-  @Get(':userId')
-  @ApiOperation({
-    description: 'Get orders for a user',
-    tags: [ApiTag.Orders, ApiTag.User]
-  })
-  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
-  @ApiOkResponse({ description: ResponseDescription.Success, type: SignedOBOrderArrayDto })
-  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  public async getUserOrders(
-    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
-    @Query() reqQuery: UserOrderItemsQueryDto
-  ): Promise<SignedOBOrderArrayDto> {
-    const results = await this.userOrdersService.getSignedOBOrders(reqQuery, user);
-    return results;
-  }
+  // @Get(':userId')
+  // @ApiOperation({
+  //   description: 'Get orders for a user',
+  //   tags: [ApiTag.Orders, ApiTag.User]
+  // })
+  // @Auth(SiteRole.User, ApiRole.Guest, 'userId')
+  // @ApiOkResponse({ description: ResponseDescription.Success, type: SignedOBOrderArrayDto })
+  // @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  // @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  // public async getUserOrders(
+  //   @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
+  //   @Query() reqQuery: UserOrderItemsQueryDto
+  // ): Promise<SignedOBOrderArrayDto> {
+  //   const results = await this.userOrdersService.getSignedOBOrders(reqQuery, user);
+  //   return results;
+  // }
 
   @Get(':userId/collections')
   @ApiOperation({
@@ -87,5 +88,21 @@ export class UserOrdersController {
   public async getOrderNonce(@Param('userId') userId: string, @Query('chainId') chainId?: ChainId): Promise<number> {
     const nonce = await this.userOrdersService.getNonce(userId, chainId ?? ChainId.Mainnet);
     return parseInt(nonce.toString(), 10);
+  }
+
+  @Get(':userId')
+  @ApiOperation({
+    description: 'Get orders for a user',
+    tags: [ApiTag.Orders, ApiTag.User]
+  })
+  @ApiOkResponse({ description: ResponseDescription.Success }) // TODO add type
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  public async getUserOrders(
+    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
+    @Query() query: UserOrdersQuery
+  ) {
+    const orders = await this.ordersService.getDisplayOrders(ChainId.Mainnet, query, { user: user.userAddress });
+    return orders;
   }
 }
