@@ -84,18 +84,23 @@ export class BaseOrderQuery {
   @IsOptional()
   @IsEnum(OrderDirection)
   orderDirection?: OrderDirection;
-
-  @ApiPropertyOptional({
-    description: 'Order status to filter by'
-  })
-  @IsOptional()
-  @IsEnum(OrderStatus)
-  status?: OrderStatus;
 }
 
-export class CollectionOrdersQuery extends BaseOrderQuery {}
+export class CollectionOrdersQuery extends BaseOrderQuery {
+  @ApiProperty({
+    description: 'Order status to filter by'
+  })
+  @IsEnum(OrderStatus)
+  status: OrderStatus;
+}
 
-export class TokenOrdersQuery extends CollectionOrdersQuery {}
+export class TokenOrdersQuery extends CollectionOrdersQuery {
+  @ApiProperty({
+    description: 'Order status to filter by'
+  })
+  @IsEnum(OrderStatus)
+  status: OrderStatus;
+}
 
 export class UserOrdersQuery extends BaseOrderQuery {
   @ApiProperty({
@@ -104,6 +109,13 @@ export class UserOrdersQuery extends BaseOrderQuery {
   })
   @IsEnum(Side)
   side: Side;
+
+  @ApiPropertyOptional({
+    description: 'Order status to filter by'
+  })
+  @IsOptional()
+  @IsEnum(OrderStatus)
+  status?: OrderStatus;
 }
 
 export type OrderQueries = CollectionOrdersQuery | TokenOrdersQuery | UserOrdersQuery;

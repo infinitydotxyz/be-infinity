@@ -201,7 +201,7 @@ export class OrdersV2Service extends BaseOrdersService {
         firestoreQuery = firestoreQuery
           .where('order.startPriceEth', '>=', minPrice)
           .where('order.startPriceEth', '<=', maxPrice)
-          .orderBy('order.startPriceEth', orderDirection)
+          .orderBy('order.startPriceEth', orderDirection) // TODO support dynamic orders - use currentPriceEth and handle price updates
           .orderBy('metadata.id', orderDirection);
         if (cursor.id && cursor.startPrice) {
           firestoreQuery = firestoreQuery.startAfter([cursor.startPrice, cursor.id]);
