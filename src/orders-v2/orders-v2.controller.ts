@@ -1,7 +1,9 @@
-import { ChainOBOrder } from '@infinityxyz/lib/types/core';
+import { ApiRole, ChainOBOrder } from '@infinityxyz/lib/types/core';
 import { ErrorResponseDto, OrdersV2Dto } from '@infinityxyz/lib/types/dto';
-import { BadRequestException, Body, Controller, Post } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiOkResponse, ApiBadRequestResponse, ApiInternalServerErrorResponse } from '@nestjs/swagger';
+import { Auth } from 'auth/api-auth.decorator';
+import { SiteRole } from 'auth/auth.constants';
 import { instanceToPlain } from 'class-transformer';
 import { ApiTag } from 'common/api-tags';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
@@ -10,11 +12,13 @@ import { InvalidTokenError } from 'common/errors/invalid-token-error';
 
 import { ResponseDescription } from 'common/response-description';
 import { ChainOBOrderHelper } from 'orders/chain-ob-order-helper';
-import { BaseOrdersService } from './base-orders.service';
+import { BulkOrderQuery } from './bulk-query';
+import { OrdersV2Service } from './orders-v2.service';
+import { ProtocolOrdersService } from './protocol-orders/protocol-orders.service';
 
 @Controller('orders-v2')
 export class OrdersV2Controller {
-  constructor(protected _baseOrdersService: BaseOrdersService) {}
+  constructor(protected _ordersService: OrdersV2Service, protected _protocolOrdersService: ProtocolOrdersService) {}
 
   @Post()
   @ApiOperation({
@@ -32,7 +36,7 @@ export class OrdersV2Controller {
        * handles normalizing the order data (addresses, nfts)
        */
       const orders = body.orders.map((item) => new ChainOBOrderHelper(chainId, instanceToPlain(item) as ChainOBOrder));
-      const result = await this._baseOrdersService.createOrders(chainId, orders);
+      const result = await this._ordersService.createOrders(chainId, orders);
       return result;
     } catch (err) {
       if (err instanceof InvalidCollectionError) {
@@ -47,4 +51,28 @@ export class OrdersV2Controller {
       throw err;
     }
   }
+
+  @Get('bulk')
+  @ApiOperation({
+    description: 'Get bulk raw orders',
+    tags: [ApiTag.Orders]
+  })
+  @Auth(SiteRole.Guest, ApiRole.User)
+  @ApiOkResponse({ description: ResponseDescription.Success })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  public async getOrders(@Query() query: BulkOrderQuery) {
+    const result = await this._protocolOrdersService.getBulkOrders(query);
+    return result;
+  }
+
+  // @Get('/:id')
+  // @ApiOperation({
+  //   description: 'Get matching orders',
+  //   tags: [ApiTag.Orders]
+  // })
+  // @ApiOkResponse({ description: ResponseDescription.Success })
+  // @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  // @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  // public async getChainOBOrder(): Promise<void> {}
 }
