@@ -63,8 +63,16 @@ export class AuthGuard implements CanActivate {
 
     if (minRole && minRole !== ApiRole.Guest) {
       const { req } = this.getRequestResponse(context);
-      const apiKey = req.headers?.[API_KEY_HEADER];
-      const apiSecret = req.headers?.[API_SECRET_HEADER];
+      let apiKey = req.headers?.[API_KEY_HEADER];
+      let apiSecret = req.headers?.[API_SECRET_HEADER];
+
+      if (apiKey && !apiSecret) {
+        const decoded = base64Decode(apiKey);
+        const [key, secret] = decoded.split(':');
+
+        apiKey = key;
+        apiSecret = secret;
+      }
 
       if (!apiKey || !apiSecret) {
         throw new AuthException('API key and secret are required');
