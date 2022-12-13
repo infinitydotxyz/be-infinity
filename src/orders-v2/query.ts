@@ -102,13 +102,29 @@ export class TokenOrdersQuery extends CollectionOrdersQuery {
   status: OrderStatus;
 }
 
-export class UserOrdersQuery extends BaseOrderQuery {
+export class TakerOrdersQuery extends BaseOrderQuery {
   @ApiProperty({
     description: "Filter by user's role",
     enum: Side
   })
   @IsEnum(Side)
-  side: Side;
+  side: Side.Taker;
+
+  @ApiPropertyOptional({
+    description: 'Order status to filter by'
+  })
+  @IsOptional()
+  @IsEnum(OrderStatus)
+  status: OrderStatus;
+}
+
+export class MakerOrdersQuery extends BaseOrderQuery {
+  @ApiProperty({
+    description: "Filter by user's role",
+    enum: Side
+  })
+  @IsEnum(Side)
+  side: Side.Maker;
 
   @ApiPropertyOptional({
     description: 'Order status to filter by'
@@ -118,4 +134,4 @@ export class UserOrdersQuery extends BaseOrderQuery {
   status?: OrderStatus;
 }
 
-export type OrderQueries = CollectionOrdersQuery | TokenOrdersQuery | UserOrdersQuery;
+export type OrderQueries = CollectionOrdersQuery | TokenOrdersQuery | TakerOrdersQuery | MakerOrdersQuery;

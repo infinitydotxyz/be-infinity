@@ -5,7 +5,7 @@ import {
   UserOrderCollectionsQueryDto,
   OBOrderItemDto
 } from '@infinityxyz/lib/types/dto';
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiOperation, ApiOkResponse, ApiBadRequestResponse, ApiInternalServerErrorResponse } from '@nestjs/swagger';
 import { Auth } from 'auth/api-auth.decorator';
 import { SiteRole } from 'auth/auth.constants';
@@ -13,7 +13,7 @@ import { ParamUserId } from 'auth/param-user-id.decorator';
 import { ApiTag } from 'common/api-tags';
 import { ResponseDescription } from 'common/response-description';
 import { OrdersV2Service } from 'orders-v2/orders-v2.service';
-import { UserOrdersQuery } from 'orders-v2/query';
+import { Side, TakerOrdersQuery } from 'orders-v2/query';
 import { OBOrderCollectionsArrayDto } from 'orders/types';
 import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
@@ -100,8 +100,13 @@ export class UserOrdersController {
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   public async getUserOrders(
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
-    @Query() query: UserOrdersQuery
+    @Query() query: TakerOrdersQuery
   ) {
+    if (query.side === Side.Taker) {
+      if (!('status' in query)) {
+        throw new BadRequestException('Status is required for taker orders');
+      }
+    }
     const orders = await this.ordersService.getDisplayOrders(ChainId.Mainnet, query, { user: user.userAddress });
     return orders;
   }
