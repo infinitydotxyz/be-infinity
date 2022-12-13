@@ -1,4 +1,5 @@
-import { ChainOBOrder, OrderCreatedEvent, OrderEventKind } from '@infinityxyz/lib/types/core';
+import { ChainOBOrder, OrderCreatedEvent, OrderEventKind, RawFirestoreOrder } from '@infinityxyz/lib/types/core';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { ContractService } from 'ethereum/contract.service';
 import { EthereumService } from 'ethereum/ethereum.service';
@@ -105,5 +106,29 @@ export class ProtocolOrdersService extends BaseOrdersService {
       cursor: newCursor,
       data: results
     };
+  }
+
+  public async getOrderById(id: string) {
+    const ref = this._firebaseService.firestore
+      .collection(firestoreConstants.ORDERS_V2_COLL)
+      .doc(id) as FirebaseFirestore.DocumentReference<RawFirestoreOrder>;
+
+    const orderSnap = await ref.get();
+
+    if (!orderSnap.exists) {
+      return null;
+    }
+
+    const order = orderSnap.data();
+
+    if (!order || !('rawOrder' in order) || !order.rawOrder) {
+      return null;
+    }
+
+    if ('error' in order.rawOrder) {
+      return null;
+    }
+
+    return order.rawOrder;
   }
 }
