@@ -28,6 +28,7 @@ import { parseUnits } from 'ethers/lib/utils';
 import { NonceService } from 'orders-v2/nonce/nonce.service';
 import { ProtocolOrdersService } from 'orders-v2/protocol-orders/protocol-orders.service';
 import { bn } from 'utils';
+import { GenerateOrderError } from './generate-order-error';
 
 @Injectable()
 export class GenerateOrderService {
@@ -58,7 +59,7 @@ export class GenerateOrderService {
       case GenerateOrderKind.List:
         return await this.generateListing(params);
       default: {
-        throw new Error(`Invalid order kind: ${(params as any)?.kind}`);
+        throw new GenerateOrderError(`Invalid order kind: ${(params as any)?.kind}`);
       }
     }
   }
@@ -101,7 +102,7 @@ export class GenerateOrderService {
     const oppositeOrder = await this._protocolOrdersService.getOrderById(params.orderId);
 
     if (!oppositeOrder) {
-      throw new Error('Order not found');
+      throw new GenerateOrderError('Order not found');
     }
 
     const { order } = this._getMatchingOrder(
@@ -119,7 +120,7 @@ export class GenerateOrderService {
     );
 
     if (order.isSellOrder) {
-      throw new Error('Attempted to generate buy order for another buy order');
+      throw new GenerateOrderError('Attempted to generate buy order for another buy order');
     }
 
     return await this._getBuyOrderGenerateRequests(params.chainId, order);
@@ -135,7 +136,7 @@ export class GenerateOrderService {
     const oppositeOrder = await this._protocolOrdersService.getOrderById(params.orderId);
 
     if (!oppositeOrder) {
-      throw new Error('Order not found');
+      throw new GenerateOrderError('Order not found');
     }
 
     const { order } = this._getMatchingOrder(
@@ -153,7 +154,7 @@ export class GenerateOrderService {
     );
 
     if (!order.isSellOrder) {
-      throw new Error('Attempted to generate sell order for another sell order');
+      throw new GenerateOrderError('Attempted to generate sell order for another sell order');
     }
 
     return await this._getSellOrderRequests(params.chainId, order);
@@ -195,7 +196,7 @@ export class GenerateOrderService {
     const currencyAddress = order.currency;
 
     if (currencyAddress === constants.AddressZero) {
-      throw new Error('Cannot use ETH');
+      throw new GenerateOrderError('Cannot use ETH');
     }
     const provider = this._ethereumService.getProvider(chainId);
     const currency = new Erc20(provider, currencyAddress);
@@ -321,15 +322,15 @@ export class GenerateOrderService {
 
     if (isOpposingPriceDecreasing || isOpposingPriceIncreasing) {
       // TODO support dynamic orders
-      throw new Error('Dynamic price orders are not yet supported');
+      throw new GenerateOrderError('Dynamic price orders are not yet supported');
     }
 
     if (options.minPriceWei && currentPrice.lt(options.minPriceWei)) {
-      throw new Error('Min price is too high');
+      throw new GenerateOrderError('Min price is too high');
     }
 
     if (options.maxPriceWei && currentPrice.gt(options.maxPriceWei)) {
-      throw new Error('Max price is too low');
+      throw new GenerateOrderError('Max price is too low');
     }
     const isSellOrder = !opposingOrder.isSellOrder;
     const endTime = nowSeconds + this._defaultInstantOrderDurationSeconds;
@@ -354,7 +355,8 @@ export class GenerateOrderService {
     };
 
     if (orderInput.complication !== opposingOrder.params.complication) {
-      throw new Error('Complication mismatch');
+      // TODO if the complication is updated we should make sure this gets updated accordingly
+      throw new GenerateOrderError('Complication mismatch');
     }
 
     switch (opposingOrder.kind) {
@@ -365,14 +367,14 @@ export class GenerateOrderService {
       }
       case 'contract-wide': {
         if (!options.nfts) {
-          throw new Error('NFTs must be specified to match contract wide orders');
+          throw new GenerateOrderError('NFTs must be specified to match contract wide orders');
         }
         orderInput.nfts = options.nfts;
         break;
       }
       default: {
         // TODO support more order types
-        throw new Error(`Unsupported order kind: ${opposingOrder.kind} Order: ${opposingRawOrder.id}`);
+        throw new GenerateOrderError(`Unsupported order kind: ${opposingOrder.kind} Order: ${opposingRawOrder.id}`);
       }
     }
 
@@ -407,7 +409,9 @@ export class GenerateOrderService {
 
       for (const item of token.tokens) {
         if (!item.isOwner) {
-          throw new Error(`Token ${token.collection} - Token ID ${item.tokenId} is not owned by ${signer}`); // TODO handle this
+          throw new GenerateOrderError(
+            `Token ${token.collection} - Token ID ${item.tokenId} is not owned by ${signer}`
+          ); // TODO handle this
         }
       }
     }

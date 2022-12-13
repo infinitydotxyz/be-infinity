@@ -19,6 +19,7 @@ import { InvalidTokenError } from 'common/errors/invalid-token-error';
 import { ResponseDescription } from 'common/response-description';
 import { ChainOBOrderHelper } from 'orders/chain-ob-order-helper';
 import { BulkOrderQuery } from './bulk-query';
+import { GenerateOrderError } from './generate-order/generate-order-error';
 import { GenerateOrderService } from './generate-order/generate-order.service';
 import { OrdersV2Service } from './orders-v2.service';
 import { ProtocolOrdersService } from './protocol-orders/protocol-orders.service';
@@ -86,7 +87,14 @@ export class OrdersV2Controller {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   public async generateSell(@Body() params: GenerateSellParams): Promise<SignerRequests> {
-    return this._generateOrderService.generateSell(params);
+    try {
+      return await this._generateOrderService.generateSell(params);
+    } catch (err) {
+      if (err instanceof GenerateOrderError) {
+        throw new BadRequestException(err.message);
+      }
+      throw err;
+    }
   }
 
   @Post('/generate/buy')
@@ -98,7 +106,14 @@ export class OrdersV2Controller {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   public async generateBuy(@Body() params: GenerateBuyParams): Promise<SignerRequests> {
-    return this._generateOrderService.generateBuy(params);
+    try {
+      return await this._generateOrderService.generateBuy(params);
+    } catch (err) {
+      if (err instanceof GenerateOrderError) {
+        throw new BadRequestException(err.message);
+      }
+      throw err;
+    }
   }
 
   @Post('/generate/listing')
@@ -110,7 +125,14 @@ export class OrdersV2Controller {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   public async generateListing(@Body() params: GenerateOrderParams): Promise<SignerRequests> {
-    return this._generateOrderService.generateListing(params);
+    try {
+      return await this._generateOrderService.generateListing(params);
+    } catch (err) {
+      if (err instanceof GenerateOrderError) {
+        throw new BadRequestException(err.message);
+      }
+      throw err;
+    }
   }
 
   @Post('/generate/bid')
@@ -122,6 +144,13 @@ export class OrdersV2Controller {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   public async generateBid(@Body() params: GenerateOrderParams): Promise<SignerRequests> {
-    return this._generateOrderService.generateBid(params);
+    try {
+      return await this._generateOrderService.generateBid(params);
+    } catch (err) {
+      if (err instanceof GenerateOrderError) {
+        throw new BadRequestException(err.message);
+      }
+      throw err;
+    }
   }
 }
