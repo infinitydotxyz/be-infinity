@@ -1,5 +1,11 @@
-import { ApiRole, ChainOBOrder } from '@infinityxyz/lib/types/core';
-import { ErrorResponseDto, OrdersV2Dto } from '@infinityxyz/lib/types/dto';
+import { ApiRole, ChainOBOrder, SignerRequests } from '@infinityxyz/lib/types/core';
+import {
+  ErrorResponseDto,
+  GenerateBuyParams,
+  GenerateOrderParams,
+  GenerateSellParams,
+  OrdersV2Dto
+} from '@infinityxyz/lib/types/dto';
 import { BadRequestException, Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiOkResponse, ApiBadRequestResponse, ApiInternalServerErrorResponse } from '@nestjs/swagger';
 import { Auth } from 'auth/api-auth.decorator';
@@ -14,8 +20,6 @@ import { ResponseDescription } from 'common/response-description';
 import { ChainOBOrderHelper } from 'orders/chain-ob-order-helper';
 import { BulkOrderQuery } from './bulk-query';
 import { GenerateOrderService } from './generate-order/generate-order.service';
-import { GenerateBuyParams, GenerateOrderParams, GenerateSellParams } from './generate-order/params';
-import { SignerRequests } from './generate-order/result';
 import { OrdersV2Service } from './orders-v2.service';
 import { ProtocolOrdersService } from './protocol-orders/protocol-orders.service';
 

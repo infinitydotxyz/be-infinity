@@ -1,4 +1,21 @@
-import { ChainId, ChainNFTs, RawOrderWithoutError } from '@infinityxyz/lib/types/core';
+import {
+  ChainId,
+  ChainNFTs,
+  CurrencyAllowanceRequest,
+  DepositCurrencyRequest,
+  RawOrderWithoutError,
+  RequestKind,
+  SignatureRequest,
+  SignerRequests,
+  TokenApprovalRequest
+} from '@infinityxyz/lib/types/core';
+import {
+  GenerateParams,
+  GenerateOrderKind,
+  GenerateOrderParams,
+  GenerateBuyParams,
+  GenerateSellParams
+} from '@infinityxyz/lib/types/dto';
 import { formatEth, ONE_MIN, ONE_WEEK, trimLowerCase } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { Infinity } from '@reservoir0x/sdk';
@@ -11,21 +28,6 @@ import { parseUnits } from 'ethers/lib/utils';
 import { NonceService } from 'orders-v2/nonce/nonce.service';
 import { ProtocolOrdersService } from 'orders-v2/protocol-orders/protocol-orders.service';
 import { bn } from 'utils';
-import {
-  GenerateBuyParams,
-  GenerateOrderKind,
-  GenerateOrderParams,
-  GenerateParams,
-  GenerateSellParams
-} from './params';
-import {
-  TokenApprovalRequest,
-  SignatureRequest,
-  CurrencyAllowanceRequest,
-  DepositCurrencyRequest,
-  RequestKind,
-  SignerRequests
-} from './result';
 
 @Injectable()
 export class GenerateOrderService {
