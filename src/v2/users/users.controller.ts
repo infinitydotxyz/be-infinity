@@ -1,6 +1,6 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { ErrorResponseDto } from '@infinityxyz/lib/types/dto';
-import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { ParamUserId } from 'auth/param-user-id.decorator';
 import { ApiTag } from 'common/api-tags';
@@ -35,5 +35,18 @@ export class UsersController {
       user: user.userAddress
     });
     return orders;
+  }
+
+  @Get(':userId/nonce')
+  @ApiOperation({
+    description: 'Get order nonce for user',
+    tags: [ApiTag.Orders]
+  })
+  @ApiOkResponse({ description: ResponseDescription.Success })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  public async getOrderNonce(@Param('userId') userId: string, @Query('chainId') chainId?: ChainId): Promise<number> {
+    const nonce = await this._ordersService.getNonce(userId, chainId ?? ChainId.Mainnet);
+    return parseInt(nonce.toString(), 10);
   }
 }
