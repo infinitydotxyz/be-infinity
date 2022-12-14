@@ -71,8 +71,8 @@ import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
 import { Throttle } from '@nestjs/throttler';
 import { ReservoirService } from 'reservoir/reservoir.service';
 import { UserParserService } from 'user/parser/parser.service';
-import { CollectionOrdersQuery } from 'orders-v2/query';
-import { OrdersV2Service } from 'orders-v2/orders-v2.service';
+import { CollectionOrdersQuery } from 'v2/orders/query';
+import { OrdersService } from 'v2/orders/orders.service';
 
 @Controller('collections')
 export class CollectionsController {
@@ -85,7 +85,7 @@ export class CollectionsController {
     private curationService: CurationService,
     private firebaseService: FirebaseService,
     private userParserService: UserParserService,
-    private ordersService: OrdersV2Service
+    private ordersService: OrdersService
   ) {}
 
   @Get('search')

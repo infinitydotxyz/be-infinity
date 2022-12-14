@@ -18,16 +18,16 @@ import { InvalidTokenError } from 'common/errors/invalid-token-error';
 
 import { ResponseDescription } from 'common/response-description';
 import { ChainOBOrderHelper } from 'orders/chain-ob-order-helper';
-import { BulkOrderQuery } from './bulk-query';
-import { GenerateOrderError } from './generate-order/generate-order-error';
-import { GenerateOrderService } from './generate-order/generate-order.service';
-import { OrdersV2Service } from './orders-v2.service';
-import { ProtocolOrdersService } from './protocol-orders/protocol-orders.service';
+import { OrdersService } from 'v2/orders/orders.service';
+import { BulkOrderQuery } from '../v2/orders/bulk-query';
+import { GenerateOrderError } from '../v2/orders/generate-order/generate-order-error';
+import { GenerateOrderService } from '../v2/orders/generate-order/generate-order.service';
+import { ProtocolOrdersService } from '../v2/orders/protocol-orders/protocol-orders.service';
 
 @Controller('orders-v2')
 export class OrdersV2Controller {
   constructor(
-    protected _ordersService: OrdersV2Service,
+    protected _ordersService: OrdersService,
     protected _protocolOrdersService: ProtocolOrdersService,
     protected _generateOrderService: GenerateOrderService
   ) {}

@@ -12,16 +12,16 @@ import { SiteRole } from 'auth/auth.constants';
 import { ParamUserId } from 'auth/param-user-id.decorator';
 import { ApiTag } from 'common/api-tags';
 import { ResponseDescription } from 'common/response-description';
-import { OrdersV2Service } from 'orders-v2/orders-v2.service';
-import { Side, TakerOrdersQuery } from 'orders-v2/query';
+import { Side, TakerOrdersQuery } from 'v2/orders/query';
 import { OBOrderCollectionsArrayDto } from 'orders/types';
 import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
+import { OrdersService } from 'v2/orders/orders.service';
 import { UserOrdersService } from './user-orders.service';
 
 @Controller('userOrders')
 export class UserOrdersController {
-  constructor(protected userOrdersService: UserOrdersService, protected ordersService: OrdersV2Service) {}
+  constructor(protected userOrdersService: UserOrdersService, protected ordersService: OrdersService) {}
 
   // @Get(':userId')
   // @ApiOperation({

@@ -25,8 +25,8 @@ import { Erc721 } from 'ethereum/contracts/erc721';
 import { EthereumService } from 'ethereum/ethereum.service';
 import { constants } from 'ethers';
 import { parseUnits } from 'ethers/lib/utils';
-import { NonceService } from 'orders-v2/nonce/nonce.service';
-import { ProtocolOrdersService } from 'orders-v2/protocol-orders/protocol-orders.service';
+import { NonceService } from 'v2/orders/nonce/nonce.service';
+import { ProtocolOrdersService } from 'v2/orders/protocol-orders/protocol-orders.service';
 import { bn } from 'utils';
 import { GenerateOrderError } from './generate-order-error';
 

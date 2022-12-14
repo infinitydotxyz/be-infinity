@@ -33,6 +33,11 @@ import { FavoritesModule } from 'favorites/favorites.module';
 import { MerkleTreeModule } from './merkle-tree/merkle-tree.module';
 import { SearchModule } from './search/search.module';
 import { OrdersV2Module } from './orders-v2/orders-v2.module';
+import { OrdersModule as V2OrdersModule } from './v2/orders/orders.module';
+import { UsersModule as V2UsersModule } from './v2/users/users.module';
+import { CollectionsModule as V2CollectionsModule } from './v2/collections/collections.module';
+import { GenerateModule } from './v2/generate/generate.module';
+import { BulkModule } from './v2/bulk/bulk.module';
 
 @Module({
   imports: [
@@ -72,7 +77,12 @@ import { OrdersV2Module } from './orders-v2/orders-v2.module';
     FavoritesModule,
     MerkleTreeModule,
     SearchModule,
-    OrdersV2Module
+    OrdersV2Module,
+    V2OrdersModule,
+    V2UsersModule,
+    V2CollectionsModule,
+    GenerateModule,
+    BulkModule
   ],
   providers: [
     {

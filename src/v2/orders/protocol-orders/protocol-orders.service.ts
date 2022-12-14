@@ -4,8 +4,8 @@ import { Injectable } from '@nestjs/common';
 import { ContractService } from 'ethereum/contract.service';
 import { EthereumService } from 'ethereum/ethereum.service';
 import { FirebaseService } from 'firebase/firebase.service';
-import { BaseOrdersService } from 'orders-v2/base-orders.service';
-import { BulkOrderQuery } from 'orders-v2/bulk-query';
+import { BaseOrdersService } from 'v2/orders/base-orders.service';
+import { BulkOrderQuery } from 'v2/orders/bulk-query';
 import { CursorService } from 'pagination/cursor.service';
 
 export type ProtocolOrder = {

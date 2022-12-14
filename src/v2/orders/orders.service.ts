@@ -16,7 +16,7 @@ import { BaseOrdersService } from './base-orders.service';
 import { OrderBy, OrderQueries, Side } from './query';
 
 @Injectable()
-export class OrdersV2Service extends BaseOrdersService {
+export class OrdersService extends BaseOrdersService {
   constructor(
     firebaseService: FirebaseService,
     contractService: ContractService,

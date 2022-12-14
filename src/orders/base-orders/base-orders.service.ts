@@ -18,7 +18,7 @@ import { Injectable } from '@nestjs/common';
 import { BadQueryError } from 'common/errors/bad-query.error';
 import { ContractService } from 'ethereum/contract.service';
 import { FirebaseService } from 'firebase/firebase.service';
-import { NonceService } from 'orders-v2/nonce/nonce.service';
+import { NonceService } from 'v2/orders/nonce/nonce.service';
 import { CursorService } from 'pagination/cursor.service';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 

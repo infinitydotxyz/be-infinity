@@ -1,4 +1,4 @@
-import { OrderDirection } from '@infinityxyz/lib/types/core';
+import { ChainId, OrderDirection } from '@infinityxyz/lib/types/core';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsString, IsOptional, IsBoolean, IsNumber, IsEnum } from 'class-validator';
@@ -103,6 +103,13 @@ export class TokenOrdersQuery extends CollectionOrdersQuery {
 }
 
 export class TakerOrdersQuery extends BaseOrderQuery {
+  @ApiPropertyOptional({
+    description: 'Chain Id of the orders to filter by. Defaults to mainnet'
+  })
+  @IsOptional()
+  @IsEnum(ChainId)
+  chainId?: ChainId;
+
   @ApiProperty({
     description: "Filter by user's role",
     enum: Side
@@ -119,6 +126,13 @@ export class TakerOrdersQuery extends BaseOrderQuery {
 }
 
 export class MakerOrdersQuery extends BaseOrderQuery {
+  @ApiPropertyOptional({
+    description: 'Chain Id of the orders to filter by. Defaults to mainnet'
+  })
+  @IsOptional()
+  @IsEnum(ChainId)
+  chainId?: ChainId;
+
   @ApiProperty({
     description: "Filter by user's role",
     enum: Side

@@ -22,12 +22,12 @@ import {
   NftDto,
   NftsQueryDto
 } from '@infinityxyz/lib/types/dto/collections/nfts';
-import { OrdersV2Service } from 'orders-v2/orders-v2.service';
-import { TokenOrdersQuery } from 'orders-v2/query';
+import { TokenOrdersQuery } from 'v2/orders/query';
+import { OrdersService } from 'v2/orders/orders.service';
 
 @Controller('collections')
 export class NftsController {
-  constructor(protected nftService: NftsService, protected ordersService: OrdersV2Service) {}
+  constructor(protected nftService: NftsService, protected ordersService: OrdersService) {}
 
   @Get(':id/nfts')
   @ApiOperation({
