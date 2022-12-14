@@ -1,5 +1,5 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { firestoreConstants, toLexicographicalStr } from '@infinityxyz/lib/utils';
+import { firestoreConstants, toNumericallySortedLexicographicStr } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { InvalidNonceError } from 'common/errors/invalid-nonce.error';
 import { ContractService } from 'ethereum/contract.service';
@@ -116,6 +116,6 @@ export class NonceService {
   }
 
   protected getFormattedNonce(nonce: BigNumberish): string {
-    return toLexicographicalStr(nonce.toString(), 256);
+    return toNumericallySortedLexicographicStr(nonce.toString(), 256);
   }
 }
