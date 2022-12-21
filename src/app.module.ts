@@ -32,7 +32,6 @@ import { RafflesModule } from './raffles/raffles.module';
 import { FavoritesModule } from 'favorites/favorites.module';
 import { MerkleTreeModule } from './merkle-tree/merkle-tree.module';
 import { SearchModule } from './search/search.module';
-import { OrdersV2Module } from './orders-v2/orders-v2.module';
 import { OrdersModule as V2OrdersModule } from './v2/orders/orders.module';
 import { UsersModule as V2UsersModule } from './v2/users/users.module';
 import { CollectionsModule as V2CollectionsModule } from './v2/collections/collections.module';
@@ -77,7 +76,6 @@ import { BulkModule } from './v2/bulk/bulk.module';
     FavoritesModule,
     MerkleTreeModule,
     SearchModule,
-    OrdersV2Module,
     V2OrdersModule,
     V2UsersModule,
     V2CollectionsModule,
