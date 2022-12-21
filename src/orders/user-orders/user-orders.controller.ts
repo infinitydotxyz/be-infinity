@@ -23,23 +23,6 @@ import { UserOrdersService } from './user-orders.service';
 export class UserOrdersController {
   constructor(protected userOrdersService: UserOrdersService, protected ordersService: OrdersService) {}
 
-  // @Get(':userId')
-  // @ApiOperation({
-  //   description: 'Get orders for a user',
-  //   tags: [ApiTag.Orders, ApiTag.User]
-  // })
-  // @Auth(SiteRole.User, ApiRole.Guest, 'userId')
-  // @ApiOkResponse({ description: ResponseDescription.Success, type: SignedOBOrderArrayDto })
-  // @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
-  // @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  // public async getUserOrders(
-  //   @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
-  //   @Query() reqQuery: UserOrderItemsQueryDto
-  // ): Promise<SignedOBOrderArrayDto> {
-  //   const results = await this.userOrdersService.getSignedOBOrders(reqQuery, user);
-  //   return results;
-  // }
-
   @Get(':userId/collections')
   @ApiOperation({
     description: 'Get collections from user orders',
