@@ -1,7 +1,6 @@
 import {
   OrderItemsQueryDto,
   OrdersDto,
-  OrdersV2Dto,
   SignedOBOrderArrayDto,
   SignedOBOrderDto,
   UserOrderItemsQueryDto
@@ -22,79 +21,6 @@ import { EthereumService } from 'ethereum/ethereum.service';
 @Controller('orders')
 export class OrdersController {
   constructor(private ordersService: OrdersService, protected ethereumService: EthereumService) {}
-
-  @Post('v2')
-  @ApiOperation({
-    description: 'Post raw orders',
-    tags: [ApiTag.Orders]
-  })
-  @ApiOkResponse({ description: ResponseDescription.Success, type: String })
-  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  public async postChainOBOrder(@Body() body: OrdersV2Dto): Promise<void> {
-    try {
-      const chainId = body.chainId;
-
-      /**
-       * handles normalizing the order data (addresses, nfts)
-       */
-      const orders = body.orders.map((item) => new ChainOBOrderHelper(chainId, item));
-
-      const maker = orders[0]?.signer;
-      const sameMaker = orders.every((item) => item.signer === maker);
-      if (!sameMaker) {
-        throw new BadRequestException('All orders must have the same maker');
-      }
-
-      for (const order of orders) {
-        try {
-          const isSigValid = order.isSigValid();
-          if (!isSigValid) {
-            throw new Error('Invalid signature');
-          }
-          order.checkValidity();
-        } catch (err) {
-          if (err instanceof Error) {
-            throw new BadRequestException(err.message);
-          }
-          console.error(err);
-          throw new BadRequestException(`Invalid order`);
-        }
-
-        try {
-          await order.checkFillability(this.ethereumService.getProvider(chainId));
-        } catch (err) {
-          if (err instanceof Error) {
-            switch (err.message) {
-              case 'not-fillable':
-                throw new BadRequestException(`Order is not fillable. Invalid currency or nonce`);
-              case 'no-balance':
-                throw new BadRequestException(`Order is not fillable. Insufficient balance`);
-              case 'no-approval':
-                throw new BadRequestException(`Order is not fillable. Approvals have not been set`);
-              default:
-                console.error(err);
-                throw new BadRequestException(err.message);
-            }
-          }
-          console.error(err);
-          throw new BadRequestException(`Order is not fillable`);
-        }
-      }
-
-      await this.ordersService.createOrder(chainId, maker, orders);
-    } catch (err) {
-      if (err instanceof InvalidCollectionError) {
-        throw new BadRequestException(err.message);
-      } else if (err instanceof InvalidTokenError) {
-        throw new BadRequestException(err.message);
-      } else if (err instanceof InvalidNonceError) {
-        throw new BadRequestException(err.message);
-      }
-      throw err;
-    }
-  }
-
   @Post()
   @ApiOperation({
     description: 'Post orders',

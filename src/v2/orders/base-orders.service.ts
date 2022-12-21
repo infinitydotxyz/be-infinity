@@ -75,9 +75,14 @@ export class BaseOrdersService extends NonceService {
       await this.claimNonce(order.signer, chainId, order.nonce);
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const refs = await this._saveOrders(chainId, orders);
-    // TODO - should we wait for the events to be processed before returning?
+    try {
+      await this._saveOrders(chainId, orders);
+    } catch (err) {
+      if (typeof err === 'object' && err && 'code' in err && err.code === 6) {
+        throw new Error('Order already exists');
+      }
+      throw err;
+    }
   }
 
   private async _saveOrders(chainId: ChainId, orders: ChainOBOrderHelper[]) {
@@ -100,7 +105,7 @@ export class BaseOrdersService extends NonceService {
         .collection(firestoreConstants.ORDERS_V2_COLL)
         .doc(orderId)
         .collection(firestoreConstants.ORDER_EVENTS_COLL)
-        .doc() as FirebaseFirestore.DocumentReference<OrderCreatedEvent>;
+        .doc(`${OrderEventKind.Created}:${orderId}`) as FirebaseFirestore.DocumentReference<OrderCreatedEvent>;
       const event: OrderCreatedEvent = {
         metadata: {
           id: ref.id,

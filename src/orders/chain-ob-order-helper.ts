@@ -1,5 +1,4 @@
-import { ChainId } from '@infinityxyz/lib/types/core';
-import { ChainOBOrderDto } from '@infinityxyz/lib/types/dto';
+import { ChainId, ChainOBOrder } from '@infinityxyz/lib/types/core';
 import { formatEth } from '@infinityxyz/lib/utils';
 import { Infinity } from '@reservoir0x/sdk';
 
@@ -8,12 +7,12 @@ import { Infinity } from '@reservoir0x/sdk';
  * provides methods to verify the signature and fillability
  */
 export class ChainOBOrderHelper extends Infinity.Order {
-  constructor(chainId: ChainId, order: ChainOBOrderDto) {
+  constructor(chainId: ChainId, order: ChainOBOrder) {
     const constraints = order.constraints.map((item) => item.toString());
-    super(parseInt(chainId, 10), {
-      ...order,
-      constraints
-    });
+    super(parseInt(chainId, 10), { ...order, constraints });
+    if (order.sig) {
+      this.sig = order.sig;
+    }
   }
 
   isSigValid() {
