@@ -1,5 +1,5 @@
-import { NftArrayDto, ErrorResponseDto, NftsQueryDto, NftDto } from '@infinityxyz/lib/types/dto';
-import { BadRequestException, Controller, Get, Query, UseInterceptors } from '@nestjs/common';
+import { ErrorResponseDto } from '@infinityxyz/lib/types/dto';
+import { Controller, Get, Query } from '@nestjs/common';
 import {
   ApiOperation,
   ApiOkResponse,
