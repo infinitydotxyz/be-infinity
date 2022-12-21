@@ -26,7 +26,9 @@ function setup(app: INestApplication) {
     })
   );
 
-  setupSwagger(app, 'docs');
+  if (process.env.INFINITY_NODE_ENV === 'dev') {
+    setupSwagger(app, 'docs');
+  }
 }
 
 function setupSwagger(app: INestApplication, path: string) {
