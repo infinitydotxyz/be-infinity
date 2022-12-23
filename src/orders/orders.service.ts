@@ -35,6 +35,7 @@ import { ReservoirResponse } from '../utils/reservoir-types';
 import { BaseOrdersService } from './base-orders/base-orders.service';
 import { UserOrdersService } from './user-orders/user-orders.service';
 import { ChainOBOrderHelper } from './chain-ob-order-helper';
+import { ContractService } from 'ethereum/contract.service';
 
 @Injectable()
 export default class OrdersService extends BaseOrdersService {
@@ -51,9 +52,10 @@ export default class OrdersService extends BaseOrdersService {
     private nftsService: NftsService,
     private userParser: UserParserService,
     private ethereumService: EthereumService,
-    protected userOrdersService: UserOrdersService
+    protected userOrdersService: UserOrdersService,
+    contractService: ContractService
   ) {
-    super(firebaseService, cursorService);
+    super(firebaseService, contractService, cursorService);
     const ordersCounterDocRef = this.firebaseService.firestore
       .collection(firestoreConstants.ORDERS_COLL)
       .doc(firestoreConstants.COUNTER_DOC);
@@ -102,7 +104,7 @@ export default class OrdersService extends BaseOrdersService {
 
       for (const order of orders) {
         // get data
-        await this.userOrdersService.claimNonce(order.signer, chainId, parseInt(order.nonce, 10));
+        await this.userOrdersService.claimNonce(order.signer, chainId, order.nonce);
         const orderId = order.hash();
         const dataToStore = this.getFirestoreOrder(chainId, makerUsername, order);
         // save

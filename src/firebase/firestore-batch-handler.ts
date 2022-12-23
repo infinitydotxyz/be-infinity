@@ -39,6 +39,15 @@ export default class FirestoreBatchHandler {
     this.currentBatch.size += 1;
   }
 
+  async createAsync(
+    doc: FirebaseFirestore.DocumentReference,
+    object: Partial<FirebaseFirestore.DocumentData>
+  ): Promise<void> {
+    await this.checkSizeAsync();
+    this.currentBatch.batch.create(doc, object);
+    this.currentBatch.size += 1;
+  }
+
   async deleteAsync(doc: FirebaseFirestore.DocumentReference): Promise<void> {
     await this.checkSizeAsync();
     this.currentBatch.batch.delete(doc);

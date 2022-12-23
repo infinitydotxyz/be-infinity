@@ -22,23 +22,6 @@ import { UserOrdersService } from './user-orders.service';
 export class UserOrdersController {
   constructor(protected userOrdersService: UserOrdersService) {}
 
-  @Get(':userId')
-  @ApiOperation({
-    description: 'Get orders for a user',
-    tags: [ApiTag.Orders, ApiTag.User]
-  })
-  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
-  @ApiOkResponse({ description: ResponseDescription.Success, type: SignedOBOrderArrayDto })
-  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  public async getUserOrders(
-    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
-    @Query() reqQuery: UserOrderItemsQueryDto
-  ): Promise<SignedOBOrderArrayDto> {
-    const results = await this.userOrdersService.getSignedOBOrders(reqQuery, user);
-    return results;
-  }
-
   @Get(':userId/collections')
   @ApiOperation({
     description: 'Get collections from user orders',
@@ -85,6 +68,24 @@ export class UserOrdersController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   public async getOrderNonce(@Param('userId') userId: string, @Query('chainId') chainId?: ChainId): Promise<number> {
-    return await this.userOrdersService.getNonce(userId, chainId ?? ChainId.Mainnet);
+    const nonce = await this.userOrdersService.getNonce(userId, chainId ?? ChainId.Mainnet);
+    return parseInt(nonce.toString(), 10);
+  }
+
+  @Get(':userId')
+  @ApiOperation({
+    description: 'Get orders for a user',
+    tags: [ApiTag.Orders, ApiTag.User]
+  })
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
+  @ApiOkResponse({ description: ResponseDescription.Success, type: SignedOBOrderArrayDto })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  public async getUserOrders(
+    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
+    @Query() reqQuery: UserOrderItemsQueryDto
+  ): Promise<SignedOBOrderArrayDto> {
+    const results = await this.userOrdersService.getSignedOBOrders(reqQuery, user);
+    return results;
   }
 }
