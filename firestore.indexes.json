@@ -6397,6 +6397,28 @@
       ]
     },
     {
+      "collectionGroup": "orderStatusChanges",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "isMostRecent",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "id",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "orderStatusEvents",
       "queryScope": "COLLECTION",
       "fields": [
