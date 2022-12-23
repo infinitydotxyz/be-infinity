@@ -3,25 +3,24 @@ import {
   SignedOBOrderArrayDto,
   ErrorResponseDto,
   UserOrderCollectionsQueryDto,
-  OBOrderItemDto
+  OBOrderItemDto,
+  UserOrderItemsQueryDto
 } from '@infinityxyz/lib/types/dto';
-import { BadRequestException, Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiOperation, ApiOkResponse, ApiBadRequestResponse, ApiInternalServerErrorResponse } from '@nestjs/swagger';
 import { Auth } from 'auth/api-auth.decorator';
 import { SiteRole } from 'auth/auth.constants';
 import { ParamUserId } from 'auth/param-user-id.decorator';
 import { ApiTag } from 'common/api-tags';
 import { ResponseDescription } from 'common/response-description';
-import { Side, TakerOrdersQuery } from 'v2/orders/query';
 import { OBOrderCollectionsArrayDto } from 'orders/types';
 import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
-import { OrdersService } from 'v2/orders/orders.service';
 import { UserOrdersService } from './user-orders.service';
 
 @Controller('userOrders')
 export class UserOrdersController {
-  constructor(protected userOrdersService: UserOrdersService, protected ordersService: OrdersService) {}
+  constructor(protected userOrdersService: UserOrdersService) {}
 
   @Get(':userId/collections')
   @ApiOperation({
@@ -78,19 +77,15 @@ export class UserOrdersController {
     description: 'Get orders for a user',
     tags: [ApiTag.Orders, ApiTag.User]
   })
-  @ApiOkResponse({ description: ResponseDescription.Success }) // TODO add type
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
+  @ApiOkResponse({ description: ResponseDescription.Success, type: SignedOBOrderArrayDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   public async getUserOrders(
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
-    @Query() query: TakerOrdersQuery
-  ) {
-    if (query.side === Side.Taker) {
-      if (!('status' in query)) {
-        throw new BadRequestException('Status is required for taker orders');
-      }
-    }
-    const orders = await this.ordersService.getDisplayOrders(ChainId.Mainnet, query, { user: user.userAddress });
-    return orders;
+    @Query() reqQuery: UserOrderItemsQueryDto
+  ): Promise<SignedOBOrderArrayDto> {
+    const results = await this.userOrdersService.getSignedOBOrders(reqQuery, user);
+    return results;
   }
 }

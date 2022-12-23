@@ -22,12 +22,10 @@ import {
   NftDto,
   NftsQueryDto
 } from '@infinityxyz/lib/types/dto/collections/nfts';
-import { TokenOrdersQuery } from 'v2/orders/query';
-import { OrdersService } from 'v2/orders/orders.service';
 
 @Controller('collections')
 export class NftsController {
-  constructor(protected nftService: NftsService, protected ordersService: OrdersService) {}
+  constructor(protected nftService: NftsService) {}
 
   @Get(':id/nfts')
   @ApiOperation({
@@ -105,26 +103,6 @@ export class NftsController {
     }
 
     return nft;
-  }
-
-  @Get(':id/nfts/:tokenId/orders')
-  @ApiOperation({
-    description: 'Get orders for a single nft',
-    tags: [ApiTag.Nft]
-  })
-  @ApiParamCollectionId('id')
-  @ApiParamTokenId('tokenId')
-  @ApiOkResponse({ description: ResponseDescription.Success, type: NftDto })
-  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
-  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  async getNftOrders(
-    @ParamCollectionId('id', ParseCollectionIdPipe) { address, chainId }: ParsedCollectionId,
-    @ParamTokenId('tokenId') tokenId: string,
-    @Query() query: TokenOrdersQuery
-  ) {
-    const orders = await this.ordersService.getDisplayOrders(chainId, query, { collection: address, tokenId });
-    return orders;
   }
 
   @Get(':id/nfts/:tokenId/refresh-metadata')

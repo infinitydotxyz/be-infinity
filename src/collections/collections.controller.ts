@@ -71,8 +71,6 @@ import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
 import { Throttle } from '@nestjs/throttler';
 import { ReservoirService } from 'reservoir/reservoir.service';
 import { UserParserService } from 'user/parser/parser.service';
-import { CollectionOrdersQuery } from 'v2/orders/query';
-import { OrdersService } from 'v2/orders/orders.service';
 
 @Controller('collections')
 export class CollectionsController {
@@ -84,8 +82,7 @@ export class CollectionsController {
     private nftsService: NftsService,
     private curationService: CurationService,
     private firebaseService: FirebaseService,
-    private userParserService: UserParserService,
-    private ordersService: OrdersService
+    private userParserService: UserParserService
   ) {}
 
   @Get('search')
@@ -250,27 +247,6 @@ export class CollectionsController {
       return await this.collectionsService.getCurated(query, user);
     }
     return await this.collectionsService.getCurated(query, undefined);
-  }
-
-  @Get('/:id/orders')
-  @ApiParamCollectionId('collectionId')
-  @ApiOperation({
-    description: 'Fetch collection orders',
-    tags: [ApiTag.Collection, ApiTag.Curation]
-  })
-  @ApiOkResponse({ type: UserCuratedCollectionDto })
-  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
-  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  async getCollectionOrders(
-    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
-    @Query() query: CollectionOrdersQuery
-  ): Promise<any> {
-    const orders = await this.ordersService.getDisplayOrders(collection.chainId, query, {
-      collection: collection.address
-    });
-
-    return orders;
   }
 
   @Get('/:id/curated/:userId')
