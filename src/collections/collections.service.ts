@@ -51,7 +51,7 @@ export default class CollectionsService {
     private backfillService: BackfillService,
     private curationService: CurationService,
     private statsService: StatsService
-  ) { }
+  ) {}
 
   private get defaultCollectionQueryOptions(): CollectionQueryOptions {
     return {
@@ -156,11 +156,7 @@ export default class CollectionsService {
     const snap = await this.firebaseService.firestore
       .collectionGroup('curationSnippets')
       .where('metadata.stakerContractAddress', '==', stakerContractAddress)
-      .where(
-        'metadata.stakerContractChainId',
-        '==',
-        stakerContractChainId
-      )
+      .where('metadata.stakerContractChainId', '==', stakerContractChainId)
       .orderBy('stats.numCuratorVotes', 'desc')
       .orderBy('metadata.collectionAddress', 'desc')
       .limit(1)
@@ -278,7 +274,7 @@ export default class CollectionsService {
     returnData = returnData.slice(0, search.limit);
 
     for (const item of returnData) {
-      cursor[item.key] = item.data.slug;
+      cursor[item.key] = { slug: item.data.slug };
     }
 
     return {

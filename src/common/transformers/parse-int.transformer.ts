@@ -28,12 +28,21 @@ interface ParseIntTransformerOptions {
   max?: number;
 
   optional?: boolean;
+
+  /**
+   * Default value
+   */
+  default?: number;
 }
 
 export function parseIntTransformer(options?: ParseIntTransformerOptions) {
   return (params: TransformFnParams) => {
     const base = options?.base ?? 10;
     const parsed = parseInt(params.value, base);
+
+    if (options?.default && !params.value) {
+      return options.default;
+    }
 
     if (!params.value && options?.optional) {
       return undefined;

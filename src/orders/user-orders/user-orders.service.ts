@@ -1,7 +1,8 @@
 import { OBOrderItem, OBOrderStatus, OrderDirection, ChainId } from '@infinityxyz/lib/types/core';
 import { UserOrderCollectionsQueryDto, OrderItemsOrderBy } from '@infinityxyz/lib/types/dto';
-import { firestoreConstants, getSearchFriendlyString, getEndCode, trimLowerCase } from '@infinityxyz/lib/utils';
+import { firestoreConstants, getSearchFriendlyString, getEndCode } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
+import { ContractService } from 'ethereum/contract.service';
 import { FirebaseService } from 'firebase/firebase.service';
 import { BaseOrdersService } from 'orders/base-orders/base-orders.service';
 import { CursorService } from 'pagination/cursor.service';
@@ -9,30 +10,12 @@ import { ParsedUserId } from 'user/parser/parsed-user-id';
 
 @Injectable()
 export class UserOrdersService extends BaseOrdersService {
-  constructor(firebaseService: FirebaseService, cursorService: CursorService) {
-    super(firebaseService, cursorService);
-  }
-
-  public async getOrderNonce(userId: string): Promise<number> {
-    try {
-      const user = trimLowerCase(userId);
-      const userDocRef = this.firebaseService.firestore.collection(firestoreConstants.USERS_COLL).doc(user);
-      const updatedNonce = await this.firebaseService.firestore.runTransaction(async (t) => {
-        const userDoc = await t.get(userDocRef);
-        // todo: use a user dto or type?
-        const userDocData = userDoc.data() || { address: user };
-        const nonce = parseInt(userDocData.orderNonce ?? 0) + 1;
-        const minOrderNonce = parseInt(userDocData.minOrderNonce ?? 0) + 1;
-        const newNonce = nonce > minOrderNonce ? nonce : minOrderNonce;
-        userDocData.orderNonce = newNonce;
-        t.set(userDocRef, userDocData, { merge: true });
-        return newNonce;
-      });
-      return updatedNonce;
-    } catch (e) {
-      console.error('Failed to get order nonce for user', userId);
-      throw e;
-    }
+  constructor(
+    firebaseService: FirebaseService,
+    cursorService: CursorService,
+    protected contractService: ContractService
+  ) {
+    super(firebaseService, contractService, cursorService);
   }
 
   public async getUserOrderCollections(

@@ -10,6 +10,7 @@ import { CachedTokenPair } from './token-price/cached-token-pair';
 import { Token } from '@uniswap/sdk-core';
 import { USDC_MAINNET, WETH_MAINNET } from './token-price/constants';
 import { FirebaseService } from 'firebase/firebase.service';
+import { getFeesAtTarget } from './utils';
 
 @Injectable()
 export class EthereumService {
@@ -37,7 +38,7 @@ export class EthereumService {
     }
   }
 
-  private getProvider(chainId: ChainId) {
+  getProvider(chainId: ChainId) {
     const provider = this._providers.get(chainId);
     if (!provider) {
       throw new Error(`Provider is not configured for chainId: ${chainId}`);
@@ -57,6 +58,21 @@ export class EthereumService {
     const provider = this.getProvider(chainId);
     const blockNumber = await provider.getBlockNumber();
     return blockNumber;
+  }
+
+  async getGasPrice(chainId: ChainId) {
+    const provider = this.getProvider(chainId);
+    const gasPrice = await provider.getGasPrice();
+    const result = getFeesAtTarget(gasPrice, 2);
+
+    return {
+      baseFee: gasPrice.toString(),
+      baseFeeGwei: ethers.utils.formatUnits(gasPrice, 'gwei'),
+      maxBaseFeeWei: result.maxBaseFeeWei,
+      minBaseFeeWei: result.minBaseFeeWei,
+      maxBaseFeeGwei: result.maxBaseFeeGwei,
+      minBaseFeeGwei: result.minBaseFeeGwei
+    };
   }
 
   async getErc721Owner(token: { address: string; tokenId: string; chainId: string }): Promise<string> {

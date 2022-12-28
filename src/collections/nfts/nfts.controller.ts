@@ -14,7 +14,6 @@ import { ErrorResponseDto } from 'common/dto/error-response.dto';
 import { BadQueryError } from 'common/errors/bad-query.error';
 import { CacheControlInterceptor } from 'common/interceptors/cache-control.interceptor';
 import { ResponseDescription } from 'common/response-description';
-import { FirebaseService } from 'firebase/firebase.service';
 import { NftsService } from './nfts.service';
 import {
   NftActivityArrayDto,
@@ -26,7 +25,7 @@ import {
 
 @Controller('collections')
 export class NftsController {
-  constructor(private nftService: NftsService, private firebaseService: FirebaseService) {}
+  constructor(protected nftService: NftsService) {}
 
   @Get(':id/nfts')
   @ApiOperation({
