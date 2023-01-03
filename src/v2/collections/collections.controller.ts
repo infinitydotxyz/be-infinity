@@ -1,4 +1,4 @@
-import { UserCuratedCollectionDto, ErrorResponseDto } from '@infinityxyz/lib/types/dto';
+import { UserCuratedCollectionDto, ErrorResponseDto, CollectionOrdersQuery } from '@infinityxyz/lib/types/dto';
 import { Controller, Get, Query } from '@nestjs/common';
 import {
   ApiOperation,
@@ -12,7 +12,6 @@ import { ApiTag } from 'common/api-tags';
 import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param-collection-id.decorator';
 import { ResponseDescription } from 'common/response-description';
 import { OrdersService } from 'v2/orders/orders.service';
-import { CollectionOrdersQuery } from 'v2/orders/query';
 
 @Controller('v2/collections')
 export class CollectionsController {

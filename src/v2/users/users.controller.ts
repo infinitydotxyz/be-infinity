@@ -1,5 +1,5 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { ErrorResponseDto } from '@infinityxyz/lib/types/dto';
+import { ErrorResponseDto, Side, TakerOrdersQuery } from '@infinityxyz/lib/types/dto';
 import { BadRequestException, Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { ParamUserId } from 'auth/param-user-id.decorator';
@@ -8,7 +8,6 @@ import { ResponseDescription } from 'common/response-description';
 import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 import { OrdersService } from 'v2/orders/orders.service';
-import { Side, TakerOrdersQuery } from 'v2/orders/query';
 
 @Controller('v2/users')
 export class UsersController {
