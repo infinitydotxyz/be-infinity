@@ -358,12 +358,7 @@ export class UserService {
       startAtToken?: string
     ): Promise<{ pageKey: string; nfts: NftDto[]; hasNextPage: boolean }> => {
       // todo: directly fetch from firestore when data is ready
-      const response = await this.alchemyService.getUserNfts(
-        user.userAddress,
-        chainId,
-        pageKey,
-        query.collections
-      );
+      const response = await this.alchemyService.getUserNfts(user.userAddress, chainId, pageKey, query.collections);
       totalOwned = response?.totalCount ?? NaN;
       const nextPageKey = response?.pageKey ?? '';
       let nfts = response?.ownedNfts ?? [];
