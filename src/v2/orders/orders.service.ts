@@ -13,7 +13,7 @@ import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
 import { bn } from 'utils';
 import { BaseOrdersService } from './base-orders.service';
-import { OrderBy, OrderQueries, Side } from './query';
+import { OrderBy, OrderQueries, Side } from '@infinityxyz/lib/types/dto';
 
 @Injectable()
 export class OrdersService extends BaseOrdersService {
@@ -168,6 +168,7 @@ export class OrdersService extends BaseOrdersService {
 
     const filterBySellOrder = query.isSellOrder != null;
     const filterByStatus = query.status != null;
+    const filterByCollection = 'collection' in query && query.collection != null;
 
     const DEFAULT_ORDER_BY = OrderBy.StartTime;
     const DEFAULT_ORDER_DIRECTION = OrderDirection.Descending;
@@ -196,6 +197,10 @@ export class OrdersService extends BaseOrdersService {
 
     if (filterByStatus) {
       firestoreQuery = firestoreQuery.where('order.status', '==', query.status);
+    }
+
+    if (filterByCollection) {
+      firestoreQuery = firestoreQuery.where('order.collection', '==', query.collection);
     }
 
     switch (orderBy) {

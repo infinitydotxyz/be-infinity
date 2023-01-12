@@ -294,8 +294,8 @@ export class UserService {
         throw new BadQueryError('orderType is invalid');
     }
 
-    if (nftsQuery.collectionAddresses && nftsQuery.collectionAddresses.length > 0) {
-      query = query.where(`${orderSnippetItem}.collectionAddress`, 'in', nftsQuery.collectionAddresses);
+    if (nftsQuery.collections && nftsQuery.collections.length > 0) {
+      query = query.where(`${orderSnippetItem}.collectionAddress`, 'in', nftsQuery.collections);
     }
 
     const minPrice = nftsQuery.minPrice ?? 0;
@@ -346,7 +346,7 @@ export class UserService {
 
   async getNfts(
     user: ParsedUserId,
-    query: Pick<UserNftsQueryDto, 'collectionAddresses' | 'cursor' | 'limit' | 'chainId'>
+    query: Pick<UserNftsQueryDto, 'collections' | 'cursor' | 'limit' | 'chainId'>
   ): Promise<NftArrayDto> {
     const chainId = query.chainId || ChainId.Mainnet;
     type Cursor = { pageKey?: string; startAtToken?: string };
@@ -358,12 +358,7 @@ export class UserService {
       startAtToken?: string
     ): Promise<{ pageKey: string; nfts: NftDto[]; hasNextPage: boolean }> => {
       // todo: directly fetch from firestore when data is ready
-      const response = await this.alchemyService.getUserNfts(
-        user.userAddress,
-        chainId,
-        pageKey,
-        query.collectionAddresses
-      );
+      const response = await this.alchemyService.getUserNfts(user.userAddress, chainId, pageKey, query.collections);
       totalOwned = response?.totalCount ?? NaN;
       const nextPageKey = response?.pageKey ?? '';
       let nfts = response?.ownedNfts ?? [];

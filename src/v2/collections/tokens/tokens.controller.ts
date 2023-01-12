@@ -1,4 +1,4 @@
-import { ErrorResponseDto } from '@infinityxyz/lib/types/dto';
+import { ErrorResponseDto, TokenOrdersQuery } from '@infinityxyz/lib/types/dto';
 import { Controller, Get, Query } from '@nestjs/common';
 import {
   ApiOperation,
@@ -13,7 +13,6 @@ import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param
 import { ApiParamTokenId, ParamTokenId } from 'common/decorators/param-token-id.decorator';
 import { ResponseDescription } from 'common/response-description';
 import { OrdersService } from 'v2/orders/orders.service';
-import { TokenOrdersQuery } from 'v2/orders/query';
 
 @Controller('v2/collections')
 export class TokensController {
