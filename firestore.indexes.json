@@ -1,1638 +1,6 @@
 {
   "indexes": [
     {
-      "collectionGroup": "collectionV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "collectionV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "collectionV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "collectionV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "collectionV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "collectionV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "collectionV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "collectionV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "tokenV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "tokenV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "tokenV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "tokenV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "tokenV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "tokenV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "tokenV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "tokenV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.collection",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.collection",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.collection",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.collection",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.collection",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.collection",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.collection",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.collection",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.collection",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.collection",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.collection",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.collection",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.collection",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.collection",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.collection",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.collection",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "makerV2Orders",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "tokenV2Orders",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.owners",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.collection",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "tokenV2Orders",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.owners",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "tokenV2Orders",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.owners",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "order.collection",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "tokenV2Orders",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.owners",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "tokenV2Orders",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.owners",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.collection",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "tokenV2Orders",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.owners",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "tokenV2Orders",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.owners",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "order.collection",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "tokenV2Orders",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.owners",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "tokenV2Orders",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.owners",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.collection",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "tokenV2Orders",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.owners",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "tokenV2Orders",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.owners",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "order.collection",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "tokenV2Orders",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.owners",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "tokenV2Orders",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.owners",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.collection",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "tokenV2Orders",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.owners",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "tokenV2Orders",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.owners",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "order.collection",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "tokenV2Orders",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        {
-          "fieldPath": "metadata.chainId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.owners",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "order.startTimeMs",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "metadata.id",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "_nftTransferEvents",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
@@ -1706,6 +74,24 @@
     },
     {
       "collectionGroup": "_rewardsLedger",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "requiresProcessing",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "updatedAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "_tokenV2Orders",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
         {
@@ -3209,6 +1595,198 @@
           "order": "ASCENDING"
         },
         {
+          "fieldPath": "order.collection",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.startPriceEth",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.id",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "makerV2Orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "metadata.chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.collection",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.startPriceEth",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "metadata.id",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "makerV2Orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "metadata.chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.collection",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.startTimeMs",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.id",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "makerV2Orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "metadata.chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.collection",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.startTimeMs",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "metadata.id",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "makerV2Orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "metadata.chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.isSellOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.collection",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.startPriceEth",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.id",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "makerV2Orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "metadata.chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.isSellOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.collection",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.startPriceEth",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "metadata.id",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "makerV2Orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "metadata.chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.isSellOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.collection",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.startTimeMs",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.id",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "makerV2Orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "metadata.chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.isSellOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.collection",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.startTimeMs",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "metadata.id",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "makerV2Orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "metadata.chainId",
+          "order": "ASCENDING"
+        },
+        {
           "fieldPath": "order.isSellOrder",
           "order": "ASCENDING"
         },
@@ -3276,6 +1854,126 @@
         },
         {
           "fieldPath": "order.isSellOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.startTimeMs",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "metadata.id",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "makerV2Orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "metadata.chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.isSellOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.collection",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.startPriceEth",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.id",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "makerV2Orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "metadata.chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.isSellOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.collection",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.startPriceEth",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "metadata.id",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "makerV2Orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "metadata.chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.isSellOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.collection",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.startTimeMs",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.id",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "makerV2Orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "metadata.chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.isSellOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.collection",
           "order": "ASCENDING"
         },
         {
@@ -3452,6 +2150,110 @@
       "fields": [
         {
           "fieldPath": "metadata.chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.startTimeMs",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "metadata.id",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "makerV2Orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "metadata.chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.collection",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.startPriceEth",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.id",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "makerV2Orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "metadata.chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.collection",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.startPriceEth",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "metadata.id",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "makerV2Orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "metadata.chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.collection",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.startTimeMs",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.id",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "makerV2Orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "metadata.chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.collection",
           "order": "ASCENDING"
         },
         {
@@ -8623,6 +7425,262 @@
           "arrayConfig": "CONTAINS"
         },
         {
+          "fieldPath": "order.collection",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.startPriceEth",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.id",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "tokenV2Orders",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "metadata.chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.owners",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "order.collection",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.startPriceEth",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "metadata.id",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "tokenV2Orders",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "metadata.chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.owners",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "order.collection",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.startTimeMs",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.id",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "tokenV2Orders",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "metadata.chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.owners",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "order.collection",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.startTimeMs",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "metadata.id",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "tokenV2Orders",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "metadata.chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.owners",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "order.isSellOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.collection",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.startPriceEth",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.id",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "tokenV2Orders",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "metadata.chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.owners",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "order.isSellOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.collection",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.startPriceEth",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "metadata.id",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "tokenV2Orders",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "metadata.chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.owners",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "order.isSellOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.collection",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.startTimeMs",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.id",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "tokenV2Orders",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "metadata.chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.owners",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "order.isSellOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.collection",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.startTimeMs",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "metadata.id",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "tokenV2Orders",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "metadata.chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.owners",
+          "arrayConfig": "CONTAINS"
+        },
+        {
           "fieldPath": "order.isSellOrder",
           "order": "ASCENDING"
         },
@@ -8832,22 +7890,14 @@
     },
     {
       "collectionGroup": "tokenV2Orders",
-      "queryScope": "COLLECTION",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
         {
-          "fieldPath": "metadata.chainId",
+          "fieldPath": "metadata.processed",
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "order.status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.isSellOrder",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "order.startPriceEth",
+          "fieldPath": "metadata.updatedAt",
           "order": "ASCENDING"
         },
         {
@@ -8874,6 +7924,32 @@
         },
         {
           "fieldPath": "order.startPriceEth",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.id",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "tokenV2Orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "metadata.chainId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.isSellOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.startPriceEth",
           "order": "DESCENDING"
         },
         {
@@ -9019,6 +8095,68 @@
         {
           "fieldPath": "metadata.id",
           "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "tokenV2Orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "metadata.hasError",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.isSellOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.startPriceEth",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "tokenV2Orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "metadata.hasError",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.isSellOrder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "order.startPriceEth",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "tokenV2Orders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "metadata.processed",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.updatedAt",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "metadata.id",
+          "order": "ASCENDING"
         }
       ]
     },
