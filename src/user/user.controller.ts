@@ -162,6 +162,30 @@ export class UserController {
     };
   }
 
+  @Get('/:userId/nfts')
+  @ApiOperation({
+    description: "Get a user's NFTs. Optionally, filter by a user's nfts with orders",
+    tags: [ApiTag.User, ApiTag.Nft]
+  })
+  @ApiParamUserId('userId')
+  @ApiOkResponse({ description: ResponseDescription.Success, type: NftArrayDto })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 2 }))
+  async getNfts(
+    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
+    @Query() filters: UserNftsQueryDto
+  ): Promise<ExternalNftArrayDto> {
+    const nfts = await this.userService.getNfts(user, filters);
+
+    const externalNfts = this.nftsService.isSupported(nfts.data);
+
+    return {
+      ...nfts,
+      data: externalNfts
+    };
+  }
+
   @Get('/:userId')
   @ApiOperation({
     description: 'Get a user by their id',
@@ -191,41 +215,6 @@ export class UserController {
     }
 
     return userProfile;
-  }
-
-  // todo: remove in future
-  @Get('/:userId/nfts')
-  @ApiOperation({
-    description: "Get a user's NFTs. Optionally, filter by a user's nfts with orders",
-    tags: [ApiTag.User, ApiTag.Nft]
-  })
-  @ApiParamUserId('userId')
-  @ApiOkResponse({ description: ResponseDescription.Success, type: NftArrayDto })
-  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 2 }))
-  async getNfts(
-    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
-    @Query() filters: UserNftsQueryDto
-  ): Promise<ExternalNftArrayDto> {
-    let nfts: NftArrayDto;
-    if (
-      filters.orderType !== undefined ||
-      filters.maxPrice !== undefined ||
-      filters.minPrice !== undefined ||
-      filters.orderBy !== undefined
-    ) {
-      nfts = await this.userService.getUserNftsWithOrders(user, filters);
-    } else {
-      nfts = await this.userService.getNfts(user, filters);
-    }
-
-    const externalNfts = this.nftsService.isSupported(nfts.data);
-
-    return {
-      ...nfts,
-      data: externalNfts
-    };
   }
 
   @Put('/:userId')
