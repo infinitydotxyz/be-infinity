@@ -197,9 +197,9 @@ export class NftsService {
       nftsQuery = nftsQuery.where(startPriceField, '>=', minPrice);
       nftsQuery = nftsQuery.where(startPriceField, '<=', maxPrice);
       nftsQuery = nftsQuery.orderBy(startPriceField, query.orderDirection);
-      nftsQuery = nftsQuery.orderBy(NftsOrderBy.TokenId, OrderDirection.Ascending); // to break ties
+      nftsQuery = nftsQuery.orderBy(NftsOrderBy.TokenIdNumeric, OrderDirection.Ascending); // to break ties
       const startAfterPrice = decodedCursor?.[NftsOrderBy.Price];
-      const startAfterTokenId = decodedCursor?.[NftsOrderBy.TokenId];
+      const startAfterTokenId = decodedCursor?.[NftsOrderBy.TokenIdNumeric];
       if (startAfterPrice && startAfterTokenId) {
         nftsQuery = nftsQuery.startAfter(startAfterPrice, startAfterTokenId);
       }
@@ -207,9 +207,9 @@ export class NftsService {
       if (query.orderBy === NftsOrderBy.Price) {
         nftsQuery = nftsQuery
           .orderBy(startPriceField, query.orderDirection)
-          .orderBy(NftsOrderBy.TokenId, OrderDirection.Ascending);
+          .orderBy(NftsOrderBy.TokenIdNumeric, OrderDirection.Ascending);
         const startAfterPrice = decodedCursor?.[NftsOrderBy.Price];
-        const startAfterTokenId = decodedCursor?.[NftsOrderBy.TokenId];
+        const startAfterTokenId = decodedCursor?.[NftsOrderBy.TokenIdNumeric];
         if (startAfterPrice && startAfterTokenId) {
           nftsQuery = nftsQuery.startAfter(startAfterPrice, startAfterTokenId);
         }
@@ -236,15 +236,13 @@ export class NftsService {
       switch (key) {
         case NftsOrderBy.Price: {
           const startPrice = lastItem?.ordersSnippet?.[orderType]?.orderItem?.startPriceEth;
-          const tokenId = lastItem?.tokenId;
+          const tokenId = lastItem?.tokenIdNumeric;
           if (startPrice && tokenId) {
             cursor[NftsOrderBy.Price] = startPrice;
-            cursor[NftsOrderBy.TokenId] = tokenId;
+            cursor[NftsOrderBy.TokenIdNumeric] = tokenId;
           }
           break;
         }
-        case NftsOrderBy.RarityRank:
-        case NftsOrderBy.TokenId:
         case NftsOrderBy.TokenIdNumeric:
           if (lastItem?.[key]) {
             cursor[key] = lastItem[key] ?? '';
