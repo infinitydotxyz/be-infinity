@@ -97,11 +97,11 @@ export const DEFAULT_MIN_ETH = 0.0000001;
 export const DEFAULT_MAX_ETH = 1000000; // For listings
 export const DEFAULT_PRICE_SORT_DIRECTION = OrderDirection.Descending;
 
-export const INFINITY_EMAIL = 'hi@infinity.xyz';
+export const INFINITY_EMAIL = 'hi@flow.so';
 export const FB_STORAGE_BUCKET = 'nftc-dev.appspot.com';
 export const FIREBASE_SERVICE_ACCOUNT = 'nftc-dev-firebase-creds.json';
 export const ORIGIN = /http:\/\/localhost:\d+/;
-export const INFINITY_URL = 'https://infinity.xyz/';
+export const INFINITY_URL = 'https://flow.so/';
 
 export const ONE_MIN = 1000 * 60;
 export const TEN_MINS = ONE_MIN * 10;
