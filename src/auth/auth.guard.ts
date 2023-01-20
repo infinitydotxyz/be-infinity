@@ -165,9 +165,9 @@ export class AuthGuard implements CanActivate {
 
   static getEncodedLoginMessage(nonce: number): string {
     // ignore the formatting of this multiline string
-    const msg = `Welcome to Infinity. Click "Sign" to sign in. No password needed. This request will not trigger a blockchain transaction or cost any gas fees.
+    const msg = `Welcome to Flow. Click "Sign" to sign in. No password needed. This request will not trigger a blockchain transaction or cost any gas fees.
  
-I accept the Infinity Terms of Service: https://flow.so/terms
+I accept the Flow Terms of Service: https://flow.so/terms
 
 Nonce: ${nonce}
 Expires in: 24 hrs`;
