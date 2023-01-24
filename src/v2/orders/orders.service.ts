@@ -169,6 +169,7 @@ export class OrdersService extends BaseOrdersService {
     const filterBySellOrder = query.isSellOrder != null;
     const filterByStatus = query.status != null;
     const filterByCollection = 'collection' in query && query.collection != null;
+    const filterByCollectionWide = 'onlyCollectionWide' in query && query.onlyCollectionWide === true;
 
     const DEFAULT_ORDER_BY = OrderBy.StartTime;
     const DEFAULT_ORDER_DIRECTION = OrderDirection.Descending;
@@ -201,6 +202,10 @@ export class OrdersService extends BaseOrdersService {
 
     if (filterByCollection) {
       firestoreQuery = firestoreQuery.where('order.collection', '==', query.collection);
+    }
+
+    if (filterByCollectionWide) {
+      firestoreQuery = firestoreQuery.where('order.orderKind.numTokens', '==', 0);
     }
 
     switch (orderBy) {
