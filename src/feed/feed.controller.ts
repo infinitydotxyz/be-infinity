@@ -1,10 +1,6 @@
 import { NftActivityArrayDto, NftActivityFiltersDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { Controller, Get, Query, UseInterceptors } from '@nestjs/common';
-import {
-  ApiBadRequestResponse,
-  ApiInternalServerErrorResponse, ApiOkResponse,
-  ApiOperation
-} from '@nestjs/swagger';
+import { ApiBadRequestResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { ApiTag } from 'common/api-tags';
 import { ErrorResponseDto } from 'common/dto/error-response.dto';
 import { CacheControlInterceptor } from 'common/interceptors/cache-control.interceptor';
