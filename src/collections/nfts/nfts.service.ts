@@ -15,6 +15,7 @@ import { Injectable } from '@nestjs/common';
 import { BackfillService } from 'backfill/backfill.service';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
 import { EthereumService } from 'ethereum/ethereum.service';
+import { firestore } from 'firebase-admin';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
 import { getNftActivity } from 'utils/activity';
@@ -200,6 +201,11 @@ export class NftsService {
           nftsQuery = nftsQuery.where(`metadata.attributesMap.${attrKey}`, '==', true);
         }
       }
+      nftsQuery = nftsQuery.orderBy(firestore.FieldPath.documentId());
+      const startAfterDocId = decodedCursor?.[NftsOrderBy.DocId];
+      if (startAfterDocId) {
+        nftsQuery = nftsQuery.startAfter(startAfterDocId);
+      }
     } else if (hasPriceFilter) {
       const minPrice = query.minPrice ?? 0;
       const maxPrice = query.maxPrice ?? Number.MAX_SAFE_INTEGER;
@@ -252,11 +258,16 @@ export class NftsService {
           }
           break;
         }
-        case NftsOrderBy.TokenIdNumeric:
+        case NftsOrderBy.TokenIdNumeric: {
           if (lastItem?.[key]) {
             cursor[key] = lastItem[key] ?? '';
           }
           break;
+        }
+        default: {
+          cursor[NftsOrderBy.DocId] = results.docs[results.docs.length - 1]?.id;
+          break;
+        }
       }
     }
     const encodedCursor = this.paginationService.encodeCursor(cursor);
