@@ -10,7 +10,7 @@ import {
   NftsQueryDto,
   OrderType
 } from '@infinityxyz/lib/types/dto/collections/nfts';
-import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
+import { firestoreConstants, getCollectionDocId, getSearchFriendlyString } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { BackfillService } from 'backfill/backfill.service';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
@@ -186,12 +186,21 @@ export class NftsService {
           }
         }
       }
-      if (traits.length > 0) {
-        nftsQuery = nftsQuery.where('metadata.attributes', 'array-contains-any', traits);
-      }
-    }
 
-    if (hasPriceFilter) {
+      if (traits.length > 0) {
+        // orderBy won't work here unless we use a composite index on every possible combination of trait_type and value which is infeasible
+        const attrKeys: any = [];
+        traits.forEach((attr: any) => {
+          const attrType = getSearchFriendlyString(attr['trait_type']);
+          const attrValue = getSearchFriendlyString(String(attr['value']));
+          const attrKey = attrType + ':::' + attrValue; // ':::' is the random separator we used to store data in firestore
+          attrKeys.push(attrKey);
+        });
+        for (const attrKey of attrKeys) {
+          nftsQuery = nftsQuery.where(`metadata.attributesMap.${attrKey}`, '==', true);
+        }
+      }
+    } else if (hasPriceFilter) {
       const minPrice = query.minPrice ?? 0;
       const maxPrice = query.maxPrice ?? Number.MAX_SAFE_INTEGER;
       nftsQuery = nftsQuery.where(startPriceField, '>=', minPrice);
