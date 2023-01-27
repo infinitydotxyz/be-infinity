@@ -25,11 +25,7 @@
     "deploy:prod": "npm run build && gcloud app deploy -q --appyaml=./app.yaml --project=nftc-infinity"
   },
   "dependencies": {
-<<<<<<< HEAD
     "@infinityxyz/lib": "^1.291.0",
-=======
-    "@infinityxyz/lib": "^1.288.0",
->>>>>>> 7dfc092b0128b46c301e1bb0668982bc52acfb48
     "@nestjs/common": "^9.1.2",
     "@nestjs/config": "^2.2.0",
     "@nestjs/core": "^9.1.2",
