@@ -37,10 +37,9 @@ export class AuthGuard implements CanActivate {
     const siteRolesRequired = this.reflector.getAllAndMerge<SiteRole[]>(AUTH_SITE_ROLES, [handler, classRef]);
     const apiRolesRequired = this.reflector.getAllAndMerge<ApiRole[]>(AUTH_API_ROLES, [handler, classRef]);
 
-    const hasSiteRoles = siteRolesRequired && siteRolesRequired.length > 0;
     const hasApiRoles = apiRolesRequired && apiRolesRequired.length > 0;
 
-    if (!hasSiteRoles && !hasApiRoles) {
+    if (!hasApiRoles) {
       return true;
     }
 
