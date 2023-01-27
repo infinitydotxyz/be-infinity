@@ -184,13 +184,22 @@ export class BackfillService {
         }
 
         if (datum.traits && datum.traits.length > 0 && token.metadata) {
+          const attrMap: any = {};
+
           token.metadata.attributes = datum.traits.map((trait) => {
+            const attrType = getSearchFriendlyString(trait.trait_type);
+            const attrValue = getSearchFriendlyString(String(trait.value));
+            attrMap[`${attrType}:::${attrValue}`] = true;
+
             const isTraitValueNumeric = !isNaN(Number(trait.value));
             return {
               trait_type: trait.trait_type,
               value: isTraitValueNumeric ? Number(trait.value) : trait.value
             };
           });
+
+          token.metadata.attributesMap = attrMap;
+
           token.numTraitTypes = datum.traits.length;
         }
 
@@ -306,7 +315,13 @@ export class BackfillService {
           }
         } else {
           if (attributes.length > 0) {
-            dataToSave.metadata = { attributes };
+            const attrMap: any = {};
+            attributes.forEach((attr) => {
+              const attrType = getSearchFriendlyString(attr.trait_type);
+              const attrValue = getSearchFriendlyString(String(attr.value));
+              attrMap[`${attrType}:::${attrValue}`] = true;
+            });
+            dataToSave.metadata = { attributes, attributesMap: attrMap };
             dataToSave.numTraitTypes = attributes.length;
           }
         }
@@ -348,7 +363,13 @@ export class BackfillService {
           data.alchemyCachedImage = nftDto.alchemyCachedImage;
         }
         if (nftDto.metadata.attributes && nftDto.metadata.attributes.length > 0) {
-          data.metadata = { attributes: nftDto.metadata.attributes };
+          const attrMap: any = {};
+          (nftDto.metadata?.attributes ?? []).forEach((attr) => {
+            const attrType = getSearchFriendlyString(attr.trait_type);
+            const attrValue = getSearchFriendlyString(String(attr.value));
+            attrMap[`${attrType}:::${attrValue}`] = true;
+          });
+          data.metadata = { attributes: nftDto.metadata.attributes, attributesMap: attrMap };
           data.numTraitTypes = nftDto.metadata.attributes.length;
         }
 
@@ -474,12 +495,21 @@ export class BackfillService {
         }
 
         // async save to firebase
+        const dataToSave = nftDto;
+        const attrMap: any = {};
+        dataToSave.metadata.attributes?.forEach?.((attr) => {
+          const attrType = getSearchFriendlyString(attr.trait_type);
+          const attrValue = getSearchFriendlyString(String(attr.value));
+          attrMap[`${attrType}:::${attrValue}`] = true;
+        });
+        (dataToSave.metadata as any).attributesMap = attrMap;
+        
         const collectionDocId = getCollectionDocId({ chainId: nft.chainId, collectionAddress: nft.address });
         const tokenDocRef = this.collectionsRef
           .doc(collectionDocId)
           .collection(firestoreConstants.COLLECTION_NFTS_COLL)
           .doc(nft.tokenId);
-        this.fsBatchHandler.add(tokenDocRef, { ...nftDto, tokenIdNumeric }, { merge: true });
+        this.fsBatchHandler.add(tokenDocRef, { ...dataToSave, tokenIdNumeric }, { merge: true });
       }
     }
 
