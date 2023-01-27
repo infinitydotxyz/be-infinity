@@ -145,6 +145,7 @@ export class OrdersService extends BaseOrdersService {
         isSubSetOrder: item.order.orderKind.isSubSetOrder,
         isDynamic: item.order.orderKind.isDynamic,
         status: item.order.status,
+        nonce: item.order.nonce,
         ...displayData
       };
 
