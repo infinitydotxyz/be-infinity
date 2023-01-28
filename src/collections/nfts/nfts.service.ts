@@ -10,11 +10,12 @@ import {
   NftsQueryDto,
   OrderType
 } from '@infinityxyz/lib/types/dto/collections/nfts';
-import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
+import { firestoreConstants, getCollectionDocId, getSearchFriendlyString } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { BackfillService } from 'backfill/backfill.service';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
 import { EthereumService } from 'ethereum/ethereum.service';
+import { firestore } from 'firebase-admin';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
 import { getNftActivity } from 'utils/activity';
@@ -186,12 +187,26 @@ export class NftsService {
           }
         }
       }
-      if (traits.length > 0) {
-        nftsQuery = nftsQuery.where('metadata.attributes', 'array-contains-any', traits);
-      }
-    }
 
-    if (hasPriceFilter) {
+      if (traits.length > 0) {
+        // orderBy won't work here unless we use a composite index on every possible combination of trait_type and value which is infeasible
+        const attrKeys: any = [];
+        traits.forEach((attr: any) => {
+          const attrType = getSearchFriendlyString(attr['trait_type']);
+          const attrValue = getSearchFriendlyString(String(attr['value']));
+          const attrKey = attrType + ':::' + attrValue; // ':::' is the random separator we used to store data in firestore
+          attrKeys.push(attrKey);
+        });
+        for (const attrKey of attrKeys) {
+          nftsQuery = nftsQuery.where(`metadata.attributesMap.${attrKey}`, '==', true);
+        }
+      }
+      nftsQuery = nftsQuery.orderBy(firestore.FieldPath.documentId());
+      const startAfterDocId = decodedCursor?.[NftsOrderBy.DocId];
+      if (startAfterDocId) {
+        nftsQuery = nftsQuery.startAfter(startAfterDocId);
+      }
+    } else if (hasPriceFilter) {
       const minPrice = query.minPrice ?? 0;
       const maxPrice = query.maxPrice ?? Number.MAX_SAFE_INTEGER;
       nftsQuery = nftsQuery.where(startPriceField, '>=', minPrice);
@@ -243,11 +258,16 @@ export class NftsService {
           }
           break;
         }
-        case NftsOrderBy.TokenIdNumeric:
+        case NftsOrderBy.TokenIdNumeric: {
           if (lastItem?.[key]) {
             cursor[key] = lastItem[key] ?? '';
           }
           break;
+        }
+        default: {
+          cursor[NftsOrderBy.DocId] = results.docs[results.docs.length - 1]?.id;
+          break;
+        }
       }
     }
     const encodedCursor = this.paginationService.encodeCursor(cursor);

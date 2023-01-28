@@ -16,7 +16,6 @@ import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
 import { StatsService } from 'stats/stats.service';
 import { ParsedUserId } from './parser/parsed-user-id';
-import { BadQueryError } from 'common/errors/bad-query.error';
 import {
   RankingQueryDto,
   UserCuratedCollectionDto,
@@ -31,7 +30,6 @@ import {
   UserFollowingUserPostPayload,
   UserFollowingUserDeletePayload,
   UserNftsQueryDto,
-  UserNftsOrderType,
   UserProfileDto,
   UserActivityQueryDto,
   UserActivityArrayDto

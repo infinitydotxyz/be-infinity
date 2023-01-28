@@ -15,6 +15,7 @@ import { ReferralsService } from './referrals.service';
 export class ReferralsController {
   constructor(protected referralsService: ReferralsService) {}
 
+  // todo: joe the way we save referrals is going to change so not bothering about Auth for the endpoint now
   @Put(':userId/referrals')
   @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOperation({

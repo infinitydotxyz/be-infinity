@@ -13,10 +13,7 @@ export class NonceService {
   constructor(protected _firebaseService: FirebaseService, protected _contractService: ContractService) {}
 
   public async getNonce(userId: string, chainId: ChainId): Promise<BigNumber> {
-    let deprecatedNonce = 0;
-    if (chainId === ChainId.Mainnet || chainId === ChainId.Goerli) {
-      deprecatedNonce = await this.getDeprecatedNonce(userId);
-    }
+    const deprecatedNonce = 0;
     const exchange = this._contractService.getExchangeAddress(chainId);
     const userRef = this._firebaseService.firestore.collection(firestoreConstants.USERS_COLL).doc(userId);
     const minNonceQuery = userRef
@@ -37,12 +34,6 @@ export class NonceService {
     const userRef = this._firebaseService.firestore.collection(firestoreConstants.USERS_COLL).doc(userId);
     const result = await this._firebaseService.firestore.runTransaction(async (txn) => {
       const nonceRef = this.getNonceRef(userRef, nonce, chainId, exchange);
-      const deprecatedNonce = await this.getDeprecatedNonce(userId, txn);
-
-      if (nonce.lte(deprecatedNonce)) {
-        throw new InvalidNonceError(nonce.toString(), chainId, 'Nonce already claimed');
-      }
-
       const nextNonceDoc = await nonceRef.get();
 
       if (nextNonceDoc.exists) {
@@ -88,20 +79,6 @@ export class NonceService {
     }
 
     await batchHandler.flush();
-  }
-
-  public async getDeprecatedNonce(userId: string, txn?: FirebaseFirestore.Transaction): Promise<number> {
-    const userDocRef = this._firebaseService.firestore.collection(firestoreConstants.USERS_COLL).doc(userId);
-    let userDoc;
-    if (txn) {
-      userDoc = await txn.get(userDocRef);
-    } else {
-      userDoc = await userDocRef.get();
-    }
-    const user = userDoc.data() ?? { address: userId };
-    const nonce = parseInt(user.orderNonce ?? 0, 10);
-
-    return nonce;
   }
 
   protected getNonceRef(
