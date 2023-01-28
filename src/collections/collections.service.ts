@@ -9,7 +9,6 @@ import {
   TopOwner
 } from '@infinityxyz/lib/types/core';
 import {
-  CollectionSearchQueryDto,
   TopOwnerDto,
   TopOwnersQueryDto,
   UserCuratedCollectionDto,
@@ -20,7 +19,7 @@ import {
   CuratedCollectionsQuery
 } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
 import { ExternalNftCollectionDto, NftCollectionDto } from '@infinityxyz/lib/types/dto/collections/nfts';
-import { firestoreConstants, getCollectionDocId, getEndCode, getSearchFriendlyString } from '@infinityxyz/lib/utils';
+import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { BackfillService } from 'backfill/backfill.service';
 import { FirebaseService } from 'firebase/firebase.service';
@@ -162,126 +161,6 @@ export default class CollectionsService {
       .limit(1)
       .get();
     return snap.docs[0]?.data() as CurrentCurationSnippetDoc | null;
-  }
-
-  _searchBySlug(
-    firestoreQuery: FirebaseFirestore.Query<Collection>,
-    query: string,
-    limit: number,
-    startAfter: string,
-    chainId: ChainId
-  ) {
-    if (query) {
-      const startsWith = getSearchFriendlyString(query);
-      const endCode = getEndCode(startsWith);
-
-      if (startsWith && endCode) {
-        firestoreQuery = firestoreQuery.where('slug', '>=', startsWith).where('slug', '<', endCode);
-      }
-    }
-
-    firestoreQuery = firestoreQuery.where('chainId', '==', chainId).orderBy('slug');
-
-    if (startAfter) {
-      firestoreQuery = firestoreQuery.startAfter(startAfter);
-    }
-
-    firestoreQuery = firestoreQuery.limit(limit);
-    return firestoreQuery;
-  }
-
-  async searchByName(search: CollectionSearchQueryDto) {
-    type Keys = 'verified' | 'unverified';
-
-    type Cursor = Record<Keys, { slug: string }>;
-
-    const cursor: Cursor = this.paginationService.decodeCursorToObject<Cursor>(search.cursor);
-
-    const collectionsRef = this.firebaseService.firestore.collection(
-      firestoreConstants.COLLECTIONS_COLL
-    ) as FirebaseFirestore.CollectionReference<Collection>;
-    const verifiedCollectionsQuery = collectionsRef.where('hasBlueCheck', '==', true);
-    const nonVerifiedCollectionsQuery = collectionsRef.where('hasBlueCheck', '==', false);
-
-    const chainId = search.chainId ?? ChainId.Mainnet;
-
-    const queries: { key: Keys; query: FirebaseFirestore.Query<Collection> }[] = [
-      {
-        key: 'verified',
-        query: verifiedCollectionsQuery
-      },
-      {
-        key: 'unverified',
-        query: nonVerifiedCollectionsQuery
-      }
-    ];
-
-    const results = await Promise.all(
-      queries.map(async (item) => {
-        const startAfter = cursor[item.key]?.slug ?? '';
-        const query = this._searchBySlug(item.query, search.query ?? '', search.limit + 1, startAfter, chainId);
-
-        const snapshot = await query
-          .select(
-            'address',
-            'chainId',
-            'slug',
-            'metadata.name',
-            'metadata.profileImage',
-            'metadata.description',
-            'metadata.bannerImage',
-            'hasBlueCheck'
-          )
-          .get();
-
-        const data = snapshot.docs.map((doc, index) => {
-          const data = doc.data();
-          let hasNextPage = false;
-          if (index + 1 > snapshot.docs.length) {
-            hasNextPage = true;
-          } else if (index + 1 === snapshot.docs.length) {
-            hasNextPage = snapshot.docs.length === search.limit + 1;
-          }
-
-          return {
-            hasNextPage,
-            key: item.key,
-            data: {
-              address: data.address,
-              chainId: data.chainId,
-              slug: data.slug,
-              name: data.metadata.name,
-              hasBlueCheck: data.hasBlueCheck,
-              profileImage: data.metadata.profileImage,
-              bannerImage: data.metadata.bannerImage,
-              description: data.metadata.description
-            }
-          };
-        });
-
-        return {
-          key: item.key,
-          data
-        };
-      })
-    );
-
-    let returnData = results.flatMap((item) => {
-      return item.data;
-    });
-
-    const hasNextPage = returnData.length > search.limit;
-    returnData = returnData.slice(0, search.limit);
-
-    for (const item of returnData) {
-      cursor[item.key] = { slug: item.data.slug };
-    }
-
-    return {
-      data: returnData.map((item) => item.data),
-      cursor: this.paginationService.encodeCursor(cursor),
-      hasNextPage: hasNextPage
-    };
   }
 
   /**

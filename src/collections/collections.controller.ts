@@ -25,12 +25,10 @@ type CollectStatsQuery = {
   list: string;
 };
 
+import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
 import {
   CollectionDto,
-  CollectionHistoricalStatsQueryDto,
-  CollectionSearchArrayDto,
-  CollectionSearchQueryDto,
-  CollectionStatsByPeriodDto,
+  CollectionHistoricalStatsQueryDto, CollectionStatsByPeriodDto,
   CollectionStatsQueryDto,
   CollectionTrendingStatsQueryDto,
   RankingQueryDto,
@@ -39,9 +37,13 @@ import {
   UserCuratedCollectionDto,
   UserCuratedCollectionsDto
 } from '@infinityxyz/lib/types/dto/collections';
+import { CuratedCollectionsQueryWithUser } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
 import { NftActivityArrayDto, NftActivityFiltersDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { TweetArrayDto } from '@infinityxyz/lib/types/dto/twitter';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
+import { Auth } from 'auth/api-auth.decorator';
+import { SiteRole } from 'auth/auth.constants';
+import { ParamUserId } from 'auth/param-user-id.decorator';
 import { ApiTag } from 'common/api-tags';
 import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param-collection-id.decorator';
 import { ErrorResponseDto } from 'common/dto/error-response.dto';
@@ -51,26 +53,20 @@ import { CacheControlInterceptor } from 'common/interceptors/cache-control.inter
 import { ResponseDescription } from 'common/response-description';
 import { FirebaseService } from 'firebase/firebase.service';
 import { mnemonicByParam } from 'mnemonic/mnemonic.service';
+import { ReservoirService } from 'reservoir/reservoir.service';
 import { StatsService } from 'stats/stats.service';
 import { TwitterService } from 'twitter/twitter.service';
+import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
+import { ParsedUserId } from 'user/parser/parsed-user-id';
+import { UserParserService } from 'user/parser/parser.service';
 import { EXCLUDED_COLLECTIONS } from 'utils/stats';
 import { UPDATE_SOCIAL_STATS_INTERVAL } from '../constants';
 import { ParseCollectionIdPipe, ParsedCollectionId } from './collection-id.pipe';
 import CollectionsService from './collections.service';
 import { enqueueCollection } from './collections.utils';
+import { CurationService } from './curation/curation.service';
 import { CollectionStatsArrayDto } from './dto/collection-stats-array.dto';
 import { NftsService } from './nfts/nfts.service';
-import { CuratedCollectionsQueryWithUser } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
-import { CurationService } from './curation/curation.service';
-import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
-import { ParsedUserId } from 'user/parser/parsed-user-id';
-import { Auth } from 'auth/api-auth.decorator';
-import { SiteRole } from 'auth/auth.constants';
-import { ParamUserId } from 'auth/param-user-id.decorator';
-import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
-import { Throttle } from '@nestjs/throttler';
-import { ReservoirService } from 'reservoir/reservoir.service';
-import { UserParserService } from 'user/parser/parser.service';
 
 @Controller('collections')
 export class CollectionsController {
@@ -84,20 +80,6 @@ export class CollectionsController {
     private firebaseService: FirebaseService,
     private userParserService: UserParserService
   ) {}
-
-  @Get('search')
-  @ApiOperation({
-    description: 'Search for a collection by name',
-    tags: [ApiTag.Collection]
-  })
-  @ApiOkResponse({ description: ResponseDescription.Success, type: CollectionSearchArrayDto })
-  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  @Throttle(10, 1) // 10 reqs per second; overrides global config
-  async searchByName(@Query() search: CollectionSearchQueryDto) {
-    const res = await this.collectionsService.searchByName(search);
-    return res;
-  }
 
   @Get('update-social-stats')
   @ApiOperation({
