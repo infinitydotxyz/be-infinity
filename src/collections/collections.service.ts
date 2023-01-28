@@ -91,6 +91,7 @@ export default class CollectionsService {
     if (!topOwners || topOwners.length === 0 || isStale) {
       try {
         topOwners = await this.refetchTopOwners(collection);
+        allStatsDocRef.set({ topOwnersLastUpdated: Date.now() }, { merge: true }).catch(console.error);
       } catch (e) {
         console.error('Error re-fetching top owners for collection', collection.chainId + ':' + collection.address);
       }
