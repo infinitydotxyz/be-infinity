@@ -9,7 +9,7 @@ import {
   TokenStandard
 } from '@infinityxyz/lib/types/core';
 import { NftDto, SearchResponseDto, SubQueryDto } from '@infinityxyz/lib/types/dto';
-import { firestoreConstants, getEndCode, getSearchFriendlyString, trimLowerCase } from '@infinityxyz/lib/utils';
+import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
@@ -169,13 +169,9 @@ export class SearchService {
     cursor: DeepPartial<SearchCursor>;
     hasNextPage: boolean;
   }> {
-    const startsWith = getSearchFriendlyString(query.query);
-    const endCode = getEndCode(startsWith);
-
     const q = this.collectionsRef
       .where('chainId', '==', query.chainId)
-      .where('slug', '>=', startsWith)
-      .where('slug', '<', endCode);
+      .where('searchTags', 'array-contains', query.query);
 
     const verifiedQuery = q.where('hasBlueCheck', '==', true).orderBy('slug');
     const unverifiedQuery = q.where('hasBlueCheck', '==', false).orderBy('slug');
