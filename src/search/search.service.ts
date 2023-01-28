@@ -171,7 +171,7 @@ export class SearchService {
   }> {
     const q = this.collectionsRef
       .where('chainId', '==', query.chainId)
-      .where('searchTags', 'array-contains', query.query);
+      .where('searchTags', 'array-contains', trimLowerCase(query.query));
 
     const verifiedQuery = q.where('hasBlueCheck', '==', true).orderBy('slug');
     const unverifiedQuery = q.where('hasBlueCheck', '==', false).orderBy('slug');
