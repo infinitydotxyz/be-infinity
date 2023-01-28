@@ -30,6 +30,7 @@ import { ParsedUserId } from 'user/parser/parsed-user-id';
 import { ZoraService } from 'zora/zora.service';
 import { ParsedCollectionId } from './collection-id.pipe';
 import { CurationService } from './curation/curation.service';
+import { ONE_DAY } from '../constants';
 
 interface CollectionQueryOptions {
   /**
@@ -75,43 +76,23 @@ export default class CollectionsService {
       .collection(firestoreConstants.COLLECTION_STATS_COLL)
       .doc('all');
     const allStatsDoc = await allStatsDocRef.get();
+
+    let topOwnersLastUpdated = 0;
     if (allStatsDoc.exists) {
       topOwners = allStatsDoc.data()?.topOwnersByOwnedNftsCount as TopOwner[];
+      topOwnersLastUpdated = allStatsDoc.data()?.topOwnersLastUpdated;
 
       // make sure not undefined from above
       topOwners = topOwners ?? [];
     }
 
-    // if data doesn't exist in firestore, fetch from zora
-    if (!topOwners || topOwners.length === 0) {
-      const topOwnersZora = await this.zoraService.getAggregatedCollectionStats(
-        collection.chainId,
-        collection.address,
-        10
-      );
-      const owners = topOwnersZora?.aggregateStat.ownersByCount.nodes ?? [];
-      for (const owner of owners) {
-        topOwners.push({
-          owner: owner.owner,
-          count: owner.count
-        });
-      }
-    }
-
-    // if zora data is null, fetch from reservoir
-    if (!topOwners || topOwners.length === 0) {
-      const topOwnersReservoir = await this.reservoirService.getCollectionTopOwners(
-        collection.chainId,
-        collection.address,
-        0,
-        10
-      );
-      const owners = topOwnersReservoir?.owners ?? [];
-      for (const owner of owners) {
-        topOwners.push({
-          owner: owner.address,
-          count: parseInt(owner.ownership.tokenCount)
-        });
+    // if data doesn't exist in firestore or if stale, refetch
+    const isStale = Date.now() - topOwnersLastUpdated > ONE_DAY;
+    if (!topOwners || topOwners.length === 0 || isStale) {
+      try {
+        topOwners = await this.refetchTopOwners(collection);
+      } catch (e) {
+        console.error('Error re-fetching top owners for collection', collection.chainId + ':' + collection.address);
       }
     }
 
@@ -149,6 +130,43 @@ export default class CollectionsService {
       hasNextPage,
       data: transformedData
     };
+  }
+
+  async refetchTopOwners(collection: { address: string; chainId: ChainId }): Promise<TopOwner[]> {
+    const topOwners: TopOwner[] = [];
+
+    // first try fetching from zora
+    const topOwnersZora = await this.zoraService.getAggregatedCollectionStats(
+      collection.chainId,
+      collection.address,
+      10
+    );
+    const owners = topOwnersZora?.aggregateStat.ownersByCount.nodes ?? [];
+    for (const owner of owners) {
+      topOwners.push({
+        owner: owner.owner,
+        count: owner.count
+      });
+    }
+
+    // if zora data is null, fetch from reservoir
+    if (!topOwners || topOwners.length === 0) {
+      const topOwnersReservoir = await this.reservoirService.getCollectionTopOwners(
+        collection.chainId,
+        collection.address,
+        0,
+        10
+      );
+      const owners = topOwnersReservoir?.owners ?? [];
+      for (const owner of owners) {
+        topOwners.push({
+          owner: owner.address,
+          count: parseInt(owner.ownership.tokenCount)
+        });
+      }
+    }
+
+    return topOwners;
   }
 
   async getTopCollection(stakerContractAddress: string, stakerContractChainId: string) {
