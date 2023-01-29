@@ -95,6 +95,66 @@ export const getNftActivity = async ({
   };
 };
 
+export const getNftSocialActivity = async ({
+  firestore,
+  limit,
+  events,
+  tokenId,
+  collectionAddress,
+  chainId
+}: Props): Promise<NftActivityArrayDto> => {
+  let activityQuery = firestore
+    .collection(firestoreConstants.FEED_COLL)
+    .where('chainId', '==', chainId ?? ChainId.Mainnet);
+
+  if (collectionAddress) {
+    activityQuery = activityQuery.where('collectionAddress', '==', collectionAddress);
+  }
+
+  if (tokenId) {
+    activityQuery = activityQuery.where('tokenId', '==', tokenId);
+  }
+
+  let tweets;
+  let discordAnnouncements;
+
+  if (events.includes(EventType.TwitterTweet)) {
+    tweets = await activityQuery
+      .where('type', '==', EventType.TwitterTweet)
+      .orderBy('timestamp', 'desc')
+      .limit(limit)
+      .get();
+  }
+  if (events.includes(EventType.DiscordAnnouncement)) {
+    discordAnnouncements = await activityQuery
+      .where('type', '==', EventType.DiscordAnnouncement)
+      .orderBy('timestamp', 'desc')
+      .limit(limit)
+      .get();
+  }
+
+  const results = [...(tweets?.docs ?? []), ...(discordAnnouncements?.docs ?? [])];
+
+  const activities: NftActivity[] = [];
+
+  results.forEach((snap) => {
+    const item = snap.data();
+
+    const activity = typeToActivity(item, snap.id);
+
+    // return activity;
+    if (activity) {
+      activities.push(activity);
+    }
+  });
+
+  return {
+    data: activities,
+    hasNextPage: false,
+    cursor: ''
+  };
+};
+
 // =============================================================================
 
 export const typeToActivity = (item: any, id: string): NftActivity | null => {
@@ -122,7 +182,7 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
         toDisplayName: sale.buyerDisplayName,
         price: sale.price,
         paymentToken: sale.paymentToken,
-        internalUrl: `${assetInternalUrlBase}/${sale.chainId}/${sale.collectionAddress}/${sale.tokenId}`,
+        internalUrl: `${assetInternalUrlBase}?collectionAddress=${sale.collectionAddress}&tokenId=${sale.tokenId}`,
         externalUrl: sale.externalUrl,
         timestamp: sale.timestamp,
         likes: sale.likes,
@@ -149,7 +209,7 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
         toDisplayName: listing.takerUsername,
         price: listing.startPriceEth,
         paymentToken: listing.paymentToken,
-        internalUrl: `${assetInternalUrlBase}/${listing.chainId}/${listing.collectionAddress}/${listing.tokenId}`,
+        internalUrl: `${assetInternalUrlBase}?collectionAddress=${listing.collectionAddress}&tokenId=${listing.tokenId}`,
         externalUrl: '',
         timestamp: listing.timestamp,
         likes: listing.likes,
@@ -176,7 +236,7 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
         toDisplayName: offer.takerUsername,
         price: offer.startPriceEth,
         paymentToken: offer.paymentToken,
-        internalUrl: `${assetInternalUrlBase}/${offer.chainId}/${offer.collectionAddress}/${offer.tokenId}`,
+        internalUrl: `${assetInternalUrlBase}?collectionAddress=${offer.collectionAddress}&tokenId=${offer.tokenId}`,
         externalUrl: '',
         timestamp: offer.timestamp,
         likes: offer.likes,
@@ -203,7 +263,7 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
         toDisplayName: transfer.toDisplayName,
         price: 0,
         paymentToken: '',
-        internalUrl: `${assetInternalUrlBase}/${transfer.chainId}/${transfer.collectionAddress}/${transfer.tokenId}`,
+        internalUrl: `${assetInternalUrlBase}?collectionAddress=${transfer.collectionAddress}&tokenId=${transfer.tokenId}`,
         externalUrl: transfer.externalUrl,
         timestamp: transfer.timestamp,
         likes: transfer.likes,
@@ -255,6 +315,7 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
         toDisplayName: '',
         price: 0,
         paymentToken: discord.author,
+        miscString: discord.author,
         internalUrl: discord.content,
         externalUrl: '',
         timestamp: discord.timestamp,
@@ -281,6 +342,7 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
         toDisplayName: coin.releasedAt,
         price: 0,
         paymentToken: coin.title,
+        miscString: coin.title,
         internalUrl: coin.subtitle,
         externalUrl: coin.sourceUrl,
         timestamp: coin.timestamp,
@@ -307,6 +369,7 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
         toDisplayName: vote.usersInvolved?.length.toString() ?? '',
         price: vote.votesAdded,
         paymentToken: vote.userUsername,
+        miscString: vote.userUsername,
         internalUrl: vote.internalUrl,
         externalUrl: '',
         timestamp: vote.timestamp,
@@ -334,6 +397,7 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
         toDisplayName: '',
         price: stake.duration,
         paymentToken: stake.amount,
+        miscString: stake.amount,
         internalUrl: '',
         externalUrl: stake.stakePower.toString(),
         timestamp: stake.timestamp,
