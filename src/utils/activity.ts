@@ -44,7 +44,7 @@ export const getNftActivity = async ({
     activityQuery = activityQuery.where('collectionAddress', '==', collectionAddress);
   }
 
-  if (collectionAddress) {
+  if (chainId) {
     activityQuery = activityQuery.where('chainId', '==', chainId);
   }
 
@@ -101,7 +101,7 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
   let activity: NftActivity | null = null;
 
   // this is reqd because some old data in firebase has wrong internal url for asset activity type
-  const assetInternalUrlBase = 'https://flow.so/asset';
+  const assetInternalUrlBase = 'https://flow.so';
 
   switch (item.type) {
     case EventType.NftSale: {
