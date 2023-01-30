@@ -545,7 +545,7 @@ export class StatsService {
             floorPrice = collection.floorAsk.price;
           }
           if (collection?.volume) {
-            volume = collection?.volume?.allTime ?? NaN;
+            volume = Number(collection?.volume?.allTime) ?? NaN;
           }
         }
       } catch (err) {

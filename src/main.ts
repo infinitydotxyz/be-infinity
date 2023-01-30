@@ -1,14 +1,13 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { auth, INFINITY_EMAIL, INFINITY_URL } from './constants';
 import { HttpExceptionFilter } from './http-exception.filter';
-import { NestExpressApplication } from '@nestjs/platform-express';
 // This is a hack to make Multer available in the Express namespace
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { Multer } from 'multer';
 import { API_KEY_HEADER, API_SECRET_HEADER } from 'auth/auth.constants';
 
 function setup(app: INestApplication) {
