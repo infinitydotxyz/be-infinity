@@ -17,7 +17,7 @@ export default class SalesService {
         timestampCursor = Date.now();
       }
       const query = salesCollectionRef
-        .where('source', '==', SaleSource.Infinity)
+        .where('source', '==', 'flow')
         .orderBy('timestamp', 'desc')
         .startAfter(timestampCursor)
         .limit(limit + 1);
