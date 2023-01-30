@@ -51,7 +51,7 @@ export class ProtocolOrdersService extends BaseOrdersService {
        * this should also guarantee that we receive orders
        * without errors
        */
-      .where('data.order.source', '==', 'infinity')
+      .where('data.order.source', '==', 'infinity') // TODO update to flow
       .where('metadata.timestamp', '>=', createdAfter)
       .where('metadata.timestamp', '<=', createdBefore)
       .orderBy('metadata.timestamp', query.orderDirection)

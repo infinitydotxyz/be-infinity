@@ -433,11 +433,11 @@ export class CollectionsController {
   @ApiOkResponse({ description: ResponseDescription.Success, type: String })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  enqueueCollectionForIndexing(
+  async enqueueCollectionForIndexing(
     @ParamCollectionId('id', ParseCollectionIdPipe) { address, chainId }: ParsedCollectionId,
     @Body() body: { reset: boolean }
   ) {
-    enqueueCollection({ chainId, address, reset: body.reset })
+    await enqueueCollection({ chainId, address, reset: body.reset })
       .then((res) => {
         console.log('enqueueCollection response:', res);
       })
