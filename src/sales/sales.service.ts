@@ -1,4 +1,3 @@
-import { SaleSource } from '@infinityxyz/lib/types/core';
 import { NftSaleDto, NftSalesResponseDto } from '@infinityxyz/lib/types/dto/sales';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
@@ -17,7 +16,7 @@ export default class SalesService {
         timestampCursor = Date.now();
       }
       const query = salesCollectionRef
-        .where('source', '==', SaleSource.Infinity)
+        .where('source', '==', 'flow')
         .orderBy('timestamp', 'desc')
         .startAfter(timestampCursor)
         .limit(limit + 1);
@@ -34,7 +33,7 @@ export default class SalesService {
       const sales = results.map((doc) => doc.data() as NftSaleDto);
 
       return {
-        data: sales,
+        data: sales as NftSaleDto[],
         cursor: nextCursor,
         hasNextPage
       };
