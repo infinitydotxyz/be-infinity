@@ -339,7 +339,7 @@ export class StatsService {
       if (!tokenId || !salePriceEth || !timestamp || !tokenImage) {
         continue;
       }
-      
+
       const dataPoint: Partial<CollectionHistoricalSale> = {
         tokenId,
         salePriceEth,
@@ -348,7 +348,7 @@ export class StatsService {
       };
 
       data.push(dataPoint);
-    };
+    }
 
     return data;
   }

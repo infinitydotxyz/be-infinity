@@ -1,6 +1,10 @@
 import { ChainId, OBOrderItem } from '@infinityxyz/lib/types/core';
 import {
-  ErrorResponseDto, OBOrderItemDto, SignedOBOrderArrayDto, UserOrderCollectionsQueryDto, UserOrderItemsQueryDto
+  ErrorResponseDto,
+  OBOrderItemDto,
+  SignedOBOrderArrayDto,
+  UserOrderCollectionsQueryDto,
+  UserOrderItemsQueryDto
 } from '@infinityxyz/lib/types/dto';
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';

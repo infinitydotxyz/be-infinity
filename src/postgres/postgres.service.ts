@@ -11,9 +11,7 @@ export class PostgresService {
     return this._pool;
   }
 
-  constructor(
-    private configService: ConfigService<EnvironmentVariables, true>
-  ) {
+  constructor(private configService: ConfigService<EnvironmentVariables, true>) {
     this._pool = new Pool({
       host: this.configService.get('PG_HOST'),
       port: this.configService.get('PG_PORT'),
