@@ -329,19 +329,28 @@ export class StatsService {
     const pool = this.postgresService.pool;
 
     const result = await pool.query(q);
-    return result.rows.map((row) => {
+    const data = [];
+    for (const row of result.rows) {
       const tokenId = row.token_id;
       const salePriceEth = parseFloat(row.sale_price_eth);
       const timestamp = Number(row.sale_timestamp);
       const tokenImage = row.token_image;
+
+      if (!tokenId || !salePriceEth || !timestamp || !tokenImage) {
+        continue;
+      }
+      
       const dataPoint: Partial<CollectionHistoricalSale> = {
         tokenId,
         salePriceEth,
         timestamp,
         tokenImage
       };
-      return dataPoint;
-    });
+
+      data.push(dataPoint);
+    };
+
+    return data;
   }
 
   async getCollectionHistoricalStats(
