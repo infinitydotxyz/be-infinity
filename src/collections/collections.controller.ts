@@ -1,4 +1,10 @@
-import { ChainId, Collection, CollectionPeriodStatsContent, StatsPeriod } from '@infinityxyz/lib/types/core';
+import {
+  ChainId,
+  Collection,
+  CollectionHistoricalSale,
+  CollectionPeriodStatsContent,
+  StatsPeriod
+} from '@infinityxyz/lib/types/core';
 import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
 import {
   Body,
@@ -311,16 +317,16 @@ export class CollectionsController {
     description: 'Get historical sales for a single collection'
   })
   @ApiParamCollectionId()
-  @ApiOkResponse({ description: ResponseDescription.Success, type: CollectionStatsArrayResponseDto })
+  @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 10 * 60 }))
-  getCollectionHistoricalSales(
+  async getCollectionHistoricalSales(
     @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
-    @Query() query: CollectionHistoricalSalesQueryDto,
-  ) {
-    return this.statsService.getCollectionHistoricalSales(collection, query);
+    @Query() query: CollectionHistoricalSalesQueryDto
+  ): Promise<Partial<CollectionHistoricalSale>[]> {
+    return await this.statsService.getCollectionHistoricalSales(collection, query);
   }
 
   @Get('/:id/stats')

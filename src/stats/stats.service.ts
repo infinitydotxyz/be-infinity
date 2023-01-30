@@ -1,6 +1,7 @@
 import {
   ChainId,
   Collection,
+  CollectionHistoricalSale,
   CollectionPeriodStatsContent,
   CollectionStats,
   HistoricalSalesTimeBucket,
@@ -28,7 +29,6 @@ import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
 import { mnemonicByParam, MnemonicService } from 'mnemonic/mnemonic.service';
 import { MnemonicPricesForStatsPeriod, MnemonicVolumesForStatsPeriod } from 'mnemonic/mnemonic.types';
 import { CursorService } from 'pagination/cursor.service';
-import QueryStream from 'pg-query-stream';
 import { PostgresService } from 'postgres/postgres.service';
 import { ReservoirService } from 'reservoir/reservoir.service';
 import { getCollectionDocId, getStatsDocInfo } from 'utils/stats';
@@ -294,7 +294,10 @@ export class StatsService {
     };
   }
 
-  getCollectionHistoricalSales(collection: ParsedCollectionId, query: CollectionHistoricalSalesQueryDto) {
+  async getCollectionHistoricalSales(
+    collection: ParsedCollectionId,
+    query: CollectionHistoricalSalesQueryDto
+  ): Promise<Partial<CollectionHistoricalSale>[]> {
     const timeBucket = query.period;
     const nowTimestamp = Date.now();
     let prevTimestamp = nowTimestamp;
@@ -318,50 +321,26 @@ export class StatsService {
         break;
     }
 
-    // const q = `SELECT collection_address, token_id, sale_price_eth, sale_timestamp, txhash, buyer, seller, quantity, \
-    //    marketplace, marketplace_addres, collection_name, token_image FROM eth_nft_sales \
-    //    WHERE collection_address = '${collection.address}' AND sale_timestamp >= ${prevTimestamp} AND sale_timestamp <= ${nowTimestamp} \
-    //    ORDER BY sale_timestamp DESC LIMIT 100000`;
-
     const q = `SELECT token_id, sale_price_eth, sale_timestamp, token_image\
        FROM eth_nft_sales \
        WHERE collection_address = '${collection.address}' AND sale_timestamp >= ${prevTimestamp} AND sale_timestamp <= ${nowTimestamp} \
-       ORDER BY sale_timestamp DESC LIMIT 1`;
+       ORDER BY sale_timestamp DESC LIMIT 1000`;
 
     const pool = this.postgresService.pool;
 
-    pool.connect((err, client, done) => {
-      if (err) {
-        throw err;
-      }
-      const queryStream = new QueryStream(q, [], {
-        batchSize: 1
-      });
-      const stream = client.query(queryStream);
-
-      stream.on('error', (error) => {
-        console.error(error);
-        done();
-      });
-
-      stream.on('end', () => {
-        console.log('stream has ended');
-        done();
-      });
-
-      stream.on('data', (row) => {
-        const tokenId = row.token_id;
-        const salePriceEth = parseFloat(row.sale_price_eth);
-        const saleTimestamp = Number(row.sale_timestamp);
-        const tokenImage = row.token_image;
-        const dataPoint = {
-          tokenId,
-          salePriceEth,
-          saleTimestamp,
-          tokenImage
-        };
-        return dataPoint;
-      });
+    const result = await pool.query(q);
+    return result.rows.map((row) => {
+      const tokenId = row.token_id;
+      const salePriceEth = parseFloat(row.sale_price_eth);
+      const timestamp = Number(row.sale_timestamp);
+      const tokenImage = row.token_image;
+      const dataPoint: Partial<CollectionHistoricalSale> = {
+        tokenId,
+        salePriceEth,
+        timestamp,
+        tokenImage
+      };
+      return dataPoint;
     });
   }
 
