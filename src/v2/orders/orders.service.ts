@@ -31,6 +31,7 @@ export class OrdersService extends BaseOrdersService {
     query: OrderQueries,
     asset: { collection: string } | { collection: string; tokenId: string } | { user: string }
   ) {
+    // TODO filter out infinity orders
     let ref:
       | FirebaseFirestore.CollectionReference<FirestoreDisplayOrderWithoutError>
       | FirebaseFirestore.CollectionGroup<FirestoreDisplayOrderWithoutError>;
@@ -90,15 +91,14 @@ export class OrdersService extends BaseOrdersService {
       let endPriceWei = bn(item.order.endPrice);
 
       // TODO update gas estimates once we have a better idea of how much gas is used
-      if (item.metadata.source !== 'infinity') {
+      if (item.metadata.source !== 'flow') {
         const gasToFulfillOnExternal = item.order.gasUsage;
         const buffer = 100_000;
         const totalGas = gasToFulfillOnExternal + buffer;
 
         const gasFeesWei = bn(gasPrice.baseFee).mul(totalGas);
 
-        console.log(`Non-native order gas usage: ${totalGas}`);
-        console.log(`Gas cost: ${formatEth(gasFeesWei.toString())}`);
+        console.log(`Non-native order gas usage: ${totalGas} - gas cost ${formatEth(gasFeesWei.toString())}`);
 
         startPriceWei = startPriceWei.add(gasFeesWei);
         endPriceWei = endPriceWei.add(gasFeesWei);
