@@ -28,7 +28,9 @@ type CollectStatsQuery = {
 import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
 import {
   CollectionDto,
-  CollectionHistoricalStatsQueryDto, CollectionStatsByPeriodDto,
+  CollectionHistoricalSalesQueryDto,
+  CollectionHistoricalStatsQueryDto,
+  CollectionStatsByPeriodDto,
   CollectionStatsQueryDto,
   CollectionTrendingStatsQueryDto,
   RankingQueryDto,
@@ -301,6 +303,24 @@ export class CollectionsController {
       }
       throw err;
     }
+  }
+
+  @Get('/:id/sales')
+  @ApiOperation({
+    tags: [ApiTag.Collection, ApiTag.Stats],
+    description: 'Get historical sales for a single collection'
+  })
+  @ApiParamCollectionId()
+  @ApiOkResponse({ description: ResponseDescription.Success, type: CollectionStatsArrayResponseDto })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 10 * 60 }))
+  getCollectionHistoricalSales(
+    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
+    @Query() query: CollectionHistoricalSalesQueryDto,
+  ) {
+    return this.statsService.getCollectionHistoricalSales(collection, query);
   }
 
   @Get('/:id/stats')

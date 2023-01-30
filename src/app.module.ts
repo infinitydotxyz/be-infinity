@@ -37,6 +37,7 @@ import { UsersModule as V2UsersModule } from './v2/users/users.module';
 import { CollectionsModule as V2CollectionsModule } from './v2/collections/collections.module';
 import { GenerateModule } from './v2/generate/generate.module';
 import { BulkModule } from './v2/bulk/bulk.module';
+import { PostgresModule } from 'postgres/postgres.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { BulkModule } from './v2/bulk/bulk.module';
     FirebaseModule.forRoot({
       storageBucket: FB_STORAGE_BUCKET
     }),
+    PostgresModule.forRoot(),
     CollectionsModule,
     FeedModule,
     TwitterModule,

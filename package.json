@@ -25,7 +25,7 @@
     "deploy:prod": "npm run build && gcloud app deploy -q --appyaml=./app.yaml --project=nftc-infinity"
   },
   "dependencies": {
-    "@infinityxyz/lib": "^1.294.0",
+    "@infinityxyz/lib": "^1.297.4",
     "@nestjs/common": "^9.1.2",
     "@nestjs/config": "^2.2.0",
     "@nestjs/core": "^9.1.2",
@@ -55,6 +55,8 @@
     "nanoid": "^3.3.4",
     "nestjs-throttler-storage-redis": "^0.1.20",
     "p-queue": "^6.6.2",
+    "pg": "^8.9.0",
+    "pg-query-stream": "^4.3.0",
     "qs": "^6.10.3",
     "rxjs": "^7.5.5"
   },
@@ -66,6 +68,7 @@
     "@types/lodash": "^4.14.181",
     "@types/multer": "^1.4.7",
     "@types/node": "^16.0.0",
+    "@types/pg": "^8.6.6",
     "@types/supertest": "^2.0.12",
     "@typescript-eslint/eslint-plugin": "^5.19.0",
     "@typescript-eslint/parser": "^5.19.0",

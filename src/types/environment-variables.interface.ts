@@ -14,6 +14,11 @@ export interface EnvironmentVariables {
   INFINITY_NODE_ENV: Env;
   firebaseServiceAccount: object;
   REDIS_URL?: string;
+  PG_HOST: string;
+  PG_PORT: string;
+  PG_USER: string;
+  PG_PASS: string;
+  PG_DB_NAME: string;
 }
 
 export const devOptionalEnvVariables: (keyof EnvironmentVariables)[] = ['REDIS_URL'];

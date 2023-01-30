@@ -70,7 +70,12 @@ export const validateAndTransformEnvVariables = (env: Record<string, string>) =>
     RESERVOIR_API_KEY: env.RESERVOIR_API_KEY,
     ZORA_API_KEY: env.ZORA_API_KEY,
     INFINITY_NODE_ENV,
-    firebaseServiceAccount
+    firebaseServiceAccount,
+    PG_DB_NAME: env.PG_DB_NAME,
+    PG_USER: env.PG_USER,
+    PG_PASS: env.PG_PASS,
+    PG_HOST: env.PG_HOST,
+    PG_PORT: env.PG_PORT,
   };
 
   for (const key of Object.keys(envVariables) as (keyof EnvironmentVariables)[]) {
