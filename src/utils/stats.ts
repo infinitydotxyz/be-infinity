@@ -1,6 +1,5 @@
-import { trimLowerCase, ALL_TIME_STATS_TIMESTAMP } from '@infinityxyz/lib/utils';
-import { isAddress } from '@ethersproject/address';
 import { StatsPeriod } from '@infinityxyz/lib/types/core';
+import { ALL_TIME_STATS_TIMESTAMP } from '@infinityxyz/lib/utils';
 import { format, parse } from 'date-fns';
 
 export const EXCLUDED_COLLECTIONS = [
@@ -12,12 +11,6 @@ export const EXCLUDED_COLLECTIONS = [
   '0xff36ca1396d2a9016869274f1017d6c2139f495e' // dementors town wtf
 ];
 
-export function getCollectionDocId(collection: { collectionAddress: string; chainId: string }) {
-  if (!isAddress(collection.collectionAddress)) {
-    throw new Error('Invalid collection address');
-  }
-  return `${collection.chainId}:${trimLowerCase(collection.collectionAddress)}`;
-}
 export function getStatsDocInfo(
   timestamp: number,
   period: StatsPeriod
