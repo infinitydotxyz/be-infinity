@@ -545,7 +545,10 @@ export class StatsService {
             floorPrice = collection.floorAsk.price;
           }
           if (collection?.volume) {
-            volume = collection?.volume?.allTime ?? NaN;
+            volume =
+              typeof collection?.volume?.allTime === 'string'
+                ? parseInt(collection.volume.allTime)
+                : collection?.volume?.allTime ?? NaN;
           }
         }
       } catch (err) {
