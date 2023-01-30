@@ -503,7 +503,7 @@ export class BackfillService {
           attrMap[`${attrType}:::${attrValue}`] = true;
         });
         (dataToSave.metadata as any).attributesMap = attrMap;
-        
+
         const collectionDocId = getCollectionDocId({ chainId: nft.chainId, collectionAddress: nft.address });
         const tokenDocRef = this.collectionsRef
           .doc(collectionDocId)

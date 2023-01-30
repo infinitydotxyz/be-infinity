@@ -1,8 +1,10 @@
 import {
   ChainId,
   Collection,
+  CollectionHistoricalSale,
   CollectionPeriodStatsContent,
   CollectionStats,
+  HistoricalSalesTimeBucket,
   OrderDirection,
   PreAggregatedSocialsStats,
   SocialsStats,
@@ -10,30 +12,32 @@ import {
   StatsPeriod,
   StatType
 } from '@infinityxyz/lib/types/core';
-import { InfinityTweet, InfinityTwitterAccount } from '@infinityxyz/lib/types/services/twitter';
-import { firestoreConstants } from '@infinityxyz/lib/utils';
-import { getCollectionDocId, getStatsDocInfo } from 'utils/stats';
-import { Injectable } from '@nestjs/common';
-import { ParsedCollectionId } from 'collections/collection-id.pipe';
-import { DiscordService } from '../discord/discord.service';
-import { FirebaseService } from '../firebase/firebase.service';
-import { TwitterService } from '../twitter/twitter.service';
-import { mnemonicByParam, MnemonicService } from 'mnemonic/mnemonic.service';
-import { calcPercentChange, safelyWrapPromise } from '../utils';
-import { CursorService } from 'pagination/cursor.service';
-import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
 import {
+  CollectionHistoricalSalesQueryDto,
   CollectionHistoricalStatsQueryDto,
   CollectionStatsByPeriodDto,
   CollectionTrendingStatsQueryDto,
   RankingQueryDto
 } from '@infinityxyz/lib/types/dto/collections';
-import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
-import { ONE_HOUR } from '../constants';
-import { MnemonicPricesForStatsPeriod, MnemonicVolumesForStatsPeriod } from 'mnemonic/mnemonic.types';
-import { ZoraService } from 'zora/zora.service';
-import { ReservoirService } from 'reservoir/reservoir.service';
+import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
+import { InfinityTweet, InfinityTwitterAccount } from '@infinityxyz/lib/types/services/twitter';
+import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
+import { Injectable } from '@nestjs/common';
 import { AlchemyService } from 'alchemy/alchemy.service';
+import { ParsedCollectionId } from 'collections/collection-id.pipe';
+import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
+import { mnemonicByParam, MnemonicService } from 'mnemonic/mnemonic.service';
+import { MnemonicPricesForStatsPeriod, MnemonicVolumesForStatsPeriod } from 'mnemonic/mnemonic.types';
+import { CursorService } from 'pagination/cursor.service';
+import { PostgresService } from 'postgres/postgres.service';
+import { ReservoirService } from 'reservoir/reservoir.service';
+import { getStatsDocInfo } from 'utils/stats';
+import { ZoraService } from 'zora/zora.service';
+import { ONE_HOUR } from '../constants';
+import { DiscordService } from '../discord/discord.service';
+import { FirebaseService } from '../firebase/firebase.service';
+import { TwitterService } from '../twitter/twitter.service';
+import { calcPercentChange, safelyWrapPromise } from '../utils';
 
 @Injectable()
 export class StatsService {
@@ -58,7 +62,8 @@ export class StatsService {
     private paginationService: CursorService,
     private zoraService: ZoraService,
     private reservoirService: ReservoirService,
-    private alchemyService: AlchemyService
+    private alchemyService: AlchemyService,
+    private postgresService: PostgresService
   ) {
     this.fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
   }
@@ -289,6 +294,65 @@ export class StatsService {
     };
   }
 
+  async getCollectionHistoricalSales(
+    collection: ParsedCollectionId,
+    query: CollectionHistoricalSalesQueryDto
+  ): Promise<Partial<CollectionHistoricalSale>[]> {
+    const timeBucket = query.period;
+    const nowTimestamp = Date.now();
+    let prevTimestamp = nowTimestamp;
+    switch (timeBucket) {
+      case HistoricalSalesTimeBucket.ONE_HOUR:
+        prevTimestamp = nowTimestamp - 1000 * 60 * 60;
+        break;
+      case HistoricalSalesTimeBucket.ONE_DAY:
+        prevTimestamp = nowTimestamp - 1000 * 60 * 60 * 24;
+        break;
+      case HistoricalSalesTimeBucket.ONE_WEEK:
+        prevTimestamp = nowTimestamp - 1000 * 60 * 60 * 24 * 7;
+        break;
+      case HistoricalSalesTimeBucket.ONE_MONTH:
+        prevTimestamp = nowTimestamp - 1000 * 60 * 60 * 24 * 30;
+        break;
+      case HistoricalSalesTimeBucket.ONE_YEAR:
+        prevTimestamp = nowTimestamp - 1000 * 60 * 60 * 24 * 365;
+        break;
+      default:
+        break;
+    }
+
+    const q = `SELECT token_id, sale_price_eth, sale_timestamp, token_image\
+       FROM eth_nft_sales \
+       WHERE collection_address = '${collection.address}' AND sale_timestamp >= ${prevTimestamp} AND sale_timestamp <= ${nowTimestamp} \
+       ORDER BY sale_timestamp DESC LIMIT 1000`;
+
+    const pool = this.postgresService.pool;
+
+    const result = await pool.query(q);
+    const data = [];
+    for (const row of result.rows) {
+      const tokenId = row.token_id;
+      const salePriceEth = parseFloat(row.sale_price_eth);
+      const timestamp = Number(row.sale_timestamp);
+      const tokenImage = row.token_image;
+
+      if (!tokenId || !salePriceEth || !timestamp || !tokenImage) {
+        continue;
+      }
+
+      const dataPoint: Partial<CollectionHistoricalSale> = {
+        tokenId,
+        salePriceEth,
+        timestamp,
+        tokenImage
+      };
+
+      data.push(dataPoint);
+    }
+
+    return data;
+  }
+
   async getCollectionHistoricalStats(
     collection: ParsedCollectionId,
     query: CollectionHistoricalStatsQueryDto
@@ -481,7 +545,10 @@ export class StatsService {
             floorPrice = collection.floorAsk.price;
           }
           if (collection?.volume) {
-            volume = collection?.volume?.allTime ?? NaN;
+            volume =
+              typeof collection?.volume?.allTime === 'string'
+                ? parseFloat(collection.volume.allTime)
+                : collection?.volume?.allTime ?? NaN;
           }
         }
       } catch (err) {

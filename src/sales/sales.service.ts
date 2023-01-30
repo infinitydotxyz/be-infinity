@@ -1,5 +1,4 @@
-import { NftSale, SaleSource } from '@infinityxyz/lib/types/core';
-import { NftSalesResponseDto } from '@infinityxyz/lib/types/dto/sales';
+import { NftSaleDto, NftSalesResponseDto } from '@infinityxyz/lib/types/dto/sales';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { FirebaseService } from '../firebase/firebase.service';
@@ -17,7 +16,7 @@ export default class SalesService {
         timestampCursor = Date.now();
       }
       const query = salesCollectionRef
-        .where('source', '==', SaleSource.Infinity)
+        .where('source', '==', 'flow')
         .orderBy('timestamp', 'desc')
         .startAfter(timestampCursor)
         .limit(limit + 1);
@@ -31,10 +30,10 @@ export default class SalesService {
         ? this.cursorService.encodeCursor(results[results.length - 1].data().timestamp)
         : '';
 
-      const sales = results.map((doc) => doc.data() as NftSale);
+      const sales = results.map((doc) => doc.data() as NftSaleDto);
 
       return {
-        data: sales,
+        data: sales as NftSaleDto[],
         cursor: nextCursor,
         hasNextPage
       };

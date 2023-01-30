@@ -1,4 +1,10 @@
-import { ChainId, Collection, CollectionPeriodStatsContent, StatsPeriod } from '@infinityxyz/lib/types/core';
+import {
+  ChainId,
+  Collection,
+  CollectionHistoricalSale,
+  CollectionPeriodStatsContent,
+  StatsPeriod
+} from '@infinityxyz/lib/types/core';
 import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
 import {
   Body,
@@ -28,7 +34,9 @@ type CollectStatsQuery = {
 import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
 import {
   CollectionDto,
-  CollectionHistoricalStatsQueryDto, CollectionStatsByPeriodDto,
+  CollectionHistoricalSalesQueryDto,
+  CollectionHistoricalStatsQueryDto,
+  CollectionStatsByPeriodDto,
   CollectionStatsQueryDto,
   CollectionTrendingStatsQueryDto,
   RankingQueryDto,
@@ -303,6 +311,24 @@ export class CollectionsController {
     }
   }
 
+  @Get('/:id/sales')
+  @ApiOperation({
+    tags: [ApiTag.Collection, ApiTag.Stats],
+    description: 'Get historical sales for a single collection'
+  })
+  @ApiParamCollectionId()
+  @ApiOkResponse({ description: ResponseDescription.Success })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 10 * 60 }))
+  async getCollectionHistoricalSales(
+    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
+    @Query() query: CollectionHistoricalSalesQueryDto
+  ): Promise<Partial<CollectionHistoricalSale>[]> {
+    return await this.statsService.getCollectionHistoricalSales(collection, query);
+  }
+
   @Get('/:id/stats')
   @ApiOperation({
     tags: [ApiTag.Collection, ApiTag.Stats],
@@ -415,11 +441,11 @@ export class CollectionsController {
   @ApiOkResponse({ description: ResponseDescription.Success, type: String })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  enqueueCollectionForIndexing(
+  async enqueueCollectionForIndexing(
     @ParamCollectionId('id', ParseCollectionIdPipe) { address, chainId }: ParsedCollectionId,
     @Body() body: { reset: boolean }
   ) {
-    enqueueCollection({ chainId, address, reset: body.reset })
+    await enqueueCollection({ chainId, address, reset: body.reset })
       .then((res) => {
         console.log('enqueueCollection response:', res);
       })

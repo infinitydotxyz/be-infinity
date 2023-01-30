@@ -5,7 +5,9 @@ import { sleep } from '@infinityxyz/lib/utils';
 import {
   ReservoirDetailedTokensResponse,
   ReservoirSingleCollectionResponse,
-  ReservoirTopCollectionOwnersResponse
+  ReservoirTopCollectionOwnersResponse,
+  ReservoirCollectionsV5,
+  ReservorCollsSortBy
 } from '@infinityxyz/lib/types/services/reservoir';
 import { ConfigService } from '@nestjs/config';
 import { EnvironmentVariables } from 'types/environment-variables.interface';
@@ -48,6 +50,34 @@ export class ReservoirService {
       });
     } catch (e) {
       console.error('Failed to enqueue collection for reindexing on reservoir', chainId, collectionAddress, e);
+    }
+  }
+
+  public async getTopCollsByVolume(
+    chainId: string,
+    sortBy: ReservorCollsSortBy,
+    limit?: number,
+    continuation?: string
+  ): Promise<ReservoirCollectionsV5 | undefined> {
+    try {
+      const res: Response<ReservoirCollectionsV5> = await this.errorHandler(() => {
+        const searchParams: any = {
+          includeTopBid: true,
+          sortBy,
+          limit: limit ?? 20
+        };
+        if (continuation) {
+          searchParams.continuation = continuation;
+        }
+        return this.client.get(`collections/v5`, {
+          searchParams,
+          responseType: 'json'
+        });
+      });
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return res.body;
+    } catch (e) {
+      console.error('failed to get top colls from reservoir', chainId, e);
     }
   }
 

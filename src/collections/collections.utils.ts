@@ -43,7 +43,8 @@ export async function enqueueCollection(collection: {
       {
         headers: {
           'content-type': 'application/json'
-        }
+        },
+        timeout: 10_000
       }
     );
 
