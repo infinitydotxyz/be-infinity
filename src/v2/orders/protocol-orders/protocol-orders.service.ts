@@ -46,12 +46,12 @@ export class ProtocolOrdersService extends BaseOrdersService {
       .where('metadata.chainId', '==', query.chainId)
       .where('metadata.isSellOrder', '==', orderSide === 'sell')
       /**
-       * it is important we only return signed infinity orders
+       * it is important we only return signed flow orders
        *
        * this should also guarantee that we receive orders
        * without errors
        */
-      .where('data.order.source', '==', 'infinity') // TODO update to flow
+      .where('data.order.source', '==', 'flow')
       .where('metadata.timestamp', '>=', createdAfter)
       .where('metadata.timestamp', '<=', createdBefore)
       .orderBy('metadata.timestamp', query.orderDirection)
