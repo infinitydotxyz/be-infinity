@@ -125,7 +125,6 @@ export class UserController {
     required: true,
     type: String
   })
-  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOkResponse({ description: ResponseDescription.Success, type: ValidateUsernameResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   @Throttle(10, 2)

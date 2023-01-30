@@ -9,7 +9,6 @@ import {
   TopOwner
 } from '@infinityxyz/lib/types/core';
 import {
-  CollectionSearchQueryDto,
   TopOwnerDto,
   TopOwnersQueryDto,
   UserCuratedCollectionDto,
@@ -20,7 +19,7 @@ import {
   CuratedCollectionsQuery
 } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
 import { ExternalNftCollectionDto, NftCollectionDto } from '@infinityxyz/lib/types/dto/collections/nfts';
-import { firestoreConstants, getCollectionDocId, getEndCode, getSearchFriendlyString } from '@infinityxyz/lib/utils';
+import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { BackfillService } from 'backfill/backfill.service';
 import { FirebaseService } from 'firebase/firebase.service';
@@ -31,6 +30,7 @@ import { ParsedUserId } from 'user/parser/parsed-user-id';
 import { ZoraService } from 'zora/zora.service';
 import { ParsedCollectionId } from './collection-id.pipe';
 import { CurationService } from './curation/curation.service';
+import { ONE_DAY } from '../constants';
 
 interface CollectionQueryOptions {
   /**
@@ -76,43 +76,24 @@ export default class CollectionsService {
       .collection(firestoreConstants.COLLECTION_STATS_COLL)
       .doc('all');
     const allStatsDoc = await allStatsDocRef.get();
+
+    let topOwnersLastUpdated = 0;
     if (allStatsDoc.exists) {
       topOwners = allStatsDoc.data()?.topOwnersByOwnedNftsCount as TopOwner[];
+      topOwnersLastUpdated = allStatsDoc.data()?.topOwnersLastUpdated;
 
       // make sure not undefined from above
       topOwners = topOwners ?? [];
     }
 
-    // if data doesn't exist in firestore, fetch from zora
-    if (!topOwners || topOwners.length === 0) {
-      const topOwnersZora = await this.zoraService.getAggregatedCollectionStats(
-        collection.chainId,
-        collection.address,
-        10
-      );
-      const owners = topOwnersZora?.aggregateStat.ownersByCount.nodes ?? [];
-      for (const owner of owners) {
-        topOwners.push({
-          owner: owner.owner,
-          count: owner.count
-        });
-      }
-    }
-
-    // if zora data is null, fetch from reservoir
-    if (!topOwners || topOwners.length === 0) {
-      const topOwnersReservoir = await this.reservoirService.getCollectionTopOwners(
-        collection.chainId,
-        collection.address,
-        0,
-        10
-      );
-      const owners = topOwnersReservoir?.owners ?? [];
-      for (const owner of owners) {
-        topOwners.push({
-          owner: owner.address,
-          count: parseInt(owner.ownership.tokenCount)
-        });
+    // if data doesn't exist in firestore or if stale, refetch
+    const isStale = Date.now() - topOwnersLastUpdated > ONE_DAY;
+    if (!topOwners || topOwners.length === 0 || isStale) {
+      try {
+        topOwners = await this.refetchTopOwners(collection);
+        allStatsDocRef.set({ topOwnersLastUpdated: Date.now() }, { merge: true }).catch(console.error);
+      } catch (e) {
+        console.error('Error re-fetching top owners for collection', collection.chainId + ':' + collection.address);
       }
     }
 
@@ -152,6 +133,43 @@ export default class CollectionsService {
     };
   }
 
+  async refetchTopOwners(collection: { address: string; chainId: ChainId }): Promise<TopOwner[]> {
+    const topOwners: TopOwner[] = [];
+
+    // first try fetching from zora
+    const topOwnersZora = await this.zoraService.getAggregatedCollectionStats(
+      collection.chainId,
+      collection.address,
+      10
+    );
+    const owners = topOwnersZora?.aggregateStat.ownersByCount.nodes ?? [];
+    for (const owner of owners) {
+      topOwners.push({
+        owner: owner.owner,
+        count: owner.count
+      });
+    }
+
+    // if zora data is null, fetch from reservoir
+    if (!topOwners || topOwners.length === 0) {
+      const topOwnersReservoir = await this.reservoirService.getCollectionTopOwners(
+        collection.chainId,
+        collection.address,
+        0,
+        10
+      );
+      const owners = topOwnersReservoir?.owners ?? [];
+      for (const owner of owners) {
+        topOwners.push({
+          owner: owner.address,
+          count: parseInt(owner.ownership.tokenCount)
+        });
+      }
+    }
+
+    return topOwners;
+  }
+
   async getTopCollection(stakerContractAddress: string, stakerContractChainId: string) {
     const snap = await this.firebaseService.firestore
       .collectionGroup('curationSnippets')
@@ -162,126 +180,6 @@ export default class CollectionsService {
       .limit(1)
       .get();
     return snap.docs[0]?.data() as CurrentCurationSnippetDoc | null;
-  }
-
-  _searchBySlug(
-    firestoreQuery: FirebaseFirestore.Query<Collection>,
-    query: string,
-    limit: number,
-    startAfter: string,
-    chainId: ChainId
-  ) {
-    if (query) {
-      const startsWith = getSearchFriendlyString(query);
-      const endCode = getEndCode(startsWith);
-
-      if (startsWith && endCode) {
-        firestoreQuery = firestoreQuery.where('slug', '>=', startsWith).where('slug', '<', endCode);
-      }
-    }
-
-    firestoreQuery = firestoreQuery.where('chainId', '==', chainId).orderBy('slug');
-
-    if (startAfter) {
-      firestoreQuery = firestoreQuery.startAfter(startAfter);
-    }
-
-    firestoreQuery = firestoreQuery.limit(limit);
-    return firestoreQuery;
-  }
-
-  async searchByName(search: CollectionSearchQueryDto) {
-    type Keys = 'verified' | 'unverified';
-
-    type Cursor = Record<Keys, { slug: string }>;
-
-    const cursor: Cursor = this.paginationService.decodeCursorToObject<Cursor>(search.cursor);
-
-    const collectionsRef = this.firebaseService.firestore.collection(
-      firestoreConstants.COLLECTIONS_COLL
-    ) as FirebaseFirestore.CollectionReference<Collection>;
-    const verifiedCollectionsQuery = collectionsRef.where('hasBlueCheck', '==', true);
-    const nonVerifiedCollectionsQuery = collectionsRef.where('hasBlueCheck', '==', false);
-
-    const chainId = search.chainId ?? ChainId.Mainnet;
-
-    const queries: { key: Keys; query: FirebaseFirestore.Query<Collection> }[] = [
-      {
-        key: 'verified',
-        query: verifiedCollectionsQuery
-      },
-      {
-        key: 'unverified',
-        query: nonVerifiedCollectionsQuery
-      }
-    ];
-
-    const results = await Promise.all(
-      queries.map(async (item) => {
-        const startAfter = cursor[item.key]?.slug ?? '';
-        const query = this._searchBySlug(item.query, search.query ?? '', search.limit + 1, startAfter, chainId);
-
-        const snapshot = await query
-          .select(
-            'address',
-            'chainId',
-            'slug',
-            'metadata.name',
-            'metadata.profileImage',
-            'metadata.description',
-            'metadata.bannerImage',
-            'hasBlueCheck'
-          )
-          .get();
-
-        const data = snapshot.docs.map((doc, index) => {
-          const data = doc.data();
-          let hasNextPage = false;
-          if (index + 1 > snapshot.docs.length) {
-            hasNextPage = true;
-          } else if (index + 1 === snapshot.docs.length) {
-            hasNextPage = snapshot.docs.length === search.limit + 1;
-          }
-
-          return {
-            hasNextPage,
-            key: item.key,
-            data: {
-              address: data.address,
-              chainId: data.chainId,
-              slug: data.slug,
-              name: data.metadata.name,
-              hasBlueCheck: data.hasBlueCheck,
-              profileImage: data.metadata.profileImage,
-              bannerImage: data.metadata.bannerImage,
-              description: data.metadata.description
-            }
-          };
-        });
-
-        return {
-          key: item.key,
-          data
-        };
-      })
-    );
-
-    let returnData = results.flatMap((item) => {
-      return item.data;
-    });
-
-    const hasNextPage = returnData.length > search.limit;
-    returnData = returnData.slice(0, search.limit);
-
-    for (const item of returnData) {
-      cursor[item.key] = { slug: item.data.slug };
-    }
-
-    return {
-      data: returnData.map((item) => item.data),
-      cursor: this.paginationService.encodeCursor(cursor),
-      hasNextPage: hasNextPage
-    };
   }
 
   /**

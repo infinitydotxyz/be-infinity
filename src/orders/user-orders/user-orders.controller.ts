@@ -1,15 +1,9 @@
-import { ApiRole, ChainId, OBOrderItem } from '@infinityxyz/lib/types/core';
+import { ChainId, OBOrderItem } from '@infinityxyz/lib/types/core';
 import {
-  SignedOBOrderArrayDto,
-  ErrorResponseDto,
-  UserOrderCollectionsQueryDto,
-  OBOrderItemDto,
-  UserOrderItemsQueryDto
+  ErrorResponseDto, OBOrderItemDto, SignedOBOrderArrayDto, UserOrderCollectionsQueryDto, UserOrderItemsQueryDto
 } from '@infinityxyz/lib/types/dto';
 import { Controller, Get, Param, Query } from '@nestjs/common';
-import { ApiOperation, ApiOkResponse, ApiBadRequestResponse, ApiInternalServerErrorResponse } from '@nestjs/swagger';
-import { Auth } from 'auth/api-auth.decorator';
-import { SiteRole } from 'auth/auth.constants';
+import { ApiBadRequestResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { ParamUserId } from 'auth/param-user-id.decorator';
 import { ApiTag } from 'common/api-tags';
 import { ResponseDescription } from 'common/response-description';
@@ -27,7 +21,6 @@ export class UserOrdersController {
     description: 'Get collections from user orders',
     tags: [ApiTag.Orders, ApiTag.User]
   })
-  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOkResponse({ description: ResponseDescription.Success, type: SignedOBOrderArrayDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
@@ -77,7 +70,6 @@ export class UserOrdersController {
     description: 'Get orders for a user',
     tags: [ApiTag.Orders, ApiTag.User]
   })
-  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOkResponse({ description: ResponseDescription.Success, type: SignedOBOrderArrayDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })

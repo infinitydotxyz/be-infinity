@@ -18,7 +18,7 @@ import { EthereumService } from 'ethereum/ethereum.service';
 import { firestore } from 'firebase-admin';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
-import { getNftActivity } from 'utils/activity';
+import { getNftActivity, getNftSocialActivity } from 'utils/activity';
 import { getReservoirTokens } from 'utils/reservoir';
 
 @Injectable()
@@ -303,19 +303,32 @@ export class NftsService {
     const eventTypes = typeof filter.eventType === 'string' ? [filter.eventType] : filter.eventType;
     let events = eventTypes?.filter((item) => !!item);
 
-    // slice because firestore 'IN' query can only support 10 items
-    events = events && events.length > 10 ? events.slice(0, 10) : events;
+    if (filter.socialsOnly) {
+      const limit = Math.floor((filter.limit ?? 10) / 2); // get 5 tweets, 5 discord messages
+      return getNftSocialActivity({
+        firestore: this.firebaseService.firestore,
+        paginationService: this.paginationService,
+        limit,
+        events,
+        tokenId: nftQuery.tokenId,
+        collectionAddress: nftQuery.address,
+        chainId: nftQuery.chainId
+      });
+    } else {
+      // slice because firestore 'IN' query can only support 10 items
+      events = events && events.length > 10 ? events.slice(0, 10) : events;
 
-    return getNftActivity({
-      firestore: this.firebaseService.firestore,
-      paginationService: this.paginationService,
-      limit: filter.limit,
-      events: events,
-      cursor: filter.cursor,
-      tokenId: nftQuery.tokenId,
-      collectionAddress: nftQuery.address,
-      chainId: nftQuery.chainId,
-      source: filter.source
-    });
+      return getNftActivity({
+        firestore: this.firebaseService.firestore,
+        paginationService: this.paginationService,
+        limit: filter.limit,
+        events,
+        cursor: filter.cursor,
+        tokenId: nftQuery.tokenId,
+        collectionAddress: nftQuery.address,
+        chainId: nftQuery.chainId,
+        source: filter.source
+      });
+    }
   }
 }
