@@ -1,4 +1,3 @@
-import { NftSale } from '@infinityxyz/lib/types/core';
 import { NftSaleDto, NftSalesResponseDto } from '@infinityxyz/lib/types/dto/sales';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
@@ -31,10 +30,10 @@ export default class SalesService {
         ? this.cursorService.encodeCursor(results[results.length - 1].data().timestamp)
         : '';
 
-      const sales = results.map((doc) => doc.data() as NftSale);
+      const sales = results.map((doc) => doc.data() as NftSaleDto);
 
       return {
-        data: sales as NftSaleDto[],
+        data: sales,
         cursor: nextCursor,
         hasNextPage
       };

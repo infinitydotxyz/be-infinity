@@ -21,7 +21,7 @@ import {
 } from '@infinityxyz/lib/types/dto/collections';
 import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
 import { InfinityTweet, InfinityTwitterAccount } from '@infinityxyz/lib/types/services/twitter';
-import { firestoreConstants } from '@infinityxyz/lib/utils';
+import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { AlchemyService } from 'alchemy/alchemy.service';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
@@ -31,7 +31,7 @@ import { MnemonicPricesForStatsPeriod, MnemonicVolumesForStatsPeriod } from 'mne
 import { CursorService } from 'pagination/cursor.service';
 import { PostgresService } from 'postgres/postgres.service';
 import { ReservoirService } from 'reservoir/reservoir.service';
-import { getCollectionDocId, getStatsDocInfo } from 'utils/stats';
+import { getStatsDocInfo } from 'utils/stats';
 import { ZoraService } from 'zora/zora.service';
 import { ONE_HOUR } from '../constants';
 import { DiscordService } from '../discord/discord.service';
@@ -547,7 +547,7 @@ export class StatsService {
           if (collection?.volume) {
             volume =
               typeof collection?.volume?.allTime === 'string'
-                ? parseInt(collection.volume.allTime)
+                ? parseFloat(collection.volume.allTime)
                 : collection?.volume?.allTime ?? NaN;
           }
         }

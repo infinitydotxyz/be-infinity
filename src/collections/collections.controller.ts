@@ -7,7 +7,6 @@ import {
 } from '@infinityxyz/lib/types/core';
 import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
 import {
-  Body,
   Controller,
   Get,
   InternalServerErrorException,
@@ -71,7 +70,6 @@ import { EXCLUDED_COLLECTIONS } from 'utils/stats';
 import { UPDATE_SOCIAL_STATS_INTERVAL } from '../constants';
 import { ParseCollectionIdPipe, ParsedCollectionId } from './collection-id.pipe';
 import CollectionsService from './collections.service';
-import { enqueueCollection } from './collections.utils';
 import { CurationService } from './curation/curation.service';
 import { CollectionStatsArrayDto } from './dto/collection-stats-array.dto';
 import { NftsService } from './nfts/nfts.service';
@@ -430,33 +428,5 @@ export class CollectionsController {
       cursor,
       hasNextPage
     };
-  }
-
-  @Put(':id/enqueue')
-  @ApiOperation({
-    description: 'Enqueue collection for indexing',
-    tags: [ApiTag.Collection]
-  })
-  @ApiParamCollectionId('id')
-  @ApiOkResponse({ description: ResponseDescription.Success, type: String })
-  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  async enqueueCollectionForIndexing(
-    @ParamCollectionId('id', ParseCollectionIdPipe) { address, chainId }: ParsedCollectionId,
-    @Body() body: { reset: boolean }
-  ) {
-    await enqueueCollection({ chainId, address, reset: body.reset })
-      .then((res) => {
-        console.log('enqueueCollection response:', res);
-      })
-      .catch((e) => {
-        console.error('enqueueCollection error', e);
-      });
-
-    // also reindex on reservoir
-    if (body.reset) {
-      this.reservoirService.reindexCollection(chainId, address).catch(console.error);
-    }
-    return '';
   }
 }
