@@ -5,44 +5,42 @@ import {
   UserDisplayData,
   UserFeedEvent
 } from '@infinityxyz/lib/types/core';
-import { AlchemyNftToInfinityNft } from '../common/transformers/alchemy-nft-to-infinity-nft.pipe';
+import {
+  RankingQueryDto,
+  UserCuratedCollectionDto,
+  UserCuratedCollectionsDto
+} from '@infinityxyz/lib/types/dto/collections';
+import {
+  CuratedCollectionsOrderBy,
+  CuratedCollectionsQuery
+} from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
+import { NftArrayDto, NftCollectionDto, NftDto } from '@infinityxyz/lib/types/dto/collections/nfts';
+import {
+  UserActivityArrayDto,
+  UserActivityQueryDto,
+  UserFollowingCollection,
+  UserFollowingCollectionDeletePayload,
+  UserFollowingCollectionPostPayload,
+  UserFollowingUser,
+  UserFollowingUserDeletePayload,
+  UserFollowingUserPostPayload,
+  UserNftsQueryDto,
+  UserProfileDto
+} from '@infinityxyz/lib/types/dto/user';
 import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
 import { Injectable, Optional } from '@nestjs/common';
 import { AlchemyService } from 'alchemy/alchemy.service';
+import { BackfillService } from 'backfill/backfill.service';
+import { CurationService } from 'collections/curation/curation.service';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { InvalidUserError } from 'common/errors/invalid-user.error';
 import { BigNumber } from 'ethers/lib/ethers';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
 import { StatsService } from 'stats/stats.service';
-import { ParsedUserId } from './parser/parsed-user-id';
-import {
-  RankingQueryDto,
-  UserCuratedCollectionDto,
-  UserCuratedCollectionsDto
-} from '@infinityxyz/lib/types/dto/collections';
-import { NftCollectionDto, NftDto, NftArrayDto } from '@infinityxyz/lib/types/dto/collections/nfts';
-import {
-  UserFollowingCollection,
-  UserFollowingCollectionPostPayload,
-  UserFollowingCollectionDeletePayload,
-  UserFollowingUser,
-  UserFollowingUserPostPayload,
-  UserFollowingUserDeletePayload,
-  UserNftsQueryDto,
-  UserProfileDto,
-  UserActivityQueryDto,
-  UserActivityArrayDto
-} from '@infinityxyz/lib/types/dto/user';
-import { BackfillService } from 'backfill/backfill.service';
-import {
-  CuratedCollectionsOrderBy,
-  CuratedCollectionsQuery
-} from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
 import { NftsService } from '../collections/nfts/nfts.service';
-import { AlchemyNft } from '@infinityxyz/lib/types/services/alchemy';
-import { attemptToIndexCollection } from 'utils/collection-indexing';
-import { CurationService } from 'collections/curation/curation.service';
+import { AlchemyNftToInfinityNft } from '../common/transformers/alchemy-nft-to-infinity-nft.pipe';
+import { ParsedUserId } from './parser/parsed-user-id';
 
 @Injectable()
 export class UserService {
@@ -291,9 +289,6 @@ export class UserService {
       // backfill alchemy cached images in firestore
       this.backfillService.backfillAlchemyCachedImagesForUserNfts(nfts, chainId, user.userAddress);
 
-      // async initiate indexing of collections that are not indexed yet
-      this.initMissingCollectionsIndexing(nfts, chainId);
-
       if (startAtToken) {
         const indexToStartAt = nfts.findIndex(
           (item) => BigNumber.from(item.id.tokenId).toString() === cursor.startAtToken
@@ -341,15 +336,6 @@ export class UserService {
       hasNextPage,
       totalOwned
     };
-  }
-
-  private initMissingCollectionsIndexing(nfts: AlchemyNft[], chainId: ChainId) {
-    const collections = new Set<string>(nfts.map((item) => item.contract.address));
-    for (const collection of collections) {
-      attemptToIndexCollection({ collectionAddress: collection, chainId }).catch((err) => {
-        console.error(err);
-      });
-    }
   }
 
   async getByUsername(username: string) {

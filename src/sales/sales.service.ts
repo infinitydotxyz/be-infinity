@@ -33,7 +33,7 @@ export default class SalesService {
       const sales = results.map((doc) => doc.data() as NftSaleDto);
 
       return {
-        data: sales as NftSaleDto[],
+        data: sales,
         cursor: nextCursor,
         hasNextPage
       };

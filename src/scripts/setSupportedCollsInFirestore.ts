@@ -1,4 +1,4 @@
-import { ChainId } from '@infinityxyz/lib/types/core';
+import { ChainId, SupportedCollection } from '@infinityxyz/lib/types/core';
 import { ReservoirCollectionV5, ReservorCollsSortBy } from '@infinityxyz/lib/types/services/reservoir';
 import { getService } from 'script';
 import { ReservoirService } from 'reservoir/reservoir.service';
@@ -41,10 +41,7 @@ export const setSupportedCollsInFirestore = async () => {
   const allResults = topColls1d.concat(topColls7d, topColls30d, topCollsAllTime);
 
   // eliminate duplicates
-  const map = new Map<
-    string,
-    { address: string; name: string; slug: string; chainId: ChainId; isSupported: boolean }
-  >();
+  const map = new Map<string, SupportedCollection>();
   for (const item of allResults) {
     map.set(item.primaryContract, {
       address: trimLowerCase(item.primaryContract),
@@ -57,7 +54,7 @@ export const setSupportedCollsInFirestore = async () => {
   const uniqueColls = Array.from(map.values());
 
   // filter for erc721s only
-  const erc721Colls = [];
+  const erc721Colls: SupportedCollection[] = [];
   for (const coll of uniqueColls) {
     try {
       const contract = new ethers.Contract(coll.address, ERC721ABI, rpcProvider);
@@ -66,12 +63,15 @@ export const setSupportedCollsInFirestore = async () => {
         erc721Colls.push(coll);
       }
     } catch (err) {
-      console.error(`Error checking erc721 interface for ${coll.name} - ${coll.address}. Not adding it to supported colls list`);
+      console.error(
+        `Error checking erc721 interface for ${coll.name} - ${coll.address}. Not adding it to supported colls list`
+      );
       console.error(err);
     }
   }
 
   console.log(`Found ${erc721Colls.length}. Adding to firestore...`);
+
   // batch add to firestore
   const fsBatchHandler = new FirestoreBatchHandler(firebaseService);
   const supportedCollsRef = firebaseService.firestore.collection(firestoreConstants.SUPPORTED_COLLECTIONS_COLL);

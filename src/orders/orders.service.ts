@@ -21,21 +21,20 @@ import CollectionsService from 'collections/collections.service';
 import { NftsService } from 'collections/nfts/nfts.service';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { InvalidTokenError } from 'common/errors/invalid-token-error';
+import { ContractService } from 'ethereum/contract.service';
 import { EthereumService } from 'ethereum/ethereum.service';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
 import { FirestoreDistributedCounter } from 'firebase/firestore-counter';
-import { attemptToIndexCollection } from 'utils/collection-indexing';
 import { FirebaseService } from '../firebase/firebase.service';
 import { CursorService } from '../pagination/cursor.service';
 import { UserParserService } from '../user/parser/parser.service';
 import { UserService } from '../user/user.service';
-import { OrderItemTokenMetadata, OrderMetadata } from './order.types';
 import { getReservoirAsks, getReservoirBids } from '../utils/reservoir';
 import { ReservoirResponse } from '../utils/reservoir-types';
 import { BaseOrdersService } from './base-orders/base-orders.service';
-import { UserOrdersService } from './user-orders/user-orders.service';
 import { ChainOBOrderHelper } from './chain-ob-order-helper';
-import { ContractService } from 'ethereum/contract.service';
+import { OrderItemTokenMetadata, OrderMetadata } from './order.types';
+import { UserOrdersService } from './user-orders/user-orders.service';
 
 @Injectable()
 export default class OrdersService extends BaseOrdersService {
@@ -225,13 +224,6 @@ export default class OrdersService extends BaseOrdersService {
       );
       const collectionsByAddress = collectionsData.reduce((acc: { [address: string]: Collection }, collection) => {
         if (!collection?.state?.create?.step || collection?.state?.create?.step === CreationFlow.CollectionMetadata) {
-          // initiate indexing
-          if (collection?.address && collection?.chainId) {
-            attemptToIndexCollection({ collectionAddress: collection?.address, chainId: collection?.chainId }).catch(
-              (err) => console.error(err)
-            );
-          }
-
           // return error
           throw new InvalidCollectionError(
             collection?.address ?? 'Unknown',
