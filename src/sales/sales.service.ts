@@ -1,4 +1,4 @@
-import { NftSale, SaleSource } from '@infinityxyz/lib/types/core';
+import { NftSale } from '@infinityxyz/lib/types/core';
 import { NftSaleDto, NftSalesResponseDto } from '@infinityxyz/lib/types/dto/sales';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
