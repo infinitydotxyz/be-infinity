@@ -2825,16 +2825,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "data.blockTimestamp",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "nftTransferEvents",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
           "fieldPath": "data.removed",
           "order": "ASCENDING"
         },
