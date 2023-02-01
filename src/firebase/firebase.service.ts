@@ -24,6 +24,10 @@ export class FirebaseService {
     return storage().bucket();
   }
 
+  public getBucket(bucketName: string) {
+    return storage().bucket(bucketName);
+  }
+
   constructor(
     @Inject(FIREBASE_OPTIONS) private options: FirebaseModuleOptions,
     private configService: ConfigService<EnvironmentVariables, true>
