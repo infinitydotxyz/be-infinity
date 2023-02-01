@@ -30,7 +30,6 @@ import {
 import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
 import { Injectable, Optional } from '@nestjs/common';
 import { AlchemyService } from 'alchemy/alchemy.service';
-import { BackfillService } from 'backfill/backfill.service';
 import { CurationService } from 'collections/curation/curation.service';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { InvalidUserError } from 'common/errors/invalid-user.error';
@@ -50,7 +49,6 @@ export class UserService {
     private alchemyService: AlchemyService,
     private paginationService: CursorService,
     private nftsService: NftsService,
-    private backfillService: BackfillService,
     private curationService: CurationService,
     @Optional() private statsService: StatsService
   ) {
@@ -280,14 +278,10 @@ export class UserService {
       pageKey: string,
       startAtToken?: string
     ): Promise<{ pageKey: string; nfts: NftDto[]; hasNextPage: boolean }> => {
-      // todo: directly fetch from firestore when data is ready
       const response = await this.alchemyService.getUserNfts(user.userAddress, chainId, pageKey, query.collections);
       totalOwned = response?.totalCount ?? NaN;
       const nextPageKey = response?.pageKey ?? '';
       let nfts = response?.ownedNfts ?? [];
-
-      // backfill alchemy cached images in firestore
-      this.backfillService.backfillAlchemyCachedImagesForUserNfts(nfts, chainId, user.userAddress);
 
       if (startAtToken) {
         const indexToStartAt = nfts.findIndex(
