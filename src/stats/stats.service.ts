@@ -158,10 +158,10 @@ export class StatsService {
       const topCollsAllTime = await this.fetchTop100Colls(ChainId.Mainnet, ReservoirCollsSortBy.ALL_TIME_VOLUME);
 
       const map = new Map<string, ReservoirCollectionV5[]>();
-      map.set('daily', topColls1d);
-      map.set('weekly', topColls7d);
-      map.set('monthly', topColls30d);
-      map.set('allTime', topCollsAllTime);
+      map.set(StatsPeriod.Daily, topColls1d);
+      map.set(StatsPeriod.Weekly, topColls7d);
+      map.set(StatsPeriod.Monthly, topColls30d);
+      map.set(StatsPeriod.All, topCollsAllTime);
 
       for (const key of map.keys()) {
         const colls = map.get(key);
@@ -181,25 +181,25 @@ export class StatsService {
           const trendingCollectionDocRef = byPeriodCollectionRef.doc(collectionDocId);
 
           const salesVolume =
-            key == 'daily'
+            key == StatsPeriod.Daily
               ? coll.volume['1day']
-              : key == 'weekly'
+              : key == StatsPeriod.Weekly
               ? coll.volume['7day']
-              : key == 'monthly'
+              : key == StatsPeriod.Monthly
               ? coll.volume['30day']
               : coll.volume['allTime'];
 
           const floorSaleChange =
-            key == 'daily'
+            key == StatsPeriod.Daily
               ? coll.floorSaleChange?.['1day']
-              : key == 'weekly'
+              : key == StatsPeriod.Weekly
               ? coll.floorSaleChange?.['7day']
               : coll.floorSaleChange?.['30day'];
 
           const volumeChange =
-            key == 'daily'
+            key == StatsPeriod.Daily
               ? coll.volumeChange?.['1day']
-              : key == 'weekly'
+              : key == StatsPeriod.Weekly
               ? coll.volumeChange?.['7day']
               : coll.volumeChange?.['30day'];
 
