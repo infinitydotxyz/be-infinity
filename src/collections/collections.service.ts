@@ -21,16 +21,15 @@ import {
 import { ExternalNftCollectionDto, NftCollectionDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
-import { BackfillService } from 'backfill/backfill.service';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
 import { ReservoirService } from 'reservoir/reservoir.service';
 import { StatsService } from 'stats/stats.service';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 import { ZoraService } from 'zora/zora.service';
+import { ONE_DAY } from '../constants';
 import { ParsedCollectionId } from './collection-id.pipe';
 import { CurationService } from './curation/curation.service';
-import { ONE_DAY } from '../constants';
 
 interface CollectionQueryOptions {
   /**
@@ -48,7 +47,6 @@ export default class CollectionsService {
     private zoraService: ZoraService,
     private reservoirService: ReservoirService,
     private paginationService: CursorService,
-    private backfillService: BackfillService,
     private curationService: CurationService,
     private statsService: StatsService
   ) {}
@@ -197,10 +195,8 @@ export default class CollectionsService {
       .doc(docId)
       .get();
 
-    let result = collectionSnapshot.data();
-    if (!result) {
-      result = await this.backfillService.backfillCollection(collection.chainId as ChainId, collection.address);
-    }
+    const result = collectionSnapshot.data();
+
     if (queryOptions.limitToCompleteCollections && result?.state?.create?.step !== CreationFlow.Complete) {
       return undefined;
     }
