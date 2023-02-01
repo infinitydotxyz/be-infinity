@@ -194,14 +194,11 @@ export class CollectionsController {
         if (!EXCLUDED_COLLECTIONS.includes(collectionData?.address)) {
           collectionData.stats = {
             [queryPeriod]: {
-              ownerCount: statsData.ownerCount,
               tokenCount: statsData.tokenCount,
               salesVolume: statsData.salesVolume,
-              avgPrice: statsData.avgPrice,
-              minPrice: statsData.minPrice,
+              salesVolumeChange: statsData.salesVolumeChange,
               floorPrice: statsData.floorPrice,
-              maxPrice: statsData.maxPrice,
-              numSales: statsData.numSales,
+              floorPriceChange: statsData.floorPriceChange,
               period: queryPeriod
             }
           };

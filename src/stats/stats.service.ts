@@ -208,7 +208,7 @@ export class StatsService {
             contractAddress: coll.primaryContract,
             period: key,
             salesVolume: Number(salesVolume),
-            salesVoumeChange: Number(volumeChange),
+            salesVolumeChange: Number(volumeChange),
             floorPrice: coll.floorAsk?.price?.amount?.native,
             floorPriceChange: Number(floorSaleChange),
             tokenCount: Number(coll.tokenCount),
