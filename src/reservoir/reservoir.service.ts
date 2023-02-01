@@ -7,7 +7,7 @@ import {
   ReservoirSingleCollectionResponse,
   ReservoirTopCollectionOwnersResponse,
   ReservoirCollectionsV5,
-  ReservorCollsSortBy
+  ReservoirCollsSortBy
 } from '@infinityxyz/lib/types/services/reservoir';
 import { ConfigService } from '@nestjs/config';
 import { EnvironmentVariables } from 'types/environment-variables.interface';
@@ -55,7 +55,7 @@ export class ReservoirService {
 
   public async getTopCollsByVolume(
     chainId: string,
-    sortBy: ReservorCollsSortBy,
+    sortBy: ReservoirCollsSortBy,
     limit?: number,
     continuation?: string
   ): Promise<ReservoirCollectionsV5 | undefined> {
