@@ -19,6 +19,7 @@ export interface EnvironmentVariables {
   PG_USER: string;
   PG_PASS: string;
   PG_DB_NAME: string;
+  snapshotBucket: string;
 }
 
 export const devOptionalEnvVariables: (keyof EnvironmentVariables)[] = ['REDIS_URL'];

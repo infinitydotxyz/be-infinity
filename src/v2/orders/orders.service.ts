@@ -222,6 +222,9 @@ export class OrdersService extends BaseOrdersService {
         break;
       }
       case OrderBy.StartTime: {
+        if (orderDirection == OrderDirection.Ascending) {
+          throw new Error('Cannot order by start time in ascending order');
+        }
         firestoreQuery = firestoreQuery
           .orderBy('order.startTimeMs', orderDirection)
           .orderBy('metadata.id', orderDirection);
