@@ -1,5 +1,5 @@
 import { ChainId, SupportedCollection } from '@infinityxyz/lib/types/core';
-import { ReservoirCollectionV5, ReservorCollsSortBy } from '@infinityxyz/lib/types/services/reservoir';
+import { ReservoirCollectionV5, ReservoirCollsSortBy } from '@infinityxyz/lib/types/services/reservoir';
 import { getService } from 'script';
 import { ReservoirService } from 'reservoir/reservoir.service';
 import { getSearchFriendlyString, sleep, trimLowerCase } from '@infinityxyz/lib/utils';
@@ -29,13 +29,13 @@ export const setSupportedCollsInFirestore = async () => {
 
   const rpcProvider = new ethers.providers.StaticJsonRpcProvider(configService.get('alchemyJsonRpcEthMainnet'));
 
-  const topColls1d = await fetchTop100Colls(reservoirService, ChainId.Mainnet, ReservorCollsSortBy.ONE_DAY_VOLUME);
-  const topColls7d = await fetchTop100Colls(reservoirService, ChainId.Mainnet, ReservorCollsSortBy.SEVEN_DAY_VOLUME);
-  const topColls30d = await fetchTop100Colls(reservoirService, ChainId.Mainnet, ReservorCollsSortBy.THIRTY_DAY_VOLUME);
+  const topColls1d = await fetchTop100Colls(reservoirService, ChainId.Mainnet, ReservoirCollsSortBy.ONE_DAY_VOLUME);
+  const topColls7d = await fetchTop100Colls(reservoirService, ChainId.Mainnet, ReservoirCollsSortBy.SEVEN_DAY_VOLUME);
+  const topColls30d = await fetchTop100Colls(reservoirService, ChainId.Mainnet, ReservoirCollsSortBy.THIRTY_DAY_VOLUME);
   const topCollsAllTime = await fetchTop100Colls(
     reservoirService,
     ChainId.Mainnet,
-    ReservorCollsSortBy.ALL_TIME_VOLUME
+    ReservoirCollsSortBy.ALL_TIME_VOLUME
   );
 
   const allResults = topColls1d.concat(topColls7d, topColls30d, topCollsAllTime);
@@ -90,7 +90,7 @@ export const setSupportedCollsInFirestore = async () => {
 const fetchTop100Colls = async (
   rs: ReservoirService,
   chainId: ChainId,
-  period: ReservorCollsSortBy
+  period: ReservoirCollsSortBy
 ): Promise<ReservoirCollectionV5[]> => {
   const allResults: ReservoirCollectionV5[] = [];
   let continuation = '';

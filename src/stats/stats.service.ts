@@ -16,18 +16,17 @@ import {
   CollectionHistoricalSalesQueryDto,
   CollectionHistoricalStatsQueryDto,
   CollectionStatsByPeriodDto,
-  CollectionTrendingStatsQueryDto,
   RankingQueryDto
 } from '@infinityxyz/lib/types/dto/collections';
 import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
+import { ReservoirCollectionV5, ReservoirCollsSortBy } from '@infinityxyz/lib/types/services/reservoir';
 import { InfinityTweet, InfinityTwitterAccount } from '@infinityxyz/lib/types/services/twitter';
-import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
+import { firestoreConstants, getCollectionDocId, sleep } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { AlchemyService } from 'alchemy/alchemy.service';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
-import { mnemonicByParam, MnemonicService } from 'mnemonic/mnemonic.service';
-import { MnemonicPricesForStatsPeriod, MnemonicVolumesForStatsPeriod } from 'mnemonic/mnemonic.types';
+import { MnemonicService } from 'mnemonic/mnemonic.service';
 import { CursorService } from 'pagination/cursor.service';
 import { PostgresService } from 'postgres/postgres.service';
 import { ReservoirService } from 'reservoir/reservoir.service';
@@ -141,157 +140,141 @@ export class StatsService {
     return statsByPeriod;
   }
 
-  async fetchAndStoreTopCollectionsFromMnemonic(query: CollectionTrendingStatsQueryDto) {
-    const queryBy = query.queryBy as mnemonicByParam;
-    const queryPeriod = query.period;
-    const trendingCollectionsRef = this.firebaseService.firestore.collection(
-      firestoreConstants.TRENDING_COLLECTIONS_COLL
-    );
-    const byParamDoc = firestoreConstants.TRENDING_BY_VOLUME_DOC;
-    const byParamDocRef = trendingCollectionsRef.doc(byParamDoc);
-    const byPeriodCollectionRef = byParamDocRef.collection(queryPeriod);
+  async fetchAndStoreTopCollectionsFromReservoir(): Promise<void> {
+    const shouldFetchNew = await this.checkAndDeleteStaleTrendingCollections();
 
-    const data = await this.mnemonicService.getTopCollections(queryBy, queryPeriod, { limit: 70, offset: 0 });
+    if (shouldFetchNew) {
+      console.log('Fetching new trending collections');
 
-    if (data && data.collections?.length > 0) {
-      for (const coll of data.collections) {
-        if (!coll.contractAddress) {
-          return;
+      const trendingCollectionsRef = this.firebaseService.firestore.collection(
+        firestoreConstants.TRENDING_COLLECTIONS_COLL
+      );
+      const byParamDoc = firestoreConstants.TRENDING_BY_VOLUME_DOC;
+      const byParamDocRef = trendingCollectionsRef.doc(byParamDoc);
+
+      const topColls1d = await this.fetchTop100Colls(ChainId.Mainnet, ReservoirCollsSortBy.ONE_DAY_VOLUME);
+      const topColls7d = await this.fetchTop100Colls(ChainId.Mainnet, ReservoirCollsSortBy.SEVEN_DAY_VOLUME);
+      const topColls30d = await this.fetchTop100Colls(ChainId.Mainnet, ReservoirCollsSortBy.THIRTY_DAY_VOLUME);
+      const topCollsAllTime = await this.fetchTop100Colls(ChainId.Mainnet, ReservoirCollsSortBy.ALL_TIME_VOLUME);
+
+      const map = new Map<string, ReservoirCollectionV5[]>();
+      map.set('daily', topColls1d);
+      map.set('weekly', topColls7d);
+      map.set('monthly', topColls30d);
+      map.set('allTime', topCollsAllTime);
+
+      for (const key of map.keys()) {
+        const colls = map.get(key);
+        if (!colls) {
+          continue;
         }
-
-        const collectionDocId = getCollectionDocId({
-          chainId: ChainId.Mainnet,
-          collectionAddress: coll.contractAddress
-        });
-        const trendingCollectionDocRef = byPeriodCollectionRef.doc(collectionDocId);
-
-        // fetch prices for the period
-        const prices = await this.fetchPricesForStatsPeriod(coll.contractAddress, queryPeriod);
-        const floorPrice = await this.getCollectionFloorPrice({
-          address: coll.contractAddress,
-          chainId: (coll.chainId as ChainId) ?? ChainId.Mainnet
-        });
-
-        // fetch sales for the period
-        const sales = await this.fetchSalesForStatsPeriod(coll.contractAddress, queryPeriod);
-
-        const dataToStore: CollectionPeriodStatsContent = {
-          chainId: ChainId.Mainnet,
-          contractAddress: coll.contractAddress,
-          period: queryPeriod,
-          salesVolume: sales?.salesVolume,
-          numSales: sales.numSales,
-          minPrice: prices.minPrice,
-          maxPrice: prices.maxPrice,
-          avgPrice: prices.avgPrice,
-          floorPrice: floorPrice ?? 0,
-          updatedAt: Date.now()
-        };
-
-        if (queryBy === 'by_sales_volume') {
-          // more accurate sales volume
-          if (coll.salesVolume) {
-            dataToStore.salesVolume = parseFloat(`${coll.salesVolume}`);
+        for (const coll of colls) {
+          if (!coll.primaryContract) {
+            continue;
           }
+
+          const collectionDocId = getCollectionDocId({
+            chainId: ChainId.Mainnet,
+            collectionAddress: coll.primaryContract
+          });
+          const byPeriodCollectionRef = byParamDocRef.collection(key);
+          const trendingCollectionDocRef = byPeriodCollectionRef.doc(collectionDocId);
+
+          const salesVolume =
+            key == 'daily'
+              ? coll.volume['1day']
+              : key == 'weekly'
+              ? coll.volume['7day']
+              : key == 'monthly'
+              ? coll.volume['30day']
+              : coll.volume['allTime'];
+
+          const floorSaleChange =
+            key == 'daily'
+              ? coll.floorSaleChange?.['1day']
+              : key == 'weekly'
+              ? coll.floorSaleChange?.['7day']
+              : coll.floorSaleChange?.['30day'];
+
+          const volumeChange =
+            key == 'daily'
+              ? coll.volumeChange?.['1day']
+              : key == 'weekly'
+              ? coll.volumeChange?.['7day']
+              : coll.volumeChange?.['30day'];
+
+          const dataToStore: CollectionPeriodStatsContent = {
+            chainId: ChainId.Mainnet,
+            contractAddress: coll.primaryContract,
+            period: key,
+            salesVolume: Number(salesVolume),
+            salesVoumeChange: Number(volumeChange),
+            floorPrice: coll.floorAsk?.price?.amount?.native,
+            floorPriceChange: Number(floorSaleChange),
+            tokenCount: Number(coll.tokenCount),
+            updatedAt: Date.now()
+          };
+
           this.fsBatchHandler.add(trendingCollectionDocRef, dataToStore, { merge: true });
+        }
+      }
+
+      this.fsBatchHandler.flush().catch((err) => console.error('error saving trending colls', err));
+    } else {
+      console.log('No need to fetch new trending collections');
+    }
+  }
+
+  async checkAndDeleteStaleTrendingCollections(): Promise<boolean> {
+    const TRENDING_COLLS_TTS = 1000 * 60 * 30; // time to stale - 30 mins
+    console.log('Checking and deleting stale trending collections');
+    const db = this.firebaseService.firestore;
+    try {
+      const MAX_RETRY_ATTEMPTS = 5;
+      const bulkWriter = db.bulkWriter();
+      bulkWriter.onWriteError((error) => {
+        if (error.failedAttempts < MAX_RETRY_ATTEMPTS) {
+          return true;
         } else {
-          console.error('Unknown queryBy param');
+          console.log('Failed to delete document: ', error.documentRef.path);
+          return false;
         }
+      });
 
-        // for each collection: fetch owner count & total supply
-        // todo: adi could fetch from firestore instead of calling api
-        const owners = await this.mnemonicService.getNumOwners(`${coll.contractAddress}`);
-        const ownerCount = owners?.dataPoints[0]?.count;
-        this.fsBatchHandler.add(
-          trendingCollectionDocRef,
-          {
-            ownerCount: parseInt(ownerCount ?? '0')
-          },
-          { merge: true }
-        );
-
-        const tokens = await this.mnemonicService.getNumTokens(`${coll.contractAddress}`);
-        const tokenCount =
-          parseInt(tokens?.dataPoints[0]?.totalMinted ?? '0') - parseInt(tokens?.dataPoints[0]?.totalBurned ?? '0');
-        this.fsBatchHandler.add(
-          trendingCollectionDocRef,
-          {
-            tokenCount
-          },
-          { merge: true }
-        );
+      const trendingCollectionsRef = db.collection(firestoreConstants.TRENDING_COLLECTIONS_COLL);
+      const trendingCollectionsByVolumeDocRef = trendingCollectionsRef.doc(firestoreConstants.TRENDING_BY_VOLUME_DOC);
+      const lastUpdatedAt = (await trendingCollectionsByVolumeDocRef.get()).data()?.updatedAt;
+      if (typeof lastUpdatedAt !== 'number' || Date.now() - lastUpdatedAt > TRENDING_COLLS_TTS) {
+        await db.recursiveDelete(trendingCollectionsRef, bulkWriter);
+        await bulkWriter.flush();
+        console.log('Deleted old trending collections');
+        // add new updatedAt timestamp
+        await trendingCollectionsByVolumeDocRef.set({ updatedAt: Date.now() });
+        return true;
       }
+    } catch (err) {
+      console.error('Failed deleting old trending collection', err);
     }
-    this.fsBatchHandler.flush().catch((err) => console.error('error saving mnemonic collection tokens', err));
-    return data;
+    return false;
   }
 
-  async fetchPricesForStatsPeriod(
-    collectionAddress: string,
-    period: StatsPeriod
-  ): Promise<MnemonicPricesForStatsPeriod> {
-    const resp = await this.mnemonicService.getPricesByContract(collectionAddress, period);
-    const dataPoints = resp?.dataPoints ?? [];
-    let maxPrice = 0,
-      minPrice = Number.MAX_VALUE,
-      avgPrice = 0,
-      totalPrice = 0,
-      numItems = 0;
-
-    for (const dataPoint of dataPoints) {
-      if (dataPoint.max && dataPoint.min && dataPoint.avg) {
-        const max = parseFloat(dataPoint.max);
-        const min = parseFloat(dataPoint.min);
-        const avg = parseFloat(dataPoint.avg);
-        if (max > maxPrice) {
-          maxPrice = max;
-        }
-        if (min < minPrice) {
-          minPrice = min;
-        }
-        totalPrice += avg;
-        numItems++;
-      }
+  async fetchTop100Colls(chainId: ChainId, period: ReservoirCollsSortBy): Promise<ReservoirCollectionV5[]> {
+    const allResults: ReservoirCollectionV5[] = [];
+    let continuation = '';
+    for (let i = 0; i < 5; i++) {
+      console.log('Sleeping for a few seconds to avoid 429s...');
+      await sleep(1 * 1000); // to avoid 429s
+      const data = await this.reservoirService.getTopCollsByVolume(
+        chainId,
+        period,
+        20, // max reservoir limit is 20
+        continuation
+      );
+      allResults.push(...(data?.collections ?? []));
+      continuation = data?.continuation ?? '';
     }
 
-    // check in case there is no data
-    if (minPrice == Number.MAX_VALUE) {
-      minPrice = 0;
-    }
-
-    if (numItems > 0) {
-      avgPrice = totalPrice / numItems;
-    }
-
-    return {
-      maxPrice,
-      minPrice,
-      avgPrice
-    };
-  }
-
-  async fetchSalesForStatsPeriod(
-    collectionAddress: string,
-    period: StatsPeriod
-  ): Promise<MnemonicVolumesForStatsPeriod> {
-    const resp = await this.mnemonicService.getSalesVolumeByContract(collectionAddress, period);
-    const dataPoints = resp?.dataPoints ?? [];
-    let numSales = 0,
-      salesVolume = 0;
-
-    for (const dataPoint of dataPoints) {
-      if (dataPoint.count && dataPoint.volume) {
-        const count = parseFloat(dataPoint.count);
-        const volume = parseFloat(dataPoint.volume);
-        numSales += count;
-        salesVolume += volume;
-      }
-    }
-
-    return {
-      numSales,
-      salesVolume
-    };
+    return allResults;
   }
 
   async getCollectionHistoricalSales(

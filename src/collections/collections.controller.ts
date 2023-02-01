@@ -132,17 +132,17 @@ export class CollectionsController {
     return res;
   }
 
-  @Put('update-trending-stats')
+  @Put('update-trending-colls')
   @ApiOperation({
     tags: [ApiTag.Collection, ApiTag.Stats],
-    description: 'Update stats for top collections in firebase. Called by an external job'
+    description: 'Update top collections in firebase. Called by an external job'
   })
   @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  async storeTrendingCollectionStats(@Query() query: CollectionTrendingStatsQueryDto) {
-    await this.statsService.fetchAndStoreTopCollectionsFromMnemonic(query);
+  async storeTrendingCollections() {
+    await this.statsService.fetchAndStoreTopCollectionsFromReservoir();
   }
 
   @Get('stats')
