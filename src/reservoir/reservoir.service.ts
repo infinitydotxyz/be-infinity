@@ -1,16 +1,13 @@
-import { Injectable } from '@nestjs/common';
-import { gotErrorHandler } from '../utils/got';
-import got, { Got, Response } from 'got/dist/source';
-import { sleep } from '@infinityxyz/lib/utils';
 import {
-  ReservoirDetailedTokensResponse,
-  ReservoirSingleCollectionResponse,
-  ReservoirTopCollectionOwnersResponse,
   ReservoirCollectionsV5,
-  ReservoirCollsSortBy
+  ReservoirCollsSortBy, ReservoirDetailedTokensResponse, ReservoirTopCollectionOwnersResponse
 } from '@infinityxyz/lib/types/services/reservoir';
+import { sleep } from '@infinityxyz/lib/utils';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import got, { Got, Response } from 'got/dist/source';
 import { EnvironmentVariables } from 'types/environment-variables.interface';
+import { gotErrorHandler } from '../utils/got';
 
 @Injectable()
 export class ReservoirService {
@@ -84,13 +81,13 @@ export class ReservoirService {
   public async getSingleCollectionInfo(
     chainId: string,
     collectionAddress: string
-  ): Promise<ReservoirSingleCollectionResponse | undefined> {
+  ): Promise<ReservoirCollectionsV5 | undefined> {
     try {
-      const res: Response<ReservoirSingleCollectionResponse> = await this.errorHandler(() => {
+      const res: Response<ReservoirCollectionsV5> = await this.errorHandler(() => {
         const searchParams: any = {
           id: collectionAddress
         };
-        return this.client.get(`collection/v2`, {
+        return this.client.get(`collections/v5`, {
           searchParams,
           responseType: 'json'
         });

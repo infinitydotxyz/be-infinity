@@ -4,9 +4,7 @@ import {
   CollectionMetadata,
   CreationFlow,
   CurationBlockUser,
-  CurrentCurationSnippetDoc,
-  StatsPeriod,
-  TopOwner
+  CurrentCurationSnippetDoc, TopOwner
 } from '@infinityxyz/lib/types/core';
 import {
   TopOwnerDto,
@@ -208,14 +206,6 @@ export default class CollectionsService {
     if (typeof floorPrice === 'number') {
       return floorPrice;
     }
-    const res = await this.statsService.getCollectionStats(collection, {
-      period: StatsPeriod.Hourly,
-      date: Date.now()
-    });
-    if (typeof res?.floorPrice === 'number') {
-      return res.floorPrice;
-    }
-
     return null;
   }
 

@@ -6,7 +6,6 @@ import {
   UserFeedEvent
 } from '@infinityxyz/lib/types/core';
 import {
-  RankingQueryDto,
   UserCuratedCollectionDto,
   UserCuratedCollectionsDto
 } from '@infinityxyz/lib/types/dto/collections';
@@ -53,36 +52,6 @@ export class UserService {
     @Optional() private statsService: StatsService
   ) {
     this.alchemyNftToInfinityNft = new AlchemyNftToInfinityNft(this.nftsService);
-  }
-
-  async getWatchlist(user: ParsedUserId, query: RankingQueryDto) {
-    const collectionFollows = user.ref
-      .collection(firestoreConstants.COLLECTION_FOLLOWS_COLL)
-      .select('collectionAddress', 'collectionChainId');
-    const snap = await collectionFollows.get();
-    const collections = snap.docs
-      .map((doc) => {
-        const { collectionAddress, collectionChainId } = doc.data();
-        return { chainId: collectionChainId, address: collectionAddress };
-      })
-      .filter((item) => {
-        return item.chainId && item.address;
-      });
-
-    const statsPromises = collections.map((collection) =>
-      this.statsService.getCollectionStats(collection, { period: query.period, date: query.date })
-    );
-
-    const stats = await Promise.all(statsPromises);
-
-    const orderedStats = stats.sort((itemA, itemB) => {
-      const statA = itemA[query.orderBy] ?? Number.MIN_SAFE_INTEGER;
-      const statB = itemB[query.orderBy] ?? Number.MIN_SAFE_INTEGER;
-      const isAsc = query.orderDirection === OrderDirection.Ascending;
-      return isAsc ? statA - statB : statB - statA;
-    });
-
-    return orderedStats;
   }
 
   async getProfile(user: ParsedUserId) {
