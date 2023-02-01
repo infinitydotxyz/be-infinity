@@ -465,7 +465,9 @@ export default class OrdersService extends BaseOrdersService {
     const isListing = order.signedOrder.isSellOrder;
 
     if (isListing) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const blockNumber = currentBlockNumber;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const items = itemsWithFloorPrices.map((item) => {
         const orderItem: EntrantOrderItem = {
           isTopCollection: item.hasBlueCheck,

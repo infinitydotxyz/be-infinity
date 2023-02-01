@@ -18,7 +18,7 @@ import {
 } from '@infinityxyz/lib/types/dto';
 import { formatEth, ONE_MIN, ONE_WEEK, trimLowerCase } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
-import { Infinity } from '@reservoir0x/sdk';
+import { Flow } from '@reservoir0x/sdk';
 import { ContractService } from 'ethereum/contract.service';
 import { Erc20 } from 'ethereum/contracts/erc20';
 import { Erc721 } from 'ethereum/contracts/erc721';
@@ -71,7 +71,7 @@ export class GenerateOrderService {
       nonce = result.toString();
     }
 
-    const input: Infinity.Types.OrderInput = {
+    const input: Flow.Types.OrderInput = {
       isSellOrder: false,
       signer: trimLowerCase(params.maker),
       numItems: params.numItems,
@@ -84,10 +84,11 @@ export class GenerateOrderService {
       nfts: params.nfts,
       currency: trimLowerCase(params.currency),
       complication: this._contractService.getComplicationAddress(params.chainId),
-      extraParams: constants.HashZero
+      extraParams: constants.HashZero,
+      trustedExecution: '0'
     };
 
-    const order = new Infinity.Order(parseInt(params.chainId, 10), input);
+    const order = new Flow.Order(parseInt(params.chainId, 10), input);
 
     return await this._getBuyOrderGenerateRequests(params.chainId, order);
   }
@@ -170,7 +171,7 @@ export class GenerateOrderService {
       nonce = result.toString();
     }
 
-    const input: Infinity.Types.OrderInput = {
+    const input: Flow.Types.OrderInput = {
       isSellOrder: true,
       signer: trimLowerCase(params.maker),
       numItems: params.numItems,
@@ -183,14 +184,15 @@ export class GenerateOrderService {
       nfts: params.nfts,
       currency: trimLowerCase(params.currency),
       complication: this._contractService.getComplicationAddress(params.chainId),
-      extraParams: constants.HashZero
+      extraParams: constants.HashZero,
+      trustedExecution: '0'
     };
 
-    const order = new Infinity.Order(parseInt(params.chainId, 10), input);
+    const order = new Flow.Order(parseInt(params.chainId, 10), input);
     return await this._getSellOrderRequests(params.chainId, order);
   }
 
-  protected async _getBuyOrderGenerateRequests(chainId: ChainId, order: Infinity.Order) {
+  protected async _getBuyOrderGenerateRequests(chainId: ChainId, order: Flow.Order) {
     const nftApprovals: TokenApprovalRequest[] = [];
 
     const currencyAddress = order.currency;
@@ -253,7 +255,7 @@ export class GenerateOrderService {
     };
   }
 
-  protected async _getSellOrderRequests(chainId: ChainId, order: Infinity.Order): Promise<SignerRequests> {
+  protected async _getSellOrderRequests(chainId: ChainId, order: Flow.Order): Promise<SignerRequests> {
     const nftApprovals = await this._getNftApprovals(chainId, order.signer, order.nfts);
 
     const currencyApprovals: CurrencyAllowanceRequest[] = [];
@@ -292,7 +294,7 @@ export class GenerateOrderService {
   ) {
     const opposingChainOBOrder = opposingRawOrder.infinityOrder;
     const isMatchExecutor = opposingChainOBOrder.signer === constants.AddressZero;
-    let opposingInternalOrder: Infinity.Types.InternalOrder | Infinity.Types.SignedOrder = {
+    let opposingInternalOrder: Flow.Types.InternalOrder | Flow.Types.SignedOrder = {
       isSellOrder: opposingChainOBOrder.isSellOrder,
       signer: opposingChainOBOrder.signer,
       constraints: opposingChainOBOrder.constraints.map((item) => bn(item).toString()),
@@ -312,7 +314,7 @@ export class GenerateOrderService {
     }
 
     const chainId = parseInt(params.chainId, 10);
-    const opposingOrder = new Infinity.Order(chainId, opposingInternalOrder);
+    const opposingOrder = new Flow.Order(chainId, opposingInternalOrder);
 
     const nowSeconds = Math.floor(Date.now() / 1000);
     const currentPrice = bn(opposingOrder.getMatchingPrice(nowSeconds));
@@ -338,7 +340,7 @@ export class GenerateOrderService {
     // TODO for instant offers should we base this off of the current gas price?
     const maxGasPriceWei = options.maxGasPriceWei;
 
-    const orderInput: Infinity.Types.OrderInput = {
+    const orderInput: Flow.Types.OrderInput = {
       isSellOrder,
       signer: params.signer,
       numItems: opposingOrder.numItems,
@@ -351,7 +353,8 @@ export class GenerateOrderService {
       nfts: [],
       complication: this._contractService.getComplicationAddress(params.chainId),
       extraParams: constants.HashZero,
-      currency: opposingOrder.currency
+      currency: opposingOrder.currency,
+      trustedExecution: '0'
     };
 
     if (orderInput.complication !== opposingOrder.params.complication) {
@@ -378,7 +381,7 @@ export class GenerateOrderService {
       }
     }
 
-    const order = new Infinity.Order(chainId, orderInput);
+    const order = new Flow.Order(chainId, orderInput);
 
     return { order, opposingOrder };
   }

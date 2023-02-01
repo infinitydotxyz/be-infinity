@@ -1,4 +1,11 @@
-import { ChainOBOrder, OrderCreatedEvent, OrderEventKind, RawFirestoreOrder } from '@infinityxyz/lib/types/core';
+import {
+  ChainId,
+  ChainOBOrder,
+  OrderCreatedEvent,
+  OrderEventKind,
+  RawFirestoreOrder,
+  RawFirestoreOrderWithoutError
+} from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { ContractService } from 'ethereum/contract.service';
@@ -7,6 +14,9 @@ import { FirebaseService } from 'firebase/firebase.service';
 import { BaseOrdersService } from 'v2/orders/base-orders.service';
 import { BulkOrderQuery } from 'v2/orders/bulk-query';
 import { CursorService } from 'pagination/cursor.service';
+import { PassThrough } from 'stream';
+import { streamQueryWithRef } from 'firebase/stream-query';
+import { OrderbookSnapshotOrder } from 'v2/bulk/types';
 
 export type ProtocolOrder = {
   id: string;
@@ -130,5 +140,83 @@ export class ProtocolOrdersService extends BaseOrdersService {
     }
 
     return order.rawOrder;
+  }
+
+  public async takeSnapshot(chainId: ChainId, bucketName: string, fileName: string) {
+    const file = this._firebaseService.getBucket(bucketName).file(fileName);
+
+    const startTimestamp = Date.now();
+
+    console.log(`Starting snapshot for chainId: ${chainId}`);
+
+    const passthroughStream = new PassThrough();
+
+    const activeOrdersQuery = this._firebaseService.firestore
+      .collection(firestoreConstants.ORDERS_V2_COLL)
+      .where('metadata.chainId', '==', chainId)
+      .where('order.status', '==', 'active') as FirebaseFirestore.Query<RawFirestoreOrderWithoutError>;
+
+    const streamOrders = async (passThough: PassThrough) => {
+      let numOrders = 0;
+
+      const stream = streamQueryWithRef(activeOrdersQuery);
+
+      for await (const item of stream) {
+        const orderData: OrderbookSnapshotOrder = {
+          id: item.data.metadata.id,
+          order: item.data.rawOrder.infinityOrder,
+          source: item.data.order.sourceMarketplace,
+          sourceOrder: item.data.rawOrder.rawOrder,
+          gasUsage: item.data.rawOrder.gasUsage
+        };
+
+        const stringified = JSON.stringify(orderData);
+
+        passThough.write(`${stringified}\n`);
+
+        numOrders += 1;
+
+        if (numOrders % 100 === 0) {
+          console.log(`Snapshot - Handled ${numOrders} orders so far`);
+        }
+      }
+
+      return numOrders;
+    };
+
+    const uploadPromise = new Promise<{ numOrders: number }>((resolve, reject) => {
+      let numOrders = 0;
+      passthroughStream
+        .pipe(file.createWriteStream())
+        .on('finish', () => {
+          resolve({ numOrders });
+        })
+        .on('error', (err) => {
+          reject(err);
+        });
+
+      streamOrders(passthroughStream)
+        .then((result) => {
+          numOrders = result;
+          passthroughStream.end();
+        })
+        .catch((err) => {
+          passthroughStream.destroy(err);
+        });
+    });
+
+    const result = await uploadPromise;
+
+    const metadata = {
+      bucket: bucketName,
+      file: fileName,
+      chainId: chainId,
+      numOrders: result.numOrders,
+      timestamp: startTimestamp
+    };
+
+    await this._firebaseService.firestore.collection('orderSnapshots').doc(fileName).set(metadata);
+
+    console.log(`Snapshot - Uploaded ${result.numOrders} orders to ${fileName}`);
   }
 }
