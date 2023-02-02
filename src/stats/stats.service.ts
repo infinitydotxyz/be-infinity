@@ -5,7 +5,8 @@ import {
   CollectionPeriodStatsContent,
   CollectionStats,
   HistoricalSalesTimeBucket,
-  PreAggregatedSocialsStats, StatsPeriod,
+  PreAggregatedSocialsStats,
+  StatsPeriod,
   StatType
 } from '@infinityxyz/lib/types/core';
 import { CollectionHistoricalSalesQueryDto } from '@infinityxyz/lib/types/dto/collections';
@@ -258,6 +259,15 @@ export class StatsService {
     let floorPrice = primary?.floorPrice;
     let volume = primary?.volume;
 
+    const discordFollowers = primary?.discordFollowers;
+    const twitterFollowers = primary?.twitterFollowers;
+
+    if (!twitterFollowers || !discordFollowers) {
+      this.updateSocialsStats(collection.ref).catch((err) => {
+        console.error('Failed updating socials stats', err);
+      });
+    }
+
     const collectionDocId = getCollectionDocId({
       chainId: collection.chainId,
       collectionAddress: collection.address
@@ -360,23 +370,8 @@ export class StatsService {
       volume,
       chainId: collection.chainId,
       collectionAddress: collection.address,
-      discordFollowers: primary?.discordFollowers,
-      twitterFollowers: primary?.twitterFollowers,
-      discordLink: primary?.discordLink,
-      twitterId: primary?.twitterId,
-      twitterHandle: primary?.twitterHandle,
-      twitterLink: primary?.twitterLink,
-      updatedAt: primary?.updatedAt,
-      timestamp: primary?.timestamp,
-      period: StatsPeriod.All,
-      volumeUSDC: primary?.volumeUSDC,
-      topOwnersByOwnedNftsCount: primary?.topOwnersByOwnedNftsCount ?? [],
-      minProtocolFeeWei: primary?.minProtocolFeeWei ?? null,
-      maxProtocolFeeWei: primary?.maxProtocolFeeWei ?? null,
-      avgProtocolFeeWei: primary?.avgProtocolFeeWei ?? null,
-      sumProtocolFeeWei: primary?.sumProtocolFeeWei ?? '0',
-      numSalesWithProtocolFee: primary?.numSalesWithProtocolFee ?? 0,
-      sumProtocolFeeEth: primary?.sumProtocolFeeEth ?? 0
+      discordFollowers,
+      twitterFollowers
     };
 
     return stats;
@@ -408,9 +403,7 @@ export class StatsService {
     return stats;
   }
 
-  private async updateSocialsStats(
-    collectionRef: FirebaseFirestore.DocumentReference
-  ): Promise<void> {
+  private async updateSocialsStats(collectionRef: FirebaseFirestore.DocumentReference): Promise<void> {
     const collectionData = await collectionRef.get();
     const collection = collectionData?.data() ?? ({} as Partial<Collection>);
 
