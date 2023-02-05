@@ -34,6 +34,7 @@ export class AlchemyNftToInfinityNft
           updatedAt: NaN
         },
         state: undefined,
+        isFlagged: false,
         tokenStandard: alchemyNftWithMetadata.id.tokenMetadata.tokenType
       };
     });

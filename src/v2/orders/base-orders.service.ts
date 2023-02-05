@@ -5,7 +5,7 @@ import { ContractService } from 'ethereum/contract.service';
 import { EthereumService } from 'ethereum/ethereum.service';
 import { FirebaseService } from 'firebase/firebase.service';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
-import { ChainOBOrderHelper } from 'orders/chain-ob-order-helper';
+import { ChainOBOrderHelper } from './chain-ob-order-helper';
 import { NonceService } from './nonce/nonce.service';
 
 @Injectable()
