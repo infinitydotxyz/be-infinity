@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ApiUserModule } from 'api-user/api-user.module';
 import { EthereumModule } from 'ethereum/ethereum.module';
 import { PaginationModule } from 'pagination/pagination.module';
 
@@ -9,6 +10,6 @@ import { FavoritesService } from './favorites.service';
 @Module({
   providers: [FavoritesService],
   controllers: [FavoritesController],
-  imports: [EthereumModule, RewardsModule, PaginationModule]
+  imports: [EthereumModule, RewardsModule, PaginationModule, ApiUserModule]
 })
 export class FavoritesModule {}
