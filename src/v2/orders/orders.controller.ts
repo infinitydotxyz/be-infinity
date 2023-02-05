@@ -9,7 +9,7 @@ import { InvalidNonceError } from 'common/errors/invalid-nonce.error';
 import { InvalidTokenError } from 'common/errors/invalid-token-error';
 
 import { ResponseDescription } from 'common/response-description';
-import { ChainOBOrderHelper } from 'orders/chain-ob-order-helper';
+import { ChainOBOrderHelper } from './chain-ob-order-helper';
 import { OrdersService } from './orders.service';
 import { ProtocolOrdersService } from './protocol-orders/protocol-orders.service';
 

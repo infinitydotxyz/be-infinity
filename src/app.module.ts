@@ -9,7 +9,6 @@ import { GemModule } from 'gem/gem.module';
 import { LoggerMiddleware } from 'logger.middleware';
 import { MnemonicModule } from 'mnemonic/mnemonic.module';
 import { OpenseaModule } from 'opensea/opensea.module';
-import { OrdersModule } from 'orders/orders.module';
 import { join } from 'path';
 import { ReservoirModule } from 'reservoir/reservoir.module';
 import { ApiKeyThrottlerGuard } from 'throttler/throttler.guard';
@@ -57,7 +56,6 @@ import { PostgresModule } from 'postgres/postgres.module';
     StatsModule,
     UserModule,
     StorageModule,
-    OrdersModule,
     MnemonicModule,
     AlchemyModule,
     EthereumModule,

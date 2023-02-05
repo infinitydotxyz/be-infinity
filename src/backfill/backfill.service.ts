@@ -558,6 +558,7 @@ export class BackfillService {
       updatedAt: Date.now(),
       rarityRank: NaN,
       rarityScore: NaN,
+      isFlagged: false,
       tokenStandard: nft.asset_contract.schema_name as TokenStandard
     };
   }
@@ -605,6 +606,7 @@ export class BackfillService {
       tokenUri: alchemyNft?.tokenUri.gateway ?? alchemyNft.tokenUri?.raw ?? '',
       rarityRank: NaN,
       rarityScore: NaN,
+      isFlagged: false,
       image: {
         url: alchemyCachedImage,
         originalUrl: (alchemyNft?.media?.[0]?.raw || alchemyNft?.metadata?.image) ?? '',
