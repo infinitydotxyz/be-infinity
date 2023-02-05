@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ApiUserModule } from 'api-user/api-user.module';
 import { BackfillModule } from 'backfill/backfill.module';
 import { EthereumModule } from 'ethereum/ethereum.module';
 import { PaginationModule } from 'pagination/pagination.module';
@@ -25,7 +26,8 @@ import { NftsService } from './nfts/nfts.service';
     PaginationModule,
     EthereumModule,
     BackfillModule,
-    OrdersModule
+    OrdersModule,
+    ApiUserModule
   ],
   providers: [CollectionsService, NftsService, AttributesService, CurationService],
   controllers: [CollectionsController, NftsController, AttributesController, CurationController],
