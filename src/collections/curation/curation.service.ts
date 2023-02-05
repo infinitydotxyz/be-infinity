@@ -358,34 +358,40 @@ export class CurationService {
     return curatedCollection;
   }
 
-  async getUserRewards(
+  getUserRewards(
     user: ParsedUserId
-  ): Promise<{ totalProtocolFeesAccruedEth: number; totalProtocolFeesAccruedWei: string }> {
-    const stakerContractChainId = user.userChainId;
-    const stakingContract = this.getStakerAddress(stakerContractChainId);
-    const stakingContractPeriods = this.firebaseService.firestore
-      .collectionGroup('stakerContractCurationPeriodsUsers')
-      .where('metadata.userAddress', '==', user.userAddress)
-      .where(
-        'metadata.stakerContractAddress',
-        '==',
-        stakingContract
-      ) as FirebaseFirestore.Query<StakerContractPeriodUserDoc>;
-
-    const stream = streamQuery(stakingContractPeriods, (item, ref) => [ref], { pageSize: 300 });
-
-    const results: StakerContractPeriodUserDoc[] = [];
-    for await (const item of stream) {
-      results.push(item);
-    }
-
-    const protocolFeeStats = calculateStatsBigInt(results, (item) => BigInt(item.stats.periodProtocolFeesAccruedWei));
-
-    const totalProtocolFeesAccruedWei = protocolFeeStats.sum.toString();
+  ): { totalProtocolFeesAccruedEth: number; totalProtocolFeesAccruedWei: string } {
+    const totalProtocolFeesAccruedWei = '0';
     return {
       totalProtocolFeesAccruedWei,
       totalProtocolFeesAccruedEth: formatEth(totalProtocolFeesAccruedWei)
     };
+
+    // const stakerContractChainId = user.userChainId;
+    // const stakingContract = this.getStakerAddress(stakerContractChainId);
+    // const stakingContractPeriods = this.firebaseService.firestore
+    //   .collectionGroup('stakerContractCurationPeriodsUsers')
+    //   .where('metadata.userAddress', '==', user.userAddress)
+    //   .where(
+    //     'metadata.stakerContractAddress',
+    //     '==',
+    //     stakingContract
+    //   ) as FirebaseFirestore.Query<StakerContractPeriodUserDoc>;
+
+    // const stream = streamQuery(stakingContractPeriods, (item, ref) => [ref], { pageSize: 300 });
+
+    // const results: StakerContractPeriodUserDoc[] = [];
+    // for await (const item of stream) {
+    //   results.push(item);
+    // }
+
+    // const protocolFeeStats = calculateStatsBigInt(results, (item) => BigInt(item.stats.periodProtocolFeesAccruedWei));
+
+    // const totalProtocolFeesAccruedWei = protocolFeeStats.sum.toString();
+    // return {
+    //   totalProtocolFeesAccruedWei,
+    //   totalProtocolFeesAccruedEth: formatEth(totalProtocolFeesAccruedWei)
+    // };
   }
 
   /**
