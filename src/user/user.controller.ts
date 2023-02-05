@@ -1,13 +1,10 @@
 import { CollectionMetadata } from '@infinityxyz/lib/types/core';
-import {
-  RankingQueryDto,
-  UpdateCollectionDto,
-  UserCuratedCollectionsDto
-} from '@infinityxyz/lib/types/dto/collections';
+import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
+import { UserRewardsDto } from '@infinityxyz/lib/types/dto';
+import { UpdateCollectionDto, UserCuratedCollectionsDto } from '@infinityxyz/lib/types/dto/collections';
 import { CuratedCollectionsQuery } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
 import { CurationQuotaDto } from '@infinityxyz/lib/types/dto/collections/curation/curation-quota.dto';
 import { ExternalNftArrayDto, NftActivityArrayDto, NftArrayDto } from '@infinityxyz/lib/types/dto/collections/nfts';
-import { CollectionStatsArrayResponseDto } from '@infinityxyz/lib/types/dto/stats';
 import {
   DeleteUserProfileImagesDto,
   PartialUpdateUserProfileDto,
@@ -58,6 +55,10 @@ import {
   ApiOperation,
   ApiQuery
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
+import { ApiParamUserId, Auth } from 'auth/api-auth.decorator';
+import { SiteRole } from 'auth/auth.constants';
+import { ParamUserId } from 'auth/param-user-id.decorator';
 import { instanceToPlain } from 'class-transformer';
 import { ParseCollectionIdPipe, ParsedCollectionId } from 'collections/collection-id.pipe';
 import CollectionsService from 'collections/collections.service';
@@ -70,6 +71,7 @@ import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { InvalidUserError } from 'common/errors/invalid-user.error';
 import { CacheControlInterceptor } from 'common/interceptors/cache-control.interceptor';
 import { ResponseDescription } from 'common/response-description';
+import { RewardsService } from 'rewards/rewards.service';
 import { StatsService } from 'stats/stats.service';
 import { StorageService } from 'storage/storage.service';
 import { InvalidProfileError } from './errors/invalid-profile.error';
@@ -79,13 +81,6 @@ import { ProfileService } from './profile/profile.service';
 import { UsernameType } from './profile/profile.types';
 import { QueryUsername } from './profile/query-username.decorator';
 import { UserService } from './user.service';
-import { ParamUserId } from 'auth/param-user-id.decorator';
-import { SiteRole } from 'auth/auth.constants';
-import { ApiParamUserId, Auth } from 'auth/api-auth.decorator';
-import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
-import { Throttle } from '@nestjs/throttler';
-import { RewardsService } from 'rewards/rewards.service';
-import { UserRewardsDto } from '@infinityxyz/lib/types/dto';
 
 @Controller('user')
 export class UserController {
@@ -312,29 +307,6 @@ export class UserController {
     return;
   }
 
-  @Get(':userId/watchlist')
-  @ApiOperation({
-    description: "Get a user's watchlist",
-    tags: [ApiTag.User, ApiTag.Stats]
-  })
-  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
-  @ApiOkResponse({ description: ResponseDescription.Success, type: CollectionStatsArrayResponseDto })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  async getWatchlist(
-    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
-    @Query() query: RankingQueryDto
-  ): Promise<CollectionStatsArrayResponseDto> {
-    const watchlist = await this.userService.getWatchlist(user, query);
-
-    const response: CollectionStatsArrayResponseDto = {
-      data: watchlist ?? [],
-      hasNextPage: false,
-      cursor: ''
-    };
-
-    return response;
-  }
-
   @Put(':userId/collections/:collectionId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Auth(SiteRole.User, ApiRole.Guest, 'userId')
@@ -382,7 +354,7 @@ export class UserController {
     await this.collectionsService.setCollectionMetadata(collection, instanceToPlain(metadata) as CollectionMetadata);
 
     // Update stats in the background (do NOT await this call).
-    this.statsService.getCurrentSocialsStats(collection.ref).catch((err) => this.logger.error(err));
+    this.statsService.refreshSocialsStats(collection.ref).catch((err) => this.logger.error(err));
   }
 
   @Get(':userId/collections/:collectionId/permissions')

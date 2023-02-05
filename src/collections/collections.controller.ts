@@ -2,8 +2,7 @@ import {
   ChainId,
   Collection,
   CollectionHistoricalSale,
-  CollectionPeriodStatsContent,
-  StatsPeriod
+  CollectionPeriodStatsContent
 } from '@infinityxyz/lib/types/core';
 import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
 import {
@@ -11,8 +10,6 @@ import {
   Get,
   InternalServerErrorException,
   NotFoundException,
-  Param,
-  ParseIntPipe,
   Put,
   Query,
   UseInterceptors
@@ -34,11 +31,7 @@ import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
 import {
   CollectionDto,
   CollectionHistoricalSalesQueryDto,
-  CollectionHistoricalStatsQueryDto,
-  CollectionStatsByPeriodDto,
-  CollectionStatsQueryDto,
   CollectionTrendingStatsQueryDto,
-  RankingQueryDto,
   TopOwnersArrayResponseDto,
   TopOwnersQueryDto,
   UserCuratedCollectionDto,
@@ -60,13 +53,11 @@ import { CacheControlInterceptor } from 'common/interceptors/cache-control.inter
 import { ResponseDescription } from 'common/response-description';
 import { FirebaseService } from 'firebase/firebase.service';
 import { mnemonicByParam } from 'mnemonic/mnemonic.service';
-import { ReservoirService } from 'reservoir/reservoir.service';
 import { StatsService } from 'stats/stats.service';
 import { TwitterService } from 'twitter/twitter.service';
 import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 import { UserParserService } from 'user/parser/parser.service';
-import { EXCLUDED_COLLECTIONS } from 'utils/stats';
 import { UPDATE_SOCIAL_STATS_INTERVAL } from '../constants';
 import { ParseCollectionIdPipe, ParsedCollectionId } from './collection-id.pipe';
 import CollectionsService from './collections.service';
@@ -74,13 +65,21 @@ import { CurationService } from './curation/curation.service';
 import { CollectionStatsArrayDto } from './dto/collection-stats-array.dto';
 import { NftsService } from './nfts/nfts.service';
 
+const EXCLUDED_COLLECTIONS = [
+  '0x81ae0be3a8044772d04f32398bac1e1b4b215aa8', // Dreadfulz
+  '0x1dfe7ca09e99d10835bf73044a23b73fc20623df', // More loot
+  '0x7bd29408f11d2bfc23c34f18275bbf23bb716bc7', // Meebits
+  '0x4e1f41613c9084fdb9e34e11fae9412427480e56', // Terraforms
+  '0xa5d37c0364b9e6d96ee37e03964e7ad2b33a93f4', // Cat girls academia
+  '0xff36ca1396d2a9016869274f1017d6c2139f495e' // dementors town wtf
+];
+
 @Controller('collections')
 export class CollectionsController {
   constructor(
     private collectionsService: CollectionsService,
     private statsService: StatsService,
     private twitterService: TwitterService,
-    private reservoirService: ReservoirService,
     private nftsService: NftsService,
     private curationService: CurationService,
     private firebaseService: FirebaseService,
@@ -103,7 +102,7 @@ export class CollectionsController {
         chainId: ChainId.Mainnet,
         address
       })) as FirebaseFirestore.DocumentReference<Collection>;
-      this.statsService.getCurrentSocialsStats(collectionRef).catch((err) => console.error(err));
+      this.statsService.refreshSocialsStats(collectionRef).catch((err) => console.error(err));
     };
     let triggerTimer = 0;
     for (const address of idsArr) {
@@ -115,21 +114,6 @@ export class CollectionsController {
       }
     }
     return query;
-  }
-
-  @Get('rankings')
-  @ApiOperation({
-    description: 'Get stats for collections ordered by a given field',
-    tags: [ApiTag.Collection, ApiTag.Stats]
-  })
-  @ApiOkResponse({ description: ResponseDescription.Success, type: CollectionStatsArrayResponseDto })
-  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 3 }))
-  async getStats(@Query() query: RankingQueryDto): Promise<CollectionStatsArrayResponseDto> {
-    const res = await this.statsService.getCollectionRankings(query);
-
-    return res;
   }
 
   @Put('update-trending-colls')
@@ -336,52 +320,9 @@ export class CollectionsController {
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 10 * 60 }))
   async getCollectionHistoricalStats(
-    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
-    @Query() query: CollectionHistoricalStatsQueryDto
-  ): Promise<CollectionStatsArrayResponseDto> {
-    const response = await this.statsService.getCollectionHistoricalStats(collection, query);
-    return response;
-  }
-
-  @Get('/:id/stats/current')
-  @ApiOperation({
-    tags: [ApiTag.Collection, ApiTag.Stats],
-    description: 'Get current hourly stats for a collection'
-  })
-  @ApiParamCollectionId()
-  @ApiOkResponse({ description: ResponseDescription.Success, type: CollectionStatsByPeriodDto })
-  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
-  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 10 * 60 }))
-  async getCurrentStats(
     @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
-  ): Promise<CollectionStatsDto> {
-    const res = await this.statsService.getCollectionStats(collection, {
-      period: StatsPeriod.Hourly,
-      date: Date.now()
-    });
-
-    return res;
-  }
-
-  @Get('/:id/stats/:date')
-  @ApiOperation({
-    tags: [ApiTag.Collection, ApiTag.Stats],
-    description: 'Get stats for a single collection, at a specific date, for all periods passed in the query'
-  })
-  @ApiParamCollectionId()
-  @ApiOkResponse({ description: ResponseDescription.Success, type: CollectionStatsByPeriodDto })
-  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
-  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 2 }))
-  async getStatsByDate(
-    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
-    @Param('date', ParseIntPipe) date: number,
-    @Query() query: CollectionStatsQueryDto
-  ): Promise<CollectionStatsByPeriodDto> {
-    const response = await this.statsService.getCollectionStatsByPeriodAndDate(collection, date, query.periods);
+  ): Promise<Partial<CollectionStatsDto>> {
+    const response = await this.statsService.getCollAllStats(collection);
     return response;
   }
 

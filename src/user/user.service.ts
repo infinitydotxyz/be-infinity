@@ -6,7 +6,6 @@ import {
   UserFeedEvent
 } from '@infinityxyz/lib/types/core';
 import {
-  RankingQueryDto,
   UserCuratedCollectionDto,
   UserCuratedCollectionsDto
 } from '@infinityxyz/lib/types/dto/collections';
@@ -30,7 +29,6 @@ import {
 import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
 import { Injectable, Optional } from '@nestjs/common';
 import { AlchemyService } from 'alchemy/alchemy.service';
-import { BackfillService } from 'backfill/backfill.service';
 import { CurationService } from 'collections/curation/curation.service';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { InvalidUserError } from 'common/errors/invalid-user.error';
@@ -50,41 +48,10 @@ export class UserService {
     private alchemyService: AlchemyService,
     private paginationService: CursorService,
     private nftsService: NftsService,
-    private backfillService: BackfillService,
     private curationService: CurationService,
     @Optional() private statsService: StatsService
   ) {
     this.alchemyNftToInfinityNft = new AlchemyNftToInfinityNft(this.nftsService);
-  }
-
-  async getWatchlist(user: ParsedUserId, query: RankingQueryDto) {
-    const collectionFollows = user.ref
-      .collection(firestoreConstants.COLLECTION_FOLLOWS_COLL)
-      .select('collectionAddress', 'collectionChainId');
-    const snap = await collectionFollows.get();
-    const collections = snap.docs
-      .map((doc) => {
-        const { collectionAddress, collectionChainId } = doc.data();
-        return { chainId: collectionChainId, address: collectionAddress };
-      })
-      .filter((item) => {
-        return item.chainId && item.address;
-      });
-
-    const statsPromises = collections.map((collection) =>
-      this.statsService.getCollectionStats(collection, { period: query.period, date: query.date })
-    );
-
-    const stats = await Promise.all(statsPromises);
-
-    const orderedStats = stats.sort((itemA, itemB) => {
-      const statA = itemA[query.orderBy] ?? Number.MIN_SAFE_INTEGER;
-      const statB = itemB[query.orderBy] ?? Number.MIN_SAFE_INTEGER;
-      const isAsc = query.orderDirection === OrderDirection.Ascending;
-      return isAsc ? statA - statB : statB - statA;
-    });
-
-    return orderedStats;
   }
 
   async getProfile(user: ParsedUserId) {
@@ -280,14 +247,10 @@ export class UserService {
       pageKey: string,
       startAtToken?: string
     ): Promise<{ pageKey: string; nfts: NftDto[]; hasNextPage: boolean }> => {
-      // todo: directly fetch from firestore when data is ready
       const response = await this.alchemyService.getUserNfts(user.userAddress, chainId, pageKey, query.collections);
       totalOwned = response?.totalCount ?? NaN;
       const nextPageKey = response?.pageKey ?? '';
       let nfts = response?.ownedNfts ?? [];
-
-      // backfill alchemy cached images in firestore
-      this.backfillService.backfillAlchemyCachedImagesForUserNfts(nfts, chainId, user.userAddress);
 
       if (startAtToken) {
         const indexToStartAt = nfts.findIndex(
