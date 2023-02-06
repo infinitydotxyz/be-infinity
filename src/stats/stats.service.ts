@@ -279,7 +279,7 @@ export class StatsService {
       .collection(firestoreConstants.COLLECTION_STATS_COLL)
       .doc('all');
 
-    if (isNaN(floorPrice) || isNaN(numOwners) || isNaN(volume) || isNaN(numNfts)) {
+    if (floorPrice === 0 || isNaN(floorPrice) || isNaN(numOwners) || isNaN(volume) || isNaN(numNfts)) {
       // fetch from reservoir
       try {
         console.log('Fetching stats from reservoir for collection', collection.chainId, collection.address);
