@@ -25,8 +25,8 @@ export function getService<TInput = any, TResult = TInput>(
 export const run = async () => {
   app = await NestFactory.create<NestExpressApplication>(AppModule);
   // await setSupportedCollsInFirestore();
-  await pushMetadataToSupportedColls();
-  // await pushSupportedCollFlagToMainColls();
+  // await pushMetadataToSupportedColls();
+  await pushSupportedCollFlagToMainColls();
 };
 
 void run();
