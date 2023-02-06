@@ -119,7 +119,4 @@ export const MIN_DISCORD_UPDATE_INTERVAL = ONE_HOUR;
 export const MIN_LINK_UPDATE_INTERVAL = ONE_HOUR;
 export const MIN_COLLECTION_STATS_UPDATE_INTERVAL = ONE_HOUR / 4; // 15 min
 
-// every 1s, collect stats for 1 collection from the list (see: /update-social-stats)
-export const UPDATE_SOCIAL_STATS_INTERVAL = 1000;
-
 export const ALCHEMY_CACHED_IMAGE_HOST = 'cloudinary';

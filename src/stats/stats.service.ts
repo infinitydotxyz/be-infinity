@@ -253,16 +253,17 @@ export class StatsService {
     const statsQuery = collection.ref.collection(this.statsGroup).doc(period);
     const primary = (await statsQuery.get()).data() as CollectionStats;
 
-    let numSales = primary?.numSales;
-    let numNfts = primary?.numNfts;
-    let numOwners = primary?.numOwners;
-    let floorPrice = primary?.floorPrice;
-    let volume = primary?.volume;
+    let numSales = primary?.numSales ?? NaN;
+    let numNfts = primary?.numNfts ?? NaN;
+    let numOwners = primary?.numOwners ?? NaN;
+    let floorPrice = primary?.floorPrice ?? NaN;
+    let volume = primary?.volume ?? NaN;
 
-    const discordFollowers = primary?.discordFollowers;
-    const twitterFollowers = primary?.twitterFollowers;
+    const discordFollowers = primary?.discordFollowers ?? NaN;
+    const twitterFollowers = primary?.twitterFollowers ?? NaN;
+    const prevDiscordFollowers = primary?.prevDiscordFollowers ?? NaN;
 
-    if (!twitterFollowers || !discordFollowers) {
+    if (isNaN(twitterFollowers) || isNaN(discordFollowers)) {
       this.updateSocialsStats(collection.ref).catch((err) => {
         console.error('Failed updating socials stats', err);
       });
@@ -278,10 +279,10 @@ export class StatsService {
       .collection(firestoreConstants.COLLECTION_STATS_COLL)
       .doc('all');
 
-    if (Number.isNaN(floorPrice) || Number.isNaN(numOwners) || Number.isNaN(volume) || Number.isNaN(numNfts)) {
+    if (isNaN(floorPrice) || isNaN(numOwners) || isNaN(volume) || isNaN(numNfts)) {
       // fetch from reservoir
       try {
-        console.log('Fetching stats from reservoir');
+        console.log('Fetching stats from reservoir for collection', collection.chainId, collection.address);
         const data = await this.reservoirService.getSingleCollectionInfo(collection.chainId, collection.address);
         if (data && data.collections && data.collections[0]) {
           const collection = data.collections[0];
@@ -317,10 +318,10 @@ export class StatsService {
       }
     }
 
-    if (Number.isNaN(numNfts) || Number.isNaN(numOwners) || Number.isNaN(volume)) {
+    if (isNaN(numNfts) || isNaN(numOwners) || isNaN(volume)) {
       // fetch from zora
       try {
-        console.log('Fetching stats from zora');
+        console.log('Fetching stats from zora for collection', collection.chainId, collection.address);
         const stats = await this.zoraService.getAggregatedCollectionStats(collection.chainId, collection.address, 10);
         if (stats) {
           const data: Partial<CollectionStats> = {};
@@ -371,7 +372,8 @@ export class StatsService {
       chainId: collection.chainId,
       collectionAddress: collection.address,
       discordFollowers,
-      twitterFollowers
+      twitterFollowers,
+      prevDiscordFollowers
     };
 
     return stats;
