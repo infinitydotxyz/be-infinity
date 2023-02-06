@@ -58,7 +58,6 @@ import { TwitterService } from 'twitter/twitter.service';
 import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 import { UserParserService } from 'user/parser/parser.service';
-import { UPDATE_SOCIAL_STATS_INTERVAL } from '../constants';
 import { ParseCollectionIdPipe, ParsedCollectionId } from './collection-id.pipe';
 import CollectionsService from './collections.service';
 import { CurationService } from './curation/curation.service';
@@ -104,13 +103,10 @@ export class CollectionsController {
       })) as FirebaseFirestore.DocumentReference<Collection>;
       this.statsService.refreshSocialsStats(collectionRef).catch((err) => console.error(err));
     };
-    let triggerTimer = 0;
+
     for (const address of idsArr) {
       if (address) {
-        setTimeout(() => {
-          trigger(address).catch((err) => console.error(err));
-        }, triggerTimer);
-        triggerTimer += UPDATE_SOCIAL_STATS_INTERVAL; // todo: use the right timer
+        trigger(address).catch((err) => console.error(err));
       }
     }
     return query;
