@@ -1,8 +1,13 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Type } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from 'app.module';
-import { setSupportedCollsInFirestore } from 'scripts/setSupportedCollsInFirestore';
+import {
+  pushMetadataToSupportedColls,
+  pushSupportedCollFlagToMainColls,
+  setSupportedCollsInFirestore
+} from 'scripts/setSupportedCollsInFirestore';
 
 let app: NestExpressApplication;
 
@@ -19,7 +24,9 @@ export function getService<TInput = any, TResult = TInput>(
 
 export const run = async () => {
   app = await NestFactory.create<NestExpressApplication>(AppModule);
-  await setSupportedCollsInFirestore();
+  // await setSupportedCollsInFirestore();
+  await pushMetadataToSupportedColls();
+  // await pushSupportedCollFlagToMainColls();
 };
 
 void run();
