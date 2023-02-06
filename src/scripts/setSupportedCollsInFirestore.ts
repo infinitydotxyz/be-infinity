@@ -1,5 +1,5 @@
 import { ERC721ABI } from '@infinityxyz/lib/abi/erc721';
-import { ChainId, Collection, SupportedCollection } from '@infinityxyz/lib/types/core';
+import { BaseCollection, ChainId, Collection, SupportedCollection } from '@infinityxyz/lib/types/core';
 import { ReservoirCollectionV5, ReservoirCollsSortBy } from '@infinityxyz/lib/types/services/reservoir';
 import {
   firestoreConstants,
@@ -83,10 +83,10 @@ export const setSupportedCollsInFirestore = async () => {
   for (const coll of erc721Colls) {
     const collectionDocId = getCollectionDocId({ collectionAddress: coll.address, chainId: coll.chainId });
     const collRef = supportedCollsRef.doc(collectionDocId);
+
+    const mainCollRef = firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL).doc(collectionDocId);
     // get coll metadata
-    const collData = (
-      await firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL).doc(collectionDocId).get()
-    ).data() as Collection;
+    const collData = (await mainCollRef.get()).data() as Collection;
     const collMetadata = collData?.metadata;
 
     const dataToSave: SupportedCollection = {
@@ -95,12 +95,70 @@ export const setSupportedCollsInFirestore = async () => {
     };
 
     fsBatchHandler.add(collRef, dataToSave, { merge: true });
+    fsBatchHandler.add(mainCollRef, { isSupported: true }, { merge: true });
   }
 
   // final flush
   await fsBatchHandler.flush();
 
   console.log('Done!');
+};
+
+export const pushSupportedCollFlagToMainColls = async () => {
+  const firebaseService = getService(FirebaseService);
+  if (!firebaseService) {
+    throw new Error('Firebase service not found');
+  }
+  const fsBatchHandler = new FirestoreBatchHandler(firebaseService);
+
+  const supportedCollsRef = firebaseService.firestore.collection(firestoreConstants.SUPPORTED_COLLECTIONS_COLL);
+  const query = supportedCollsRef.limit(1000); // future todo: remove limit once we support more colls
+  const querySnapshot = await query.get();
+  const supportedColls = querySnapshot.docs.map((doc) => doc.data() as SupportedCollection);
+
+  for (const coll of supportedColls) {
+    const collectionDocId = getCollectionDocId({ collectionAddress: coll.address, chainId: coll.chainId });
+    const mainCollRef = firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL).doc(collectionDocId);
+    const dataToSave: Partial<BaseCollection> = {
+      isSupported: true
+    };
+
+    fsBatchHandler.add(mainCollRef, dataToSave, { merge: true });
+  }
+
+  // final flush
+  await fsBatchHandler.flush();
+};
+
+export const pushMetadataToSupportedColls = async () => {
+  const firebaseService = getService(FirebaseService);
+  if (!firebaseService) {
+    throw new Error('Firebase service not found');
+  }
+  const fsBatchHandler = new FirestoreBatchHandler(firebaseService);
+
+  const query = firebaseService.firestore.collection(firestoreConstants.SUPPORTED_COLLECTIONS_COLL).limit(1000); // future todo: remove limit once we support more colls
+  const querySnapshot = await query.get();
+  const supportedColls = querySnapshot.docs.map((doc) => doc.data() as SupportedCollection);
+  
+  for (const coll of supportedColls) {
+    const collectionDocId = getCollectionDocId({ collectionAddress: coll.address, chainId: coll.chainId });
+    const supportedCollRef = firebaseService.firestore
+      .collection(firestoreConstants.SUPPORTED_COLLECTIONS_COLL)
+      .doc(collectionDocId);
+    const mainCollRef = firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL).doc(collectionDocId);
+    // get coll metadata
+    const collData = (await mainCollRef.get()).data() as Collection;
+    const collMetadata = collData?.metadata;
+    const dataToSave: Partial<SupportedCollection> = {
+      metadata: collMetadata
+    };
+
+    fsBatchHandler.add(supportedCollRef, dataToSave, { merge: true });
+  }
+
+  // final flush
+  await fsBatchHandler.flush();
 };
 
 const fetchTop100Colls = async (
