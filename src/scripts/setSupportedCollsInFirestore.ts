@@ -80,14 +80,14 @@ export const setSupportedCollsInFirestore = async () => {
   // batch add to firestore
   const fsBatchHandler = new FirestoreBatchHandler(firebaseService);
   const supportedCollsRef = firebaseService.firestore.collection(firestoreConstants.SUPPORTED_COLLECTIONS_COLL);
-  erc721Colls.forEach(async (coll) => {
+  for (const coll of erc721Colls) {
     const collectionDocId = getCollectionDocId({ collectionAddress: coll.address, chainId: coll.chainId });
     const collRef = supportedCollsRef.doc(collectionDocId);
     // get coll metadata
     const collData = (
       await firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL).doc(collectionDocId).get()
     ).data() as Collection;
-    const collMetadata = collData.metadata;
+    const collMetadata = collData?.metadata;
 
     const dataToSave: SupportedCollection = {
       ...coll,
@@ -95,7 +95,7 @@ export const setSupportedCollsInFirestore = async () => {
     };
 
     fsBatchHandler.add(collRef, dataToSave, { merge: true });
-  });
+  }
 
   // final flush
   await fsBatchHandler.flush();
