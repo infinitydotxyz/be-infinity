@@ -1,14 +1,19 @@
-import { ChainId, SupportedCollection } from '@infinityxyz/lib/types/core';
-import { ReservoirCollectionV5, ReservoirCollsSortBy } from '@infinityxyz/lib/types/services/reservoir';
-import { getService } from 'script';
-import { ReservoirService } from 'reservoir/reservoir.service';
-import { getSearchFriendlyString, sleep, trimLowerCase } from '@infinityxyz/lib/utils';
-import { ethers } from 'ethers';
 import { ERC721ABI } from '@infinityxyz/lib/abi/erc721';
+import { ChainId, Collection, SupportedCollection } from '@infinityxyz/lib/types/core';
+import { ReservoirCollectionV5, ReservoirCollsSortBy } from '@infinityxyz/lib/types/services/reservoir';
+import {
+  firestoreConstants,
+  getCollectionDocId,
+  getSearchFriendlyString,
+  sleep,
+  trimLowerCase
+} from '@infinityxyz/lib/utils';
 import { ConfigService } from '@nestjs/config';
+import { ethers } from 'ethers';
 import { FirebaseService } from 'firebase/firebase.service';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
-import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
+import { ReservoirService } from 'reservoir/reservoir.service';
+import { getService } from 'script';
 
 export const setSupportedCollsInFirestore = async () => {
   // fetch top 100 colls from Reservoir for different time periods
@@ -75,10 +80,21 @@ export const setSupportedCollsInFirestore = async () => {
   // batch add to firestore
   const fsBatchHandler = new FirestoreBatchHandler(firebaseService);
   const supportedCollsRef = firebaseService.firestore.collection(firestoreConstants.SUPPORTED_COLLECTIONS_COLL);
-  erc721Colls.forEach((coll) => {
+  erc721Colls.forEach(async (coll) => {
     const collectionDocId = getCollectionDocId({ collectionAddress: coll.address, chainId: coll.chainId });
     const collRef = supportedCollsRef.doc(collectionDocId);
-    fsBatchHandler.add(collRef, coll, { merge: true });
+    // get coll metadata
+    const collData = (
+      await firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL).doc(collectionDocId).get()
+    ).data() as Collection;
+    const collMetadata = collData.metadata;
+
+    const dataToSave: SupportedCollection = {
+      ...coll,
+      metadata: collMetadata
+    };
+
+    fsBatchHandler.add(collRef, dataToSave, { merge: true });
   });
 
   // final flush
