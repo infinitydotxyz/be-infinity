@@ -111,6 +111,8 @@ export const pushSupportedCollFlagToMainColls = async () => {
   }
   const fsBatchHandler = new FirestoreBatchHandler(firebaseService);
 
+  console.log('Pushing supported flag to collections...');
+
   const supportedCollsRef = firebaseService.firestore.collection(firestoreConstants.SUPPORTED_COLLECTIONS_COLL);
   const query = supportedCollsRef.limit(1000); // future todo: remove limit once we support more colls
   const querySnapshot = await query.get();
@@ -128,6 +130,8 @@ export const pushSupportedCollFlagToMainColls = async () => {
 
   // final flush
   await fsBatchHandler.flush();
+
+  console.log('Done!');
 };
 
 export const pushMetadataToSupportedColls = async () => {
@@ -137,10 +141,12 @@ export const pushMetadataToSupportedColls = async () => {
   }
   const fsBatchHandler = new FirestoreBatchHandler(firebaseService);
 
+  console.log('Pushing metadata to supported collections...');
+
   const query = firebaseService.firestore.collection(firestoreConstants.SUPPORTED_COLLECTIONS_COLL).limit(1000); // future todo: remove limit once we support more colls
   const querySnapshot = await query.get();
   const supportedColls = querySnapshot.docs.map((doc) => doc.data() as SupportedCollection);
-  
+
   for (const coll of supportedColls) {
     const collectionDocId = getCollectionDocId({ collectionAddress: coll.address, chainId: coll.chainId });
     const supportedCollRef = firebaseService.firestore
@@ -159,6 +165,8 @@ export const pushMetadataToSupportedColls = async () => {
 
   // final flush
   await fsBatchHandler.flush();
+
+  console.log('Done!');
 };
 
 const fetchTop100Colls = async (
