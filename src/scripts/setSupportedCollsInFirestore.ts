@@ -122,7 +122,7 @@ export const pushSupportedCollFlagToMainColls = async () => {
     const collectionDocId = getCollectionDocId({ collectionAddress: coll.address, chainId: coll.chainId });
     const mainCollRef = firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL).doc(collectionDocId);
     const dataToSave: Partial<BaseCollection> = {
-      isSupported: true
+      isSupported: coll.isSupported
     };
 
     fsBatchHandler.add(mainCollRef, dataToSave, { merge: true });
