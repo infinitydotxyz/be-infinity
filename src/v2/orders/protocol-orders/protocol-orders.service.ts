@@ -17,6 +17,8 @@ import { CursorService } from 'pagination/cursor.service';
 import { PassThrough } from 'stream';
 import { streamQueryWithRef } from 'firebase/stream-query';
 import { OrderbookSnapshotOrder } from 'v2/bulk/types';
+import { BigNumber } from 'ethers';
+import PQueue from 'p-queue';
 
 export type ProtocolOrder = {
   id: string;
@@ -156,67 +158,105 @@ export class ProtocolOrdersService extends BaseOrdersService {
       .where('metadata.chainId', '==', chainId)
       .where('order.status', '==', 'active') as FirebaseFirestore.Query<RawFirestoreOrderWithoutError>;
 
-    const streamOrders = async (passThough: PassThrough) => {
-      let numOrders = 0;
+    const splitQuery = (max: BigNumber, num: number) => {
+      const queries = [];
+      const len = max.toHexString().length;
+      for (let i = 0; i < num; i++) {
+        const start = max.mul(i).div(num).toHexString().padEnd(len, '0');
+        const end = max
+          .mul(i + 1)
+          .div(num)
+          .toHexString();
 
-      const stream = streamQueryWithRef(activeOrdersQuery);
-
-      for await (const item of stream) {
-        const orderData: OrderbookSnapshotOrder = {
-          id: item.data.metadata.id,
-          order: item.data.rawOrder.infinityOrder,
-          source: item.data.order.sourceMarketplace,
-          sourceOrder: item.data.rawOrder.rawOrder,
-          gasUsage: item.data.rawOrder.gasUsage
-        };
-
-        const stringified = JSON.stringify(orderData);
-
-        passThough.write(`${stringified}\n`);
-
-        numOrders += 1;
-
-        if (numOrders % 100 === 0) {
-          console.log(`Snapshot - Handled ${numOrders} orders so far`);
-        }
+        queries.push(activeOrdersQuery.where('__name__', '>=', start).where('__name__', '<=', end));
       }
 
-      return numOrders;
+      return queries;
     };
 
-    const uploadPromise = new Promise<{ numOrders: number }>((resolve, reject) => {
-      let numOrders = 0;
+    const concurrency = 10;
+
+    const queries = splitQuery(
+      BigNumber.from('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'),
+      concurrency
+    );
+
+    const queue = new PQueue({ concurrency });
+
+    let numOrders = 0;
+    let error: { value: Error | null; didError: boolean } = { value: null, didError: false };
+
+    const uploadPromise = new Promise<void>((resolve, reject) => {
       passthroughStream
         .pipe(file.createWriteStream())
         .on('finish', () => {
-          resolve({ numOrders });
+          resolve();
         })
         .on('error', (err) => {
           reject(err);
         });
-
-      streamOrders(passthroughStream)
-        .then((result) => {
-          numOrders = result;
-          passthroughStream.end();
-        })
-        .catch((err) => {
-          passthroughStream.destroy(err);
-        });
+    }).catch((err) => {
+      error = { value: err, didError: true };
     });
 
-    const result = await uploadPromise;
+    for (const query of queries) {
+      queue
+        .add(async () => {
+          const streamOrders = async (passThough: PassThrough) => {
+            const stream = streamQueryWithRef(query);
+
+            for await (const item of stream) {
+              const orderData: OrderbookSnapshotOrder = {
+                id: item.data.metadata.id,
+                order: item.data.rawOrder.infinityOrder,
+                source: item.data.order.sourceMarketplace,
+                sourceOrder: item.data.rawOrder.rawOrder,
+                gasUsage: item.data.rawOrder.gasUsage
+              };
+
+              const stringified = JSON.stringify(orderData);
+
+              passThough.write(`${stringified}\n`);
+
+              numOrders += 1;
+
+              if (numOrders % 100 === 0) {
+                console.log(`Snapshot - Handled ${numOrders} orders so far`);
+              }
+            }
+          };
+
+          await streamOrders(passthroughStream);
+        })
+        .catch((err) => {
+          console.error(err);
+          error = {
+            value: err as Error,
+            didError: true
+          };
+        });
+    }
+
+    await queue.onIdle();
+    passthroughStream.end();
+
+    await uploadPromise;
+
+    if (error.didError) {
+      console.error(`Failed to take snapshot for chainId: ${chainId}`, error.value);
+      throw error.value;
+    }
 
     const metadata = {
       bucket: bucketName,
       file: fileName,
       chainId: chainId,
-      numOrders: result.numOrders,
+      numOrders: numOrders,
       timestamp: startTimestamp
     };
 
     await this._firebaseService.firestore.collection('orderSnapshots').doc(fileName).set(metadata);
 
-    console.log(`Snapshot - Uploaded ${result.numOrders} orders to ${fileName}`);
+    console.log(`Snapshot - Uploaded ${numOrders} orders to ${fileName}`);
   }
 }

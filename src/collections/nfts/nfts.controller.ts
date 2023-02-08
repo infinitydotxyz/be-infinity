@@ -1,3 +1,11 @@
+import { NftSaleAndOrder } from '@infinityxyz/lib/types/core';
+import {
+  NftActivityArrayDto,
+  NftActivityFiltersDto,
+  NftArrayDto,
+  NftDto,
+  NftsQueryDto
+} from '@infinityxyz/lib/types/dto/collections/nfts';
 import { BadRequestException, Controller, Get, NotFoundException, Query, UseInterceptors } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -15,13 +23,6 @@ import { BadQueryError } from 'common/errors/bad-query.error';
 import { CacheControlInterceptor } from 'common/interceptors/cache-control.interceptor';
 import { ResponseDescription } from 'common/response-description';
 import { NftsService } from './nfts.service';
-import {
-  NftActivityArrayDto,
-  NftActivityFiltersDto,
-  NftArrayDto,
-  NftDto,
-  NftsQueryDto
-} from '@infinityxyz/lib/types/dto/collections/nfts';
 
 @Controller('collections')
 export class NftsController {
@@ -124,5 +125,24 @@ export class NftsController {
       cursor,
       hasNextPage
     };
+  }
+
+  @Get(':id/nfts/:tokenId/salesorders')
+  @ApiOperation({
+    tags: [ApiTag.Nft],
+    description: 'Get sales and orders for a single token'
+  })
+  @ApiParamCollectionId('id')
+  @ApiParamTokenId('tokenId')
+  @ApiOkResponse({ description: ResponseDescription.Success })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 10 * 60 }))
+  async getSalesAndOrders(
+    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
+    @ParamTokenId('tokenId') tokenId: string
+  ): Promise<NftSaleAndOrder[]> {
+    return await this.nftService.getSalesAndOrders(collection, tokenId);
   }
 }
