@@ -2,6 +2,7 @@ import {
   ChainId,
   Collection,
   CollectionHistoricalSale,
+  CollectionOrder,
   CollectionPeriodStatsContent
 } from '@infinityxyz/lib/types/core';
 import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
@@ -288,7 +289,7 @@ export class CollectionsController {
 
   @Get('/:id/sales')
   @ApiOperation({
-    tags: [ApiTag.Collection, ApiTag.Stats],
+    tags: [ApiTag.Collection, ApiTag.Sales],
     description: 'Get historical sales for a single collection'
   })
   @ApiParamCollectionId()
@@ -302,6 +303,23 @@ export class CollectionsController {
     @Query() query: CollectionHistoricalSalesQueryDto
   ): Promise<Partial<CollectionHistoricalSale>[]> {
     return await this.statsService.getCollectionHistoricalSales(collection, query);
+  }
+
+  @Get('/:id/orders')
+  @ApiOperation({
+    tags: [ApiTag.Collection, ApiTag.Orders],
+    description: 'Get active orders for a single collection'
+  })
+  @ApiParamCollectionId()
+  @ApiOkResponse({ description: ResponseDescription.Success })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 10 * 60 }))
+  async getCollectionOrders(
+    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
+  ): Promise<CollectionOrder[]> {
+    return await this.statsService.getCollectionOrders(collection);
   }
 
   @Get('/:id/stats')
