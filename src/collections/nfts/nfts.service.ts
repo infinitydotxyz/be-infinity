@@ -1,4 +1,4 @@
-import { ChainId, OrderDirection } from '@infinityxyz/lib/types/core';
+import { ChainId, NftSaleAndOrder, OrderDirection } from '@infinityxyz/lib/types/core';
 import {
   ExternalNftDto,
   NftActivityFiltersDto,
@@ -18,6 +18,7 @@ import { EthereumService } from 'ethereum/ethereum.service';
 import { firestore } from 'firebase-admin';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
+import { PostgresService } from 'postgres/postgres.service';
 import { getNftActivity, getNftSocialActivity } from 'utils/activity';
 
 @Injectable()
@@ -26,7 +27,8 @@ export class NftsService {
     private firebaseService: FirebaseService,
     private paginationService: CursorService,
     private ethereumService: EthereumService,
-    private backfillService: BackfillService
+    private backfillService: BackfillService,
+    private postgresService: PostgresService
   ) {}
 
   async getNft(nftQuery: NftQueryDto): Promise<NftDto | undefined> {
@@ -318,5 +320,60 @@ export class NftsService {
         source: filter.source
       });
     }
+  }
+
+  async getSalesAndOrders(
+    collection: ParsedCollectionId,
+    tokenId: string
+  ): Promise<NftSaleAndOrder[]> {
+    const pool = this.postgresService.pool;
+    const data: NftSaleAndOrder[] = [];
+
+    const salesQuery = `SELECT sale_price_eth, sale_timestamp\
+       FROM eth_nft_sales \
+       WHERE collection_address = '${collection.address}' AND token_id = '${tokenId}' \
+       ORDER BY sale_timestamp DESC LIMIT 100`;
+    const salesResult = await pool.query(salesQuery);
+    for (const row of salesResult.rows) {
+      const priceEth = parseFloat(row.sale_price_eth);
+      const timestamp = Number(row.sale_timestamp);
+
+      if (!priceEth || !timestamp) {
+        continue;
+      }
+
+      const dataPoint: NftSaleAndOrder = {
+        dataType: 'Sale',
+        priceEth,
+        timestamp
+      };
+
+      data.push(dataPoint);
+    }
+
+    const ordersQuery = `SELECT price_eth, is_sell_order, start_time_millis\
+       FROM eth_nft_orders \
+       WHERE collection_address = '${collection.address}' AND token_id = '${tokenId}' \
+       ORDER BY start_time_millis DESC LIMIT 500`;
+    const ordersResult = await pool.query(ordersQuery);
+    for (const row of ordersResult.rows) {
+      const priceEth = parseFloat(row.price_eth);
+      const timestamp = Number(row.start_time_millis);
+      const isSellOrder = Boolean(row.is_sell_order);
+
+      if (!priceEth || !timestamp) {
+        continue;
+      }
+
+      const dataPoint: NftSaleAndOrder = {
+        dataType: isSellOrder ? 'Listing' : 'Offer',
+        priceEth,
+        timestamp
+      };
+
+      data.push(dataPoint);
+    }
+
+    return data;
   }
 }
