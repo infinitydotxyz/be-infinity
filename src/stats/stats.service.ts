@@ -2,6 +2,7 @@ import {
   ChainId,
   Collection,
   CollectionHistoricalSale,
+  CollectionOrder,
   CollectionPeriodStatsContent,
   CollectionStats,
   HistoricalSalesTimeBucket,
@@ -240,6 +241,45 @@ export class StatsService {
         salePriceEth,
         timestamp,
         tokenImage
+      };
+
+      data.push(dataPoint);
+    }
+
+    return data;
+  }
+
+  async getCollectionOrders(collection: ParsedCollectionId): Promise<CollectionOrder[]> {
+    const q = `SELECT id, token_id, maker, is_private, token_image, price_eth, is_sell_order\
+       FROM eth_nft_orders \
+       WHERE collection_address = '${collection.address}' AND status = 'active' \
+       LIMIT 1000`;
+
+    const pool = this.postgresService.pool;
+
+    const result = await pool.query(q);
+    const data: CollectionOrder[] = [];
+    for (const row of result.rows) {
+      const id = row.id;
+      const tokenId = row.token_id;
+      const priceEth = parseFloat(row.price_eth);
+      const isSellOrder = Boolean(row.is_sell_order);
+      const tokenImage = row.token_image;
+      const maker = row.maker;
+      const isPrivate = Boolean(row.is_private);
+
+      if (!tokenId || !priceEth || !tokenImage) {
+        continue;
+      }
+
+      const dataPoint: CollectionOrder = {
+        id,
+        tokenId,
+        priceEth,
+        isSellOrder,
+        tokenImage,
+        maker,
+        isPrivate
       };
 
       data.push(dataPoint);
