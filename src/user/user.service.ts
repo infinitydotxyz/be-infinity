@@ -5,10 +5,7 @@ import {
   UserDisplayData,
   UserFeedEvent
 } from '@infinityxyz/lib/types/core';
-import {
-  UserCuratedCollectionDto,
-  UserCuratedCollectionsDto
-} from '@infinityxyz/lib/types/dto/collections';
+import { UserCuratedCollectionDto, UserCuratedCollectionsDto } from '@infinityxyz/lib/types/dto/collections';
 import {
   CuratedCollectionsOrderBy,
   CuratedCollectionsQuery

@@ -20,7 +20,7 @@ export class PostgresService {
       database: this.configService.get('PG_DB_NAME'),
       max: 20,
       idleTimeoutMillis: 10000,
-      connectionTimeoutMillis: 2000
+      connectionTimeoutMillis: 20000
     });
   }
 }

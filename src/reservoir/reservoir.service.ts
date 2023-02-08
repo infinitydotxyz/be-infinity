@@ -1,6 +1,8 @@
 import {
   ReservoirCollectionsV5,
-  ReservoirCollsSortBy, ReservoirDetailedTokensResponse, ReservoirTopCollectionOwnersResponse
+  ReservoirCollsSortBy,
+  ReservoirDetailedTokensResponse,
+  ReservoirTopCollectionOwnersResponse
 } from '@infinityxyz/lib/types/services/reservoir';
 import { sleep } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
