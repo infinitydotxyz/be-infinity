@@ -358,9 +358,7 @@ export class CurationService {
     return curatedCollection;
   }
 
-  getUserRewards(
-    user: ParsedUserId
-  ): { totalProtocolFeesAccruedEth: number; totalProtocolFeesAccruedWei: string } {
+  getUserRewards(user: ParsedUserId): { totalProtocolFeesAccruedEth: number; totalProtocolFeesAccruedWei: string } {
     const totalProtocolFeesAccruedWei = '0';
     return {
       totalProtocolFeesAccruedWei,

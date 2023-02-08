@@ -4,7 +4,8 @@ import {
   CollectionMetadata,
   CreationFlow,
   CurationBlockUser,
-  CurrentCurationSnippetDoc, TopOwner
+  CurrentCurationSnippetDoc,
+  TopOwner
 } from '@infinityxyz/lib/types/core';
 import {
   TopOwnerDto,
