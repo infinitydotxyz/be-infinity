@@ -1,17 +1,9 @@
 import { ChainId, Collection, StakeDuration } from '@infinityxyz/lib/types/core';
-import {
-  CurationLedgerEvent,
-  CurationVotesAdded
-} from '@infinityxyz/lib/types/core/curation-ledger';
+import { CurationLedgerEvent, CurationVotesAdded } from '@infinityxyz/lib/types/core/curation-ledger';
 import { UserCuratedCollectionDto } from '@infinityxyz/lib/types/dto';
 import { CurationQuotaDto } from '@infinityxyz/lib/types/dto/collections/curation/curation-quota.dto';
 import { UserStakeDto } from '@infinityxyz/lib/types/dto/user';
-import {
-  firestoreConstants,
-  formatEth,
-  getTokenAddressByStakerAddress,
-  getTotalStaked
-} from '@infinityxyz/lib/utils';
+import { firestoreConstants, formatEth, getTokenAddressByStakerAddress, getTotalStaked } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
 import { StakerContractService } from 'ethereum/contracts/staker.contract.service';

@@ -2,13 +2,11 @@ import {
   ChainId,
   Collection,
   CollectionMetadata,
-  CreationFlow, CurrentCurationSnippetDoc,
+  CreationFlow,
+  CurrentCurationSnippetDoc,
   TopOwner
 } from '@infinityxyz/lib/types/core';
-import {
-  TopOwnerDto,
-  TopOwnersQueryDto
-} from '@infinityxyz/lib/types/dto/collections';
+import { TopOwnerDto, TopOwnersQueryDto } from '@infinityxyz/lib/types/dto/collections';
 import { ExternalNftCollectionDto, NftCollectionDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';

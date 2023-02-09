@@ -322,10 +322,7 @@ export class NftsService {
     }
   }
 
-  async getSalesAndOrders(
-    collection: ParsedCollectionId,
-    tokenId: string
-  ): Promise<NftSaleAndOrder[]> {
+  async getSalesAndOrders(collection: ParsedCollectionId, tokenId: string): Promise<NftSaleAndOrder[]> {
     const pool = this.postgresService.pool;
     const data: NftSaleAndOrder[] = [];
 

@@ -29,7 +29,8 @@ type CollectStatsQuery = {
 };
 
 import {
-  CollectionDto, CollectionTrendingStatsQueryDto,
+  CollectionDto,
+  CollectionTrendingStatsQueryDto,
   TopOwnersArrayResponseDto,
   TopOwnersQueryDto
 } from '@infinityxyz/lib/types/dto/collections';
