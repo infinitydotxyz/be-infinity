@@ -54,13 +54,13 @@ export default class CollectionsService {
        WHERE collection_address = '${collection.address}' \
        ORDER BY sale_timestamp DESC LIMIT 100`;
     const salesResult = await pool.query(salesQuery);
-    for (const row of salesResult.rows) {
-      const tokenId = row.token_id;
-      const priceEth = parseFloat(row.sale_price_eth);
-      const timestamp = Number(row.sale_timestamp);
-      const tokenImage = row.token_image;
-      const log_index = Number(row.log_index);
-      const txHash = row.txhash;
+    for (const sale of salesResult.rows) {
+      const tokenId = sale.token_id;
+      const priceEth = parseFloat(sale.sale_price_eth);
+      const timestamp = Number(sale.sale_timestamp);
+      const tokenImage = sale.token_image;
+      const log_index = Number(sale.log_index);
+      const txHash = sale.txhash;
       const id = `${txHash}-${log_index}`;
 
       if (!priceEth || !timestamp || !tokenId || !tokenImage) {
@@ -84,15 +84,15 @@ export default class CollectionsService {
        WHERE collection_address = '${collection.address}' AND status = 'active' \
        ORDER BY start_time_millis DESC LIMIT 300`;
     const ordersResult = await pool.query(ordersQuery);
-    for (const row of ordersResult.rows) {
-      const priceEth = parseFloat(row.price_eth);
-      const timestamp = Number(row.start_time_millis);
-      const isSellOrder = Boolean(row.is_sell_order);
-      const id = row.id;
-      const tokenId = row.token_id;
-      const tokenImage = row.token_image;
+    for (const order of ordersResult.rows) {
+      const priceEth = parseFloat(order.price_eth);
+      const timestamp = Number(order.start_time_millis);
+      const isSellOrder = Boolean(order.is_sell_order);
+      const id = order.id;
+      const tokenId = order.token_id;
+      const tokenImage = order.token_image;
 
-      if (!priceEth || !timestamp || !tokenId || !tokenImage) {
+      if (!priceEth || !timestamp) {
         continue;
       }
 

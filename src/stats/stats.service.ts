@@ -232,16 +232,16 @@ export class StatsService {
 
     const result = await pool.query(q);
     const data: CollectionOrder[] = [];
-    for (const row of result.rows) {
-      const id = row.id;
-      const tokenId = row.token_id;
-      const priceEth = parseFloat(row.price_eth);
-      const isSellOrder = Boolean(row.is_sell_order);
-      const tokenImage = row.token_image;
-      const maker = row.maker;
-      const isPrivate = Boolean(row.is_private);
+    for (const order of result.rows) {
+      const id = order.id;
+      const tokenId = order.token_id;
+      const priceEth = parseFloat(order.price_eth);
+      const isSellOrder = Boolean(order.is_sell_order);
+      const tokenImage = order.token_image;
+      const maker = order.maker;
+      const isPrivate = Boolean(order.is_private);
 
-      if (!tokenId || !priceEth || !tokenImage) {
+      if (!priceEth) {
         continue;
       }
 
