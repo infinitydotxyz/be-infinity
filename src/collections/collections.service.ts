@@ -2,9 +2,9 @@ import {
   ChainId,
   Collection,
   CollectionMetadata,
+  CollectionSaleAndOrder,
   CreationFlow,
-  CurrentCurationSnippetDoc,
-  TopOwner
+  CurrentCurationSnippetDoc, TopOwner
 } from '@infinityxyz/lib/types/core';
 import { TopOwnerDto, TopOwnersQueryDto } from '@infinityxyz/lib/types/dto/collections';
 import { ExternalNftCollectionDto, NftCollectionDto } from '@infinityxyz/lib/types/dto/collections/nfts';
@@ -12,12 +12,12 @@ import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
+import { PostgresService } from 'postgres/postgres.service';
 import { ReservoirService } from 'reservoir/reservoir.service';
 import { StatsService } from 'stats/stats.service';
 import { ZoraService } from 'zora/zora.service';
 import { ONE_DAY } from '../constants';
 import { ParsedCollectionId } from './collection-id.pipe';
-import { CurationService } from './curation/curation.service';
 
 interface CollectionQueryOptions {
   /**
@@ -35,14 +35,80 @@ export default class CollectionsService {
     private zoraService: ZoraService,
     private reservoirService: ReservoirService,
     private paginationService: CursorService,
-    private curationService: CurationService,
-    private statsService: StatsService
+    private statsService: StatsService,
+    private postgresService: PostgresService
   ) {}
 
   private get defaultCollectionQueryOptions(): CollectionQueryOptions {
     return {
       limitToCompleteCollections: false
     };
+  }
+
+  async getRecentSalesAndOrders(collection: ParsedCollectionId): Promise<CollectionSaleAndOrder[]> {
+    const pool = this.postgresService.pool;
+    const data: CollectionSaleAndOrder[] = [];
+
+    const salesQuery = `SELECT txhash, log_index, token_id, token_image, sale_price_eth, sale_timestamp\
+       FROM eth_nft_sales \
+       WHERE collection_address = '${collection.address}' \
+       ORDER BY sale_timestamp DESC LIMIT 100`;
+    const salesResult = await pool.query(salesQuery);
+    for (const row of salesResult.rows) {
+      const tokenId = row.token_id;
+      const priceEth = parseFloat(row.sale_price_eth);
+      const timestamp = Number(row.sale_timestamp);
+      const tokenImage = row.token_image;
+      const log_index = Number(row.log_index);
+      const txHash = row.txhash;
+      const id = `${txHash}-${log_index}`;
+
+      if (!priceEth || !timestamp || !tokenId || !tokenImage) {
+        continue;
+      }
+
+      const dataPoint: CollectionSaleAndOrder = {
+        dataType: 'Sale',
+        priceEth,
+        timestamp,
+        tokenId,
+        tokenImage,
+        id
+      };
+
+      data.push(dataPoint);
+    }
+
+    const ordersQuery = `SELECT id, token_id, token_image, price_eth, is_sell_order, start_time_millis\
+       FROM eth_nft_orders \
+       WHERE collection_address = '${collection.address}' AND status = 'active' \
+       ORDER BY start_time_millis DESC LIMIT 300`;
+    const ordersResult = await pool.query(ordersQuery);
+    for (const row of ordersResult.rows) {
+      const priceEth = parseFloat(row.price_eth);
+      const timestamp = Number(row.start_time_millis);
+      const isSellOrder = Boolean(row.is_sell_order);
+      const id = row.id;
+      const tokenId = row.token_id;
+      const tokenImage = row.token_image;
+
+      if (!priceEth || !timestamp || !tokenId || !tokenImage) {
+        continue;
+      }
+
+      const dataPoint: CollectionSaleAndOrder = {
+        dataType: isSellOrder ? 'Listing' : 'Offer',
+        priceEth,
+        timestamp,
+        id,
+        tokenId,
+        tokenImage
+      };
+
+      data.push(dataPoint);
+    }
+
+    return data;
   }
 
   async getTopOwners(collection: ParsedCollectionId, query: TopOwnersQueryDto) {
