@@ -28,21 +28,15 @@ type CollectStatsQuery = {
   list: string;
 };
 
-import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
 import {
-  CollectionDto, CollectionTrendingStatsQueryDto,
+  CollectionDto,
+  CollectionTrendingStatsQueryDto,
   TopOwnersArrayResponseDto,
-  TopOwnersQueryDto,
-  UserCuratedCollectionDto,
-  UserCuratedCollectionsDto
+  TopOwnersQueryDto
 } from '@infinityxyz/lib/types/dto/collections';
-import { CuratedCollectionsQueryWithUser } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
 import { NftActivityArrayDto, NftActivityFiltersDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { TweetArrayDto } from '@infinityxyz/lib/types/dto/twitter';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
-import { Auth } from 'auth/api-auth.decorator';
-import { SiteRole } from 'auth/auth.constants';
-import { ParamUserId } from 'auth/param-user-id.decorator';
 import { ApiTag } from 'common/api-tags';
 import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param-collection-id.decorator';
 import { ErrorResponseDto } from 'common/dto/error-response.dto';
@@ -54,8 +48,6 @@ import { FirebaseService } from 'firebase/firebase.service';
 import { mnemonicByParam } from 'mnemonic/mnemonic.service';
 import { StatsService } from 'stats/stats.service';
 import { TwitterService } from 'twitter/twitter.service';
-import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
-import { ParsedUserId } from 'user/parser/parsed-user-id';
 import { UserParserService } from 'user/parser/parser.service';
 import { ParseCollectionIdPipe, ParsedCollectionId } from './collection-id.pipe';
 import CollectionsService from './collections.service';
@@ -195,44 +187,6 @@ export class CollectionsController {
     };
   }
 
-  @Get('curated')
-  @ApiOperation({
-    description: 'Fetch all curated collections',
-    tags: [ApiTag.Collection, ApiTag.Curation]
-  })
-  @ApiOkResponse({ type: UserCuratedCollectionsDto })
-  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
-  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  async getAllCurated(@Query() query: CuratedCollectionsQueryWithUser): Promise<UserCuratedCollectionsDto> {
-    if (query.user) {
-      const transformer = new ParseUserIdPipe(this.userParserService);
-      const user = await transformer.transform(query.user);
-      return await this.collectionsService.getCurated(query, user);
-    }
-    return await this.collectionsService.getCurated(query, undefined);
-  }
-
-  @Get('/:id/curated/:userId')
-  @Auth(SiteRole.Guest, ApiRole.Guest, 'userId')
-  @ApiParamCollectionId('collectionId')
-  @ApiOperation({
-    description: 'Fetch curation details and estimations of the collection',
-    tags: [ApiTag.Collection, ApiTag.Curation]
-  })
-  @ApiOkResponse({ type: UserCuratedCollectionDto })
-  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
-  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  async getUserCurated(
-    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
-    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId
-  ): Promise<UserCuratedCollectionDto> {
-    const collectionData = (await this.collectionsService.getCollectionByAddress(collection)) ?? {};
-    const curated = await this.curationService.findUserCurated(user, collection, collectionData);
-    return curated;
-  }
-
   @Get('/:id')
   @ApiOperation({
     tags: [ApiTag.Collection],
@@ -295,7 +249,7 @@ export class CollectionsController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 10 * 60 }))
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 1 * 60 }))
   async getCollectionHistoricalSales(
     @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
   ): Promise<Partial<CollectionHistoricalSale>[]> {
@@ -312,7 +266,7 @@ export class CollectionsController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 10 * 60 }))
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 1 * 60 }))
   async getCollectionOrders(
     @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
   ): Promise<CollectionOrder[]> {
@@ -346,7 +300,7 @@ export class CollectionsController {
   @ApiOkResponse({ description: ResponseDescription.Success, type: TweetArrayDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 5 }))
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 10 }))
   async getCollectionTwitterMentions(
     @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
     @Query() query: PaginatedQuery
@@ -365,7 +319,7 @@ export class CollectionsController {
   @ApiOkResponse({ description: ResponseDescription.Success, type: NftActivityArrayDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 2 }))
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 10 }))
   async getCollectionActivity(
     @ParamCollectionId('id', ParseCollectionIdPipe) { address, chainId }: ParsedCollectionId,
     @Query() filters: NftActivityFiltersDto

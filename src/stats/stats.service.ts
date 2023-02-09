@@ -4,7 +4,8 @@ import {
   CollectionHistoricalSale,
   CollectionOrder,
   CollectionPeriodStatsContent,
-  CollectionStats, PreAggregatedSocialsStats,
+  CollectionStats,
+  PreAggregatedSocialsStats,
   StatsPeriod,
   StatType
 } from '@infinityxyz/lib/types/core';
@@ -187,9 +188,7 @@ export class StatsService {
     return allResults;
   }
 
-  async getCollectionHistoricalSales(
-    collection: ParsedCollectionId
-  ): Promise<Partial<CollectionHistoricalSale>[]> {
+  async getCollectionHistoricalSales(collection: ParsedCollectionId): Promise<Partial<CollectionHistoricalSale>[]> {
     const timestamp = Date.now() - 1000 * 60 * 60 * 24 * 30; // 30 days ago
     const q = `SELECT token_id, sale_price_eth, sale_timestamp, token_image\
        FROM eth_nft_sales \
