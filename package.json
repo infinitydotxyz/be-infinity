@@ -22,8 +22,8 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "update:lib": "npm install @infinityxyz/lib@latest",
     "pre:push": "npm run lint && npm run format && npm run build",
-    "deploy:dev": "npm run build && gcloud app deploy -q --appyaml=./app.yaml --project=nftc-dev",
-    "deploy:prod": "npm run build && gcloud app deploy -q --appyaml=./app.yaml --project=nftc-infinity"
+    "deploy:dev": "npm run build && gcloud app deploy -q --appyaml=./app.dev.yaml --project=nftc-dev",
+    "deploy:prod": "npm run build && gcloud app deploy -q --appyaml=./app.prod.yaml --project=nftc-infinity"
   },
   "dependencies": {
     "@infinityxyz/lib": "^1.315.1",
