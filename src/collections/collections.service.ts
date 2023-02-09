@@ -2,21 +2,13 @@ import {
   ChainId,
   Collection,
   CollectionMetadata,
-  CreationFlow,
-  CurationBlockUser,
-  CurrentCurationSnippetDoc,
+  CreationFlow, CurrentCurationSnippetDoc,
   TopOwner
 } from '@infinityxyz/lib/types/core';
 import {
   TopOwnerDto,
-  TopOwnersQueryDto,
-  UserCuratedCollectionDto,
-  UserCuratedCollectionsDto
+  TopOwnersQueryDto
 } from '@infinityxyz/lib/types/dto/collections';
-import {
-  CuratedCollectionsOrderBy,
-  CuratedCollectionsQuery
-} from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
 import { ExternalNftCollectionDto, NftCollectionDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
@@ -24,7 +16,6 @@ import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
 import { ReservoirService } from 'reservoir/reservoir.service';
 import { StatsService } from 'stats/stats.service';
-import { ParsedUserId } from 'user/parser/parsed-user-id';
 import { ZoraService } from 'zora/zora.service';
 import { ONE_DAY } from '../constants';
 import { ParsedCollectionId } from './collection-id.pipe';
@@ -319,147 +310,5 @@ export default class CollectionsService {
     });
 
     return externalCollection;
-  }
-
-  async getCurated(collectionQuery: CuratedCollectionsQuery, user: undefined): Promise<UserCuratedCollectionsDto>;
-  async getCurated(collectionQuery: CuratedCollectionsQuery, user: ParsedUserId): Promise<UserCuratedCollectionsDto>;
-  async getCurated(collectionsQuery: CuratedCollectionsQuery, user?: ParsedUserId) {
-    const stakerContractChainId = collectionsQuery.chainId ?? ChainId.Mainnet;
-    const stakerContractAddress = this.curationService.getStakerAddress(stakerContractChainId);
-    let query = this.firebaseService.firestore
-      .collectionGroup('curationSnippets')
-      .where('metadata.stakerContractAddress', '==', stakerContractAddress)
-      .where(
-        'metadata.stakerContractChainId',
-        '==',
-        stakerContractChainId
-      ) as FirebaseFirestore.Query<CurrentCurationSnippetDoc>;
-
-    if (collectionsQuery.orderBy === CuratedCollectionsOrderBy.Timestamp) {
-      const topCollection = await this.getTopCollection(stakerContractAddress, stakerContractChainId);
-      const topVotes = topCollection?.stats.numCuratorVotes || 0;
-      const percentage = 0.05;
-      const minRequiredCuratorVotes = Math.round(topVotes * percentage);
-      // There's a minor firestore limitation here: we need to orderBy on 'stats.numCuratorVotes' first (before ordering on timestamps) because we use .where() inequality filters (>, <) here.
-      // This will result in an order sorted by 'numCuratorVotes' first, followed by 'timestamps' afterwards.
-      // Preferably it would be the other way around but unfortunately that doesn't seem possible ¯\_(ツ)_/¯.
-      query = query
-        .where('stats.numCuratorVotes', '>', minRequiredCuratorVotes)
-        .where('stats.numCuratorVotes', '<', topVotes)
-        .orderBy('stats.numCuratorVotes', 'desc');
-    }
-
-    const orderByField = {
-      [CuratedCollectionsOrderBy.Apr]: {
-        primary: 'stats.feesAPR',
-        secondary: 'metadata.collectionAddress'
-      },
-      [CuratedCollectionsOrderBy.Votes]: {
-        primary: 'stats.numCuratorVotes',
-        secondary: 'metadata.collectionAddress'
-      },
-      [CuratedCollectionsOrderBy.Timestamp]: {
-        primary: 'currentBlock.metadata.timestamp',
-        secondary: 'metadata.collectionAddress'
-      }
-    };
-
-    const orderBy = orderByField[collectionsQuery.orderBy];
-    query = query
-      .orderBy(orderBy.primary, collectionsQuery.orderDirection)
-      .orderBy(orderBy.secondary, collectionsQuery.orderDirection)
-      .limit(collectionsQuery.limit + 1);
-
-    type Cursor = Record<CuratedCollectionsOrderBy, { value: number; collectionAddress: string }>;
-    const cursor = this.paginationService.decodeCursorToObject<Partial<Cursor>>(collectionsQuery.cursor);
-    const startAt = cursor[collectionsQuery.orderBy];
-    if (startAt && 'value' in startAt && 'collectionAddress' in startAt) {
-      query = query.startAt(startAt.value, startAt.collectionAddress);
-    }
-
-    const querySnap = await query.get();
-    const results: (CurrentCurationSnippetDoc & { curator?: CurationBlockUser })[] = [];
-
-    querySnap.docs.forEach((doc, index) => {
-      const data = doc.data() ?? {};
-      results[index] = { ...data };
-    });
-
-    if (user) {
-      const curationSnippetUserRefs = querySnap.docs.map((curationSnippetDoc) => {
-        return curationSnippetDoc.ref
-          .collection(firestoreConstants.CURATION_SNIPPET_USERS_COLL)
-          .doc(user.userAddress) as FirebaseFirestore.DocumentReference<CurationBlockUser>;
-      });
-
-      if (curationSnippetUserRefs.length > 0) {
-        const userSnaps = (await this.firebaseService.firestore.getAll(
-          ...curationSnippetUserRefs
-        )) as FirebaseFirestore.DocumentSnapshot<CurationBlockUser>[];
-        userSnaps.forEach((userSnap, index) => {
-          const blockUser = userSnap.data();
-          results[index].curator = blockUser;
-        });
-      }
-    }
-
-    let hasNextPage = querySnap.size > collectionsQuery.limit;
-    let updatedCursor = '';
-    if (hasNextPage) {
-      const startAtItem = results.pop();
-      if (startAtItem) {
-        const rawCursor: Cursor = {
-          [CuratedCollectionsOrderBy.Apr]: {
-            value: startAtItem.currentBlock?.stats.blockApr ?? 0,
-            collectionAddress: startAtItem.metadata.collectionAddress
-          },
-          [CuratedCollectionsOrderBy.Votes]: {
-            value: startAtItem.stats.numCuratorVotes ?? 0,
-            collectionAddress: startAtItem.metadata.collectionAddress
-          },
-          [CuratedCollectionsOrderBy.Timestamp]: {
-            value: startAtItem.currentBlock?.metadata.timestamp ?? 0,
-            collectionAddress: startAtItem.metadata.collectionAddress
-          }
-        };
-        updatedCursor = this.paginationService.encodeCursor(rawCursor);
-      } else {
-        hasNextPage = false;
-      }
-    }
-
-    const curatedCollections = results.map((item) => {
-      const curatedCollection: UserCuratedCollectionDto = {
-        address: item.metadata.collectionAddress,
-        chainId: item.metadata.collectionChainId,
-        stakerContractAddress: item.metadata.stakerContractAddress,
-        stakerContractChainId: item.metadata.stakerContractChainId,
-        tokenContractAddress: item.metadata.tokenContractAddress,
-        tokenContractChainId: item.metadata.tokenContractChainId,
-        curator: {
-          address: item.curator?.metadata?.userAddress ?? user?.userAddress ?? '',
-          fees: item.curator?.stats?.totalProtocolFeesAccruedEth ?? 0,
-          votes: item.curator?.stats?.votes ?? 0,
-          feesAPR: item.curator?.stats?.blockApr ?? 0
-        },
-        fees: item.stats?.feesAccruedEth ?? 0,
-        feesAPR: item.stats?.feesAPR ?? 0,
-        timestamp: item.metadata.updatedAt,
-        slug: item?.collection?.slug,
-        numCuratorVotes: item.stats.numCuratorVotes,
-        profileImage: item?.collection?.profileImage ?? '',
-        bannerImage: item?.collection?.bannerImage ?? '',
-        name: item?.collection?.name ?? '',
-        hasBlueCheck: item?.collection?.hasBlueCheck ?? false
-      };
-
-      return curatedCollection;
-    });
-
-    return {
-      data: curatedCollections,
-      hasNextPage,
-      cursor: updatedCursor
-    };
   }
 }

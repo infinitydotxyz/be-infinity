@@ -1,7 +1,12 @@
-import { ChainId, Collection, StakeDuration, StakerContractPeriodUserDoc } from '@infinityxyz/lib/types/core';
+import { ChainId, Collection, StakeDuration } from '@infinityxyz/lib/types/core';
+import {
+  CurationLedgerEvent,
+  CurationVotesAdded
+} from '@infinityxyz/lib/types/core/curation-ledger';
+import { UserCuratedCollectionDto } from '@infinityxyz/lib/types/dto';
+import { CurationQuotaDto } from '@infinityxyz/lib/types/dto/collections/curation/curation-quota.dto';
 import { UserStakeDto } from '@infinityxyz/lib/types/dto/user';
 import {
-  calculateStatsBigInt,
   firestoreConstants,
   formatEth,
   getTokenAddressByStakerAddress,
@@ -11,20 +16,11 @@ import { Injectable } from '@nestjs/common';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
 import { StakerContractService } from 'ethereum/contracts/staker.contract.service';
 import { TokenContractService } from 'ethereum/contracts/token.contract.service';
+import { EthereumService } from 'ethereum/ethereum.service';
 import { FirebaseService } from 'firebase/firebase.service';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
-import { ParsedBulkVotes } from './bulk-votes.pipe';
-import {
-  CurationBlockUser,
-  CurationLedgerEvent,
-  CurationVotesAdded,
-  CurrentCurationSnippetDoc
-} from '@infinityxyz/lib/types/core/curation-ledger';
-import { CurationQuotaDto } from '@infinityxyz/lib/types/dto/collections/curation/curation-quota.dto';
-import { EthereumService } from 'ethereum/ethereum.service';
 import { partitionArray } from 'utils';
-import { streamQuery } from 'firebase/stream-query';
-import { UserCuratedCollectionDto } from '@infinityxyz/lib/types/dto';
+import { ParsedBulkVotes } from './bulk-votes.pipe';
 
 @Injectable()
 export class CurationService {
@@ -275,87 +271,6 @@ export class CurationService {
 
   async getTokenBalance(user: ParsedUserId) {
     return this.tokenContractService.getTokenBalance(user);
-  }
-
-  /**
-   * Find a specific user-curated collection.
-   */
-  async findUserCurated(
-    user: Omit<ParsedUserId, 'ref'>,
-    collection: Omit<ParsedCollectionId, 'ref'>,
-    collectionData: Partial<Collection>
-  ): Promise<UserCuratedCollectionDto> {
-    const stakingContractChainId = user.userChainId;
-    const stakingContractAddress = this.getStakerAddress(stakingContractChainId);
-    const curationSnippetRef = this.firebaseService.firestore
-      .collection(`${firestoreConstants.COLLECTIONS_COLL}`)
-      .doc(`${collection.chainId}:${collection.address}`)
-      .collection(firestoreConstants.COLLECTION_CURATION_COLL)
-      .doc(`${stakingContractChainId}:${stakingContractAddress}`)
-      .collection('curationSnippets')
-      .doc(firestoreConstants.CURATION_SNIPPET_DOC) as FirebaseFirestore.DocumentReference<CurrentCurationSnippetDoc>;
-
-    const curatorRef = curationSnippetRef
-      .collection(firestoreConstants.CURATION_SNIPPET_USERS_COLL)
-      .doc(user.userAddress) as FirebaseFirestore.DocumentReference<CurationBlockUser>;
-
-    const curatorSnap = await curatorRef.get();
-    const curator = curatorSnap.data();
-    const curationSnippetSnap = await curationSnippetRef.get();
-    const curationSnippet = curationSnippetSnap.data();
-    if (!curator) {
-      const tokenContract = getTokenAddressByStakerAddress(stakingContractChainId, stakingContractAddress);
-      const curatedCollection: UserCuratedCollectionDto = {
-        address: collection.address,
-        chainId: collection.chainId,
-        stakerContractAddress: stakingContractAddress,
-        stakerContractChainId: stakingContractChainId,
-        tokenContractAddress: tokenContract.tokenContractAddress,
-        tokenContractChainId: tokenContract.tokenContractChainId,
-        curator: {
-          address: user.userAddress,
-          votes: 0,
-          fees: 0,
-          feesAPR: 0
-        },
-        fees: curationSnippet?.stats.feesAccruedEth ?? 0,
-        feesAPR: curationSnippet?.stats.feesAPR ?? 0,
-        timestamp: Date.now(),
-        slug: curationSnippet?.collection?.slug ?? collectionData?.slug ?? '',
-        numCuratorVotes: curationSnippet?.stats?.numCuratorVotes ?? 0,
-        profileImage: curationSnippet?.collection?.profileImage ?? collectionData?.metadata?.profileImage ?? '',
-        bannerImage: curationSnippet?.collection.bannerImage ?? '',
-        name: curationSnippet?.collection?.name ?? collectionData?.metadata?.name ?? '',
-        hasBlueCheck: curationSnippet?.collection?.hasBlueCheck ?? collectionData?.hasBlueCheck ?? false
-      };
-      return curatedCollection;
-    }
-
-    const curatedCollection: UserCuratedCollectionDto = {
-      address: curator.metadata.collectionAddress,
-      chainId: curator.metadata.collectionChainId,
-      stakerContractAddress: curator.metadata.stakerContractAddress,
-      stakerContractChainId: curator.metadata.stakerContractChainId,
-      tokenContractAddress: curator.metadata.tokenContractAddress,
-      tokenContractChainId: curator.metadata.tokenContractChainId,
-      curator: {
-        address: curator.metadata.userAddress,
-        votes: curator.stats.votes,
-        fees: curator.stats.totalProtocolFeesAccruedEth,
-        feesAPR: curator.stats.blockApr
-      },
-      fees: curationSnippet?.stats.feesAccruedEth ?? 0,
-      feesAPR: curationSnippet?.stats.feesAPR ?? 0,
-      timestamp: curator.metadata.updatedAt,
-      slug: curator.collection.slug,
-      numCuratorVotes: curator.stats.numCuratorVotes,
-      profileImage: curator.collection.profileImage,
-      bannerImage: curator.collection.bannerImage,
-      name: curator.collection.name,
-      hasBlueCheck: curator.collection.hasBlueCheck
-    };
-
-    return curatedCollection;
   }
 
   getUserRewards(user: ParsedUserId): { totalProtocolFeesAccruedEth: number; totalProtocolFeesAccruedWei: string } {
