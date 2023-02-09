@@ -30,9 +30,7 @@ type CollectStatsQuery = {
 
 import { ApiRole } from '@infinityxyz/lib/types/core/api-user';
 import {
-  CollectionDto,
-  CollectionHistoricalSalesQueryDto,
-  CollectionTrendingStatsQueryDto,
+  CollectionDto, CollectionTrendingStatsQueryDto,
   TopOwnersArrayResponseDto,
   TopOwnersQueryDto,
   UserCuratedCollectionDto,
@@ -299,10 +297,9 @@ export class CollectionsController {
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 10 * 60 }))
   async getCollectionHistoricalSales(
-    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
-    @Query() query: CollectionHistoricalSalesQueryDto
+    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
   ): Promise<Partial<CollectionHistoricalSale>[]> {
-    return await this.statsService.getCollectionHistoricalSales(collection, query);
+    return await this.statsService.getCollectionHistoricalSales(collection);
   }
 
   @Get('/:id/orders')

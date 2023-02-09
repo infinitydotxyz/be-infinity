@@ -4,13 +4,10 @@ import {
   CollectionHistoricalSale,
   CollectionOrder,
   CollectionPeriodStatsContent,
-  CollectionStats,
-  HistoricalSalesTimeBucket,
-  PreAggregatedSocialsStats,
+  CollectionStats, PreAggregatedSocialsStats,
   StatsPeriod,
   StatType
 } from '@infinityxyz/lib/types/core';
-import { CollectionHistoricalSalesQueryDto } from '@infinityxyz/lib/types/dto/collections';
 import { CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
 import { ReservoirCollectionV5, ReservoirCollsSortBy } from '@infinityxyz/lib/types/services/reservoir';
 import { InfinityTweet, InfinityTwitterAccount } from '@infinityxyz/lib/types/services/twitter';
@@ -191,36 +188,13 @@ export class StatsService {
   }
 
   async getCollectionHistoricalSales(
-    collection: ParsedCollectionId,
-    query: CollectionHistoricalSalesQueryDto
+    collection: ParsedCollectionId
   ): Promise<Partial<CollectionHistoricalSale>[]> {
-    const timeBucket = query.period;
-    const nowTimestamp = Date.now();
-    let prevTimestamp = nowTimestamp;
-    switch (timeBucket) {
-      case HistoricalSalesTimeBucket.ONE_HOUR:
-        prevTimestamp = nowTimestamp - 1000 * 60 * 60;
-        break;
-      case HistoricalSalesTimeBucket.ONE_DAY:
-        prevTimestamp = nowTimestamp - 1000 * 60 * 60 * 24;
-        break;
-      case HistoricalSalesTimeBucket.ONE_WEEK:
-        prevTimestamp = nowTimestamp - 1000 * 60 * 60 * 24 * 7;
-        break;
-      case HistoricalSalesTimeBucket.ONE_MONTH:
-        prevTimestamp = nowTimestamp - 1000 * 60 * 60 * 24 * 30;
-        break;
-      case HistoricalSalesTimeBucket.ONE_YEAR:
-        prevTimestamp = nowTimestamp - 1000 * 60 * 60 * 24 * 365;
-        break;
-      default:
-        break;
-    }
-
+    const timestamp = Date.now() - 1000 * 60 * 60 * 24 * 30; // 30 days ago
     const q = `SELECT token_id, sale_price_eth, sale_timestamp, token_image\
        FROM eth_nft_sales \
-       WHERE collection_address = '${collection.address}' AND sale_timestamp >= ${prevTimestamp} AND sale_timestamp <= ${nowTimestamp} \
-       ORDER BY sale_timestamp DESC LIMIT 1000`;
+       WHERE collection_address = '${collection.address}' AND sale_timestamp > '${timestamp}'\
+       ORDER BY sale_timestamp DESC LIMIT 2000`;
 
     const pool = this.postgresService.pool;
 
