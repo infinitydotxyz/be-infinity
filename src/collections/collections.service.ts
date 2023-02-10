@@ -52,7 +52,7 @@ export default class CollectionsService {
     const salesQuery = `SELECT txhash, log_index, token_id, token_image, sale_price_eth, sale_timestamp\
        FROM eth_nft_sales \
        WHERE collection_address = '${collection.address}' \
-       ORDER BY sale_timestamp DESC LIMIT 100`;
+       ORDER BY sale_timestamp DESC LIMIT 50`;
     const salesResult = await pool.query(salesQuery);
     for (const sale of salesResult.rows) {
       const tokenId = sale.token_id;
@@ -82,7 +82,7 @@ export default class CollectionsService {
     const ordersQuery = `SELECT id, token_id, token_image, price_eth, is_sell_order, start_time_millis\
        FROM eth_nft_orders \
        WHERE collection_address = '${collection.address}' AND status = 'active' \
-       ORDER BY start_time_millis DESC LIMIT 300`;
+       ORDER BY start_time_millis DESC LIMIT 50`;
     const ordersResult = await pool.query(ordersQuery);
     for (const order of ordersResult.rows) {
       const priceEth = parseFloat(order.price_eth);
