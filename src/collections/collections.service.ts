@@ -79,25 +79,52 @@ export default class CollectionsService {
       data.push(dataPoint);
     }
 
-    const ordersQuery = `SELECT id, token_id, token_image, price_eth, is_sell_order, start_time_millis\
+    const listingsQuery = `SELECT id, token_id, token_image, price_eth, start_time_millis\
        FROM eth_nft_orders \
-       WHERE collection_address = '${collection.address}' AND status = 'active' \
+       WHERE collection_address = '${collection.address}' AND status = 'active' AND is_sell_order = true \
        ORDER BY start_time_millis DESC LIMIT 20`;
-    const ordersResult = await pool.query(ordersQuery);
-    for (const order of ordersResult.rows) {
-      const priceEth = parseFloat(order.price_eth);
-      const timestamp = Number(order.start_time_millis);
-      const isSellOrder = Boolean(order.is_sell_order);
-      const id = order.id;
-      const tokenId = order.token_id;
-      const tokenImage = order.token_image;
+    const listingsResult = await pool.query(listingsQuery);
+    for (const listing of listingsResult.rows) {
+      const priceEth = parseFloat(listing.price_eth);
+      const timestamp = Number(listing.start_time_millis);
+      const id = listing.id;
+      const tokenId = listing.token_id;
+      const tokenImage = listing.token_image;
 
       if (!priceEth || !timestamp) {
         continue;
       }
 
       const dataPoint: CollectionSaleAndOrder = {
-        dataType: isSellOrder ? 'Listing' : 'Offer',
+        dataType: 'Listing',
+        priceEth,
+        timestamp,
+        id,
+        tokenId,
+        tokenImage
+      };
+
+      data.push(dataPoint);
+    }
+
+    const offersQuery = `SELECT id, token_id, token_image, price_eth, start_time_millis\
+       FROM eth_nft_orders \
+       WHERE collection_address = '${collection.address}' AND status = 'active' AND is_sell_order = false \
+       ORDER BY start_time_millis DESC LIMIT 20`;
+    const offersResult = await pool.query(offersQuery);
+    for (const offer of offersResult.rows) {
+      const priceEth = parseFloat(offer.price_eth);
+      const timestamp = Number(offer.start_time_millis);
+      const id = offer.id;
+      const tokenId = offer.token_id;
+      const tokenImage = offer.token_image;
+
+      if (!priceEth || !timestamp) {
+        continue;
+      }
+
+      const dataPoint: CollectionSaleAndOrder = {
+        dataType: 'Offer',
         priceEth,
         timestamp,
         id,
