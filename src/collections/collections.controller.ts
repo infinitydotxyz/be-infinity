@@ -162,7 +162,9 @@ export class CollectionsController {
         chainId: statsData.chainId ?? ChainId.Mainnet
       }) as Collection;
 
-      if (collectionData?.metadata?.name && collectionData.metadata?.profileImage) {
+      //  ignore colls where there is no name or profile image or if it is not supported
+      if (collectionData?.metadata?.name && collectionData.metadata?.profileImage && collectionData?.isSupported) {
+        // ignore excluded collections
         if (!EXCLUDED_COLLECTIONS.includes(collectionData?.address)) {
           collectionData.stats = {
             [queryPeriod]: {
