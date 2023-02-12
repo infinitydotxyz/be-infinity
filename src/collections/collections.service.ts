@@ -4,7 +4,8 @@ import {
   CollectionMetadata,
   CollectionSaleAndOrder,
   CreationFlow,
-  CurrentCurationSnippetDoc, TopOwner
+  CurrentCurationSnippetDoc,
+  TopOwner
 } from '@infinityxyz/lib/types/core';
 import { TopOwnerDto, TopOwnersQueryDto } from '@infinityxyz/lib/types/dto/collections';
 import { ExternalNftCollectionDto, NftCollectionDto } from '@infinityxyz/lib/types/dto/collections/nfts';
@@ -18,6 +19,7 @@ import { StatsService } from 'stats/stats.service';
 import { ZoraService } from 'zora/zora.service';
 import { ONE_DAY } from '../constants';
 import { ParsedCollectionId } from './collection-id.pipe';
+import pgPromise from 'pg-promise';
 
 interface CollectionQueryOptions {
   /**
@@ -46,15 +48,33 @@ export default class CollectionsService {
   }
 
   async getRecentSalesAndOrders(collection: ParsedCollectionId): Promise<CollectionSaleAndOrder[]> {
-    const pool = this.postgresService.pool;
+    const pgp = pgPromise({
+      capSQL: true
+    });
+    const pgpDB = this.postgresService.pgpDB;
+
     const data: CollectionSaleAndOrder[] = [];
 
     const salesQuery = `SELECT txhash, log_index, token_id, token_image, sale_price_eth, sale_timestamp\
        FROM eth_nft_sales \
        WHERE collection_address = '${collection.address}' \
        ORDER BY sale_timestamp DESC LIMIT 20`;
-    const salesResult = await pool.query(salesQuery);
-    for (const sale of salesResult.rows) {
+
+    const listingsQuery = `SELECT id, token_id, token_image, price_eth, start_time_millis\
+       FROM eth_nft_orders \
+       WHERE collection_address = '${collection.address}' AND status = 'active' AND is_sell_order = true \
+       ORDER BY start_time_millis DESC LIMIT 20`;
+
+    const offersQuery = `SELECT id, token_id, token_image, price_eth, start_time_millis\
+       FROM eth_nft_orders \
+       WHERE collection_address = '${collection.address}' AND status = 'active' AND is_sell_order = false \
+       ORDER BY start_time_millis DESC LIMIT 20`;
+
+    const queries = [salesQuery, listingsQuery, offersQuery];
+    const query = pgp.helpers.concat(queries);
+    const [sales, listings, offers] = await pgpDB.multi(query);
+
+    for (const sale of sales) {
       const tokenId = sale.token_id;
       const priceEth = parseFloat(sale.sale_price_eth);
       const timestamp = Number(sale.sale_timestamp);
@@ -79,12 +99,7 @@ export default class CollectionsService {
       data.push(dataPoint);
     }
 
-    const listingsQuery = `SELECT id, token_id, token_image, price_eth, start_time_millis\
-       FROM eth_nft_orders \
-       WHERE collection_address = '${collection.address}' AND status = 'active' AND is_sell_order = true \
-       ORDER BY start_time_millis DESC LIMIT 20`;
-    const listingsResult = await pool.query(listingsQuery);
-    for (const listing of listingsResult.rows) {
+    for (const listing of listings) {
       const priceEth = parseFloat(listing.price_eth);
       const timestamp = Number(listing.start_time_millis);
       const id = listing.id;
@@ -107,12 +122,7 @@ export default class CollectionsService {
       data.push(dataPoint);
     }
 
-    const offersQuery = `SELECT id, token_id, token_image, price_eth, start_time_millis\
-       FROM eth_nft_orders \
-       WHERE collection_address = '${collection.address}' AND status = 'active' AND is_sell_order = false \
-       ORDER BY start_time_millis DESC LIMIT 20`;
-    const offersResult = await pool.query(offersQuery);
-    for (const offer of offersResult.rows) {
+    for (const offer of offers) {
       const priceEth = parseFloat(offer.price_eth);
       const timestamp = Number(offer.start_time_millis);
       const id = offer.id;
@@ -140,10 +150,6 @@ export default class CollectionsService {
 
   async getTopOwners(collection: ParsedCollectionId, query: TopOwnersQueryDto) {
     const collectionData = (await collection.ref.get()).data();
-    // if (collectionData?.state?.create?.step !== CreationFlow.Complete) {
-    //   throw new InvalidCollectionError(collection.address, collection.chainId, 'Collection is not complete');
-    // }
-
     const offset = this.paginationService.decodeCursorToNumber(query.cursor || '');
 
     let topOwners: TopOwner[] = [];
