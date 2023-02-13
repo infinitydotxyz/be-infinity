@@ -448,7 +448,7 @@ export class GenerateOrderService {
 
       for (const { tokenId, numTokens } of tokens) {
         const owner = await erc721.getOwner(tokenId);
-        const isOwner = trimLowerCase(owner) === maker;
+        const isOwner = trimLowerCase(owner) === trimLowerCase(maker);
         collectionNfts.tokens.push({
           isOwner,
           tokenId,
