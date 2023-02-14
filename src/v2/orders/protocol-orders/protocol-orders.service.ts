@@ -15,7 +15,7 @@ import { BaseOrdersService } from 'v2/orders/base-orders.service';
 import { BulkOrderQuery } from 'v2/orders/bulk-query';
 import { CursorService } from 'pagination/cursor.service';
 import { PassThrough } from 'stream';
-import { streamQueryWithRef } from 'firebase/stream-query';
+import { streamQueryPageWithRef } from 'firebase/stream-query';
 import { OrderbookSnapshotOrder } from 'v2/bulk/types';
 import { BigNumber } from 'ethers';
 import PQueue from 'p-queue';
@@ -174,7 +174,7 @@ export class ProtocolOrdersService extends BaseOrdersService {
       return queries;
     };
 
-    const concurrency = 10;
+    const concurrency = 8;
 
     const queries = splitQuery(
       BigNumber.from('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'),
@@ -199,30 +199,29 @@ export class ProtocolOrdersService extends BaseOrdersService {
       error = { value: err, didError: true };
     });
 
+    const start = Date.now();
+
     for (const query of queries) {
       queue
         .add(async () => {
           const streamOrders = async (passThough: PassThrough) => {
-            const stream = streamQueryWithRef(query);
+            const stream = streamQueryPageWithRef(query);
 
-            for await (const item of stream) {
-              const orderData: OrderbookSnapshotOrder = {
-                id: item.data.metadata.id,
-                order: item.data.rawOrder.infinityOrder,
-                source: item.data.order.sourceMarketplace,
-                sourceOrder: item.data.rawOrder.rawOrder,
-                gasUsage: item.data.rawOrder.gasUsage
-              };
-
-              const stringified = JSON.stringify(orderData);
-
-              passThough.write(`${stringified}\n`);
-
-              numOrders += 1;
-
-              if (numOrders % 100 === 0) {
-                console.log(`Snapshot - Handled ${numOrders} orders so far`);
-              }
+            for await (const page of stream) {
+              const chunk = page.map((item) => {
+                const orderData: OrderbookSnapshotOrder = {
+                  id: item.data.metadata.id,
+                  order: item.data.rawOrder.infinityOrder,
+                  source: item.data.order.sourceMarketplace,
+                  sourceOrder: item.data.rawOrder.rawOrder,
+                  gasUsage: item.data.rawOrder.gasUsage
+                };
+                return JSON.stringify(orderData);
+              });
+              passThough.write(chunk.join('\n') + '\n');
+              numOrders += chunk.length;
+              const rate = Math.floor(numOrders / ((Date.now() - start) / 1000));
+              console.log(`Snapshot - Handled ${numOrders} orders so far at ${rate} orders/sec`);
             }
           };
 
