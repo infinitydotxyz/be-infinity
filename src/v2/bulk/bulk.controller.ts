@@ -43,15 +43,9 @@ export class BulkController {
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   public takeSnapshot(@Body() body: { chainId: ChainId }) {
     const bucket: string = this._config.get('snapshotBucket');
-    const fileName = (chainId: ChainId) => {
-      const date = new Date().toISOString().split('T')[0];
-      return `chain:${chainId}:date:${date}`;
-    };
     const chainId = body.chainId ?? ChainId.Mainnet;
-    this._protocolOrdersService
-      .takeSnapshot(body.chainId ?? ChainId.Mainnet, bucket, fileName(chainId))
-      .catch((err) => {
-        console.error(err);
-      });
+    this._protocolOrdersService.takeSupportedCollectionsSnapshot(chainId, bucket).catch((err) => {
+      console.error(err);
+    });
   }
 }

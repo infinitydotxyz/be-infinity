@@ -4,7 +4,8 @@ import {
   OrderCreatedEvent,
   OrderEventKind,
   RawFirestoreOrder,
-  RawFirestoreOrderWithoutError
+  RawFirestoreOrderWithoutError,
+  SupportedCollection
 } from '@infinityxyz/lib/types/core';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
@@ -142,6 +143,159 @@ export class ProtocolOrdersService extends BaseOrdersService {
     }
 
     return order.rawOrder;
+  }
+
+  public async takeSupportedCollectionsSnapshot(chainId: ChainId, bucketName: string) {
+    const supportedCollectionsQuery = this._firebaseService.firestore
+      .collection(firestoreConstants.SUPPORTED_COLLECTIONS_COLL)
+      .where('isSupported', '==', true) as FirebaseFirestore.Query<SupportedCollection>;
+    const supportedCollectionsSnap = await supportedCollectionsQuery.get();
+    const supportedCollections = supportedCollectionsSnap.docs.map((item) => item.data());
+
+    console.log(`Taking snapshots for ${supportedCollections.length} supported collections`);
+    const getFileName = (chainId: ChainId, address: string) => {
+      const date = new Date().toISOString().split('T')[0];
+      return `chain:${chainId}:address:${address}:date:${date}`;
+    };
+    const queue = new PQueue({ concurrency: 5 });
+    for (const supportedCollection of supportedCollections) {
+      queue
+        .add(async () => {
+          const address = supportedCollection.address;
+          if (!address) {
+            console.log(`Skipping collection ${supportedCollection.name} because it has no address`);
+            return;
+          }
+          const fileName = getFileName(chainId, address);
+          console.log(`Taking snapshot for ${chainId}:${address} with file name ${fileName}`);
+          await this._takeSnap(chainId, address, bucketName, fileName);
+          console.log(`Finished taking snapshot for ${chainId}:${address}`);
+        })
+        .catch((err) => {
+          console.error(err);
+        });
+    }
+
+    console.log(`Waiting for all snapshots to complete`);
+    await queue.onIdle();
+    console.log(`All snapshots completed`);
+  }
+
+  protected async _takeSnap(chainId: ChainId, collectionAddress: string, bucketName: string, fileName: string) {
+    const file = this._firebaseService.getBucket(bucketName).file(fileName);
+
+    const startTimestamp = Date.now();
+
+    console.log(`Starting snapshot for chainId: ${chainId} address: ${collectionAddress}`);
+
+    const passthroughStream = new PassThrough();
+
+    const activeOrdersQuery = this._firebaseService.firestore
+      .collection(firestoreConstants.ORDERS_V2_COLL)
+      .where('metadata.chainId', '==', chainId)
+      .where('order.collection', '==', collectionAddress)
+      .where('order.status', '==', 'active') as FirebaseFirestore.Query<RawFirestoreOrderWithoutError>;
+
+    const splitQuery = (max: BigNumber, num: number) => {
+      const queries = [];
+      const len = max.toHexString().length;
+      for (let i = 0; i < num; i++) {
+        const start = max.mul(i).div(num).toHexString().padEnd(len, '0');
+        const end = max
+          .mul(i + 1)
+          .div(num)
+          .toHexString();
+
+        queries.push(activeOrdersQuery.where('__name__', '>=', start).where('__name__', '<=', end));
+      }
+
+      return queries;
+    };
+
+    const concurrency = 4;
+
+    const queries = splitQuery(
+      BigNumber.from('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'),
+      concurrency
+    );
+
+    const queue = new PQueue({ concurrency });
+
+    let numOrders = 0;
+    let error: { value: Error | null; didError: boolean } = { value: null, didError: false };
+
+    const uploadPromise = new Promise<void>((resolve, reject) => {
+      passthroughStream
+        .pipe(file.createWriteStream())
+        .on('finish', () => {
+          resolve();
+        })
+        .on('error', (err) => {
+          reject(err);
+        });
+    }).catch((err) => {
+      error = { value: err, didError: true };
+    });
+
+    const start = Date.now();
+
+    for (const query of queries) {
+      queue
+        .add(async () => {
+          const streamOrders = async (passThough: PassThrough) => {
+            const stream = streamQueryPageWithRef(query);
+
+            for await (const page of stream) {
+              const chunk = page.map((item) => {
+                const orderData: OrderbookSnapshotOrder = {
+                  id: item.data.metadata.id,
+                  order: item.data.rawOrder.infinityOrder,
+                  source: item.data.order.sourceMarketplace,
+                  sourceOrder: item.data.rawOrder.rawOrder,
+                  gasUsage: item.data.rawOrder.gasUsage
+                };
+                return JSON.stringify(orderData);
+              });
+              passThough.write(chunk.join('\n') + '\n');
+              numOrders += chunk.length;
+              const rate = Math.floor(numOrders / ((Date.now() - start) / 1000));
+              console.log(`Snapshot - Handled ${numOrders} orders so far at ${rate} orders/sec`);
+            }
+          };
+
+          await streamOrders(passthroughStream);
+        })
+        .catch((err) => {
+          console.error(err);
+          error = {
+            value: err as Error,
+            didError: true
+          };
+        });
+    }
+
+    await queue.onIdle();
+    passthroughStream.end();
+
+    await uploadPromise;
+
+    if (error.didError) {
+      console.error(`Failed to take snapshot for chainId: ${chainId}`, error.value);
+      throw error.value;
+    }
+
+    const metadata = {
+      bucket: bucketName,
+      file: fileName,
+      chainId: chainId,
+      collection: collectionAddress,
+      numOrders: numOrders,
+      timestamp: startTimestamp
+    };
+
+    await this._firebaseService.firestore.collection('orderSnapshots').doc(fileName).set(metadata);
+
+    console.log(`Snapshot - Uploaded ${numOrders} orders to ${fileName}`);
   }
 
   public async takeSnapshot(chainId: ChainId, bucketName: string, fileName: string) {
