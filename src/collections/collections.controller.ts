@@ -3,7 +3,8 @@ import {
   Collection,
   CollectionHistoricalSale,
   CollectionOrder,
-  CollectionPeriodStatsContent
+  CollectionPeriodStatsContent,
+  CollectionSaleAndOrder
 } from '@infinityxyz/lib/types/core';
 import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
 import {
@@ -161,7 +162,9 @@ export class CollectionsController {
         chainId: statsData.chainId ?? ChainId.Mainnet
       }) as Collection;
 
-      if (collectionData?.metadata?.name && collectionData.metadata?.profileImage) {
+      //  ignore colls where there is no name or profile image or if it is not supported
+      if (collectionData?.metadata?.name && collectionData.metadata?.profileImage && collectionData?.isSupported) {
+        // ignore excluded collections
         if (!EXCLUDED_COLLECTIONS.includes(collectionData?.address)) {
           collectionData.stats = {
             [queryPeriod]: {
@@ -271,6 +274,22 @@ export class CollectionsController {
     @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
   ): Promise<CollectionOrder[]> {
     return await this.statsService.getCollectionOrders(collection);
+  }
+
+  @Get('/:id/salesorders')
+  @ApiOperation({
+    tags: [ApiTag.Collection, ApiTag.Orders, ApiTag.Sales],
+    description: 'Get recent sales and orders for a single collection'
+  })
+  @ApiParamCollectionId()
+  @ApiOkResponse({ description: ResponseDescription.Success })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  async getCollectionRecentSalesAnOrders(
+    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
+  ): Promise<CollectionSaleAndOrder[]> {
+    return await this.collectionsService.getRecentSalesAndOrders(collection);
   }
 
   @Get('/:id/stats')

@@ -2,6 +2,7 @@ import {
   ChainId,
   Collection,
   CollectionMetadata,
+  CollectionSaleAndOrder,
   CreationFlow,
   CurrentCurationSnippetDoc,
   TopOwner
@@ -12,12 +13,13 @@ import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
+import { PostgresService } from 'postgres/postgres.service';
 import { ReservoirService } from 'reservoir/reservoir.service';
 import { StatsService } from 'stats/stats.service';
 import { ZoraService } from 'zora/zora.service';
 import { ONE_DAY } from '../constants';
 import { ParsedCollectionId } from './collection-id.pipe';
-import { CurationService } from './curation/curation.service';
+import pgPromise from 'pg-promise';
 
 interface CollectionQueryOptions {
   /**
@@ -35,8 +37,8 @@ export default class CollectionsService {
     private zoraService: ZoraService,
     private reservoirService: ReservoirService,
     private paginationService: CursorService,
-    private curationService: CurationService,
-    private statsService: StatsService
+    private statsService: StatsService,
+    private postgresService: PostgresService
   ) {}
 
   private get defaultCollectionQueryOptions(): CollectionQueryOptions {
@@ -45,12 +47,109 @@ export default class CollectionsService {
     };
   }
 
+  async getRecentSalesAndOrders(collection: ParsedCollectionId): Promise<CollectionSaleAndOrder[]> {
+    const pgp = pgPromise({
+      capSQL: true
+    });
+    const pgpDB = this.postgresService.pgpDB;
+
+    const data: CollectionSaleAndOrder[] = [];
+
+    const salesQuery = `SELECT txhash, log_index, token_id, token_image, sale_price_eth, sale_timestamp\
+       FROM eth_nft_sales \
+       WHERE collection_address = '${collection.address}' \
+       ORDER BY sale_timestamp DESC LIMIT 20`;
+
+    const listingsQuery = `SELECT id, token_id, token_image, price_eth, start_time_millis\
+       FROM eth_nft_orders \
+       WHERE collection_address = '${collection.address}' AND status = 'active' AND is_sell_order = true \
+       ORDER BY start_time_millis DESC LIMIT 20`;
+
+    const offersQuery = `SELECT id, token_id, token_image, price_eth, start_time_millis\
+       FROM eth_nft_orders \
+       WHERE collection_address = '${collection.address}' AND status = 'active' AND is_sell_order = false \
+       ORDER BY start_time_millis DESC LIMIT 20`;
+
+    const queries = [salesQuery, listingsQuery, offersQuery];
+    const query = pgp.helpers.concat(queries);
+    const [sales, listings, offers] = await pgpDB.multi(query);
+
+    for (const sale of sales) {
+      const tokenId = sale.token_id;
+      const priceEth = parseFloat(sale.sale_price_eth);
+      const timestamp = Number(sale.sale_timestamp);
+      const tokenImage = sale.token_image;
+      const log_index = Number(sale.log_index);
+      const txHash = sale.txhash;
+      const id = `${txHash}-${log_index}`;
+
+      if (!priceEth || !timestamp || !tokenId || !tokenImage) {
+        continue;
+      }
+
+      const dataPoint: CollectionSaleAndOrder = {
+        dataType: 'Sale',
+        priceEth,
+        timestamp,
+        tokenId,
+        tokenImage,
+        id
+      };
+
+      data.push(dataPoint);
+    }
+
+    for (const listing of listings) {
+      const priceEth = parseFloat(listing.price_eth);
+      const timestamp = Number(listing.start_time_millis);
+      const id = listing.id;
+      const tokenId = listing.token_id;
+      const tokenImage = listing.token_image;
+
+      if (!priceEth || !timestamp) {
+        continue;
+      }
+
+      const dataPoint: CollectionSaleAndOrder = {
+        dataType: 'Listing',
+        priceEth,
+        timestamp,
+        id,
+        tokenId,
+        tokenImage
+      };
+
+      data.push(dataPoint);
+    }
+
+    for (const offer of offers) {
+      const priceEth = parseFloat(offer.price_eth);
+      const timestamp = Number(offer.start_time_millis);
+      const id = offer.id;
+      const tokenId = offer.token_id;
+      const tokenImage = offer.token_image;
+
+      if (!priceEth || !timestamp) {
+        continue;
+      }
+
+      const dataPoint: CollectionSaleAndOrder = {
+        dataType: 'Offer',
+        priceEth,
+        timestamp,
+        id,
+        tokenId,
+        tokenImage
+      };
+
+      data.push(dataPoint);
+    }
+
+    return data;
+  }
+
   async getTopOwners(collection: ParsedCollectionId, query: TopOwnersQueryDto) {
     const collectionData = (await collection.ref.get()).data();
-    // if (collectionData?.state?.create?.step !== CreationFlow.Complete) {
-    //   throw new InvalidCollectionError(collection.address, collection.chainId, 'Collection is not complete');
-    // }
-
     const offset = this.paginationService.decodeCursorToNumber(query.cursor || '');
 
     let topOwners: TopOwner[] = [];
