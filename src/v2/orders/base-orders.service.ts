@@ -128,12 +128,12 @@ export class BaseOrdersService extends NonceService {
             updatedAt: Date.now(),
             isSellOrder: item.isSellOrder,
             createdAt: Date.now(),
-            source: 'infinity',
+            source: 'flow',
             rawOrder: item.getSignedOrder(),
             infinityOrderId: orderId,
             infinityOrder: item.getSignedOrder(),
             gasUsage: '0',
-            isDynamic: item.startPrice === item.endPrice
+            isDynamic: item.startPrice !== item.endPrice
           }
         }
       };
