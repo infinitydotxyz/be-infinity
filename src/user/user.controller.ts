@@ -165,15 +165,13 @@ export class UserController {
   @ApiOkResponse({ description: ResponseDescription.Success, type: NftArrayDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 2 }))
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 }))
   async getNfts(
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
     @Query() filters: UserNftsQueryDto
   ): Promise<ExternalNftArrayDto> {
     const nfts = await this.userService.getNfts(user, filters);
-
     const externalNfts = this.nftsService.isSupported(nfts.data);
-
     return {
       ...nfts,
       data: externalNfts
