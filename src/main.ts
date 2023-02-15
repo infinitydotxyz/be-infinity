@@ -9,8 +9,11 @@ import { HttpExceptionFilter } from './http-exception.filter';
 // This is a hack to make Multer available in the Express namespace
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { API_KEY_HEADER, API_SECRET_HEADER } from 'auth/auth.constants';
+import { SupportedCollectionsProvider } from 'common/providers/supported-collections-provider';
+import { FirebaseService } from 'firebase/firebase.service';
+import { NftsService } from 'collections/nfts/nfts.service';
 
-function setup(app: INestApplication) {
+async function setup(app: INestApplication) {
   app.enableCors({
     origin: '*', // ORIGIN, // todo: use '*' for testing
     optionsSuccessStatus: 200
@@ -24,6 +27,13 @@ function setup(app: INestApplication) {
       transform: true
     })
   );
+
+  const firebaseService = app.get(FirebaseService);
+  const supportedCollections = new SupportedCollectionsProvider(firebaseService.firestore);
+  await supportedCollections.init();
+
+  const nftService = app.get(NftsService);
+  nftService.setSupportedCollections(supportedCollections);
 
   if (process.env.INFINITY_NODE_ENV === 'dev') {
     setupSwagger(app, 'docs');
@@ -80,7 +90,7 @@ function setupSwagger(app: INestApplication, path: string) {
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  setup(app);
+  await setup(app);
   await app.listen(process.env.PORT || 9090);
 }
 

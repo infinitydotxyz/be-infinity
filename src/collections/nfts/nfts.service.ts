@@ -14,6 +14,7 @@ import { firestoreConstants, getCollectionDocId, getSearchFriendlyString } from 
 import { Injectable } from '@nestjs/common';
 import { BackfillService } from 'backfill/backfill.service';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
+import { SupportedCollectionsProvider } from 'common/providers/supported-collections-provider';
 import { EthereumService } from 'ethereum/ethereum.service';
 import { firestore } from 'firebase-admin';
 import { FirebaseService } from 'firebase/firebase.service';
@@ -23,6 +24,7 @@ import { getNftActivity, getNftSocialActivity } from 'utils/activity';
 
 @Injectable()
 export class NftsService {
+  private _supportedCollections: SupportedCollectionsProvider;
   constructor(
     private firebaseService: FirebaseService,
     private paginationService: CursorService,
@@ -30,6 +32,10 @@ export class NftsService {
     private backfillService: BackfillService,
     private postgresService: PostgresService
   ) {}
+
+  setSupportedCollections(supportedCollections: SupportedCollectionsProvider): void {
+    this._supportedCollections = supportedCollections;
+  }
 
   async getNft(nftQuery: NftQueryDto): Promise<NftDto | undefined> {
     const [nft] = await this.getNfts([
@@ -77,27 +83,23 @@ export class NftsService {
   }
 
   isSupported(nfts: NftDto[]) {
-    // const { getCollection } = await this.collectionsService.getCollectionsByAddress(
-    //   nfts.map((nft) => ({ address: nft.collectionAddress ?? '', chainId: nft.chainId }))
-    // );
-
-    const externalNfts: ExternalNftDto[] = nfts.map((nft) => {
-      // const collection = getCollection({ address: nft.collectionAddress ?? '', chainId: nft.chainId });
-      // const isSupported = collection?.state?.create?.step === CreationFlow.Complete;
-      const isSupported = true;
-      const externalNft: ExternalNftDto = {
-        ...nft,
-        isSupported
-      };
-      return externalNft;
-    });
+    const externalNfts: ExternalNftDto[] = [];
+    for (const nft of nfts) {
+      const isSupported = this._supportedCollections.has(nft.collectionAddress ?? '');
+      if (isSupported) {
+        const externalNft: ExternalNftDto = {
+          ...nft,
+          isSupported
+        };
+        externalNfts.push(externalNft);
+      }
+    }
 
     return externalNfts;
   }
 
   public async refreshMetaData(nft: { address: string; chainId: ChainId; tokenId: string }): Promise<NftDto[]> {
     const result = await this.backfillService.backfillNfts([nft]);
-
     return result;
   }
 
