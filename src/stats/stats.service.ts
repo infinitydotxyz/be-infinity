@@ -264,12 +264,19 @@ export class StatsService {
   async getCollAllStats(collection: ParsedCollectionId): Promise<Partial<CollectionStatsDto>> {
     const period = 'all';
     const statsQuery = collection.ref.collection(this.statsGroup).doc(period);
-    const primary = (await statsQuery.get()).data() as CollectionStats;
+
+    const trendingStatsRef = collection.ref.firestore.doc(
+      `/trendingCollections/bySalesVolume/daily/${collection.ref.id}`
+    );
+
+    const [primarySnap, trendingStatsSnap] = await this.firebaseService.firestore.getAll(statsQuery, trendingStatsRef);
+    const primary = (primarySnap.data() ?? {}) as CollectionStats;
+    const trendingStats = trendingStatsSnap.data() ?? {};
 
     let numSales = primary?.numSales ?? NaN;
     let numNfts = primary?.numNfts ?? NaN;
     let numOwners = primary?.numOwners ?? NaN;
-    let floorPrice = primary?.floorPrice ?? NaN;
+    let floorPrice = trendingStats?.floorPrice ?? primary?.floorPrice ?? NaN;
     let volume = primary?.volume ?? NaN;
 
     const discordFollowers = primary?.discordFollowers ?? NaN;
