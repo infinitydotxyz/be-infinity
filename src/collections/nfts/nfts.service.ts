@@ -85,7 +85,8 @@ export class NftsService {
   isSupported(nfts: NftDto[]) {
     const externalNfts: ExternalNftDto[] = [];
     for (const nft of nfts) {
-      const isSupported = this._supportedCollections.has(nft.collectionAddress ?? '');
+      // const isSupported = this._supportedCollections.has(nft.collectionAddress ?? '');
+      const isSupported = true;
       if (isSupported) {
         const externalNft: ExternalNftDto = {
           ...nft,
