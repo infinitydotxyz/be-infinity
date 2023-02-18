@@ -10,7 +10,7 @@ export class RewardsController {
 
   @Get()
   @ApiOperation({ summary: 'Get rewards config with current stats' })
-  @ApiOkResponse({ description: ResponseDescription.Success }) // TODO add type
+  @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   async config() {
     const rewards = await this.rewardsService.getConfig(ChainId.Mainnet);
