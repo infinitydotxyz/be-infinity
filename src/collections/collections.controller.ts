@@ -24,7 +24,6 @@ import {
   ApiOperation
 } from '@nestjs/swagger';
 
-// todo: move to lib
 type CollectStatsQuery = {
   list: string;
 };

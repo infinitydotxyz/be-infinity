@@ -12,6 +12,7 @@ import { API_KEY_HEADER, API_SECRET_HEADER } from 'auth/auth.constants';
 import { SupportedCollectionsProvider } from 'common/providers/supported-collections-provider';
 import { FirebaseService } from 'firebase/firebase.service';
 import { NftsService } from 'collections/nfts/nfts.service';
+import SetsService from 'sets/sets.service';
 
 async function setup(app: INestApplication) {
   app.enableCors({
@@ -34,6 +35,9 @@ async function setup(app: INestApplication) {
 
   const nftService = app.get(NftsService);
   nftService.setSupportedCollections(supportedCollections);
+
+  const setsService = app.get(SetsService);
+  setsService.setSupportedCollections(supportedCollections);
 
   if (process.env.INFINITY_NODE_ENV === 'dev') {
     setupSwagger(app, 'docs');
