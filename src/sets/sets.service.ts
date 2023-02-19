@@ -37,6 +37,10 @@ export default class SetsService {
 
         const collectionId = `${chainId}:${trimLowerCase(collectionAddress)}`;
         const isSupported = this._supportedCollections.has(collectionId);
+        // ignore ENS
+        if (collectionAddress.toLowerCase() === '0x57f1887a8bf19b14fc0df6fd9b2acc9af147ea85') {
+          continue;
+        }
 
         if (
           !isSupported ||
@@ -56,7 +60,8 @@ export default class SetsService {
           collectionName,
           tokenImage,
           priceEth,
-          isSellOrder
+          isSellOrder,
+          collectionSlug: ''
         };
 
         data.push(dataPoint);
@@ -86,6 +91,7 @@ export default class SetsService {
       for (const tokenSnap of tokensSnap) {
         const tokenDoc = tokenSnap.data() as Erc721Token;
         const collectionAddress = tokenDoc.collectionAddress;
+        const collectionSlug = tokenDoc.collectionSlug;
         const tokenId = tokenDoc.tokenId;
 
         const mapKey = `${chainId}:${collectionAddress}:${tokenId}`;
@@ -105,6 +111,7 @@ export default class SetsService {
           dataPoint.tokenImage = imageUrl;
           dataPoint.lastPriceEth = lastSalePriceEth;
           dataPoint.hasBlueCheck = hasBlueCheck;
+          dataPoint.collectionSlug = collectionSlug ?? '';
         }
       }
 
