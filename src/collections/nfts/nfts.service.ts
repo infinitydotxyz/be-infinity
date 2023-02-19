@@ -359,7 +359,7 @@ export class NftsService {
     for (const row of ordersResult.rows) {
       const priceEth = parseFloat(row.price_eth);
       const timestamp = Number(row.start_time_millis);
-      const isSellOrder = Boolean(row.is_sell_order);
+      const isSellOrder = row.is_sell_order;
 
       if (!priceEth || !timestamp) {
         continue;
