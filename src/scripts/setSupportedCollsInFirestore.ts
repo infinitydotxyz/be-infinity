@@ -114,7 +114,7 @@ export const pushSupportedCollFlagToMainColls = async () => {
   console.log('Pushing supported flag to collections...');
 
   const supportedCollsRef = firebaseService.firestore.collection(firestoreConstants.SUPPORTED_COLLECTIONS_COLL);
-  const query = supportedCollsRef.limit(1000); // future todo: remove limit once we support more colls
+  const query = supportedCollsRef.limit(1000); // future-todo: remove limit once we support more colls
   const querySnapshot = await query.get();
   const supportedColls = querySnapshot.docs.map((doc) => doc.data() as SupportedCollection);
 
@@ -143,7 +143,7 @@ export const pushMetadataToSupportedColls = async () => {
 
   console.log('Pushing metadata to supported collections...');
 
-  const query = firebaseService.firestore.collection(firestoreConstants.SUPPORTED_COLLECTIONS_COLL).limit(1000); // future todo: remove limit once we support more colls
+  const query = firebaseService.firestore.collection(firestoreConstants.SUPPORTED_COLLECTIONS_COLL).limit(1000); // future-todo: remove limit once we support more colls
   const querySnapshot = await query.get();
   const supportedColls = querySnapshot.docs.map((doc) => doc.data() as SupportedCollection);
 

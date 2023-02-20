@@ -37,6 +37,7 @@ import { CollectionsModule as V2CollectionsModule } from './v2/collections/colle
 import { GenerateModule } from './v2/generate/generate.module';
 import { BulkModule } from './v2/bulk/bulk.module';
 import { PostgresModule } from 'postgres/postgres.module';
+import { SetsModule } from 'sets/sets.module';
 
 @Module({
   imports: [
@@ -70,6 +71,7 @@ import { PostgresModule } from 'postgres/postgres.module';
       storage: undefined
     }),
     ApiUserModule,
+    SetsModule,
     SalesModule,
     RewardsModule,
     RafflesModule,

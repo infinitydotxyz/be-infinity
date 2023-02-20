@@ -18,7 +18,7 @@ export class UsersController {
     description: 'Get orders for a user',
     tags: [ApiTag.Orders, ApiTag.User]
   })
-  @ApiOkResponse({ description: ResponseDescription.Success }) // TODO add type
+  @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   public async getUserOrders(
