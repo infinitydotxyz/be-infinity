@@ -1,4 +1,5 @@
 import {
+  BaseCollection,
   ChainId,
   Collection,
   CollectionHistoricalSale,
@@ -259,6 +260,30 @@ export class StatsService {
     }
 
     return data;
+  }
+
+  async getCollFloorAndCreator(collection: ParsedCollectionId): Promise<{ floorPrice: number; creator: string }> {
+    const period = 'all';
+    const statsQuery = collection.ref.collection(this.statsGroup).doc(period);
+
+    const trendingStatsRef = collection.ref.firestore.doc(
+      `/trendingCollections/bySalesVolume/daily/${collection.ref.id}`
+    );
+
+    const collRef = collection.ref.firestore.doc(`/collections/${collection.ref.id}`);
+
+    const [primarySnap, trendingStatsSnap, collSnap] = await this.firebaseService.firestore.getAll(statsQuery, trendingStatsRef, collRef);
+    const primary = (primarySnap.data() ?? {}) as CollectionStats;
+    const trendingStats = trendingStatsSnap.data() ?? {};
+    const collData = (collSnap.data() ?? {}) as BaseCollection;
+
+    const floorPrice = trendingStats?.floorPrice ?? primary?.floorPrice ?? NaN;
+    const creator = collData?.deployer ?? '';
+
+    return {
+      floorPrice,
+      creator
+    }
   }
 
   async getCollAllStats(collection: ParsedCollectionId): Promise<Partial<CollectionStatsDto>> {

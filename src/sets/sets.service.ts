@@ -93,6 +93,7 @@ export default class SetsService {
         const collectionAddress = tokenDoc.collectionAddress;
         const collectionSlug = tokenDoc.collectionSlug;
         const tokenId = tokenDoc.tokenId;
+        const mintPrice = tokenDoc.mintPrice;
 
         const mapKey = `${chainId}:${collectionAddress}:${tokenId}`;
         const dataPoint = dataPointMap.get(mapKey);
@@ -112,6 +113,7 @@ export default class SetsService {
           dataPoint.lastPriceEth = lastSalePriceEth;
           dataPoint.hasBlueCheck = hasBlueCheck;
           dataPoint.collectionSlug = collectionSlug ?? '';
+          dataPoint.mintPriceEth = mintPrice;
         }
       }
 
