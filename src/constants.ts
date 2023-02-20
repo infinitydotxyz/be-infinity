@@ -4,7 +4,6 @@ import { AUTH_MESSAGE_HEADER, AUTH_NONCE_HEADER, AUTH_SIGNATURE_HEADER } from 'a
 import { resolve } from 'path';
 import { readFileSync } from 'fs';
 import { devOptionalEnvVariables, EnvironmentVariables } from 'types/environment-variables.interface';
-import {} from '@reservoir0x/reservoir-kit-client';
 
 export const env = process.env.INFINITY_NODE_ENV || Env.Prod;
 export const envFileName = env === Env.Dev ? '.dev.env' : '.env';
