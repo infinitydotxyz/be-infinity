@@ -98,10 +98,10 @@ export default class SetsService {
         const dataPoint = dataPointMap.get(mapKey);
 
         const imageUrl =
-          tokenDoc?.metadata?.image ||
           tokenDoc?.image?.url ||
           tokenDoc?.alchemyCachedImage ||
           dataPoint?.tokenImage ||
+          tokenDoc?.metadata?.image ||
           tokenDoc?.image?.originalUrl ||
           tokenDoc?.zoraImage?.url ||
           '';
