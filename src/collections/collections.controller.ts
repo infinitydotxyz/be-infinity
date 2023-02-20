@@ -310,6 +310,24 @@ export class CollectionsController {
     return response;
   }
 
+  @Get('/:id/floorandcreator')
+  @ApiOperation({
+    tags: [ApiTag.Collection, ApiTag.Stats],
+    description: 'Get historical stats for a single collection'
+  })
+  @ApiParamCollectionId()
+  @ApiOkResponse({ description: ResponseDescription.Success })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 10 * 60 }))
+  async getCollectionFloorAndCreator(
+    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
+  ): Promise<{floorPrice: number, creator: string}> {
+    const response = await this.statsService.getCollFloorAndCreator(collection);
+    return response;
+  }
+
   @Get('/:id/mentions')
   @ApiOperation({
     tags: [ApiTag.Collection],

@@ -42,7 +42,7 @@ export class BaseOrdersService extends NonceService {
         throw new Error('Complex order types are not yet supported');
       }
 
-      const isSigValid = order.isSigValid();
+      const isSigValid = await order.isSigValid();
       if (!isSigValid) {
         throw new Error('Invalid signature');
       }
