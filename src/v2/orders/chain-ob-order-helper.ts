@@ -15,9 +15,9 @@ export class ChainOBOrderHelper extends Flow.Order {
     }
   }
 
-  isSigValid() {
+  async isSigValid() {
     try {
-      this._verifySig(this.sig);
+      await this.checkSignature();
       return true;
     } catch (err) {
       return false;
