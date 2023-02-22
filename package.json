@@ -59,7 +59,8 @@
     "pg-promise": "^11.2.0",
     "pg-query-stream": "^4.3.0",
     "qs": "^6.10.3",
-    "rxjs": "^7.5.5"
+    "rxjs": "^7.5.5",
+    "twitter-api-v2": "^1.14.1"
   },
   "devDependencies": {
     "@nestjs/cli": "^9.1.3",

@@ -57,6 +57,7 @@ export const validateAndTransformEnvVariables = (env: Record<string, string>) =>
   const firebaseServiceAccount = loadJsonFile<object>(firebaseServiceAccountName);
 
   const envVariables: EnvironmentVariables = {
+    API_BASE: env.API_BASE,
     twitterBearerToken: env.twitterBearerToken,
     ALCHEMY_API_KEY: env.ALCHEMY_API_KEY,
     mnemonicApiKey: env.mnemonicApiKey,
@@ -75,6 +76,8 @@ export const validateAndTransformEnvVariables = (env: Record<string, string>) =>
     PG_PASS: env.PG_PASS,
     PG_HOST: env.PG_HOST,
     PG_PORT: env.PG_PORT,
+    TWITTER_CLIENT_ID: env.TWITTER_CLIENT_ID,
+    TWITTER_CLIENT_SECRET: env.TWITTER_CLIENT_SECRET,
     snapshotBucket:
       (firebaseServiceAccount as any).project_id === 'nftc-dev' ? 'orderbook-snapshots' : 'infinity-orderbook-snapshots'
   };

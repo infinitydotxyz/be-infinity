@@ -38,6 +38,7 @@ import { GenerateModule } from './v2/generate/generate.module';
 import { BulkModule } from './v2/bulk/bulk.module';
 import { PostgresModule } from 'postgres/postgres.module';
 import { SetsModule } from 'sets/sets.module';
+import { FlurModule } from './v2/flur/flur.module';
 
 @Module({
   imports: [
@@ -82,7 +83,8 @@ import { SetsModule } from 'sets/sets.module';
     V2UsersModule,
     V2CollectionsModule,
     GenerateModule,
-    BulkModule
+    BulkModule,
+    FlurModule
   ],
   providers: [
     {

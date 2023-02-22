@@ -1,7 +1,10 @@
 import { Env } from '@infinityxyz/lib/utils';
 
 export interface EnvironmentVariables {
+  API_BASE: string;
   twitterBearerToken: string;
+  TWITTER_CLIENT_ID: string;
+  TWITTER_CLIENT_SECRET: string;
   ALCHEMY_API_KEY: string;
   mnemonicApiKey: string;
   alchemyJsonRpcEthMainnet: string;
