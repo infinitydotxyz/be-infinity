@@ -3,6 +3,7 @@ import { Type } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from 'app.module';
+import { buildBlurBuyersFromCsv } from 'scripts/blurBuyers';
 import {
   pushMetadataToSupportedColls,
   pushSupportedCollFlagToMainColls,
@@ -26,7 +27,8 @@ export const run = async () => {
   app = await NestFactory.create<NestExpressApplication>(AppModule);
   // await setSupportedCollsInFirestore();
   // await pushMetadataToSupportedColls();
-  await pushSupportedCollFlagToMainColls();
+  // await pushSupportedCollFlagToMainColls();
+  buildBlurBuyersFromCsv();
 };
 
 void run();
