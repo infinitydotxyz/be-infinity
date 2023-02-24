@@ -11,7 +11,6 @@ export const buildBlurBuyersFromCsv = () => {
     const csvRows = csvData.split('\n').map(r => r.split(','));
     const buyerTotals = new Map<string, number>();
     for (const row of csvRows) {
-        // console.log(row);
         const buyer = trimLowerCase(row[1]);
         const isValidAddress = ethers.utils.isAddress(buyer);
         if (!isValidAddress) {
@@ -20,6 +19,10 @@ export const buildBlurBuyersFromCsv = () => {
         }
 
         const amount = parseFloat(row[2]);
+        if (isNaN(amount)) {
+            console.error(`Invalid amount: ${row[2]}`);
+            continue;
+        }
         const currentTotal = buyerTotals.get(buyer) || 0;
         buyerTotals.set(buyer, currentTotal + amount);
     }
