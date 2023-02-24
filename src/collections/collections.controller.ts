@@ -323,7 +323,7 @@ export class CollectionsController {
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 10 * 60 }))
   async getCollectionFloorAndCreator(
     @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
-  ): Promise<{floorPrice: number, creator: string}> {
+  ): Promise<{ floorPrice: number; creator: string }> {
     const response = await this.statsService.getCollFloorAndCreator(collection);
     return response;
   }

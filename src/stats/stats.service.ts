@@ -272,7 +272,11 @@ export class StatsService {
 
     const collRef = collection.ref.firestore.doc(`/collections/${collection.ref.id}`);
 
-    const [primarySnap, trendingStatsSnap, collSnap] = await this.firebaseService.firestore.getAll(statsQuery, trendingStatsRef, collRef);
+    const [primarySnap, trendingStatsSnap, collSnap] = await this.firebaseService.firestore.getAll(
+      statsQuery,
+      trendingStatsRef,
+      collRef
+    );
     const primary = (primarySnap.data() ?? {}) as CollectionStats;
     const trendingStats = trendingStatsSnap.data() ?? {};
     const collData = (collSnap.data() ?? {}) as BaseCollection;
@@ -283,7 +287,7 @@ export class StatsService {
     return {
       floorPrice,
       creator
-    }
+    };
   }
 
   async getCollAllStats(collection: ParsedCollectionId): Promise<Partial<CollectionStatsDto>> {
