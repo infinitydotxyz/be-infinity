@@ -80,6 +80,7 @@ export class AuthGuard implements CanActivate {
 
       const result = await this.apiUserService.verifyAndGetUserConfig(apiKey, apiSecret);
       if (!result.isValid) {
+        console.log(`User: ${apiKey} - invalid ID ${apiKey} PATH ${req.path}`);
         throw new AuthException(result.reason);
       }
 
