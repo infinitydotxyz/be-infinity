@@ -24,7 +24,7 @@ export class BulkController {
     description: 'Get bulk raw orders',
     tags: [ApiTag.Orders]
   })
-  @Throttle(10, 1)
+  @Throttle(50, 1)
   @Auth(SiteRole.Guest, ApiRole.User)
   @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
