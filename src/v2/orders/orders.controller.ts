@@ -29,10 +29,16 @@ export class OrdersController {
     try {
       const chainId = body.chainId;
 
-      /**
-       * handles normalizing the order data (addresses, nfts)
-       */
-      const orders = body.orders.map((item) => new ChainOBOrderHelper(chainId, instanceToPlain(item) as ChainOBOrder));
+      const orders: ChainOBOrderHelper[] = [];
+      for (const item of body.orders) {
+        try {
+          const order = new ChainOBOrderHelper(chainId, instanceToPlain(item) as ChainOBOrder);
+          orders.push(order);
+        } catch (err) {
+          throw new BadRequestException('Invalid order');
+        }
+      }
+
       const result = await this._ordersService.createOrders(chainId, orders);
       return result;
     } catch (err) {
