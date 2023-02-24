@@ -85,10 +85,16 @@ export class AuthGuard implements CanActivate {
 
       const userRole = result.user.config.role;
       if (!userRole) {
+        console.log(
+          `User: ${result.user.name}:${result.user.config.role} - not authorized for ${minRole} ID ${result.user.id} PATH ${req.path}`
+        );
         throw new AuthException('User does not have the required role');
       }
 
       if (!hasApiRole(userRole, minRole)) {
+        console.log(
+          `User: ${result.user.name}:${result.user.config.role} - not authorized for ${minRole} ID ${result.user.id} PATH ${req.path}`
+        );
         throw new AuthException('User does not have the required role');
       }
       req.apiUser = result.user;
