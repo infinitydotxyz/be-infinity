@@ -20,6 +20,8 @@ export interface EnvironmentVariables {
   PG_PASS: string;
   PG_DB_NAME: string;
   snapshotBucket: string;
+  MATCHING_ENGINE_API_URL: string;
+  MATCHING_ENGINE_API_KEY: string;
 }
 
 export const devOptionalEnvVariables: (keyof EnvironmentVariables)[] = ['REDIS_URL'];

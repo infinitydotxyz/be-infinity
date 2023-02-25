@@ -38,6 +38,7 @@ import { GenerateModule } from './v2/generate/generate.module';
 import { BulkModule } from './v2/bulk/bulk.module';
 import { PostgresModule } from 'postgres/postgres.module';
 import { SetsModule } from 'sets/sets.module';
+import { MatchingEngineService } from './v2/matching-engine/matching-engine.service';
 
 @Module({
   imports: [
@@ -88,7 +89,8 @@ import { SetsModule } from 'sets/sets.module';
     {
       provide: APP_GUARD,
       useClass: ApiKeyThrottlerGuard
-    }
+    },
+    MatchingEngineService
   ],
   controllers: [AppController]
 })

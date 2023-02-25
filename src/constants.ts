@@ -76,7 +76,11 @@ export const validateAndTransformEnvVariables = (env: Record<string, string>) =>
     PG_HOST: env.PG_HOST,
     PG_PORT: env.PG_PORT,
     snapshotBucket:
-      (firebaseServiceAccount as any).project_id === 'nftc-dev' ? 'orderbook-snapshots' : 'infinity-orderbook-snapshots'
+      (firebaseServiceAccount as any).project_id === 'nftc-dev'
+        ? 'orderbook-snapshots'
+        : 'infinity-orderbook-snapshots',
+    MATCHING_ENGINE_API_URL: env.MATCHING_ENGINE_API_URL,
+    MATCHING_ENGINE_API_KEY: env.MATCHING_ENGINE_API_KEY
   };
 
   for (const key of Object.keys(envVariables) as (keyof EnvironmentVariables)[]) {
