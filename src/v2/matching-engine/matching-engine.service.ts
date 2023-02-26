@@ -1,3 +1,4 @@
+import { ExecutionStatus } from '@infinityxyz/lib/types/core';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import got, { Got } from 'got/dist/source';
@@ -18,19 +19,20 @@ export class MatchingEngineService {
       },
       throwHttpErrors: false,
       cache: false,
-      timeout: 10_000
+      timeout: 10_000,
+      responseType: 'json'
     });
   }
 
-  async getOrderStatuses(orderIds: string[]) {
-    const response = await this.client.get(`orders`, {
+  async getExecutionStatuses(orderIds: string[]): Promise<ExecutionStatus[]> {
+    const response = await this.client.post(`matching/orders`, {
       json: {
         orders: orderIds
       }
     });
 
     if (response.statusCode === 200) {
-      return (response.body as any).data;
+      return (response.body as any).data as ExecutionStatus[];
     } else {
       console.error(
         `Failed to get order statuses from matching engine: ${response.statusCode} - ${response.requestUrl}`
@@ -39,125 +41,3 @@ export class MatchingEngineService {
     }
   }
 }
-
-export interface NotFoundOrder {
-  id: string;
-  orderStatus: 'not-found';
-}
-
-export interface ActiveOrderPendingMatch {
-  id: string;
-  orderStatus: 'active';
-  matchStatus: 'pending';
-}
-
-export interface MatchOperationMetadata {
-  validMatches: number;
-  matchLimit: number;
-  matchIds: string[];
-  side: 'proposer' | 'recipient';
-  timing: {
-    proposerInitiatedAt: number;
-    matchedAt: number;
-    matchDuration: number;
-  };
-}
-
-export interface Block {
-  timestamp: number;
-  number: number;
-  baseFeePerGas: string;
-}
-
-export interface BlockWithMaxFeePerGas extends Block {
-  maxFeePerGas: string;
-}
-
-export interface BlockWithGas extends BlockWithMaxFeePerGas {
-  maxPriorityFeePerGas: string;
-}
-
-export interface BaseExecutionOrder {
-  matchId: string;
-  matchedOrderId: string;
-  block: BlockWithGas;
-}
-
-export interface PendingExecutionOrder extends BaseExecutionOrder {
-  status: 'pending';
-  timing: {
-    initiatedAt: number;
-  };
-}
-
-export interface InexecutableExecutionOrder extends BaseExecutionOrder {
-  status: 'inexecutable';
-  reason: string;
-  timing: {
-    initiatedAt: number;
-  };
-}
-
-export interface NotIncludedExecutionOrder extends BaseExecutionOrder {
-  status: 'not-included';
-  effectiveGasPrice: string;
-  cumulativeGasUsed: string;
-  gasUsed: string;
-  timing: {
-    initiatedAt: number;
-    receiptReceivedAt: number;
-  };
-}
-
-export interface ExecutedExecutionOrder extends BaseExecutionOrder {
-  status: 'executed';
-  effectiveGasPrice: string;
-  cumulativeGasUsed: string;
-  gasUsed: string;
-  txHash: string;
-  timing: {
-    initiatedAt: number;
-    blockTimestamp: number;
-    receiptReceivedAt: number;
-  };
-}
-
-export type ExecutionOrder =
-  | PendingExecutionOrder
-  | InexecutableExecutionOrder
-  | NotIncludedExecutionOrder
-  | ExecutedExecutionOrder;
-
-export interface ActiveOrderMatchedPendingExecution {
-  id: string;
-  orderStatus: 'active';
-  matchStatus: 'matched';
-  matchOperationMetadata: MatchOperationMetadata;
-  executionStatus: 'pending';
-  executionInfo: InexecutableExecutionOrder | null;
-}
-
-export interface ActiveOrderMatchedExecuting {
-  id: string;
-  orderStatus: 'active';
-  matchStatus: 'matched';
-  matchOperationMetadata: MatchOperationMetadata;
-  executionStatus: 'executing';
-  executionInfo: PendingExecutionOrder | NotIncludedExecutionOrder;
-}
-
-export interface ActiveOrderMatchedExecuted {
-  id: string;
-  orderStatus: 'executed';
-  matchStatus: 'matched';
-  matchOperationMetadata: MatchOperationMetadata;
-  executionStatus: 'executed';
-  executionInfo: ExecutedExecutionOrder;
-}
-
-export type OrderState =
-  | NotFoundOrder
-  | ActiveOrderPendingMatch
-  | ActiveOrderMatchedPendingExecution
-  | ActiveOrderMatchedExecuting
-  | ActiveOrderMatchedExecuted;

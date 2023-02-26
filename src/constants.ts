@@ -5,8 +5,12 @@ import { resolve } from 'path';
 import { readFileSync } from 'fs';
 import { devOptionalEnvVariables, EnvironmentVariables } from 'types/environment-variables.interface';
 
+const isDeployed = Number(process.env.IS_DEPLOYED) === 1;
 export const env = process.env.INFINITY_NODE_ENV || Env.Prod;
 export const envFileName = env === Env.Dev ? '.dev.env' : '.env';
+export const secondaryEnvFileName = `.env.${env === Env.Prod ? 'production' : 'development'}.${
+  isDeployed ? 'deploy' : 'local'
+}`;
 
 export const getMultipleEnvVariables = (
   prefix: string,

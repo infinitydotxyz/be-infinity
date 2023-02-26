@@ -14,6 +14,7 @@ import { CursorService } from 'pagination/cursor.service';
 import { bn } from 'utils';
 import { BaseOrdersService } from './base-orders.service';
 import { OrderBy, OrderQueries, Side } from '@infinityxyz/lib/types/dto';
+import { MatchingEngineService } from 'v2/matching-engine/matching-engine.service';
 
 @Injectable()
 export class OrdersService extends BaseOrdersService {
@@ -21,7 +22,8 @@ export class OrdersService extends BaseOrdersService {
     firebaseService: FirebaseService,
     contractService: ContractService,
     ethereumService: EthereumService,
-    protected cursorService: CursorService
+    protected cursorService: CursorService,
+    protected matchingEngineService: MatchingEngineService
   ) {
     super(firebaseService, contractService, ethereumService);
   }
@@ -268,10 +270,22 @@ export class OrdersService extends BaseOrdersService {
 
     const encodedCursor = this.cursorService.encodeCursor(newCursor);
     const transformed = this.transformDisplayOrders(gasPrice, orders);
+    const results = await this.mergeExecutionStatus(transformed);
     return {
-      data: transformed,
+      data: results,
       cursor: encodedCursor,
       hasNextPage
     };
+  }
+
+  async mergeExecutionStatus(orders: Order[]) {
+    const executionStatuses = await this.matchingEngineService.getExecutionStatuses(orders.map((item) => item.id));
+
+    return orders.map((item, index) => {
+      return {
+        ...item,
+        executionStatus: executionStatuses[index]
+      };
+    });
   }
 }

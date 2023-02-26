@@ -20,6 +20,7 @@ import { ZoraService } from 'zora/zora.service';
 import { ONE_DAY } from '../constants';
 import { ParsedCollectionId } from './collection-id.pipe';
 import pgPromise from 'pg-promise';
+import { MatchingEngineService } from 'v2/matching-engine/matching-engine.service';
 
 interface CollectionQueryOptions {
   /**
@@ -38,7 +39,8 @@ export default class CollectionsService {
     private reservoirService: ReservoirService,
     private paginationService: CursorService,
     private statsService: StatsService,
-    private postgresService: PostgresService
+    private postgresService: PostgresService,
+    protected matchingEngineService: MatchingEngineService
   ) {}
 
   private get defaultCollectionQueryOptions(): CollectionQueryOptions {
@@ -93,12 +95,14 @@ export default class CollectionsService {
         timestamp,
         tokenId,
         tokenImage,
-        id
+        id,
+        executionStatus: null
       };
 
       data.push(dataPoint);
     }
 
+    const orders: CollectionSaleAndOrder[] = [];
     for (const listing of listings) {
       const priceEth = parseFloat(listing.price_eth);
       const timestamp = Number(listing.start_time_millis);
@@ -116,10 +120,11 @@ export default class CollectionsService {
         timestamp,
         id,
         tokenId,
-        tokenImage
+        tokenImage,
+        executionStatus: null
       };
 
-      data.push(dataPoint);
+      orders.push(dataPoint);
     }
 
     for (const offer of offers) {
@@ -139,11 +144,17 @@ export default class CollectionsService {
         timestamp,
         id,
         tokenId,
-        tokenImage
+        tokenImage,
+        executionStatus: null
       };
 
-      data.push(dataPoint);
+      orders.push(dataPoint);
     }
+
+    const orderExecInfo = await this.matchingEngineService.getExecutionStatuses(orders.map((item) => item.id));
+    orderExecInfo.forEach((item, index) => {
+      data.push({ ...orders[index], executionStatus: item });
+    });
 
     return data;
   }

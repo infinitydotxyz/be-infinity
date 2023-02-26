@@ -108,7 +108,7 @@ export class RewardsService {
           numReferrals: referralTotals.stats.numReferralSales
         }
       }
-    };
+    } as any;
 
     return rewards;
   }
