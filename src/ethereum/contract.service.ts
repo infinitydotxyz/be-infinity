@@ -1,9 +1,10 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { ERC20ABI } from '@infinityxyz/lib/abi/erc20';
-import { InfinityCmDistributorABI } from '@infinityxyz/lib/abi/infinityCmDistributor';
+import { FlowCmDistributorABI } from '@infinityxyz/lib/abi/flowCmDistributor';
 import {
   getCmDistributorAddress,
   getExchangeAddress,
+  getFlurTokenAddress,
   getOBComplicationAddress,
   getStakerAddress,
   getTokenAddress,
@@ -54,6 +55,17 @@ export class ContractService {
     });
   }
 
+  getFlurTokenContract(chainId: string | ChainId) {
+    const tokenAddress = getFlurTokenAddress();
+    this._assertSupportedAddress(tokenAddress, chainId as ChainId);
+
+    return this.ethereumService.getContract({
+      abi: ERC20ABI,
+      address: tokenAddress,
+      chainId: chainId
+    });
+  }
+
   getExchangeAddress(chainId: ChainId) {
     const env = this.configService.get('INFINITY_NODE_ENV');
     const exchange = getExchangeAddress(chainId, env);
@@ -83,7 +95,7 @@ export class ContractService {
     this._assertSupportedAddress(address, chainId);
 
     return this.ethereumService.getContract({
-      abi: InfinityCmDistributorABI,
+      abi: FlowCmDistributorABI,
       address,
       chainId
     });
