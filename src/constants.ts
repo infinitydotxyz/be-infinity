@@ -5,8 +5,12 @@ import { resolve } from 'path';
 import { readFileSync } from 'fs';
 import { devOptionalEnvVariables, EnvironmentVariables } from 'types/environment-variables.interface';
 
+const isDeployed = Number(process.env.IS_DEPLOYED) === 1;
 export const env = process.env.INFINITY_NODE_ENV || Env.Prod;
 export const envFileName = env === Env.Dev ? '.dev.env' : '.env';
+export const secondaryEnvFileName = `.env.${env === Env.Prod ? 'production' : 'development'}.${
+  isDeployed ? 'deploy' : 'local'
+}`;
 
 export const getMultipleEnvVariables = (
   prefix: string,
@@ -76,7 +80,11 @@ export const validateAndTransformEnvVariables = (env: Record<string, string>) =>
     PG_HOST: env.PG_HOST,
     PG_PORT: env.PG_PORT,
     snapshotBucket:
-      (firebaseServiceAccount as any).project_id === 'nftc-dev' ? 'orderbook-snapshots' : 'infinity-orderbook-snapshots'
+      (firebaseServiceAccount as any).project_id === 'nftc-dev'
+        ? 'orderbook-snapshots'
+        : 'infinity-orderbook-snapshots',
+    MATCHING_ENGINE_API_URL: env.MATCHING_ENGINE_API_URL,
+    MATCHING_ENGINE_API_KEY: env.MATCHING_ENGINE_API_KEY
   };
 
   for (const key of Object.keys(envVariables) as (keyof EnvironmentVariables)[]) {
