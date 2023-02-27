@@ -1,4 +1,4 @@
-import { ExecutionStatus } from '@infinityxyz/lib/types/core';
+import { ChainId, ExecutionStatus } from '@infinityxyz/lib/types/core';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import got, { Got } from 'got/dist/source';
@@ -38,6 +38,18 @@ export class MatchingEngineService {
         `Failed to get order statuses from matching engine: ${response.statusCode} - ${response.requestUrl}`
       );
       throw new Error('Failed to get order statuses');
+    }
+  }
+
+  async getCollectionStatus(collection: string, chainId: ChainId): Promise<any> {
+    const response = await this.client.get(`matching/collection/${collection}`);
+    if (response.statusCode === 200) {
+      return response.body as any;
+    } else {
+      console.error(
+        `Failed to get collection status from matching engine: ${response.statusCode} - ${response.requestUrl}`
+      );
+      throw new Error('Failed to get collection status');
     }
   }
 }
