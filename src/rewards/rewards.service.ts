@@ -50,15 +50,19 @@ export class RewardsService {
         firestoreConstants.USER_ALL_TIME_TXN_FEE_REWARDS_DOC
       ) as FirebaseFirestore.DocumentReference<AllTimeTransactionFeeRewardsDoc>;
 
-    const [INFTConfig, ethConfig, userTotalSnap, userCurationTotals, referralTotals] = await Promise.all([
+    const [INFTConfig, FLURConfig, FLOWConfig, ethConfig, userTotalSnap, userCurationTotals, referralTotals] = await Promise.all([
       this.merkleTreeService.getMerkleRootConfig(chainId, DistributionType.INFT),
+      this.merkleTreeService.getMerkleRootConfig(chainId, DistributionType.FLUR),
+      this.merkleTreeService.getMerkleRootConfig(chainId, DistributionType.FLOW),
       this.merkleTreeService.getMerkleRootConfig(chainId, DistributionType.ETH),
       userAllTimeRewards.get(),
       this.curationService.getUserRewards(parsedUser),
       this.referralsService.getReferralRewards(parsedUser, chainId)
     ]);
-    const [inftLeaf, ethLeaf] = await Promise.all([
+    const [inftLeaf, flurLeaf, flowLeaf, ethLeaf] = await Promise.all([
       this.merkleTreeService.getLeaf(INFTConfig, parsedUser.userAddress),
+      this.merkleTreeService.getLeaf(FLURConfig, parsedUser.userAddress),
+      this.merkleTreeService.getLeaf(FLOWConfig, parsedUser.userAddress),
       this.merkleTreeService.getLeaf(ethConfig, parsedUser.userAddress)
     ]);
 
@@ -70,6 +74,32 @@ export class RewardsService {
     const rewards: UserRewardsDto = {
       chainId,
       totals: {
+        flurAirdrop: {
+          claim: {
+            contractAddress: FLURConfig.config.airdropContractAddress,
+            claimedWei: flurLeaf.cumulativeClaimed,
+            claimedEth: formatEth(flurLeaf.cumulativeClaimed),
+            claimableWei: flurLeaf.claimable,
+            claimableEth: formatEth(flurLeaf.claimable),
+            account: parsedUser.userAddress,
+            cumulativeAmount: flurLeaf.cumulativeAmount,
+            merkleRoot: flurLeaf.expectedMerkleRoot,
+            merkleProof: flurLeaf.proof
+          }
+        },
+        flowRewards: {
+          claim: {
+            contractAddress: FLOWConfig.config.airdropContractAddress,
+            claimedWei: flowLeaf.cumulativeClaimed,
+            claimedEth: formatEth(flowLeaf.cumulativeClaimed),
+            claimableWei: flowLeaf.claimable,
+            claimableEth: formatEth(flowLeaf.claimable),
+            account: parsedUser.userAddress,
+            cumulativeAmount: flowLeaf.cumulativeAmount,
+            merkleRoot: flowLeaf.expectedMerkleRoot,
+            merkleProof: flowLeaf.proof
+          }
+        },
         tradingRefund: {
           volume: userTotalRewards?.volumeEth ?? 0,
           rewards: totalUserReward,
