@@ -93,7 +93,8 @@ export default class CollectionsService {
         timestamp,
         tokenId,
         tokenImage,
-        id
+        id,
+        executionStatus: null
       };
 
       data.push(dataPoint);
@@ -116,7 +117,8 @@ export default class CollectionsService {
         timestamp,
         id,
         tokenId,
-        tokenImage
+        tokenImage,
+        executionStatus: null
       };
 
       data.push(dataPoint);
@@ -139,7 +141,8 @@ export default class CollectionsService {
         timestamp,
         id,
         tokenId,
-        tokenImage
+        tokenImage,
+        executionStatus: null
       };
 
       data.push(dataPoint);
