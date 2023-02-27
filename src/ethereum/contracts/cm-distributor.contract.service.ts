@@ -24,8 +24,7 @@ export class CmDistributorContractService {
   async getCumulativeFLURClaimed(chainId: ChainId, address: string) {
     const contract = this.contractService.getCmDistributor(chainId);
     const flurTokenAddress = this.contractService.getFlurTokenContract(chainId).address;
-    const amountClaimed = (await contract.cumulativeErc20Claimed(address, flurTokenAddress)) as BigNumberish;
-
+    const amountClaimed = (await contract.cumulativeErc20Claimed(flurTokenAddress, address)) as BigNumberish;
     return BigNumber.from(amountClaimed).toString();
   }
 
