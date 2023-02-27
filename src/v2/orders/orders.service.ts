@@ -279,13 +279,23 @@ export class OrdersService extends BaseOrdersService {
   }
 
   async mergeExecutionStatus(orders: Order[]) {
-    const executionStatuses = await this.matchingEngineService.getExecutionStatuses(orders.map((item) => item.id));
+    try {
+      const executionStatuses = await this.matchingEngineService.getExecutionStatuses(orders.map((item) => item.id));
 
-    return orders.map((item, index) => {
-      return {
-        ...item,
-        executionStatus: executionStatuses[index]
-      };
-    });
+      return orders.map((item, index) => {
+        return {
+          ...item,
+          executionStatus: executionStatuses[index]
+        };
+      });
+    } catch (err) {
+      console.error(err);
+      return orders.map((item) => {
+        return {
+          ...item,
+          executionStatus: null
+        };
+      });
+    }
   }
 }

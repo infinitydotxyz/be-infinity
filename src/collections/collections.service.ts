@@ -151,10 +151,17 @@ export default class CollectionsService {
       orders.push(dataPoint);
     }
 
-    const orderExecInfo = await this.matchingEngineService.getExecutionStatuses(orders.map((item) => item.id));
-    orderExecInfo.forEach((item, index) => {
-      data.push({ ...orders[index], executionStatus: item });
-    });
+    try {
+      const orderExecInfo = await this.matchingEngineService.getExecutionStatuses(orders.map((item) => item.id));
+      orderExecInfo.forEach((item, index) => {
+        data.push({ ...orders[index], executionStatus: item });
+      });
+    } catch (err) {
+      console.error(err);
+      orders.forEach((order) => {
+        data.push({ ...order, executionStatus: null });
+      });
+    }
 
     return data;
   }
