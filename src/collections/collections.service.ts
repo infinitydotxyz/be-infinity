@@ -2,6 +2,7 @@ import {
   ChainId,
   Collection,
   CollectionMetadata,
+  CollectionPeriodStatsContent,
   CollectionSaleAndOrder,
   CreationFlow,
   CurrentCurationSnippetDoc,
@@ -47,6 +48,44 @@ export default class CollectionsService {
     return {
       limitToCompleteCollections: false
     };
+  }
+
+  async defaultGoerliColls(): Promise<CollectionPeriodStatsContent[]> {
+    const chainId = '5';
+    const collectionAddresses = [
+      '0x29b969f3aba9a1e2861a3190ec9057b3989fe85d',
+      '0xe29f8038d1a3445ab22ad1373c65ec0a6e1161a4',
+      '0x09e8617f391c54530cc2d3762ceb1da9f840c5a3',
+      '0xfc4cd5d102f296069a05f92843f3451c44073b22',
+      '0x06f36c3f77973317bea50363a0f66646bced7319',
+      '0x10b8b56d53bfa5e374f38e6c0830bad4ebee33e6'
+    ];
+    const collsRef = this.firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL);
+    const collDocIds = collectionAddresses.map((collectionAddress) =>
+      getCollectionDocId({ chainId, collectionAddress })
+    );
+    const collAllTimeStatsRefs = collDocIds.map((collDocId) =>
+      collsRef.doc(collDocId).collection(firestoreConstants.COLLECTION_STATS_COLL).doc('all')
+    );
+    const statsSnap = await this.firebaseService.firestore.getAll(...collAllTimeStatsRefs);
+    const colls: CollectionPeriodStatsContent[] = [];
+    for (const statSnap of statsSnap) {
+      const data = statSnap.data();
+      if (!data) {
+        continue;
+      }
+      const stats: CollectionPeriodStatsContent = {
+        contractAddress: data.collectionAddress,
+        chainId: data.chainId,
+        tokenCount: data.numNfts,
+        salesVolume: data.volume,
+        salesVolumeChange: NaN,
+        floorPrice: data.floorPrice,
+        floorPriceChange: NaN
+      };
+      colls.push(stats);
+    }
+    return colls;
   }
 
   async getRecentSalesAndOrders(collection: ParsedCollectionId): Promise<CollectionSaleAndOrder[]> {

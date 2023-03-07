@@ -8,6 +8,7 @@ import {
 } from '@infinityxyz/lib/types/core';
 import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
 import {
+  BadRequestException,
   Controller,
   Get,
   InternalServerErrorException,
@@ -48,10 +49,8 @@ import { FirebaseService } from 'firebase/firebase.service';
 import { mnemonicByParam } from 'mnemonic/mnemonic.service';
 import { StatsService } from 'stats/stats.service';
 import { TwitterService } from 'twitter/twitter.service';
-import { UserParserService } from 'user/parser/parser.service';
 import { ParseCollectionIdPipe, ParsedCollectionId } from './collection-id.pipe';
 import CollectionsService from './collections.service';
-import { CurationService } from './curation/curation.service';
 import { CollectionStatsArrayDto } from './dto/collection-stats-array.dto';
 import { NftsService } from './nfts/nfts.service';
 
@@ -71,9 +70,7 @@ export class CollectionsController {
     private statsService: StatsService,
     private twitterService: TwitterService,
     private nftsService: NftsService,
-    private curationService: CurationService,
     private firebaseService: FirebaseService,
-    private userParserService: UserParserService
   ) {}
 
   @Get('update-social-stats')
@@ -127,34 +124,47 @@ export class CollectionsController {
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 10 })) // 10 mins
   async getCollectionStats(@Query() query: CollectionTrendingStatsQueryDto): Promise<CollectionStatsArrayDto> {
-    const queryBy = query.queryBy as mnemonicByParam;
-    const limit = query.limit ?? 50;
+    const chainId = query.chainId ?? ChainId.Mainnet;
     const queryPeriod = query.period;
-    const trendingCollectionsRef = this.firebaseService.firestore.collection(
-      firestoreConstants.TRENDING_COLLECTIONS_COLL
-    );
-    let byParamDoc = '';
-    let orderBy = '';
-    if (queryBy === 'by_sales_volume') {
-      byParamDoc = firestoreConstants.TRENDING_BY_VOLUME_DOC;
-      orderBy = 'salesVolume';
-    } else if (queryBy === 'by_avg_price') {
-      byParamDoc = firestoreConstants.TRENDING_BY_AVG_PRICE_DOC;
-      orderBy = 'avgPrice';
-    }
-    const byParamCollectionRef = trendingCollectionsRef.doc(byParamDoc);
-    const byPeriodCollectionRef = byParamCollectionRef.collection(queryPeriod);
+    const limit = query.limit ?? 50;
+    const queryBy = query.queryBy as mnemonicByParam;
 
-    const result = await byPeriodCollectionRef.orderBy(orderBy, 'desc').get(); // default descending
-    const collections = result?.docs ?? [];
+    let collections: CollectionPeriodStatsContent[] = [];
+
+    if (chainId === ChainId.Goerli) {
+      collections = await this.collectionsService.defaultGoerliColls();
+    } else if (chainId === ChainId.Mainnet) {
+      const trendingCollectionsRef = this.firebaseService.firestore.collection(
+        firestoreConstants.TRENDING_COLLECTIONS_COLL
+      );
+      let byParamDoc = '';
+      let orderBy = '';
+      if (queryBy === 'by_sales_volume') {
+        byParamDoc = firestoreConstants.TRENDING_BY_VOLUME_DOC;
+        orderBy = 'salesVolume';
+      } else if (queryBy === 'by_avg_price') {
+        byParamDoc = firestoreConstants.TRENDING_BY_AVG_PRICE_DOC;
+        orderBy = 'avgPrice';
+      }
+      const byParamCollectionRef = trendingCollectionsRef.doc(byParamDoc);
+      const byPeriodCollectionRef = byParamCollectionRef.collection(queryPeriod);
+
+      const result = await byPeriodCollectionRef.orderBy(orderBy, 'desc').get(); // default descending
+      collections = result?.docs.map((doc) => doc.data() as CollectionPeriodStatsContent) ?? [];
+    } else {
+      throw new BadRequestException('Invalid chainId', chainId);
+    }
 
     const { getCollection } = await this.collectionsService.getCollectionsByAddress(
-      collections.map((coll) => ({ address: coll?.data().contractAddress ?? '', chainId: coll?.data().chainId }))
+      collections.map((coll) => ({
+        address: coll?.contractAddress ?? '',
+        chainId: (coll.chainId ?? ChainId.Mainnet) as ChainId
+      }))
     );
 
     const results: Collection[] = [];
     for (const coll of collections) {
-      const statsData = coll.data() as CollectionPeriodStatsContent;
+      const statsData = coll;
 
       const collectionData = getCollection({
         address: statsData.contractAddress ?? '',
