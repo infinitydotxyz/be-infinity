@@ -48,7 +48,7 @@ export class BulkOrderQuery {
   })
   @IsNumber()
   @IsOptional()
-  @Transform(parseIntTransformer({ max: 250, optional: true, default: 50 }))
+  @Transform(parseIntTransformer({ max: 250, default: 50 }))
   limit: number;
 
   @ApiProperty({

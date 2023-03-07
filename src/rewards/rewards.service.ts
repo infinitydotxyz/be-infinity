@@ -50,15 +50,16 @@ export class RewardsService {
         firestoreConstants.USER_ALL_TIME_TXN_FEE_REWARDS_DOC
       ) as FirebaseFirestore.DocumentReference<AllTimeTransactionFeeRewardsDoc>;
 
-    const [INFTConfig, FLURConfig, FLOWConfig, ethConfig, userTotalSnap, userCurationTotals, referralTotals] = await Promise.all([
-      this.merkleTreeService.getMerkleRootConfig(chainId, DistributionType.INFT),
-      this.merkleTreeService.getMerkleRootConfig(chainId, DistributionType.FLUR),
-      this.merkleTreeService.getMerkleRootConfig(chainId, DistributionType.FLOW),
-      this.merkleTreeService.getMerkleRootConfig(chainId, DistributionType.ETH),
-      userAllTimeRewards.get(),
-      this.curationService.getUserRewards(parsedUser),
-      this.referralsService.getReferralRewards(parsedUser, chainId)
-    ]);
+    const [INFTConfig, FLURConfig, FLOWConfig, ethConfig, userTotalSnap, userCurationTotals, referralTotals] =
+      await Promise.all([
+        this.merkleTreeService.getMerkleRootConfig(chainId, DistributionType.INFT),
+        this.merkleTreeService.getMerkleRootConfig(chainId, DistributionType.FLUR),
+        this.merkleTreeService.getMerkleRootConfig(chainId, DistributionType.FLOW),
+        this.merkleTreeService.getMerkleRootConfig(chainId, DistributionType.ETH),
+        userAllTimeRewards.get(),
+        this.curationService.getUserRewards(parsedUser),
+        this.referralsService.getReferralRewards(parsedUser, chainId)
+      ]);
     const [inftLeaf, flurLeaf, flowLeaf, ethLeaf] = await Promise.all([
       this.merkleTreeService.getLeaf(INFTConfig, parsedUser.userAddress),
       this.merkleTreeService.getLeaf(FLURConfig, parsedUser.userAddress),

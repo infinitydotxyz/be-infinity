@@ -270,7 +270,7 @@ export class OrdersService extends BaseOrdersService {
 
     const encodedCursor = this.cursorService.encodeCursor(newCursor);
     const transformed = this.transformDisplayOrders(gasPrice, orders);
-    const results = await this.mergeExecutionStatus(transformed);
+    const results = await this.mergeExecutionStatus(chainId, transformed);
     return {
       data: results,
       cursor: encodedCursor,
@@ -278,14 +278,27 @@ export class OrdersService extends BaseOrdersService {
     };
   }
 
-  async mergeExecutionStatus(orders: Order[]) {
-    const executionStatuses = await this.matchingEngineService.getExecutionStatuses(orders.map((item) => item.id));
+  async mergeExecutionStatus(chainId: ChainId, orders: Order[]) {
+    try {
+      const executionStatuses = await this.matchingEngineService.getExecutionStatuses(
+        chainId,
+        orders.map((item) => item.id)
+      );
 
-    return orders.map((item, index) => {
-      return {
-        ...item,
-        executionStatus: executionStatuses[index]
-      };
-    });
+      return orders.map((item, index) => {
+        return {
+          ...item,
+          executionStatus: executionStatuses[index]
+        };
+      });
+    } catch (err) {
+      console.error(err);
+      return orders.map((item) => {
+        return {
+          ...item,
+          executionStatus: null
+        };
+      });
+    }
   }
 }
