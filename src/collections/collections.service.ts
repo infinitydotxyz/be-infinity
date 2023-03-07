@@ -191,7 +191,10 @@ export default class CollectionsService {
     }
 
     try {
-      const orderExecInfo = await this.matchingEngineService.getExecutionStatuses(orders.map((item) => item.id));
+      const orderExecInfo = await this.matchingEngineService.getExecutionStatuses(
+        collection.chainId,
+        orders.map((item) => item.id)
+      );
       orderExecInfo.forEach((item, index) => {
         data.push({ ...orders[index], executionStatus: item });
       });

@@ -70,7 +70,7 @@ export class CollectionsController {
     private statsService: StatsService,
     private twitterService: TwitterService,
     private nftsService: NftsService,
-    private firebaseService: FirebaseService,
+    private firebaseService: FirebaseService
   ) {}
 
   @Get('update-social-stats')
