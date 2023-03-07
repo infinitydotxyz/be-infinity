@@ -16,7 +16,7 @@ export default class SetsService {
 
   public async getSets(minPrice: number, maxPrice: number): Promise<SetsResponse> {
     try {
-      const chainId = ChainId.Mainnet; // future-todo change this when multi collection support is added
+      const chainId = ChainId.Mainnet; // future-todo change this when multi chain support is added
 
       const q = `SELECT price_eth, is_sell_order, collection_address, token_id, token_image, collection_name 
                   FROM eth_nft_orders WHERE status = 'active' 
