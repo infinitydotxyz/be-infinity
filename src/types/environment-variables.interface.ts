@@ -1,4 +1,3 @@
-import { ChainId } from '@infinityxyz/lib/types/core';
 import { Env } from '@infinityxyz/lib/utils';
 
 export interface EnvironmentVariables {
