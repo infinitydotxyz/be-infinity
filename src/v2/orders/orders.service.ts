@@ -33,7 +33,7 @@ export class OrdersService extends BaseOrdersService {
     query: OrderQueries,
     asset: { collection: string } | { collection: string; tokenId: string } | { user: string }
   ) {
-    // TODO filter out infinity orders
+    // joe-todo: filter out infinity orders
     let ref:
       | FirebaseFirestore.CollectionReference<FirestoreDisplayOrderWithoutError>
       | FirebaseFirestore.CollectionGroup<FirestoreDisplayOrderWithoutError>;
@@ -73,7 +73,7 @@ export class OrdersService extends BaseOrdersService {
     } else {
       throw new Error('Invalid asset');
     }
-    // TODO improve price filtering to work over the calculated prices
+    // joe-todo: improve price filtering to work over the calculated prices
     return this._getOrders(chainId, query, ref);
   }
 
@@ -92,7 +92,7 @@ export class OrdersService extends BaseOrdersService {
       let startPriceWei = bn(item.order.startPrice);
       let endPriceWei = bn(item.order.endPrice);
 
-      // TODO update gas estimates once we have a better idea of how much gas is used
+      // joe-todo: update gas estimates once we have a better idea of how much gas is used
       if (item.metadata.source !== 'flow') {
         const gasToFulfillOnExternal = item.order.gasUsage;
         const buffer = 100_000;
@@ -134,7 +134,7 @@ export class OrdersService extends BaseOrdersService {
         startTimeMs: item.order.startTimeMs,
         endTimeMs: item.order.endTimeMs,
         currentPriceEth,
-        isPrivate: false, // TODO handle private orders
+        isPrivate: false, // future-todo: handle private orders
         numItems: item.order.numItems,
         currency: item.order.currency,
         startPriceEth,
@@ -216,7 +216,7 @@ export class OrdersService extends BaseOrdersService {
         firestoreQuery = firestoreQuery
           .where('order.startPriceEth', '>=', minPrice)
           .where('order.startPriceEth', '<=', maxPrice)
-          .orderBy('order.startPriceEth', orderDirection) // TODO support dynamic orders - use currentPriceEth and handle price updates
+          .orderBy('order.startPriceEth', orderDirection) // future-todo: support dynamic orders - use currentPriceEth and handle price updates
           .orderBy('metadata.id', orderDirection);
         if (cursor.id && cursor.startPrice) {
           firestoreQuery = firestoreQuery.startAfter([cursor.startPrice, cursor.id]);

@@ -324,7 +324,7 @@ export class GenerateOrderService {
     const isOpposingPriceIncreasing = bn(opposingOrder.startPrice).gt(opposingOrder.endPrice);
 
     if (isOpposingPriceDecreasing || isOpposingPriceIncreasing) {
-      // TODO support dynamic orders
+      // future-todo: support dynamic orders
       throw new GenerateOrderError('Dynamic price orders are not yet supported');
     }
 
@@ -338,7 +338,7 @@ export class GenerateOrderService {
     const isSellOrder = !opposingOrder.isSellOrder;
     const endTime = nowSeconds + this._defaultInstantOrderDurationSeconds;
 
-    // TODO for instant offers should we base this off of the current gas price?
+    // joe-todo: for instant offers should we base this off of the current gas price?
     const maxGasPriceWei = options.maxGasPriceWei;
 
     const orderInput: Flow.Types.OrderInput = {
@@ -359,7 +359,7 @@ export class GenerateOrderService {
     };
 
     if (orderInput.complication !== opposingOrder.params.complication) {
-      // TODO if the complication is updated we should make sure this gets updated accordingly
+      // joe-todo: if the complication is updated we should make sure this gets updated accordingly
       throw new GenerateOrderError('Complication mismatch');
     }
 
@@ -377,7 +377,7 @@ export class GenerateOrderService {
         break;
       }
       default: {
-        // TODO support more order types
+        // future-todo: support more order types
         throw new GenerateOrderError(`Unsupported order kind: ${opposingOrder.kind} Order: ${opposingRawOrder.id}`);
       }
     }
@@ -415,7 +415,7 @@ export class GenerateOrderService {
         if (!item.isOwner) {
           throw new GenerateOrderError(
             `Token ${token.collection} - Token ID ${item.tokenId} is not owned by ${signer}`
-          ); // TODO handle this
+          ); // joe-todo: handle this
         }
       }
     }
@@ -424,7 +424,7 @@ export class GenerateOrderService {
   }
 
   /**
-   * TODO optimize this
+   * joe-todo: optimize this
    */
   protected async _getFillableTokens(chainId: ChainId, maker: string, chainNfts: ChainNFTs[]) {
     const provider = this._ethereumService.getProvider(chainId);

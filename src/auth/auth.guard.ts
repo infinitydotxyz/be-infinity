@@ -120,7 +120,7 @@ export class AuthGuard implements CanActivate {
         }
         throw new AuthException('Invalid signature');
       } else {
-        // future-TODO handle admin roles
+        // future-todo handle admin roles
         throw new AuthException('Admin roles are not yet supported');
       }
     }
