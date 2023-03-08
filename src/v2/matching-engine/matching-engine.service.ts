@@ -1,7 +1,7 @@
 import { ChainId, ExecutionStatus } from '@infinityxyz/lib/types/core';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import got, { Got } from 'got/dist/source';
+import got from 'got/dist/source';
 import { EnvironmentVariables } from 'types/environment-variables.interface';
 
 @Injectable()
