@@ -99,10 +99,10 @@ export class NftsService {
     return externalNfts;
   }
 
-  public async refreshMetaData(nft: { address: string; chainId: ChainId; tokenId: string }): Promise<NftDto[]> {
-    const result = await this.backfillService.backfillNfts([nft]);
-    return result;
-  }
+  // public async refreshMetaData(nft: { address: string; chainId: ChainId; tokenId: string }): Promise<NftDto[]> {
+  //   const result = await this.backfillService.backfillNfts([nft]);
+  //   return result;
+  // }
 
   async getNfts(nfts: { address: string; chainId: ChainId; tokenId: string }[]): Promise<NftDto[]> {
     const refs = nfts.map((item) => {
@@ -148,9 +148,9 @@ export class NftsService {
     }
 
     // async backfill
-    this.backfillService.backfillNfts(nftsToBackfill).catch((err) => {
-      console.error(err);
-    });
+    // this.backfillService.backfillNfts(nftsToBackfill).catch((err) => {
+    //   console.error(err);
+    // });
 
     return nftsMergedWithSnapshot;
   }
@@ -277,12 +277,12 @@ export class NftsService {
     const encodedCursor = this.paginationService.encodeCursor(cursor);
 
     // backfill any missing data
-    this.backfillService.backfillAnyMissingNftData(data).catch((err) => {
-      console.error('Error backfilling missing nft data', err);
-    });
-    this.backfillService.backfillAnyInvalidNfts(collection.chainId, collection.address).catch((err) => {
-      console.error('Error backfilling invalid nfts', err);
-    });
+    // this.backfillService.backfillAnyMissingNftData(data).catch((err) => {
+    //   console.error('Error backfilling missing nft data', err);
+    // });
+    // this.backfillService.backfillAnyInvalidNfts(collection.chainId, collection.address).catch((err) => {
+    //   console.error('Error backfilling invalid nfts', err);
+    // });
 
     return {
       data,

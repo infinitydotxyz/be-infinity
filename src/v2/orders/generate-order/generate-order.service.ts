@@ -30,6 +30,7 @@ import { NonceService } from 'v2/orders/nonce/nonce.service';
 import { ProtocolOrdersService } from 'v2/orders/protocol-orders/protocol-orders.service';
 import { bn } from 'utils';
 import { GenerateOrderError } from './generate-order-error';
+import PQueue from 'p-queue';
 
 @Injectable()
 export class GenerateOrderService {
@@ -324,7 +325,7 @@ export class GenerateOrderService {
     const isOpposingPriceIncreasing = bn(opposingOrder.startPrice).gt(opposingOrder.endPrice);
 
     if (isOpposingPriceDecreasing || isOpposingPriceIncreasing) {
-      // TODO support dynamic orders
+      // future-todo: support dynamic orders
       throw new GenerateOrderError('Dynamic price orders are not yet supported');
     }
 
@@ -337,8 +338,6 @@ export class GenerateOrderService {
     }
     const isSellOrder = !opposingOrder.isSellOrder;
     const endTime = nowSeconds + this._defaultInstantOrderDurationSeconds;
-
-    // TODO for instant offers should we base this off of the current gas price?
     const maxGasPriceWei = options.maxGasPriceWei;
 
     const orderInput: Flow.Types.OrderInput = {
@@ -359,7 +358,6 @@ export class GenerateOrderService {
     };
 
     if (orderInput.complication !== opposingOrder.params.complication) {
-      // TODO if the complication is updated we should make sure this gets updated accordingly
       throw new GenerateOrderError('Complication mismatch');
     }
 
@@ -377,7 +375,7 @@ export class GenerateOrderService {
         break;
       }
       default: {
-        // TODO support more order types
+        // future-todo: support more order types
         throw new GenerateOrderError(`Unsupported order kind: ${opposingOrder.kind} Order: ${opposingRawOrder.id}`);
       }
     }
@@ -415,7 +413,7 @@ export class GenerateOrderService {
         if (!item.isOwner) {
           throw new GenerateOrderError(
             `Token ${token.collection} - Token ID ${item.tokenId} is not owned by ${signer}`
-          ); // TODO handle this
+          );
         }
       }
     }
@@ -423,9 +421,6 @@ export class GenerateOrderService {
     return approvals;
   }
 
-  /**
-   * TODO optimize this
-   */
   protected async _getFillableTokens(chainId: ChainId, maker: string, chainNfts: ChainNFTs[]) {
     const provider = this._ethereumService.getProvider(chainId);
 
@@ -438,6 +433,8 @@ export class GenerateOrderService {
     const nfts: NftsWithOwnershipData[] = [];
     const ownedAndApprovedNfts: NftsWithOwnershipData[] = [];
 
+    const queue = new PQueue({ concurrency: 5 });
+
     for (const { collection, tokens } of chainNfts) {
       const erc721 = new Erc721(provider, collection);
       const isApproved = await erc721.isApproved(maker, this._contractService.getExchangeAddress(chainId));
@@ -447,14 +444,25 @@ export class GenerateOrderService {
         tokens: []
       };
 
+      let error: Error | null = null;
       for (const { tokenId, numTokens } of tokens) {
-        const owner = await erc721.getOwner(tokenId);
-        const isOwner = trimLowerCase(owner) === trimLowerCase(maker);
-        collectionNfts.tokens.push({
-          isOwner,
-          tokenId,
-          numTokens
-        });
+        queue
+          .add(async () => {
+            const owner = await erc721.getOwner(tokenId);
+            const isOwner = trimLowerCase(owner) === trimLowerCase(maker);
+            collectionNfts.tokens.push({
+              isOwner,
+              tokenId,
+              numTokens
+            });
+          })
+          .catch((err: Error) => {
+            error = err;
+          });
+      }
+      await queue.onIdle();
+      if (error) {
+        throw error;
       }
 
       nfts.push(collectionNfts);
