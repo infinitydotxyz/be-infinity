@@ -209,7 +209,7 @@ export class CollectionsController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 5 }))
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 1 }))
   async getOne(
     @ParamCollectionId('id', ParseCollectionIdPipe) parsedCollection: ParsedCollectionId
   ): Promise<Collection> {
@@ -261,7 +261,7 @@ export class CollectionsController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 5 * 60 }))
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 30 }))
   async getCollectionHistoricalSales(
     @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
   ): Promise<Partial<CollectionHistoricalSale>[]> {
@@ -278,7 +278,7 @@ export class CollectionsController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 5 * 60 }))
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 10 }))
   async getCollectionOrders(
     @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
   ): Promise<CollectionOrder[]> {
@@ -295,7 +295,7 @@ export class CollectionsController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 40 }))
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 10 }))
   async getCollectionRecentSalesAnOrders(
     @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
   ): Promise<CollectionSaleAndOrder[]> {
@@ -312,7 +312,7 @@ export class CollectionsController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 10 * 60 }))
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 1 * 60 }))
   async getCollectionHistoricalStats(
     @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
   ): Promise<Partial<CollectionStatsDto>> {
@@ -330,7 +330,7 @@ export class CollectionsController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 10 * 60 }))
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 10 }))
   async getCollectionFloorAndCreator(
     @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
   ): Promise<{ floorPrice: number; creator: string }> {
