@@ -1,4 +1,4 @@
-import { ChainId } from '@infinityxyz/lib/types/core';
+import { ChainId, UserNonce } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, toNumericallySortedLexicographicStr } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { InvalidNonceError } from 'common/errors/invalid-nonce.error';
@@ -6,7 +6,6 @@ import { ContractService } from 'ethereum/contract.service';
 import { BigNumber, BigNumberish } from 'ethers';
 import { FirebaseService } from 'firebase/firebase.service';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
-import { UserNonce } from './types';
 
 @Injectable()
 export class NonceService {
