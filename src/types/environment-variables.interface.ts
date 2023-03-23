@@ -20,6 +20,20 @@ export interface EnvironmentVariables {
   PG_PASS: string;
   PG_DB_NAME: string;
   snapshotBucket: string;
+  GOERLI_MATCHING_ENGINE_API_URL: string;
+  GOERLI_MATCHING_ENGINE_API_KEY: string;
+  GOERLI_EXECUTION_ENGINE_API_URL: string;
+  GOERLI_EXECUTION_ENGINE_API_KEY: string;
+
+  MAINNET_MATCHING_ENGINE_API_KEY: string;
+  MAINNET_MATCHING_ENGINE_API_URL: string;
+  MAINNET_EXECUTION_ENGINE_API_KEY: string;
+  MAINNET_EXECUTION_ENGINE_API_URL: string;
+
+  POLYGON_MATCHING_ENGINE_API_KEY: string;
+  POLYGON_MATCHING_ENGINE_API_URL: string;
+  POLYGON_EXECUTION_ENGINE_API_KEY: string;
+  POLYGON_EXECUTION_ENGINE_API_URL: string;
 }
 
 export const devOptionalEnvVariables: (keyof EnvironmentVariables)[] = ['REDIS_URL'];

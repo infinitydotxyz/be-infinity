@@ -7,10 +7,11 @@ import { NonceService } from './nonce/nonce.service';
 import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
 import { ProtocolOrdersService } from './protocol-orders/protocol-orders.service';
+import { MatchingEngineModule } from 'v2/matching-engine/matching-engine.module';
 
 @Module({
   controllers: [OrdersController],
-  imports: [EthereumModule, PaginationModule],
+  imports: [EthereumModule, PaginationModule, MatchingEngineModule],
   providers: [NonceService, BaseOrdersService, OrdersService, ProtocolOrdersService, GenerateOrderService],
   exports: [GenerateOrderService, ProtocolOrdersService, OrdersService]
 })

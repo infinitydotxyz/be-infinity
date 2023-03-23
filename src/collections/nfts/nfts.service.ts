@@ -16,11 +16,13 @@ import { BackfillService } from 'backfill/backfill.service';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
 import { SupportedCollectionsProvider } from 'common/providers/supported-collections-provider';
 import { EthereumService } from 'ethereum/ethereum.service';
+import { formatEther, parseEther } from 'ethers/lib/utils';
 import { firestore } from 'firebase-admin';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
 import { PostgresService } from 'postgres/postgres.service';
 import { getNftActivity, getNftSocialActivity } from 'utils/activity';
+import { OrdersService } from 'v2/orders/orders.service';
 
 @Injectable()
 export class NftsService {
@@ -30,7 +32,8 @@ export class NftsService {
     private paginationService: CursorService,
     private ethereumService: EthereumService,
     private backfillService: BackfillService,
-    private postgresService: PostgresService
+    private postgresService: PostgresService,
+    protected ordersService: OrdersService
   ) {}
 
   setSupportedCollections(supportedCollections: SupportedCollectionsProvider): void {
@@ -99,10 +102,10 @@ export class NftsService {
     return externalNfts;
   }
 
-  public async refreshMetaData(nft: { address: string; chainId: ChainId; tokenId: string }): Promise<NftDto[]> {
-    const result = await this.backfillService.backfillNfts([nft]);
-    return result;
-  }
+  // public async refreshMetaData(nft: { address: string; chainId: ChainId; tokenId: string }): Promise<NftDto[]> {
+  //   const result = await this.backfillService.backfillNfts([nft]);
+  //   return result;
+  // }
 
   async getNfts(nfts: { address: string; chainId: ChainId; tokenId: string }[]): Promise<NftDto[]> {
     const refs = nfts.map((item) => {
@@ -148,9 +151,9 @@ export class NftsService {
     }
 
     // async backfill
-    this.backfillService.backfillNfts(nftsToBackfill).catch((err) => {
-      console.error(err);
-    });
+    // this.backfillService.backfillNfts(nftsToBackfill).catch((err) => {
+    //   console.error(err);
+    // });
 
     return nftsMergedWithSnapshot;
   }
@@ -276,16 +279,42 @@ export class NftsService {
     }
     const encodedCursor = this.paginationService.encodeCursor(cursor);
 
-    // backfill any missing data
-    this.backfillService.backfillAnyMissingNftData(data).catch((err) => {
-      console.error('Error backfilling missing nft data', err);
-    });
-    this.backfillService.backfillAnyInvalidNfts(collection.chainId, collection.address).catch((err) => {
-      console.error('Error backfilling invalid nfts', err);
+    const gasPrice = await this.ethereumService.getGasPrice(collection.chainId);
+    const nftsWithAdjustedPrices = data.map((item) => {
+      if (!item.ordersSnippet) {
+        return item;
+      }
+
+      for (const side of ['listing' as const, 'offer' as const]) {
+        const orderItem = item.ordersSnippet?.[side]?.orderItem;
+        if (orderItem) {
+          const startPrice = orderItem.startPriceEth;
+          const endPrice = orderItem.endPriceEth;
+          const gasUsage = orderItem.gasUsage;
+          const source = orderItem.source;
+          const isNative = source === 'flow';
+
+          const gasCostWei = this.ordersService.getGasCostWei(isNative, gasPrice, gasUsage);
+          const startPriceWei = parseEther(startPrice.toString()).add(gasCostWei);
+          const endPriceWei = parseEther(endPrice.toString()).add(gasCostWei);
+          orderItem.startPriceEth = parseFloat(formatEther(startPriceWei));
+          orderItem.endPriceEth = parseFloat(formatEther(endPriceWei));
+        }
+      }
+
+      return item;
     });
 
+    // backfill any missing data
+    // this.backfillService.backfillAnyMissingNftData(data).catch((err) => {
+    //   console.error('Error backfilling missing nft data', err);
+    // });
+    // this.backfillService.backfillAnyInvalidNfts(collection.chainId, collection.address).catch((err) => {
+    //   console.error('Error backfilling invalid nfts', err);
+    // });
+
     return {
-      data,
+      data: nftsWithAdjustedPrices,
       cursor: encodedCursor,
       hasNextPage,
       totalOwned: NaN

@@ -28,16 +28,16 @@ export class BaseOrdersService extends NonceService {
 
     for (const order of orders) {
       if (order.startPrice !== order.endPrice) {
-        throw new Error('Dynamic orders are not currently supported'); // TODO support dynamic orders
+        throw new Error('Dynamic orders are not currently supported'); // future-todo: support dynamic orders
       }
 
       if (order.numItems !== 1) {
-        throw new Error('Bundles are not yet supported'); // TODO support bundles
+        throw new Error('Bundles are not yet supported'); // future-todo:support bundles
       }
 
       if (order.kind === 'complex') {
         /**
-         * TODO support more than single token and contract-wide orders
+         * future-todo: support more than single token and contract-wide orders
          */
         throw new Error('Complex order types are not yet supported');
       }

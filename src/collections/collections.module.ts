@@ -16,6 +16,7 @@ import { CurationController } from './curation/curation.controller';
 import { CurationService } from './curation/curation.service';
 import { NftsController } from './nfts/nfts.controller';
 import { NftsService } from './nfts/nfts.service';
+import { MatchingEngineModule } from 'v2/matching-engine/matching-engine.module';
 
 @Module({
   imports: [
@@ -27,7 +28,8 @@ import { NftsService } from './nfts/nfts.service';
     EthereumModule,
     BackfillModule,
     OrdersModule,
-    ApiUserModule
+    ApiUserModule,
+    MatchingEngineModule
   ],
   providers: [CollectionsService, NftsService, AttributesService, CurationService],
   controllers: [CollectionsController, NftsController, AttributesController, CurationController],
