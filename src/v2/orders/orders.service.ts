@@ -15,6 +15,7 @@ import { bn } from 'utils';
 import { BaseOrdersService } from './base-orders.service';
 import { OrderBy, OrderQueries, Side } from '@infinityxyz/lib/types/dto';
 import { MatchingEngineService } from 'v2/matching-engine/matching-engine.service';
+import { BigNumber } from 'ethers';
 
 @Injectable()
 export class OrdersService extends BaseOrdersService {
@@ -26,6 +27,29 @@ export class OrdersService extends BaseOrdersService {
     protected matchingEngineService: MatchingEngineService
   ) {
     super(firebaseService, contractService, ethereumService);
+  }
+
+  public getGasCostWei(
+    isNative: boolean,
+    gasPrice: {
+      baseFee: string;
+      baseFeeGwei: string;
+      maxBaseFeeWei: string;
+      minBaseFeeWei: string;
+      maxBaseFeeGwei: string;
+      minBaseFeeGwei: string;
+    },
+    gasUsage?: string
+  ) {
+    if (isNative) {
+      return '0';
+    }
+    const gasToFulfillOnExternal = gasUsage ?? '300000';
+    const buffer = 100_000;
+    const totalGas = BigNumber.from(gasToFulfillOnExternal).add(buffer);
+
+    const gasFeesWei = bn(gasPrice.maxBaseFeeWei).mul(totalGas);
+    return gasFeesWei;
   }
 
   public async getDisplayOrders(
@@ -93,18 +117,10 @@ export class OrdersService extends BaseOrdersService {
       let endPriceWei = bn(item.order.endPrice);
 
       // joe-todo: update gas estimates once we have a better idea of how much gas is used
-      if (item.metadata.source !== 'flow') {
-        const gasToFulfillOnExternal = item.order.gasUsage;
-        const buffer = 100_000;
-        const totalGas = gasToFulfillOnExternal + buffer;
-
-        const gasFeesWei = bn(gasPrice.baseFee).mul(totalGas);
-
-        console.log(`Non-native order gas usage: ${totalGas} - gas cost ${formatEth(gasFeesWei.toString())}`);
-
-        startPriceWei = startPriceWei.add(gasFeesWei);
-        endPriceWei = endPriceWei.add(gasFeesWei);
-      }
+      const isNative = item.metadata.source === 'flow';
+      const gasCostWei = this.getGasCostWei(isNative, gasPrice, item.order.gasUsageString);
+      startPriceWei = startPriceWei.add(gasCostWei);
+      endPriceWei = endPriceWei.add(gasCostWei);
 
       const startPriceEth = formatEth(startPriceWei.toString(), 6);
       const endPriceEth = formatEth(endPriceWei.toString(), 6);
