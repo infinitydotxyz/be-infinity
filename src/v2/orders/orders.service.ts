@@ -5,7 +5,7 @@ import {
   Order,
   FirestoreDisplayOrder
 } from '@infinityxyz/lib/types/core';
-import { firestoreConstants, formatEth, getOBOrderPrice } from '@infinityxyz/lib/utils';
+import { PROTOCOL_FEE_BPS, firestoreConstants, formatEth, getOBOrderPrice } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { ContractService } from 'ethereum/contract.service';
 import { EthereumService } from 'ethereum/ethereum.service';
@@ -119,6 +119,13 @@ export class OrdersService extends BaseOrdersService {
       // joe-todo: update gas estimates once we have a better idea of how much gas is used
       const isNative = item.metadata.source === 'flow';
       const gasCostWei = this.getGasCostWei(isNative, gasPrice, item.order.gasUsageString);
+
+      if (item.metadata.source !== 'flow') {
+        const startPriceFees = startPriceWei.mul(PROTOCOL_FEE_BPS).div(10_000);
+        const endPriceFees = endPriceWei.mul(PROTOCOL_FEE_BPS).div(10_000);
+        startPriceWei = startPriceWei.add(startPriceFees);
+        endPriceWei = endPriceWei.add(endPriceFees);
+      }
       startPriceWei = startPriceWei.add(gasCostWei);
       endPriceWei = endPriceWei.add(gasCostWei);
 
