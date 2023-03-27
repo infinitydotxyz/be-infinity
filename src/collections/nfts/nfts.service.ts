@@ -320,6 +320,20 @@ export class NftsService {
 
       return item;
     });
+    if (query.orderBy === NftsOrderBy.Price) {
+      nftsWithAdjustedPrices.sort((a, b) => {
+        const aPrice = a.ordersSnippet?.[orderType]?.orderItem?.startPriceEth;
+        const bPrice = b.ordersSnippet?.[orderType]?.orderItem?.startPriceEth;
+        if (aPrice && bPrice) {
+          return query.orderDirection === OrderDirection.Ascending ? aPrice - bPrice : bPrice - aPrice;
+        } else if (aPrice) {
+          return -1;
+        } else if (bPrice) {
+          return 1;
+        }
+        return 0;
+      });
+    }
 
     // backfill any missing data
     // this.backfillService.backfillAnyMissingNftData(data).catch((err) => {
