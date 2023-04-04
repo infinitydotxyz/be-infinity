@@ -1,5 +1,5 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { BackfillModule } from 'backfill/backfill.module';
@@ -38,7 +38,10 @@ import { GenerateModule } from './v2/generate/generate.module';
 import { BulkModule } from './v2/bulk/bulk.module';
 import { PostgresModule } from 'postgres/postgres.module';
 import { SetsModule } from 'sets/sets.module';
-import { FlurModule } from './v2/flur/flur.module';
+
+import { BetaModule } from './v2/beta/beta.module';
+import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
+import { RedisModule } from './redis/redis.module';
 
 @Module({
   imports: [
@@ -66,10 +69,21 @@ import { FlurModule } from './v2/flur/flur.module';
     OpenseaModule,
     ReservoirModule,
     GemModule,
-    ThrottlerModule.forRoot({
-      ttl: 60,
-      limit: 60,
-      storage: undefined
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        const redisUrl = config.get<string>('REDIS_URL');
+        let storage = undefined;
+        if (redisUrl) {
+          storage = new ThrottlerStorageRedisService(redisUrl);
+        }
+        return {
+          ttl: 60,
+          limit: 10,
+          storage
+        };
+      }
     }),
     ApiUserModule,
     SetsModule,
@@ -84,7 +98,8 @@ import { FlurModule } from './v2/flur/flur.module';
     V2CollectionsModule,
     GenerateModule,
     BulkModule,
-    FlurModule
+    BetaModule,
+    RedisModule
   ],
   providers: [
     {
