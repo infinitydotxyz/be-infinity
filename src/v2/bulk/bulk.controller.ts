@@ -3,6 +3,7 @@ import { ErrorResponseDto } from '@infinityxyz/lib/types/dto';
 import { Body, Controller, Get, Put, Query } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiOperation, ApiOkResponse, ApiBadRequestResponse, ApiInternalServerErrorResponse } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { Auth } from 'auth/api-auth.decorator';
 import { SiteRole } from 'auth/auth.constants';
 import { ApiTag } from 'common/api-tags';
@@ -23,6 +24,7 @@ export class BulkController {
     description: 'Get bulk raw orders',
     tags: [ApiTag.Orders]
   })
+  @Throttle(50, 1)
   @Auth(SiteRole.Guest, ApiRole.User)
   @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })

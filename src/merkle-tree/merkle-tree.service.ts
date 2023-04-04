@@ -124,8 +124,13 @@ export class MerkleTreeService {
             merkleRootDoc.config.chainId,
             userAddress
           );
-        } else {
-          cumulativeClaimed = await this.cmDistributor.getCumulativeINFTClaimed(
+        } else if (merkleRootDoc.config.type === DistributionType.FLUR) {
+          cumulativeClaimed = await this.cmDistributor.getCumulativeFLURClaimed(
+            merkleRootDoc.config.chainId,
+            userAddress
+          );
+        } else if (merkleRootDoc.config.type === DistributionType.FLOW) {
+          cumulativeClaimed = await this.cmDistributor.getCumulativeFLOWClaimed(
             merkleRootDoc.config.chainId,
             userAddress
           );

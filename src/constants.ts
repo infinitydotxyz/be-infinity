@@ -5,8 +5,12 @@ import { resolve } from 'path';
 import { readFileSync } from 'fs';
 import { devOptionalEnvVariables, EnvironmentVariables } from 'types/environment-variables.interface';
 
+const isDeployed = Number(process.env.IS_DEPLOYED) === 1;
 export const env = process.env.INFINITY_NODE_ENV || Env.Prod;
 export const envFileName = env === Env.Dev ? '.dev.env' : '.env';
+export const secondaryEnvFileName = `.env.${env === Env.Prod ? 'production' : 'development'}.${
+  isDeployed ? 'deploy' : 'local'
+}`;
 
 export const getMultipleEnvVariables = (
   prefix: string,
@@ -79,7 +83,21 @@ export const validateAndTransformEnvVariables = (env: Record<string, string>) =>
     TWITTER_CLIENT_ID: env.TWITTER_CLIENT_ID,
     TWITTER_CLIENT_SECRET: env.TWITTER_CLIENT_SECRET,
     snapshotBucket:
-      (firebaseServiceAccount as any).project_id === 'nftc-dev' ? 'orderbook-snapshots' : 'infinity-orderbook-snapshots'
+      (firebaseServiceAccount as any).project_id === 'nftc-dev'
+        ? 'orderbook-snapshots'
+        : 'infinity-orderbook-snapshots',
+    GOERLI_MATCHING_ENGINE_API_URL: env.GOERLI_MATCHING_ENGINE_API_URL,
+    GOERLI_MATCHING_ENGINE_API_KEY: env.GOERLI_MATCHING_ENGINE_API_KEY,
+    GOERLI_EXECUTION_ENGINE_API_URL: env.GOERLI_EXECUTION_ENGINE_API_URL,
+    GOERLI_EXECUTION_ENGINE_API_KEY: env.GOERLI_EXECUTION_ENGINE_API_KEY,
+    MAINNET_EXECUTION_ENGINE_API_KEY: env.MAINNET_EXECUTION_ENGINE_API_KEY,
+    MAINNET_EXECUTION_ENGINE_API_URL: env.MAINNET_EXECUTION_ENGINE_API_URL,
+    MAINNET_MATCHING_ENGINE_API_KEY: env.MAINNET_MATCHING_ENGINE_API_KEY,
+    MAINNET_MATCHING_ENGINE_API_URL: env.MAINNET_MATCHING_ENGINE_API_URL,
+    POLYGON_MATCHING_ENGINE_API_KEY: env.POLYGON_MATCHING_ENGINE_API_KEY,
+    POLYGON_MATCHING_ENGINE_API_URL: env.POLYGON_MATCHING_ENGINE_API_URL,
+    POLYGON_EXECUTION_ENGINE_API_KEY: env.POLYGON_EXECUTION_ENGINE_API_KEY,
+    POLYGON_EXECUTION_ENGINE_API_URL: env.POLYGON_EXECUTION_ENGINE_API_URL
   };
 
   for (const key of Object.keys(envVariables) as (keyof EnvironmentVariables)[]) {

@@ -11,11 +11,12 @@ import { ParseCollectionIdPipe, ParsedCollectionId } from 'collections/collectio
 import { ApiTag } from 'common/api-tags';
 import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param-collection-id.decorator';
 import { ResponseDescription } from 'common/response-description';
+import { MatchingEngineService } from 'v2/matching-engine/matching-engine.service';
 import { OrdersService } from 'v2/orders/orders.service';
 
 @Controller('v2/collections')
 export class CollectionsController {
-  constructor(protected _ordersService: OrdersService) {}
+  constructor(protected _ordersService: OrdersService, protected _matchingEngineService: MatchingEngineService) {}
 
   @Get('/:id/orders')
   @ApiParamCollectionId('collectionId')
@@ -36,5 +37,23 @@ export class CollectionsController {
     });
 
     return orders;
+  }
+
+  @Get('/:id/matching-engine')
+  @ApiParamCollectionId('collectionId')
+  @ApiOperation({
+    description: 'Fetch collection orders',
+    tags: [ApiTag.Collection, ApiTag.Curation]
+  })
+  @ApiOkResponse({ type: UserCuratedCollectionDto })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  async getCollectionMatchingStatus(
+    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
+  ): Promise<any> {
+    const status = await this._matchingEngineService.getCollectionStatus(collection.address, collection.chainId);
+
+    return status;
   }
 }

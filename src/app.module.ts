@@ -16,7 +16,7 @@ import { ZoraModule } from 'zora/zora.module';
 import { AlchemyModule } from './alchemy/alchemy.module';
 import { ApiUserModule } from './api-user/api-user.module';
 import { AppController } from './app.controller';
-import { FB_STORAGE_BUCKET, validateAndTransformEnvVariables } from './constants';
+import { FB_STORAGE_BUCKET, secondaryEnvFileName, validateAndTransformEnvVariables } from './constants';
 import { DiscordModule } from './discord/discord.module';
 import { EthereumModule } from './ethereum/ethereum.module';
 import { FirebaseModule } from './firebase/firebase.module';
@@ -38,6 +38,8 @@ import { GenerateModule } from './v2/generate/generate.module';
 import { BulkModule } from './v2/bulk/bulk.module';
 import { PostgresModule } from 'postgres/postgres.module';
 import { SetsModule } from 'sets/sets.module';
+import { MatchingEngineService } from './v2/matching-engine/matching-engine.service';
+import { MatchingEngineModule } from './v2/matching-engine/matching-engine.module';
 
 import { BetaModule } from './v2/beta/beta.module';
 import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
@@ -46,7 +48,7 @@ import { RedisModule } from './redis/redis.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
-      envFilePath: join(__dirname, `../${envFileName}`),
+      envFilePath: [join(__dirname, `../${envFileName}`), join(__dirname, `../${secondaryEnvFileName}`)],
       isGlobal: true,
       validate: validateAndTransformEnvVariables
     }),
@@ -99,13 +101,15 @@ import { RedisModule } from './redis/redis.module';
     GenerateModule,
     BulkModule,
     BetaModule,
-    RedisModule
+    RedisModule,
+    MatchingEngineModule
   ],
   providers: [
     {
       provide: APP_GUARD,
       useClass: ApiKeyThrottlerGuard
-    }
+    },
+    MatchingEngineService
   ],
   controllers: [AppController]
 })

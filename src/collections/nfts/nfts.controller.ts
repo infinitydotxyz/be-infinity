@@ -38,7 +38,7 @@ export class NftsController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 20 }))
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 30 }))
   async getCollectionNfts(
     @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
     @Query() query: NftsQueryDto
@@ -80,28 +80,28 @@ export class NftsController {
     return nft;
   }
 
-  @Get(':id/nfts/:tokenId/refresh-metadata')
-  @ApiOperation({
-    description: 'Refresh meta data on single nft',
-    tags: [ApiTag.Nft]
-  })
-  @ApiParamCollectionId('id')
-  @ApiParamTokenId('tokenId')
-  @ApiOkResponse({ description: ResponseDescription.Success, type: NftDto })
-  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
-  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  // @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 20 })) // this causes stale '.owner' data after sending.
-  async refreshNftMetadata(
-    @ParamCollectionId('id', ParseCollectionIdPipe) { address, chainId }: ParsedCollectionId,
-    @ParamTokenId('tokenId') tokenId: string
-  ) {
-    const result = await this.nftService.refreshMetaData({ address, chainId, tokenId });
+  // @Get(':id/nfts/:tokenId/refresh-metadata')
+  // @ApiOperation({
+  //   description: 'Refresh meta data on single nft',
+  //   tags: [ApiTag.Nft]
+  // })
+  // @ApiParamCollectionId('id')
+  // @ApiParamTokenId('tokenId')
+  // @ApiOkResponse({ description: ResponseDescription.Success, type: NftDto })
+  // @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  // @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
+  // @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  // // @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 20 })) // this causes stale '.owner' data after sending.
+  // async refreshNftMetadata(
+  //   @ParamCollectionId('id', ParseCollectionIdPipe) { address, chainId }: ParsedCollectionId,
+  //   @ParamTokenId('tokenId') tokenId: string
+  // ) {
+  //   const result = await this.nftService.refreshMetaData({ address, chainId, tokenId });
 
-    if (result && result.length > 0) {
-      return result[0];
-    }
-  }
+  //   if (result && result.length > 0) {
+  //     return result[0];
+  //   }
+  // }
 
   @Get(':id/nfts/:tokenId/activity')
   @ApiOperation({
@@ -138,7 +138,7 @@ export class NftsController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 10 * 60 }))
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 }))
   async getSalesAndOrders(
     @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
     @ParamTokenId('tokenId') tokenId: string

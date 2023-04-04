@@ -80,15 +80,22 @@ export class AuthGuard implements CanActivate {
 
       const result = await this.apiUserService.verifyAndGetUserConfig(apiKey, apiSecret);
       if (!result.isValid) {
+        console.log(`User: ${apiKey} - invalid ID ${apiKey} PATH ${req.path}`);
         throw new AuthException(result.reason);
       }
 
       const userRole = result.user.config.role;
       if (!userRole) {
+        console.log(
+          `User: ${result.user.name}:${result.user.config.role} - not authorized for ${minRole} ID ${result.user.id} PATH ${req.path}`
+        );
         throw new AuthException('User does not have the required role');
       }
 
       if (!hasApiRole(userRole, minRole)) {
+        console.log(
+          `User: ${result.user.name}:${result.user.config.role} - not authorized for ${minRole} ID ${result.user.id} PATH ${req.path}`
+        );
         throw new AuthException('User does not have the required role');
       }
       req.apiUser = result.user;
@@ -113,7 +120,7 @@ export class AuthGuard implements CanActivate {
         }
         throw new AuthException('Invalid signature');
       } else {
-        // future-TODO handle admin roles
+        // future-todo handle admin roles
         throw new AuthException('Admin roles are not yet supported');
       }
     }

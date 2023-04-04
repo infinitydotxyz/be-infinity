@@ -14,6 +14,9 @@ automatic_scaling:
   min_pending_latency: 30ms
   max_pending_latency: automatic
   max_concurrent_requests: 80
+env_variables:
+  IS_DEPLOYED: 1
+  INFINITY_NODE_ENV: prod
 vpc_access_connector:
   name: projects/nftc-infinity/locations/us-east1/connectors/be-redis-vpc-connector
 beta_settings:

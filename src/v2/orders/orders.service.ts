@@ -5,7 +5,7 @@ import {
   Order,
   FirestoreDisplayOrder
 } from '@infinityxyz/lib/types/core';
-import { firestoreConstants, formatEth, getOBOrderPrice } from '@infinityxyz/lib/utils';
+import { PROTOCOL_FEE_BPS, firestoreConstants, formatEth, getOBOrderPrice } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { ContractService } from 'ethereum/contract.service';
 import { EthereumService } from 'ethereum/ethereum.service';
@@ -14,6 +14,8 @@ import { CursorService } from 'pagination/cursor.service';
 import { bn } from 'utils';
 import { BaseOrdersService } from './base-orders.service';
 import { OrderBy, OrderQueries, Side } from '@infinityxyz/lib/types/dto';
+import { MatchingEngineService } from 'v2/matching-engine/matching-engine.service';
+import { BigNumber } from 'ethers';
 
 @Injectable()
 export class OrdersService extends BaseOrdersService {
@@ -21,9 +23,33 @@ export class OrdersService extends BaseOrdersService {
     firebaseService: FirebaseService,
     contractService: ContractService,
     ethereumService: EthereumService,
-    protected cursorService: CursorService
+    protected cursorService: CursorService,
+    protected matchingEngineService: MatchingEngineService
   ) {
     super(firebaseService, contractService, ethereumService);
+  }
+
+  public getGasCostWei(
+    isNative: boolean,
+    gasPrice: {
+      baseFee: string;
+      baseFeeGwei: string;
+      maxBaseFeeWei: string;
+      minBaseFeeWei: string;
+      maxBaseFeeGwei: string;
+      minBaseFeeGwei: string;
+    },
+    gasUsage?: string
+  ) {
+    if (isNative) {
+      return '0';
+    }
+    const gasToFulfillOnExternal = gasUsage ?? '300000';
+    const buffer = 100_000;
+    const totalGas = BigNumber.from(gasToFulfillOnExternal).add(buffer);
+
+    const gasFeesWei = bn(gasPrice.maxBaseFeeWei).mul(totalGas);
+    return gasFeesWei;
   }
 
   public async getDisplayOrders(
@@ -31,7 +57,7 @@ export class OrdersService extends BaseOrdersService {
     query: OrderQueries,
     asset: { collection: string } | { collection: string; tokenId: string } | { user: string }
   ) {
-    // TODO filter out infinity orders
+    // joe-todo: filter out infinity orders
     let ref:
       | FirebaseFirestore.CollectionReference<FirestoreDisplayOrderWithoutError>
       | FirebaseFirestore.CollectionGroup<FirestoreDisplayOrderWithoutError>;
@@ -71,7 +97,7 @@ export class OrdersService extends BaseOrdersService {
     } else {
       throw new Error('Invalid asset');
     }
-    // TODO improve price filtering to work over the calculated prices
+    // joe-todo: improve price filtering to work over the calculated prices
     return this._getOrders(chainId, query, ref);
   }
 
@@ -90,19 +116,18 @@ export class OrdersService extends BaseOrdersService {
       let startPriceWei = bn(item.order.startPrice);
       let endPriceWei = bn(item.order.endPrice);
 
-      // TODO update gas estimates once we have a better idea of how much gas is used
+      // joe-todo: update gas estimates once we have a better idea of how much gas is used
+      const isNative = item.metadata.source === 'flow';
+      const gasCostWei = this.getGasCostWei(isNative, gasPrice, item.order.gasUsageString);
+
       if (item.metadata.source !== 'flow') {
-        const gasToFulfillOnExternal = item.order.gasUsage;
-        const buffer = 100_000;
-        const totalGas = gasToFulfillOnExternal + buffer;
-
-        const gasFeesWei = bn(gasPrice.baseFee).mul(totalGas);
-
-        console.log(`Non-native order gas usage: ${totalGas} - gas cost ${formatEth(gasFeesWei.toString())}`);
-
-        startPriceWei = startPriceWei.add(gasFeesWei);
-        endPriceWei = endPriceWei.add(gasFeesWei);
+        const startPriceFees = startPriceWei.mul(PROTOCOL_FEE_BPS).div(10_000);
+        const endPriceFees = endPriceWei.mul(PROTOCOL_FEE_BPS).div(10_000);
+        startPriceWei = startPriceWei.add(startPriceFees);
+        endPriceWei = endPriceWei.add(endPriceFees);
       }
+      startPriceWei = startPriceWei.add(gasCostWei);
+      endPriceWei = endPriceWei.add(gasCostWei);
 
       const startPriceEth = formatEth(startPriceWei.toString(), 6);
       const endPriceEth = formatEth(endPriceWei.toString(), 6);
@@ -132,7 +157,7 @@ export class OrdersService extends BaseOrdersService {
         startTimeMs: item.order.startTimeMs,
         endTimeMs: item.order.endTimeMs,
         currentPriceEth,
-        isPrivate: false, // TODO handle private orders
+        isPrivate: false, // future-todo: handle private orders
         numItems: item.order.numItems,
         currency: item.order.currency,
         startPriceEth,
@@ -214,7 +239,7 @@ export class OrdersService extends BaseOrdersService {
         firestoreQuery = firestoreQuery
           .where('order.startPriceEth', '>=', minPrice)
           .where('order.startPriceEth', '<=', maxPrice)
-          .orderBy('order.startPriceEth', orderDirection) // TODO support dynamic orders - use currentPriceEth and handle price updates
+          .orderBy('order.startPriceEth', orderDirection) // future-todo: support dynamic orders - use currentPriceEth and handle price updates
           .orderBy('metadata.id', orderDirection);
         if (cursor.id && cursor.startPrice) {
           firestoreQuery = firestoreQuery.startAfter([cursor.startPrice, cursor.id]);
@@ -268,10 +293,35 @@ export class OrdersService extends BaseOrdersService {
 
     const encodedCursor = this.cursorService.encodeCursor(newCursor);
     const transformed = this.transformDisplayOrders(gasPrice, orders);
+    const results = await this.mergeExecutionStatus(chainId, transformed);
     return {
-      data: transformed,
+      data: results,
       cursor: encodedCursor,
       hasNextPage
     };
+  }
+
+  async mergeExecutionStatus(chainId: ChainId, orders: Order[]) {
+    try {
+      const executionStatuses = await this.matchingEngineService.getExecutionStatuses(
+        chainId,
+        orders.map((item) => item.id)
+      );
+
+      return orders.map((item, index) => {
+        return {
+          ...item,
+          executionStatus: executionStatuses[index]
+        };
+      });
+    } catch (err) {
+      console.error(err);
+      return orders.map((item) => {
+        return {
+          ...item,
+          executionStatus: null
+        };
+      });
+    }
   }
 }
