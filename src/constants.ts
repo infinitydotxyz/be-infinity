@@ -1,6 +1,6 @@
 import { OrderDirection } from '@infinityxyz/lib/types/core';
 import { Env } from '@infinityxyz/lib/utils';
-import { AUTH_MESSAGE_HEADER, AUTH_NONCE_HEADER, AUTH_SIGNATURE_HEADER } from 'auth/auth.constants';
+import { AUTH_NONCE_HEADER, AUTH_SIGNATURE_HEADER } from 'auth/auth.constants';
 import { resolve } from 'path';
 import { readFileSync } from 'fs';
 import { devOptionalEnvVariables, EnvironmentVariables } from 'types/environment-variables.interface';
@@ -61,6 +61,7 @@ export const validateAndTransformEnvVariables = (env: Record<string, string>) =>
   const firebaseServiceAccount = loadJsonFile<object>(firebaseServiceAccountName);
 
   const envVariables: EnvironmentVariables = {
+    FRONTEND_HOST: env.FRONTEND_HOST,
     API_BASE: env.API_BASE,
     twitterBearerToken: env.twitterBearerToken,
     ALCHEMY_API_KEY: env.ALCHEMY_API_KEY,
@@ -113,8 +114,7 @@ export const validateAndTransformEnvVariables = (env: Record<string, string>) =>
 
 export const auth = {
   nonce: AUTH_NONCE_HEADER,
-  signature: AUTH_SIGNATURE_HEADER,
-  message: AUTH_MESSAGE_HEADER
+  signature: AUTH_SIGNATURE_HEADER
 };
 
 export const API_BASE = 'http://localhost:9090';

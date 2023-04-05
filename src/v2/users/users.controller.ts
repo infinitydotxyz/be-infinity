@@ -1,6 +1,6 @@
 import { ApiRole, ChainId } from '@infinityxyz/lib/types/core';
 import { ErrorResponseDto, Side, TakerOrdersQuery } from '@infinityxyz/lib/types/dto';
-import { BadRequestException, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { Auth } from 'auth/api-auth.decorator';
 import { SiteRole } from 'auth/auth.constants';
@@ -9,11 +9,12 @@ import { ApiTag } from 'common/api-tags';
 import { ResponseDescription } from 'common/response-description';
 import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
+import { BetaService } from 'v2/beta/beta.service';
 import { OrdersService } from 'v2/orders/orders.service';
 
 @Controller('v2/users')
 export class UsersController {
-  constructor(protected _ordersService: OrdersService) {}
+  constructor(protected _ordersService: OrdersService, protected _betaService: BetaService) {}
 
   @Get(':userId/orders')
   @ApiOperation({
@@ -43,30 +44,27 @@ export class UsersController {
     description: "Get the user's beta authorization status",
     tags: [ApiTag.User]
   })
-  @Auth(SiteRole.User, ApiRole.Guest)
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  public async getBetaAuth(@Param('userId') userId: string, @Query('chainId') chainId?: ChainId): Promise<unknown> {
-    await Promise.resolve();
-    return {};
+  public async getBetaAuth(@ParamUserId('userId', ParseUserIdPipe) userId: ParsedUserId): Promise<unknown> {
+    return await this._betaService.getBetaAuthorization(userId);
   }
 
-  @Post(':hashedAddress/beta/auth/callback')
+  @Post(':userId/beta/auth/twitter/callback')
   @ApiOperation({
-    description: "Handle the user's auth callback",
     tags: [ApiTag.User]
   })
-  @Auth(SiteRole.User, ApiRole.Guest)
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  public async handleTwitterAuthCallback(
-    @Param('userId') userId: string,
-    @Query('chainId') chainId?: ChainId
+  public async handleTwitterCallback(
+    @ParamUserId('userId', ParseUserIdPipe) userId: ParsedUserId,
+    @Body() { state, code }: { state: string; code: string }
   ): Promise<unknown> {
-    await Promise.resolve();
-    return {};
+    return await this._betaService.handleTwitterOAuthCallback({ state, code }, userId);
   }
 
   @Get(':userId/nonce')

@@ -57,13 +57,6 @@ function setupSwagger(app: INestApplication, path: string) {
       in: 'header',
       description: `Pass the user signed messaged in the ${auth.signature} header`
     })
-    .addSecurity(auth.message, {
-      type: 'apiKey',
-      scheme: `${auth.message}: <original message>`,
-      name: auth.message,
-      in: 'header',
-      description: `Pass the message that was signed in the ${auth.message} header`
-    })
     .addSecurity(auth.nonce, {
       type: 'apiKey',
       scheme: `${auth.nonce}: <numeric nonce>`,

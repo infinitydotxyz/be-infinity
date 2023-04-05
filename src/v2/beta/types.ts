@@ -1,3 +1,5 @@
+import { UserV2 } from 'twitter-api-v2';
+
 export enum TwitterRequirementStep {
   Initial,
   GeneratedLink,
@@ -26,13 +28,14 @@ export interface RedirectParams {
   accessToken: string;
   refreshToken: string;
   expiresIn: number;
+  expiresAt: number;
 }
 
 export interface TwitterRequirementConnected {
   step: TwitterRequirementStep.Connected;
   linkParams: LinkParams;
   redirectParams: RedirectParams;
-  user: unknown; // TODO
+  user: UserV2; // TODO
 }
 
 export type TwitterRequirement =

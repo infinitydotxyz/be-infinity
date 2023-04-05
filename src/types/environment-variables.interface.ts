@@ -23,6 +23,9 @@ export interface EnvironmentVariables {
   PG_PASS: string;
   PG_DB_NAME: string;
   snapshotBucket: string;
+
+  FRONTEND_HOST: string;
+
   GOERLI_MATCHING_ENGINE_API_URL: string;
   GOERLI_MATCHING_ENGINE_API_KEY: string;
   GOERLI_EXECUTION_ENGINE_API_URL: string;

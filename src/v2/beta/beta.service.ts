@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { FirebaseService } from 'firebase/firebase.service';
 import TwitterApi from 'twitter-api-v2';
@@ -19,13 +19,10 @@ import {
   TwitterRequirementStep
 } from './types';
 import { join, normalize } from 'path';
-import Redis from 'ioredis';
 
 @Injectable()
 export class BetaService {
   protected _twitterClient: TwitterApi;
-
-  @Inject('REDIS_CLIENT') private readonly redis: Redis;
   protected _twitterCallbackUrl: string;
 
   constructor(protected _firebase: FirebaseService, protected _configService: ConfigService<EnvironmentVariables>) {
@@ -71,7 +68,7 @@ export class BetaService {
 
       switch (data.twitterConnect.step) {
         case TwitterRequirementStep.Initial: {
-          const linkParams = this.getTwitterOAuthLink(user);
+          const linkParams = this.getTwitterOAuthLink();
           data.twitterConnect = {
             step: TwitterRequirementStep.GeneratedLink,
             linkParams: linkParams
@@ -101,7 +98,7 @@ export class BetaService {
               twitter = {
                 step: Twitter.Follow,
                 data: {
-                  url: ''
+                  url: 'https://twitter.com/flowdotso'
                 }
               };
               break;
@@ -112,10 +109,6 @@ export class BetaService {
               };
               break;
             }
-          }
-          if (!twitter) {
-            console.error('Invalid user beta flow state', JSON.stringify(data, null, 2));
-            throw new Error(`Failed to determine twitter state`);
           }
           break;
         }
@@ -144,7 +137,7 @@ export class BetaService {
         }
       }
 
-      txn.set(betaRequirementsRef, data);
+      txn.set(betaRequirementsRef, data, { merge: true });
       if (twitter.step === Twitter.Complete && discord.step === Discord.Complete) {
         return {
           status: BetaAuthorizationStatus.Authorized
@@ -160,9 +153,9 @@ export class BetaService {
     return result;
   }
 
-  getTwitterOAuthLink(user: ParsedUserId): LinkParams {
-    const apiBase = this._configService.get('API_BASE');
-    const callbackUrl = new URL(normalize(join(apiBase, `/v2/users/${user.userAddress}/beta/auth`))).toString();
+  getTwitterOAuthLink(): LinkParams {
+    const apiBase = this._configService.get('FRONTEND_HOST');
+    const callbackUrl = new URL(normalize(join(apiBase, `/callback`))).toString();
 
     const { url, codeVerifier, state } = this._twitterClient.generateOAuth2AuthLink(callbackUrl, {
       scope: ['tweet.read', 'users.read', 'offline.access']
@@ -176,8 +169,88 @@ export class BetaService {
     };
   }
 
-  public handleTwitterOAuthCallback(data: unknown) {
-    console.log(JSON.stringify(data, null, 2));
-    // this._twitterClient.
+  public async handleTwitterOAuthCallback(
+    data: { state: string; code: string },
+    user: ParsedUserId
+  ): Promise<{ success: boolean }> {
+    const betaRequirementsRef = user.ref
+      .collection('flowBeta')
+      .doc('flowBetaAuthorization') as DocRef<BetaRequirementsData>;
+
+    if (!data.state || !data.code) {
+      throw new Error(`User denied app or session expired`);
+    }
+
+    try {
+      const result = await this._firebase.firestore.runTransaction(async (txn) => {
+        const betaRequirementsSnap = await txn.get(betaRequirementsRef);
+        const betaRequirements = betaRequirementsSnap.data();
+
+        if (betaRequirements?.twitterConnect.step === TwitterRequirementStep.Connected) {
+          return { success: true };
+        }
+
+        if (!betaRequirements) {
+          throw new Error(`Failed to find code verifier for user ${user.userAddress}`);
+        } else if (betaRequirements.twitterConnect.step === TwitterRequirementStep.Initial) {
+          throw new Error(`Failed to find code verifier for user ${user.userAddress}`);
+        }
+
+        const { codeVerifier, state } = betaRequirements.twitterConnect.linkParams;
+        if (!codeVerifier || !state) {
+          throw new Error(`Failed to find code verifier for user ${user.userAddress}`);
+        } else if (state !== data.state) {
+          throw new Error(`Invalid state for user ${user.userAddress}`);
+        }
+
+        console.log(`Logging in user ${user.userAddress}`);
+        const {
+          client: loggedInClient,
+          accessToken,
+          refreshToken,
+          expiresIn
+        } = await this._twitterClient.loginWithOAuth2({
+          code: data.code,
+          codeVerifier,
+          redirectUri: betaRequirements.twitterConnect.linkParams.callbackUrl
+        });
+        console.log(`Logged in user ${user.userAddress}`);
+
+        if (!refreshToken) {
+          throw new Error(`Failed to get refresh token for user ${user.userAddress}`);
+        }
+
+        const { data: userObject } = await loggedInClient.currentUserV2();
+        console.log(`Retrieved twitter account for user ${user.userAddress}`);
+
+        if (!userObject.id) {
+          throw new Error(`Failed to get user id for user ${user.userAddress}`);
+        }
+
+        const expiresAt = Date.now() + expiresIn * 1000;
+        betaRequirements.twitterConnect = {
+          step: TwitterRequirementStep.Connected,
+          linkParams: betaRequirements.twitterConnect.linkParams,
+          redirectParams: {
+            state: data.state,
+            code: data.code,
+            accessToken,
+            refreshToken,
+            expiresIn,
+            expiresAt
+          },
+          user: userObject
+        };
+
+        txn.set(betaRequirementsRef, betaRequirements, { merge: true });
+
+        return { success: true };
+      });
+
+      return result;
+    } catch (err) {
+      console.error(JSON.stringify(err, null, 2));
+      return { success: false };
+    }
   }
 }

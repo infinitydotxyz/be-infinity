@@ -43,7 +43,6 @@ import { MatchingEngineModule } from './v2/matching-engine/matching-engine.modul
 
 import { BetaModule } from './v2/beta/beta.module';
 import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
-import { RedisModule } from './redis/redis.module';
 
 @Module({
   imports: [
@@ -101,7 +100,6 @@ import { RedisModule } from './redis/redis.module';
     GenerateModule,
     BulkModule,
     BetaModule,
-    RedisModule,
     MatchingEngineModule
   ],
   providers: [
