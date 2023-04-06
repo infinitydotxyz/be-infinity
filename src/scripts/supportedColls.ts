@@ -9,9 +9,12 @@ import {
   trimLowerCase
 } from '@infinityxyz/lib/utils';
 import { ConfigService } from '@nestjs/config';
+import { exec } from 'child_process';
 import { ethers } from 'ethers';
 import { FirebaseService } from 'firebase/firebase.service';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
+import { appendFileSync, existsSync } from 'fs';
+import path from 'path';
 import { ReservoirService } from 'reservoir/reservoir.service';
 import { getService } from 'script';
 
@@ -166,6 +169,35 @@ export const pushMetadataToSupportedColls = async () => {
   // final flush
   await fsBatchHandler.flush();
 
+  console.log('Done!');
+};
+
+// downloads supported collections from firestore and saves them to a text file
+export const fetchSupportedColls = async (chainId: string) => {
+  console.log('Fetching supported collections...');
+  const firebaseService = getService(FirebaseService);
+  if (!firebaseService) {
+    throw new Error('Firebase service not found');
+  }
+  const supportedCollsRef = firebaseService.firestore
+    .collection(firestoreConstants.SUPPORTED_COLLECTIONS_COLL)
+    .where('chainId', '==', chainId);
+  const querySnapshot = await supportedCollsRef.get();
+  const supportedColls = querySnapshot.docs.map((doc) => doc.data() as SupportedCollection);
+  const supportedCollsAddresses = supportedColls.map((coll) => coll.address);
+  console.log(`Found ${supportedCollsAddresses.length} supported collections.`)
+  // dump to a new line separated file
+  const filePath = path.join(__dirname, `../../src/scripts/supported-colls-${chainId}.txt`);
+  if (existsSync(filePath)) {
+    // delete file if it exists
+    exec(`rm ${filePath}`);
+  } else {
+    // create file if it doesn't exist
+    exec(`touch ${filePath}`);
+  }
+  for (const address of supportedCollsAddresses) {
+    appendFileSync(filePath, `${address}\n`);
+  }
   console.log('Done!');
 };
 
