@@ -3,7 +3,7 @@ import {
   ChainNFTs,
   CurrencyAllowanceRequest,
   DepositCurrencyRequest,
-  EIP721Data,
+  EIP712Data,
   RawOrderWithoutError,
   RequestKind,
   SignatureRequest,
@@ -243,7 +243,7 @@ export class GenerateOrderService {
       message: 'Sign the order to bid on NFTs on the Infinity marketplace',
       signatureData: {
         signatureKind: signatureData.signatureKind as 'eip712',
-        domain: signatureData.domain as EIP721Data['domain'],
+        domain: signatureData.domain as EIP712Data['domain'],
         types: signatureData.type,
         value: signatureData.value
       }
@@ -270,7 +270,7 @@ export class GenerateOrderService {
       message: 'Sign the order to list your NFTs on the Infinity marketplace',
       signatureData: {
         signatureKind: signatureData.signatureKind as 'eip712',
-        domain: signatureData.domain as EIP721Data['domain'],
+        domain: signatureData.domain as EIP712Data['domain'],
         types: signatureData.type,
         value: signatureData.value
       }
