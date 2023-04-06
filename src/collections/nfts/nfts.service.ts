@@ -10,7 +10,12 @@ import {
   NftsQueryDto,
   OrderType
 } from '@infinityxyz/lib/types/dto/collections/nfts';
-import { firestoreConstants, getCollectionDocId, getSearchFriendlyString } from '@infinityxyz/lib/utils';
+import {
+  PROTOCOL_FEE_BPS,
+  firestoreConstants,
+  getCollectionDocId,
+  getSearchFriendlyString
+} from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { BackfillService } from 'backfill/backfill.service';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
@@ -295,8 +300,19 @@ export class NftsService {
           const isNative = source === 'flow';
 
           const gasCostWei = this.ordersService.getGasCostWei(isNative, gasPrice, gasUsage);
-          const startPriceWei = parseEther(startPrice.toString()).add(gasCostWei);
-          const endPriceWei = parseEther(endPrice.toString()).add(gasCostWei);
+
+          let startPriceWei = parseEther(startPrice.toString());
+          let endPriceWei = parseEther(endPrice.toString());
+
+          if (orderItem.source !== 'flow') {
+            const startPriceFees = startPriceWei.mul(PROTOCOL_FEE_BPS).div(10_000);
+            const endPriceFees = endPriceWei.mul(PROTOCOL_FEE_BPS).div(10_000);
+            startPriceWei = startPriceWei.add(startPriceFees);
+            endPriceWei = endPriceWei.add(endPriceFees);
+          }
+          startPriceWei = startPriceWei.add(gasCostWei);
+          endPriceWei = endPriceWei.add(gasCostWei);
+
           orderItem.startPriceEth = parseFloat(formatEther(startPriceWei));
           orderItem.endPriceEth = parseFloat(formatEther(endPriceWei));
         }
@@ -304,6 +320,20 @@ export class NftsService {
 
       return item;
     });
+    if (query.orderBy === NftsOrderBy.Price) {
+      nftsWithAdjustedPrices.sort((a, b) => {
+        const aPrice = a.ordersSnippet?.[orderType]?.orderItem?.startPriceEth;
+        const bPrice = b.ordersSnippet?.[orderType]?.orderItem?.startPriceEth;
+        if (aPrice && bPrice) {
+          return query.orderDirection === OrderDirection.Ascending ? aPrice - bPrice : bPrice - aPrice;
+        } else if (aPrice) {
+          return -1;
+        } else if (bPrice) {
+          return 1;
+        }
+        return 0;
+      });
+    }
 
     // backfill any missing data
     // this.backfillService.backfillAnyMissingNftData(data).catch((err) => {

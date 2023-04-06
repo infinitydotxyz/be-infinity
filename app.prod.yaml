@@ -16,6 +16,7 @@ automatic_scaling:
   max_concurrent_requests: 80
 env_variables:
   IS_DEPLOYED: 1
+  INFINITY_NODE_ENV: prod
 vpc_access_connector:
   name: projects/nftc-infinity/locations/us-east1/connectors/be-redis-vpc-connector
 beta_settings:

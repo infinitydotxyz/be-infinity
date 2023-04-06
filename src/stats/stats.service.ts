@@ -223,10 +223,10 @@ export class StatsService {
     return data;
   }
 
-  async getCollectionOrders(collection: ParsedCollectionId): Promise<CollectionOrder[]> {
-    const q = `SELECT id, token_id, maker, is_private, token_image, price_eth, is_sell_order\
+  async getCollectionOrders(collection: ParsedCollectionId, isSellOrder: boolean): Promise<CollectionOrder[]> {
+    const q = `SELECT id, token_id, maker, is_private, token_image, price_eth, is_sell_order \
        FROM eth_nft_orders \
-       WHERE collection_address = '${collection.address}' AND status = 'active' \
+       WHERE collection_address = '${collection.address}' AND status = 'active' AND is_sell_order = '${isSellOrder}' \
        LIMIT 1000`;
 
     const pool = this.postgresService.pool;
