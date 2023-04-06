@@ -143,7 +143,6 @@ export class OrdersService extends BaseOrdersService {
       );
 
       const currentPriceEth = formatEth(currentPriceWei.toString(), 6);
-      console.log(`Current Price: ${currentPriceEth} ETH`);
 
       const startPricePerItemEth = formatEth(startPriceWei.div(item.order.numItems).toString(), 6);
       const endPricePerItemEth = formatEth(endPriceWei.div(item.order.numItems).toString(), 6);
