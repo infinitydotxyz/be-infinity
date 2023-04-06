@@ -138,7 +138,6 @@ export class AuthGuard implements CanActivate {
       );
     }
 
-    console.log('here');
     const { domain, types, value } = AuthGuard.getLoginMessage(nonce);
 
     try {

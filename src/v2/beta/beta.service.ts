@@ -19,6 +19,7 @@ import {
   TwitterRequirementStep
 } from './types';
 import { join, normalize } from 'path';
+import { ONE_MIN } from '@infinityxyz/lib/utils/constants';
 
 @Injectable()
 export class BetaService {
@@ -95,12 +96,34 @@ export class BetaService {
         case TwitterRequirementStep.Connected: {
           switch (data.twitterFollower.step) {
             case TwitterFollowerStep.Initial: {
-              twitter = {
-                step: Twitter.Follow,
-                data: {
-                  url: 'https://twitter.com/flowdotso'
-                }
-              };
+              const { isFollowing, userAuth } = await this.isFollowingFlow(
+                {
+                  accessToken: data.twitterConnect.redirectParams.accessToken,
+                  refreshToken: data.twitterConnect.redirectParams.refreshToken,
+                  expiresAt: data.twitterConnect.redirectParams.expiresAt
+                },
+                data.twitterConnect.user.id
+              );
+
+              data.twitterConnect.redirectParams.accessToken = userAuth.accessToken;
+              data.twitterConnect.redirectParams.refreshToken = userAuth.refreshToken;
+              data.twitterConnect.redirectParams.expiresAt = userAuth.expiresAt;
+
+              if (isFollowing) {
+                twitter = {
+                  step: Twitter.Complete
+                };
+                data.twitterFollower = {
+                  step: TwitterFollowerStep.Follower
+                };
+              } else {
+                twitter = {
+                  step: Twitter.Follow,
+                  data: {
+                    url: 'https://twitter.com/flowdotso'
+                  }
+                };
+              }
               break;
             }
             case TwitterFollowerStep.Follower: {
@@ -158,7 +181,7 @@ export class BetaService {
     const callbackUrl = new URL(normalize(join(apiBase, `/callback`))).toString();
 
     const { url, codeVerifier, state } = this._twitterClient.generateOAuth2AuthLink(callbackUrl, {
-      scope: ['tweet.read', 'users.read', 'offline.access']
+      scope: ['tweet.read', 'users.read', 'follows.read', 'offline.access']
     });
 
     return {
@@ -167,6 +190,62 @@ export class BetaService {
       codeVerifier,
       state
     };
+  }
+
+  public async isFollowingFlow(
+    userAuth: { accessToken: string; refreshToken: string; expiresAt: number },
+    userId: string
+  ) {
+    let updatedAuth = { ...userAuth };
+    let client = new TwitterApi(userAuth.accessToken);
+    if (Date.now() > userAuth.expiresAt - ONE_MIN * 2) {
+      console.log(
+        `Refreshing access token for user ${userId} Expired at ${userAuth.expiresAt} Current time ${Date.now()} `
+      );
+      const {
+        client: refreshedClient,
+        accessToken,
+        refreshToken,
+        expiresIn
+      } = await this._twitterClient.refreshOAuth2Token(userAuth.refreshToken);
+      const expiresAt = Date.now() + expiresIn * 1000;
+      if (!refreshToken) {
+        console.log(`No refresh token returned for user ${userId}`);
+        throw new Error('No refresh token returned');
+      }
+      updatedAuth = {
+        accessToken,
+        refreshToken,
+        expiresAt
+      };
+      client = refreshedClient;
+    }
+
+    const flowId = '1444756392531922946';
+    try {
+      console.log(`Checking if user ${userId} is following flow ${flowId}`);
+      const pageSize = 1000;
+      const followings = await client.v2.following(userId, { asPaginator: true, max_results: pageSize });
+      let page = followings.data.data ?? [];
+      let pageNum = 0;
+      // eslint-disable-next-line no-constant-condition
+      while (pageNum < 10) {
+        pageNum += 1;
+        const isFollowingFlow = page.some((item) => item.id === flowId);
+        console.log(`Page length: ${page.length} isFollowingFlow: ${isFollowingFlow}`);
+        console.log(`First item in page: ${page[0]?.id}`);
+        if (isFollowingFlow) {
+          return { isFollowing: true, userAuth: updatedAuth };
+        } else if (page.length < pageSize) {
+          return { isFollowing: false, userAuth: updatedAuth };
+        }
+
+        page = (await followings.next(pageSize)).data.data ?? [];
+      }
+    } catch (err) {
+      console.error(`Failed to check if user is following flow`, err);
+    }
+    return { isFollowing: false, userAuth: updatedAuth };
   }
 
   public async handleTwitterOAuthCallback(
