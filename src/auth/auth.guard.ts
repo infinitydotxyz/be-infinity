@@ -130,7 +130,6 @@ export class AuthGuard implements CanActivate {
   protected async validateSignature(context: ExecutionContext, request: Record<string, any>): Promise<boolean> {
     const nonce = request.headers?.[AUTH_NONCE_HEADER];
     const signatureHeader = request.headers?.[AUTH_SIGNATURE_HEADER];
-    console.log(`Validating nonce for  ${nonce} and signature ${signatureHeader}`);
 
     if (!nonce || !signatureHeader) {
       throw new AuthException(
@@ -144,7 +143,6 @@ export class AuthGuard implements CanActivate {
       const signingAddress = trimLowerCase(
         ethers.utils.verifyTypedData(domain, types, value as Record<string, any>, signatureHeader)
       );
-      console.log(signingAddress);
       if (!signingAddress) {
         throw new AuthException('Invalid signature');
       }

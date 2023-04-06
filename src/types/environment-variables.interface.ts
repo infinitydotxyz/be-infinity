@@ -5,6 +5,9 @@ export interface EnvironmentVariables {
   twitterBearerToken: string;
   TWITTER_CLIENT_ID: string;
   TWITTER_CLIENT_SECRET: string;
+  DISCORD_CLIENT_ID: string;
+  DISCORD_CLIENT_SECRET: string;
+  DISCORD_GUILD_ID: string;
   ALCHEMY_API_KEY: string;
   mnemonicApiKey: string;
   alchemyJsonRpcEthMainnet: string;

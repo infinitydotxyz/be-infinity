@@ -12,7 +12,10 @@ import {
   BetaAuthorizationStatus,
   BetaRequirementsData,
   Discord,
+  DiscordRequirementConnected,
   DiscordRequirementStep,
+  DiscordTokenResponse,
+  DiscordUserResponse,
   LinkParams,
   Twitter,
   TwitterFollowerStep,
@@ -20,16 +23,27 @@ import {
 } from './types';
 import { join, normalize } from 'path';
 import { ONE_MIN } from '@infinityxyz/lib/utils/constants';
+import got from 'got/dist/source';
 
 @Injectable()
 export class BetaService {
   protected _twitterClient: TwitterApi;
   protected _twitterCallbackUrl: string;
+  protected _discordCallbackUrl: string;
+  protected _discordClientId: string;
+  protected _discordClientSecret: string;
+  protected _discordGuildId: string;
 
   constructor(protected _firebase: FirebaseService, protected _configService: ConfigService<EnvironmentVariables>) {
     const clientId = this._configService.get('TWITTER_CLIENT_ID');
     const clientSecret = this._configService.get('TWITTER_CLIENT_SECRET');
     this._twitterClient = new TwitterApi({ clientId, clientSecret });
+    const apiBase = this._configService.get('FRONTEND_HOST');
+    this._discordCallbackUrl = new URL(normalize(join(apiBase, `/callback/discord`))).toString();
+    this._twitterCallbackUrl = new URL(normalize(join(apiBase, `/callback/twitter`))).toString();
+    this._discordClientId = this._configService.get('DISCORD_CLIENT_ID') ?? '';
+    this._discordClientSecret = this._configService.get('DISCORD_CLIENT_SECRET') ?? '';
+    this._discordGuildId = this._configService.get('DISCORD_GUILD_ID') ?? '';
   }
 
   async getBetaAuthorization(user: ParsedUserId): Promise<BetaAuthorization> {
@@ -141,15 +155,33 @@ export class BetaService {
         case DiscordRequirementStep.Initial: {
           discord = {
             step: Discord.Connect,
-            data: {}
+            data: {
+              url: `https://discord.com/api/oauth2/authorize?client_id=${this._discordClientId}&redirect_uri=${this._discordCallbackUrl}&response_type=code&scope=identify%20guilds`
+            }
           };
           break;
         }
         case DiscordRequirementStep.Connected: {
-          discord = {
-            step: Discord.Join,
-            data: {}
-          };
+          // TODO check if user is in the server
+          const { isMember, userAuth } = await this.isInFlowDiscord(data.discord.auth, data.discord.user.id);
+          data.discord.auth = userAuth;
+          if (isMember) {
+            data.discord = {
+              step: DiscordRequirementStep.Member,
+              auth: data.discord.auth,
+              user: data.discord.user
+            };
+            discord = {
+              step: Discord.Complete
+            };
+          } else {
+            discord = {
+              step: Discord.Join,
+              data: {
+                url: 'https://discord.gg/SX4BBa9u' // TODO get another invite link
+              }
+            };
+          }
           break;
         }
         case DiscordRequirementStep.Member: {
@@ -177,19 +209,91 @@ export class BetaService {
   }
 
   getTwitterOAuthLink(): LinkParams {
-    const apiBase = this._configService.get('FRONTEND_HOST');
-    const callbackUrl = new URL(normalize(join(apiBase, `/callback`))).toString();
-
-    const { url, codeVerifier, state } = this._twitterClient.generateOAuth2AuthLink(callbackUrl, {
+    const { url, codeVerifier, state } = this._twitterClient.generateOAuth2AuthLink(this._twitterCallbackUrl, {
       scope: ['tweet.read', 'users.read', 'follows.read', 'offline.access']
     });
 
     return {
-      callbackUrl,
+      callbackUrl: this._twitterCallbackUrl,
       url,
       codeVerifier,
       state
     };
+  }
+
+  public async isInFlowDiscord(
+    userAuth: DiscordRequirementConnected['auth'],
+    userId: string
+  ): Promise<{ isMember: boolean; userAuth: DiscordRequirementConnected['auth'] }> {
+    try {
+      userAuth = await this.refreshDiscordToken(userAuth);
+
+      const response = await got('https://discord.com/api/users/@me/guilds', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${userAuth.accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        responseType: 'json'
+      });
+
+      if (response.statusCode === 200) {
+        const isMember = ((response.body ?? []) as { id: string }[]).some(
+          (guild: { id: string }) => guild?.id === this._discordGuildId
+        );
+        return { isMember, userAuth: userAuth };
+      } else {
+        console.error(
+          `Failed to retrieve discord guilds for user ${userId} Status code ${response.statusCode}`,
+          response.body
+        );
+        return { isMember: false, userAuth: userAuth };
+      }
+    } catch (err) {
+      console.error(`Failed to retrieve discord guilds for user ${userId}`, err);
+      return { isMember: false, userAuth: userAuth };
+    }
+  }
+
+  public async refreshDiscordToken(
+    userAuth: DiscordRequirementConnected['auth']
+  ): Promise<DiscordRequirementConnected['auth']> {
+    const params = {
+      client_id: this._discordClientId,
+      client_secret: this._discordClientSecret,
+      grant_type: 'refresh_token',
+      refresh_token: userAuth.refreshToken,
+      scope: 'identify guilds'
+    };
+
+    if (userAuth.expiresAt < Date.now() - ONE_MIN * 2) {
+      const response = await got<DiscordTokenResponse>('https://discord.com/api/oauth2/token', {
+        method: 'POST',
+        body: new URLSearchParams(params).toString(),
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        throwHttpErrors: false,
+        responseType: 'json'
+      });
+
+      if (response.statusCode === 200) {
+        const { access_token, refresh_token, expires_in } = response.body;
+        const expiresAt = Date.now() + expires_in * 1000;
+        console.log(`Refreshed discord token for user Expires at ${expiresAt} `);
+
+        return {
+          ...userAuth,
+          accessToken: access_token,
+          refreshToken: refresh_token,
+          expiresAt
+        };
+      } else {
+        throw new Error(`Failed to refresh discord token Status code ${response.statusCode}`);
+      }
+    }
+
+    return userAuth;
   }
 
   public async isFollowingFlow(
@@ -246,6 +350,106 @@ export class BetaService {
       console.error(`Failed to check if user is following flow`, err);
     }
     return { isFollowing: false, userAuth: updatedAuth };
+  }
+
+  async handleDiscordOAuthCallback(data: { code: string }, user: ParsedUserId): Promise<{ success: boolean }> {
+    const betaRequirementsRef = user.ref
+      .collection('flowBeta')
+      .doc('flowBetaAuthorization') as DocRef<BetaRequirementsData>;
+
+    if (!data.code) {
+      throw new Error(`User denied app or session expired`);
+    }
+
+    try {
+      const result = await this._firebase.firestore.runTransaction(async (txn) => {
+        const betaRequirementsSnap = await txn.get(betaRequirementsRef);
+        const betaRequirements = betaRequirementsSnap.data();
+        if (!betaRequirements) {
+          throw new Error(`User ${user.userAddress} initiated the beta authorization flow`);
+        } else if (betaRequirements?.discord?.step === DiscordRequirementStep.Connected) {
+          return { success: true };
+        } else if (betaRequirements?.discord?.step === DiscordRequirementStep.Member) {
+          return { success: true };
+        }
+
+        const params = {
+          client_id: this._configService.get('DISCORD_CLIENT_ID'),
+          client_secret: this._configService.get('DISCORD_CLIENT_SECRET'),
+          grant_type: 'authorization_code',
+          code: data.code,
+          redirect_uri: this._discordCallbackUrl,
+          scope: 'identify guilds'
+        };
+
+        console.log(`Requesting access token for user ${user.userAddress}`);
+        const response = await got<DiscordTokenResponse>('https://discord.com/api/oauth2/token', {
+          method: 'POST',
+          body: new URLSearchParams(params).toString(),
+          headers: {
+            'Content-type': 'application/x-www-form-urlencoded'
+          },
+          responseType: 'json',
+          throwHttpErrors: false
+        });
+
+        if (response.statusCode === 200) {
+          const auth: DiscordRequirementConnected['auth'] = {
+            accessToken: response.body.access_token,
+            refreshToken: response.body.refresh_token,
+            expiresAt: Date.now() + response.body.expires_in * 1000,
+            scope: response.body.scope,
+            tokenType: response.body.token_type
+          };
+
+          console.log(`Successfully requested discord access token for user ${user.userAddress}`);
+          console.log(`Requesting discord user info for user ${user.userAddress}`);
+
+          const userResponse = await got<DiscordUserResponse>('https://discord.com/api/users/@me', {
+            headers: {
+              authorization: `${auth.tokenType} ${auth.accessToken}`
+            },
+            responseType: 'json',
+            throwHttpErrors: false
+          });
+
+          if (userResponse.statusCode === 200 && userResponse.body.id) {
+            console.log(`Successfully requested discord user info for user ${user.userAddress}`);
+            betaRequirements.discord = {
+              step: DiscordRequirementStep.Connected,
+              user: {
+                id: userResponse.body.id,
+                username: userResponse.body.username,
+                discriminator: userResponse.body.discriminator,
+                locale: userResponse.body.locale,
+                mfaEnabled: userResponse.body.mfa_enabled,
+                premiumType: userResponse.body.premium_type
+              },
+              auth
+            };
+            txn.set(betaRequirementsRef, betaRequirements, { merge: true });
+            return { success: true };
+          }
+          console.log(
+            `Failed to request discord user info for user ${user.userAddress} Response code ${userResponse.statusCode}`,
+            userResponse.body
+          );
+          return {
+            success: false
+          };
+        }
+        console.log(
+          `Failed to request access token for user ${user.userAddress} Response code ${response.statusCode}`,
+          response.body
+        );
+        return { success: true };
+      });
+
+      return result;
+    } catch (err) {
+      console.error(JSON.stringify(err, null, 2));
+      return { success: false };
+    }
   }
 
   public async handleTwitterOAuthCallback(

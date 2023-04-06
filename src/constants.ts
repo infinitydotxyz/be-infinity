@@ -83,6 +83,9 @@ export const validateAndTransformEnvVariables = (env: Record<string, string>) =>
     PG_PORT: env.PG_PORT,
     TWITTER_CLIENT_ID: env.TWITTER_CLIENT_ID,
     TWITTER_CLIENT_SECRET: env.TWITTER_CLIENT_SECRET,
+    DISCORD_CLIENT_ID: env.DISCORD_CLIENT_ID,
+    DISCORD_CLIENT_SECRET: env.DISCORD_CLIENT_SECRET,
+    DISCORD_GUILD_ID: env.DISCORD_GUILD_ID,
     snapshotBucket:
       (firebaseServiceAccount as any).project_id === 'nftc-dev'
         ? 'orderbook-snapshots'

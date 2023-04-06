@@ -35,7 +35,7 @@ export interface TwitterRequirementConnected {
   step: TwitterRequirementStep.Connected;
   linkParams: LinkParams;
   redirectParams: RedirectParams;
-  user: UserV2; // TODO
+  user: UserV2;
 }
 
 export type TwitterRequirement =
@@ -67,13 +67,37 @@ export interface DiscordRequirementInitial {
   step: DiscordRequirementStep.Initial;
 }
 
+export interface DiscordUser {
+  id: string;
+  username: string;
+  discriminator: string;
+  locale: string;
+  mfaEnabled: boolean;
+  premiumType: number;
+}
+
 export interface DiscordRequirementConnected {
   step: DiscordRequirementStep.Connected;
-  userId: string;
+  auth: {
+    accessToken: string;
+    expiresAt: number;
+    refreshToken: string;
+    scope: string;
+    tokenType: 'Bearer';
+  };
+  user: DiscordUser;
 }
 
 export interface DiscordRequirementMember {
   step: DiscordRequirementStep.Member;
+  auth: {
+    accessToken: string;
+    expiresAt: number;
+    refreshToken: string;
+    scope: string;
+    tokenType: 'Bearer';
+  };
+  user: DiscordUser;
 }
 
 export type DiscordRequirement = DiscordRequirementInitial | DiscordRequirementConnected | DiscordRequirementMember;
@@ -126,12 +150,16 @@ export enum Discord {
 }
 export interface ConnectDiscord {
   step: Discord.Connect;
-  data: unknown;
+  data: {
+    url: string;
+  };
 }
 
 export interface JoinDiscord {
   step: Discord.Join;
-  data: unknown;
+  data: {
+    url: string;
+  };
 }
 
 export interface CompletedDiscord {
@@ -154,3 +182,24 @@ export interface BetaAuthorizationComplete {
 }
 
 export type BetaAuthorization = BetaAuthorizationIncomplete | BetaAuthorizationComplete;
+
+export interface DiscordTokenResponse {
+  access_token: string;
+  expires_in: number;
+  refresh_token: string;
+  scope: string;
+  token_type: 'Bearer';
+}
+
+export interface DiscordUserResponse {
+  id: string;
+  username: string;
+  avatar: string;
+  discriminator: string;
+  public_flags: number;
+  flags: number;
+  banner: string;
+  locale: string;
+  mfa_enabled: boolean;
+  premium_type: number;
+}

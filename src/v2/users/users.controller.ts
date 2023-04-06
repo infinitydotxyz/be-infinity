@@ -53,6 +53,22 @@ export class UsersController {
     return await this._betaService.getBetaAuthorization(userId);
   }
 
+  @Post(':userId/beta/auth/discord/callback')
+  @ApiOperation({
+    tags: [ApiTag.User]
+  })
+  @Throttle(20, 60)
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
+  @ApiOkResponse({ description: ResponseDescription.Success })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  public async handleDiscordCallback(
+    @ParamUserId('userId', ParseUserIdPipe) userId: ParsedUserId,
+    @Body() { code }: { code: string }
+  ): Promise<unknown> {
+    return await this._betaService.handleDiscordOAuthCallback({ code }, userId);
+  }
+
   @Post(':userId/beta/auth/twitter/callback')
   @ApiOperation({
     tags: [ApiTag.User]
