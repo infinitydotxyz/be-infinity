@@ -280,9 +280,14 @@ export class CollectionsController {
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 10 }))
   async getCollectionOrders(
-    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
+    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId, 
+    @Query() query: {orderSide: 'buy' | 'sell'}
   ): Promise<CollectionOrder[]> {
-    return await this.statsService.getCollectionOrders(collection);
+    let isSellOrder = true;
+    if (query.orderSide === 'buy') {
+      isSellOrder = false;
+    }
+    return await this.statsService.getCollectionOrders(collection, isSellOrder);
   }
 
   @Get('/:id/salesorders')

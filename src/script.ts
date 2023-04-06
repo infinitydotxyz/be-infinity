@@ -7,8 +7,9 @@ import { buildBlurBuyersFromCsv } from 'scripts/blurBuyers';
 import {
   pushMetadataToSupportedColls,
   pushSupportedCollFlagToMainColls,
-  setSupportedCollsInFirestore
-} from 'scripts/setSupportedCollsInFirestore';
+  setSupportedCollsInFirestore,
+  fetchSupportedColls
+} from 'scripts/supportedColls';
 
 let app: NestExpressApplication;
 
@@ -28,7 +29,8 @@ export const run = async () => {
   // await setSupportedCollsInFirestore();
   // await pushMetadataToSupportedColls();
   // await pushSupportedCollFlagToMainColls();
-  buildBlurBuyersFromCsv();
+  // buildBlurBuyersFromCsv();
+  await fetchSupportedColls('1');
 };
 
 void run();
