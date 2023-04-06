@@ -181,7 +181,8 @@ export const fetchSupportedColls = async (chainId: string) => {
   }
   const supportedCollsRef = firebaseService.firestore
     .collection(firestoreConstants.SUPPORTED_COLLECTIONS_COLL)
-    .where('chainId', '==', chainId);
+    .where('chainId', '==', chainId)
+    .where('isSupported', '==', true);
   const querySnapshot = await supportedCollsRef.get();
   const supportedColls = querySnapshot.docs.map((doc) => doc.data() as SupportedCollection);
   const supportedCollsAddresses = supportedColls.map((coll) => coll.address);
