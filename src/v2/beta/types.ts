@@ -102,6 +102,20 @@ export interface DiscordRequirementMember {
 
 export type DiscordRequirement = DiscordRequirementInitial | DiscordRequirementConnected | DiscordRequirementMember;
 
+export enum ReferralRequirementStep {
+  Initial,
+  Complete
+}
+
+export interface ReferralRequirementInitial {
+  step: ReferralRequirementStep.Initial;
+}
+
+export interface ReferralRequirementComplete {
+  step: ReferralRequirementStep.Complete;
+  referralCode: string;
+}
+
 export interface BetaRequirementsData {
   metadata: {
     user: string;
@@ -111,6 +125,8 @@ export interface BetaRequirementsData {
       authorizedAt: number | null;
     };
   };
+
+  referral: ReferralRequirementInitial | ReferralRequirementComplete;
 
   twitterConnect: TwitterRequirement;
 
@@ -171,14 +187,50 @@ export enum BetaAuthorizationStatus {
   Authorized
 }
 
+export interface ReferralCode {
+  referralCode: string;
+  createdAt: number;
+  owner: {
+    address: string;
+  };
+  isValid: boolean;
+}
+
+export interface Referral {
+  referee: {
+    address: string;
+  };
+  referer: {
+    address: string;
+  };
+  createdAt: number;
+  processed: boolean;
+}
+
+export enum ReferralStep {
+  Incomplete,
+  Complete
+}
+
+export interface InitialReferralStatus {
+  step: ReferralStep.Incomplete;
+}
+
+export interface CompletedReferralStatus {
+  step: ReferralStep.Complete;
+  referralCode: string;
+}
+
 export interface BetaAuthorizationIncomplete {
   status: BetaAuthorizationStatus;
+  referral: InitialReferralStatus | CompletedReferralStatus;
   twitter: ConnectTwitter | FollowOnTwitter | CompletedTwitter;
   discord: ConnectDiscord | JoinDiscord | CompletedDiscord;
 }
 
 export interface BetaAuthorizationComplete {
   status: BetaAuthorizationStatus.Authorized;
+  referralCode: string;
 }
 
 export type BetaAuthorization = BetaAuthorizationIncomplete | BetaAuthorizationComplete;

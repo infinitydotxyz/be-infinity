@@ -53,6 +53,22 @@ export class UsersController {
     return await this._betaService.getBetaAuthorization(userId);
   }
 
+  @Post(':userId/beta/auth/referral')
+  @ApiOperation({
+    description: "Get the user's beta authorization status",
+    tags: [ApiTag.User]
+  })
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
+  @ApiOkResponse({ description: ResponseDescription.Success })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  public async saveReferralCode(
+    @ParamUserId('userId', ParseUserIdPipe) userId: ParsedUserId,
+    @Query('referralCode') referralCode: string
+  ) {
+    return await this._betaService.referUser(userId, referralCode);
+  }
+
   @Post(':userId/beta/auth/discord/callback')
   @ApiOperation({
     tags: [ApiTag.User]

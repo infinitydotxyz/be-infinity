@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { FirebaseService } from 'firebase/firebase.service';
 import TwitterApi from 'twitter-api-v2';
 import { EnvironmentVariables } from 'types/environment-variables.interface';
-import { DocRef } from 'types/firestore';
+import { CollRef, DocRef } from 'types/firestore';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 
 import {
@@ -11,12 +11,17 @@ import {
   BetaAuthorizationIncomplete,
   BetaAuthorizationStatus,
   BetaRequirementsData,
+  CompletedReferralStatus,
   Discord,
   DiscordRequirementConnected,
   DiscordRequirementStep,
   DiscordTokenResponse,
   DiscordUserResponse,
   LinkParams,
+  Referral,
+  ReferralCode,
+  ReferralRequirementStep,
+  ReferralStep,
   Twitter,
   TwitterFollowerStep,
   TwitterRequirementStep
@@ -24,6 +29,7 @@ import {
 import { join, normalize } from 'path';
 import { ONE_MIN } from '@infinityxyz/lib/utils/constants';
 import got from 'got/dist/source';
+import { customAlphabet } from 'nanoid';
 
 @Injectable()
 export class BetaService {
@@ -66,6 +72,9 @@ export class BetaService {
               authorizedAt: null
             }
           },
+          referral: {
+            step: ReferralRequirementStep.Initial
+          },
           twitterConnect: {
             step: TwitterRequirementStep.Initial
           },
@@ -80,6 +89,22 @@ export class BetaService {
 
       let twitter: BetaAuthorizationIncomplete['twitter'];
       let discord: BetaAuthorizationIncomplete['discord'];
+      let referral: BetaAuthorizationIncomplete['referral'];
+
+      switch (data.referral.step) {
+        case ReferralRequirementStep.Initial: {
+          referral = {
+            step: ReferralStep.Incomplete
+          };
+          break;
+        }
+        case ReferralRequirementStep.Complete: {
+          referral = {
+            step: ReferralStep.Complete,
+            referralCode: data.referral.referralCode
+          };
+        }
+      }
 
       switch (data.twitterConnect.step) {
         case TwitterRequirementStep.Initial: {
@@ -162,7 +187,6 @@ export class BetaService {
           break;
         }
         case DiscordRequirementStep.Connected: {
-          // TODO check if user is in the server
           const { isMember, userAuth } = await this.isInFlowDiscord(data.discord.auth, data.discord.user.id);
           data.discord.auth = userAuth;
           if (isMember) {
@@ -178,7 +202,7 @@ export class BetaService {
             discord = {
               step: Discord.Join,
               data: {
-                url: 'https://discord.gg/SX4BBa9u' // TODO get another invite link
+                url: 'https://discord.gg/flowdotso'
               }
             };
           }
@@ -192,16 +216,26 @@ export class BetaService {
         }
       }
 
+      const isAuthorized =
+        twitter.step === Twitter.Complete &&
+        discord.step === Discord.Complete &&
+        referral.step === ReferralStep.Complete;
+
+      if (isAuthorized && !data.metadata.timing.authorizedAt) {
+        data.metadata.timing.authorizedAt = Date.now();
+      }
       txn.set(betaRequirementsRef, data, { merge: true });
-      if (twitter.step === Twitter.Complete && discord.step === Discord.Complete) {
+      if (isAuthorized) {
         return {
-          status: BetaAuthorizationStatus.Authorized
+          status: BetaAuthorizationStatus.Authorized,
+          referralCode: (referral as CompletedReferralStatus).referralCode
         };
       }
       return {
         status: BetaAuthorizationStatus.UnAuthorized,
         twitter,
-        discord
+        discord,
+        referral
       };
     });
 
@@ -221,7 +255,153 @@ export class BetaService {
     };
   }
 
-  public async isInFlowDiscord(
+  async referUser(
+    user: ParsedUserId,
+    referralCode: string
+  ): Promise<{ success: false; message: string } | { success: true; referralStatus: CompletedReferralStatus }> {
+    const referralCodesRef = this._firebase.firestore.collection('flowBetaReferralCodes') as CollRef<ReferralCode>;
+    const referralCodeRef = referralCodesRef.doc(referralCode);
+
+    const betaRequirementsRef = user.ref
+      .collection('flowBeta')
+      .doc('flowBetaAuthorization') as DocRef<BetaRequirementsData>;
+
+    try {
+      const referralSnap = await referralCodeRef.get();
+      const referralDocData = referralSnap.data();
+
+      if (!referralDocData) {
+        return {
+          success: false,
+          message: 'Invalid referral code'
+        };
+      } else if (!referralDocData.isValid) {
+        return {
+          success: false,
+          message: 'Invalid referral code'
+        };
+      }
+
+      const { referralStatus } = await this._firebase.firestore.runTransaction<{
+        referralStatus: CompletedReferralStatus;
+      }>(async (txn) => {
+        const snap = await txn.get(betaRequirementsRef);
+        let data = snap.data();
+
+        if (!data) {
+          const now = Date.now();
+          data = {
+            metadata: {
+              user: user.userAddress,
+              timing: {
+                updatedAt: now,
+                createdAt: now,
+                authorizedAt: null
+              }
+            },
+            referral: {
+              step: ReferralRequirementStep.Initial
+            },
+            twitterConnect: {
+              step: TwitterRequirementStep.Initial
+            },
+            twitterFollower: {
+              step: TwitterFollowerStep.Initial
+            },
+            discord: {
+              step: DiscordRequirementStep.Initial
+            }
+          };
+        }
+
+        const now = Date.now();
+
+        const referralEvent: Referral = {
+          referee: {
+            address: user.userAddress
+          },
+          referer: {
+            address: referralDocData.owner.address
+          },
+          createdAt: now,
+          processed: false
+        };
+
+        const referralEventRef = referralCodeRef
+          .collection('flowBetaUserReferrals')
+          .doc(referralEvent.referee.address) as DocRef<Referral>;
+
+        const userReferralCode = this.generateReferralCode();
+
+        const newReferralCode = {
+          referralCode: userReferralCode,
+          createdAt: now,
+          owner: {
+            address: user.userAddress
+          },
+          isValid: true
+        };
+
+        const newReferralCodeRef = referralCodesRef.doc(newReferralCode.referralCode);
+
+        let referral: CompletedReferralStatus;
+        switch (data.referral.step) {
+          case ReferralRequirementStep.Initial: {
+            referral = {
+              step: ReferralStep.Complete,
+              referralCode: userReferralCode
+            };
+            data.referral = {
+              step: ReferralRequirementStep.Complete,
+              referralCode: userReferralCode
+            };
+            break;
+          }
+          case ReferralRequirementStep.Complete: {
+            referral = {
+              step: ReferralStep.Complete,
+              referralCode: data.referral.referralCode
+            };
+
+            // user has already been referred
+            return {
+              referralStatus: referral
+            };
+          }
+        }
+
+        // update user beta requirements
+        txn.set(betaRequirementsRef, data, { merge: true });
+        // saves who referred the user
+        txn.create(referralEventRef, referralEvent);
+        // ensures there aren't duplicate referral codes
+        txn.create(newReferralCodeRef, newReferralCode);
+        await Promise.resolve(); // noop
+        return {
+          referralStatus: referral
+        };
+      });
+      return {
+        success: true,
+        referralStatus
+      };
+    } catch (err) {
+      console.error(`Error while trying to refer user ${user.userAddress} with referral code ${referralCode}`, err);
+      return {
+        success: false,
+        message: 'Failed to save referral'
+      };
+    }
+  }
+
+  protected generateReferralCode() {
+    const generate = customAlphabet('1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', 4);
+
+    const id = [generate(), generate(), generate(), generate()].join('-');
+    return id;
+  }
+
+  async isInFlowDiscord(
     userAuth: DiscordRequirementConnected['auth'],
     userId: string
   ): Promise<{ isMember: boolean; userAuth: DiscordRequirementConnected['auth'] }> {
@@ -362,6 +542,57 @@ export class BetaService {
     }
 
     try {
+      const params = {
+        client_id: this._configService.get('DISCORD_CLIENT_ID'),
+        client_secret: this._configService.get('DISCORD_CLIENT_SECRET'),
+        grant_type: 'authorization_code',
+        code: data.code,
+        redirect_uri: this._discordCallbackUrl,
+        scope: 'identify guilds'
+      };
+
+      console.log(`Requesting access token for user ${user.userAddress} Code ${data.code}`);
+      const response = await got<DiscordTokenResponse>('https://discord.com/api/oauth2/token', {
+        method: 'POST',
+        body: new URLSearchParams(params).toString(),
+        headers: {
+          'Content-type': 'application/x-www-form-urlencoded'
+        },
+        responseType: 'json',
+        throwHttpErrors: false
+      });
+
+      if (response.statusCode !== 200) {
+        console.log(`Failed to request discord access token for user ${user.userAddress}`, response.body);
+        return { success: false };
+      }
+      const auth: DiscordRequirementConnected['auth'] = {
+        accessToken: response.body.access_token,
+        refreshToken: response.body.refresh_token,
+        expiresAt: Date.now() + response.body.expires_in * 1000,
+        scope: response.body.scope,
+        tokenType: response.body.token_type
+      };
+
+      console.log(`Successfully requested discord access token for user ${user.userAddress}`);
+      console.log(`Requesting discord user info for user ${user.userAddress}`);
+
+      const userResponse = await got<DiscordUserResponse>('https://discord.com/api/users/@me', {
+        headers: {
+          authorization: `${auth.tokenType} ${auth.accessToken}`
+        },
+        responseType: 'json',
+        throwHttpErrors: false
+      });
+
+      if (userResponse.statusCode !== 200 || !userResponse.body.id) {
+        console.log(
+          `Failed to request discord user info for user ${user.userAddress} Response code ${userResponse.statusCode}`,
+          userResponse.body
+        );
+        return { success: false };
+      }
+
       const result = await this._firebase.firestore.runTransaction(async (txn) => {
         const betaRequirementsSnap = await txn.get(betaRequirementsRef);
         const betaRequirements = betaRequirementsSnap.data();
@@ -373,75 +604,20 @@ export class BetaService {
           return { success: true };
         }
 
-        const params = {
-          client_id: this._configService.get('DISCORD_CLIENT_ID'),
-          client_secret: this._configService.get('DISCORD_CLIENT_SECRET'),
-          grant_type: 'authorization_code',
-          code: data.code,
-          redirect_uri: this._discordCallbackUrl,
-          scope: 'identify guilds'
-        };
-
-        console.log(`Requesting access token for user ${user.userAddress}`);
-        const response = await got<DiscordTokenResponse>('https://discord.com/api/oauth2/token', {
-          method: 'POST',
-          body: new URLSearchParams(params).toString(),
-          headers: {
-            'Content-type': 'application/x-www-form-urlencoded'
+        console.log(`Successfully requested discord user info for user ${user.userAddress}`);
+        betaRequirements.discord = {
+          step: DiscordRequirementStep.Connected,
+          user: {
+            id: userResponse.body.id,
+            username: userResponse.body.username,
+            discriminator: userResponse.body.discriminator,
+            locale: userResponse.body.locale,
+            mfaEnabled: userResponse.body.mfa_enabled,
+            premiumType: userResponse.body.premium_type
           },
-          responseType: 'json',
-          throwHttpErrors: false
-        });
-
-        if (response.statusCode === 200) {
-          const auth: DiscordRequirementConnected['auth'] = {
-            accessToken: response.body.access_token,
-            refreshToken: response.body.refresh_token,
-            expiresAt: Date.now() + response.body.expires_in * 1000,
-            scope: response.body.scope,
-            tokenType: response.body.token_type
-          };
-
-          console.log(`Successfully requested discord access token for user ${user.userAddress}`);
-          console.log(`Requesting discord user info for user ${user.userAddress}`);
-
-          const userResponse = await got<DiscordUserResponse>('https://discord.com/api/users/@me', {
-            headers: {
-              authorization: `${auth.tokenType} ${auth.accessToken}`
-            },
-            responseType: 'json',
-            throwHttpErrors: false
-          });
-
-          if (userResponse.statusCode === 200 && userResponse.body.id) {
-            console.log(`Successfully requested discord user info for user ${user.userAddress}`);
-            betaRequirements.discord = {
-              step: DiscordRequirementStep.Connected,
-              user: {
-                id: userResponse.body.id,
-                username: userResponse.body.username,
-                discriminator: userResponse.body.discriminator,
-                locale: userResponse.body.locale,
-                mfaEnabled: userResponse.body.mfa_enabled,
-                premiumType: userResponse.body.premium_type
-              },
-              auth
-            };
-            txn.set(betaRequirementsRef, betaRequirements, { merge: true });
-            return { success: true };
-          }
-          console.log(
-            `Failed to request discord user info for user ${user.userAddress} Response code ${userResponse.statusCode}`,
-            userResponse.body
-          );
-          return {
-            success: false
-          };
-        }
-        console.log(
-          `Failed to request access token for user ${user.userAddress} Response code ${response.statusCode}`,
-          response.body
-        );
+          auth
+        };
+        txn.set(betaRequirementsRef, betaRequirements, { merge: true });
         return { success: true };
       });
 
@@ -465,6 +641,53 @@ export class BetaService {
     }
 
     try {
+      const betaRequirementsSnap = await betaRequirementsRef.get();
+      const betaRequirements = betaRequirementsSnap.data();
+
+      if (betaRequirements?.twitterConnect.step === TwitterRequirementStep.Connected) {
+        return { success: true };
+      }
+
+      if (!betaRequirements) {
+        throw new Error(`Failed to find code verifier for user ${user.userAddress}`);
+      } else if (betaRequirements.twitterConnect.step === TwitterRequirementStep.Initial) {
+        throw new Error(`Failed to find code verifier for user ${user.userAddress}`);
+      }
+
+      const { codeVerifier, state } = betaRequirements.twitterConnect.linkParams;
+      if (!codeVerifier || !state) {
+        throw new Error(`Failed to find code verifier for user ${user.userAddress}`);
+      } else if (state !== data.state) {
+        throw new Error(`Invalid state for user ${user.userAddress}`);
+      }
+
+      console.log(`Logging in user ${user.userAddress}`);
+      const {
+        client: loggedInClient,
+        accessToken,
+        refreshToken,
+        expiresIn
+      } = await this._twitterClient.loginWithOAuth2({
+        code: data.code,
+        codeVerifier,
+        redirectUri: betaRequirements.twitterConnect.linkParams.callbackUrl
+      });
+
+      const expiresAt = Date.now() + expiresIn * 1000;
+      console.log(`Logged in user ${user.userAddress}`);
+
+      if (!refreshToken) {
+        throw new Error(`Failed to get refresh token for user ${user.userAddress}`);
+      }
+
+      const { data: userObject } = await loggedInClient.currentUserV2();
+
+      if (!userObject.id) {
+        throw new Error(`Failed to get user id for user ${user.userAddress}`);
+      }
+
+      console.log(`Retrieved twitter account for user ${user.userAddress}`);
+
       const result = await this._firebase.firestore.runTransaction(async (txn) => {
         const betaRequirementsSnap = await txn.get(betaRequirementsRef);
         const betaRequirements = betaRequirementsSnap.data();
@@ -479,38 +702,6 @@ export class BetaService {
           throw new Error(`Failed to find code verifier for user ${user.userAddress}`);
         }
 
-        const { codeVerifier, state } = betaRequirements.twitterConnect.linkParams;
-        if (!codeVerifier || !state) {
-          throw new Error(`Failed to find code verifier for user ${user.userAddress}`);
-        } else if (state !== data.state) {
-          throw new Error(`Invalid state for user ${user.userAddress}`);
-        }
-
-        console.log(`Logging in user ${user.userAddress}`);
-        const {
-          client: loggedInClient,
-          accessToken,
-          refreshToken,
-          expiresIn
-        } = await this._twitterClient.loginWithOAuth2({
-          code: data.code,
-          codeVerifier,
-          redirectUri: betaRequirements.twitterConnect.linkParams.callbackUrl
-        });
-        console.log(`Logged in user ${user.userAddress}`);
-
-        if (!refreshToken) {
-          throw new Error(`Failed to get refresh token for user ${user.userAddress}`);
-        }
-
-        const { data: userObject } = await loggedInClient.currentUserV2();
-        console.log(`Retrieved twitter account for user ${user.userAddress}`);
-
-        if (!userObject.id) {
-          throw new Error(`Failed to get user id for user ${user.userAddress}`);
-        }
-
-        const expiresAt = Date.now() + expiresIn * 1000;
         betaRequirements.twitterConnect = {
           step: TwitterRequirementStep.Connected,
           linkParams: betaRequirements.twitterConnect.linkParams,
@@ -529,7 +720,6 @@ export class BetaService {
 
         return { success: true };
       });
-
       return result;
     } catch (err) {
       console.error(JSON.stringify(err, null, 2));
