@@ -158,7 +158,6 @@ export class AuthGuard implements CanActivate {
       }
       return true;
     } catch (err: any) {
-      console.log(err);
       if (err instanceof AuthException) {
         throw err;
       }

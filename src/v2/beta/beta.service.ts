@@ -516,8 +516,6 @@ export class BetaService {
       while (pageNum < 10) {
         pageNum += 1;
         const isFollowingFlow = page.some((item) => item.id === flowId);
-        console.log(`Page length: ${page.length} isFollowingFlow: ${isFollowingFlow}`);
-        console.log(`First item in page: ${page[0]?.id}`);
         if (isFollowingFlow) {
           return { isFollowing: true, userAuth: updatedAuth };
         } else if (page.length < pageSize) {
