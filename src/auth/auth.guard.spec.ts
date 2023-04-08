@@ -6,13 +6,10 @@ import { Test } from '@nestjs/testing';
 import { ApiUserStorage } from 'api-user/api-user-storage.interface';
 import { ApiUserService } from 'api-user/api-user.service';
 import { ethers } from 'ethers';
-import { splitSignature } from 'ethers/lib/utils';
 import { UserParserService } from 'user/parser/parser.service';
-import { base64Encode } from 'utils';
 import {
   API_KEY_HEADER,
   API_SECRET_HEADER,
-  AUTH_MESSAGE_HEADER,
   AUTH_NONCE_HEADER,
   AUTH_SIGNATURE_HEADER,
   SiteRole
@@ -62,20 +59,17 @@ class MockApiUserStorage implements ApiUserStorage {
 }
 
 export async function getAuthHeaders(signer: ethers.Wallet) {
-  const nonce = Date.now();
-  const msg = `Welcome to Flow. Click "Sign" to sign in. No password needed. This request will not trigger a blockchain transaction or cost any gas fees.
- 
-I accept the Flow Terms of Service: https://flow.so/terms
+  const nonce = `${Date.now()}`;
+  const loginMessage = AuthGuard.getLoginMessage(nonce);
 
-Nonce: ${nonce}
-Expires in: 24 hrs`;
-
-  const res = await signer.signMessage(msg);
-  const sig = splitSignature(res);
+  const sig = await signer._signTypedData(
+    loginMessage.domain,
+    loginMessage.types,
+    loginMessage.value as Record<string, any>
+  );
   return {
     [AUTH_NONCE_HEADER]: nonce.toString(),
-    [AUTH_SIGNATURE_HEADER]: JSON.stringify(sig),
-    [AUTH_MESSAGE_HEADER]: base64Encode(msg)
+    [AUTH_SIGNATURE_HEADER]: sig
   };
 }
 
