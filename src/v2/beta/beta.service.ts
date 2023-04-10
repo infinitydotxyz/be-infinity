@@ -20,10 +20,13 @@ import {
   LinkParams,
   Referral,
   ReferralCode,
+  ReferralRequirementReferred,
   ReferralRequirementStep,
   ReferralStep,
+  ReferredReferralStatus,
   Twitter,
   TwitterFollowerStep,
+  TwitterRequirementConnected,
   TwitterRequirementStep
 } from './types';
 import { join, normalize } from 'path';
@@ -62,181 +65,306 @@ export class BetaService {
     return this._firebase.firestore.collection('flowBetaReferralCodes') as CollRef<ReferralCode>;
   }
 
+  getDefaultBetaRequirements(user: ParsedUserId): BetaRequirementsData {
+    const now = Date.now();
+    return {
+      metadata: {
+        user: user.userAddress,
+        timing: {
+          updatedAt: now,
+          createdAt: now,
+          authorizedAt: null
+        }
+      },
+      referral: {
+        step: ReferralRequirementStep.Initial
+      },
+      twitterConnect: {
+        step: TwitterRequirementStep.Initial
+      },
+      twitterFollower: {
+        step: TwitterFollowerStep.Initial
+      },
+      discord: {
+        step: DiscordRequirementStep.Initial
+      }
+    };
+  }
+
+  protected transformReferralBetaRequirementsToAuth(
+    user: ParsedUserId,
+    data: BetaRequirementsData['referral'],
+    isTwitterComplete: boolean,
+    isDiscordComplete: boolean
+  ): {
+    auth: BetaAuthorizationIncomplete['referral'];
+    isAuthorized: boolean;
+    referralRequirement: BetaRequirementsData['referral'];
+    referral?: Referral;
+    save?: (txn: FirebaseFirestore.Transaction) => void;
+  } {
+    switch (data.step) {
+      case ReferralRequirementStep.Initial: {
+        return {
+          auth: {
+            step: ReferralStep.Incomplete
+          },
+          referralRequirement: data,
+          isAuthorized: false
+        };
+      }
+      case ReferralRequirementStep.Referred: {
+        const isAuthorized = isTwitterComplete && isDiscordComplete;
+
+        if (isAuthorized) {
+          const now = Date.now();
+          const referralEvent: Referral = {
+            ...data.referral,
+            processed: false
+          };
+
+          const referralCode: ReferralCode = {
+            referralCode: this.generateReferralCode(),
+            createdAt: now,
+            owner: {
+              address: user.userAddress
+            },
+            isValid: true
+          };
+
+          const refereeReferralCodeRef = this.flowBetaReferralCodesColl.doc(
+            referralCode.referralCode
+          ) as DocRef<ReferralCode>;
+          const refererReferralEventRef = this.flowBetaReferralCodesColl
+            .doc(data.referral.referer.code)
+            .collection('flowBetaUserReferrals')
+            .doc(data.referral.referee.address) as DocRef<Referral>;
+
+          const save = (txn: FirebaseFirestore.Transaction) => {
+            // saves who referred the user
+            txn.create(refererReferralEventRef, referralEvent);
+            // ensures there aren't duplicate referral codes
+            txn.create(refereeReferralCodeRef, referralCode);
+          };
+          return {
+            auth: {
+              step: ReferralStep.Complete,
+              referralCode: referralCode.referralCode
+            },
+            isAuthorized: true,
+            referralRequirement: data,
+            save
+          };
+        }
+        return {
+          auth: {
+            step: ReferralStep.Referred
+          },
+          isAuthorized: false,
+          referralRequirement: data
+        };
+      }
+      case ReferralRequirementStep.Complete: {
+        if (!isTwitterComplete || !isDiscordComplete) {
+          throw new Error(`Invariant expected twitter and discord to be complete when referral is complete`);
+        }
+        return {
+          auth: {
+            step: ReferralStep.Complete,
+            referralCode: data.referralCode
+          },
+          isAuthorized: true,
+          referralRequirement: data
+        };
+      }
+    }
+  }
+
+  protected async transformTwitterBetaRequirementsToAuth(
+    twitterConnect: BetaRequirementsData['twitterConnect'],
+    twitterFollower: BetaRequirementsData['twitterFollower']
+  ): Promise<{
+    auth: BetaAuthorizationIncomplete['twitter'];
+    twitterConnectRequirement: BetaRequirementsData['twitterConnect'];
+    twitterFollowerRequirement: BetaRequirementsData['twitterFollower'];
+  }> {
+    switch (twitterConnect.step) {
+      case TwitterRequirementStep.Initial: {
+        const linkParams = this.getTwitterOAuthLink();
+        twitterConnect = {
+          step: TwitterRequirementStep.GeneratedLink,
+          linkParams: linkParams
+        };
+
+        return {
+          twitterConnectRequirement: twitterConnect,
+          twitterFollowerRequirement: twitterFollower,
+          auth: {
+            step: Twitter.Connect,
+            data: {
+              url: linkParams.url
+            }
+          }
+        };
+      }
+      case TwitterRequirementStep.GeneratedLink: {
+        return {
+          twitterConnectRequirement: twitterConnect,
+          twitterFollowerRequirement: twitterFollower,
+          auth: {
+            step: Twitter.Connect,
+            data: {
+              url: twitterConnect.linkParams.url
+            }
+          }
+        };
+      }
+
+      case TwitterRequirementStep.Connected: {
+        switch (twitterFollower.step) {
+          case TwitterFollowerStep.Initial: {
+            const { isFollowing, userAuth } = await this.isFollowingFlow(
+              {
+                accessToken: twitterConnect.redirectParams.accessToken,
+                refreshToken: twitterConnect.redirectParams.refreshToken,
+                expiresAt: twitterConnect.redirectParams.expiresAt
+              },
+              twitterConnect.user.id
+            );
+
+            if (isFollowing) {
+              const updatedTwitterConnect = JSON.parse(JSON.stringify(twitterConnect)) as TwitterRequirementConnected;
+              updatedTwitterConnect.redirectParams.accessToken = userAuth.accessToken;
+              updatedTwitterConnect.redirectParams.refreshToken = userAuth.refreshToken;
+              updatedTwitterConnect.redirectParams.expiresAt = userAuth.expiresAt;
+              return {
+                twitterConnectRequirement: updatedTwitterConnect,
+                twitterFollowerRequirement: {
+                  step: TwitterFollowerStep.Follower
+                },
+                auth: {
+                  step: Twitter.Complete
+                }
+              };
+            }
+            return {
+              twitterConnectRequirement: twitterConnect,
+              twitterFollowerRequirement: twitterFollower,
+              auth: {
+                step: Twitter.Follow,
+                data: {
+                  url: 'https://twitter.com/flowdotso'
+                }
+              }
+            };
+          }
+          case TwitterFollowerStep.Follower: {
+            return {
+              twitterConnectRequirement: twitterConnect,
+              twitterFollowerRequirement: twitterFollower,
+              auth: {
+                step: Twitter.Complete
+              }
+            };
+          }
+        }
+      }
+    }
+  }
+
+  protected async transformDiscordBetaRequirementsToAuth(
+    data: BetaRequirementsData['discord']
+  ): Promise<{ auth: BetaAuthorizationIncomplete['discord']; discordRequirements: BetaRequirementsData['discord'] }> {
+    switch (data.step) {
+      case DiscordRequirementStep.Initial: {
+        return {
+          discordRequirements: data,
+          auth: {
+            step: Discord.Connect,
+            data: {
+              url: `https://discord.com/api/oauth2/authorize?client_id=${this._discordClientId}&redirect_uri=${this._discordCallbackUrl}&response_type=code&scope=identify%20guilds`
+            }
+          }
+        };
+      }
+      case DiscordRequirementStep.Connected: {
+        const { isMember, userAuth } = await this.isInFlowDiscord(data.auth, data.user.id);
+        if (isMember) {
+          return {
+            discordRequirements: {
+              step: DiscordRequirementStep.Member,
+              auth: userAuth,
+              user: data.user
+            },
+            auth: {
+              step: Discord.Complete
+            }
+          };
+        }
+        return {
+          discordRequirements: data,
+          auth: {
+            step: Discord.Join,
+            data: {
+              url: 'https://discord.gg/flowdotso'
+            }
+          }
+        };
+      }
+      case DiscordRequirementStep.Member: {
+        return {
+          discordRequirements: data,
+          auth: {
+            step: Discord.Complete
+          }
+        };
+      }
+    }
+  }
+
   async getBetaAuthorization(user: ParsedUserId): Promise<BetaAuthorization> {
     const betaRequirementsRef = this.flowBetaAuthColl.doc(user.userAddress);
 
     const result = await this._firebase.firestore.runTransaction<BetaAuthorization>(async (txn) => {
       const snap = await txn.get(betaRequirementsRef);
-      let data = snap.data();
+      const data = snap.data() ?? this.getDefaultBetaRequirements(user);
 
-      if (!data) {
-        const now = Date.now();
-        data = {
-          metadata: {
-            user: user.userAddress,
-            timing: {
-              updatedAt: now,
-              createdAt: now,
-              authorizedAt: null
-            }
-          },
-          referral: {
-            step: ReferralRequirementStep.Initial
-          },
-          twitterConnect: {
-            step: TwitterRequirementStep.Initial
-          },
-          twitterFollower: {
-            step: TwitterFollowerStep.Initial
-          },
-          discord: {
-            step: DiscordRequirementStep.Initial
-          }
-        };
-      }
+      const {
+        auth: twitter,
+        twitterConnectRequirement,
+        twitterFollowerRequirement
+      } = await this.transformTwitterBetaRequirementsToAuth(data.twitterConnect, data.twitterFollower);
+      const { auth: discord, discordRequirements } = await this.transformDiscordBetaRequirementsToAuth(data.discord);
 
-      let twitter: BetaAuthorizationIncomplete['twitter'];
-      let discord: BetaAuthorizationIncomplete['discord'];
-      let referral: BetaAuthorizationIncomplete['referral'];
+      const isTwitterComplete = twitter.step === Twitter.Complete;
+      const isDiscordComplete = discord.step === Discord.Complete;
+      const {
+        auth: referral,
+        referralRequirement,
+        save: saveReferralUpdate
+      } = this.transformReferralBetaRequirementsToAuth(user, data.referral, isTwitterComplete, isDiscordComplete);
 
-      switch (data.referral.step) {
-        case ReferralRequirementStep.Initial: {
-          referral = {
-            step: ReferralStep.Incomplete
-          };
-          break;
-        }
-        case ReferralRequirementStep.Complete: {
-          referral = {
-            step: ReferralStep.Complete,
-            referralCode: data.referral.referralCode
-          };
-        }
-      }
-
-      switch (data.twitterConnect.step) {
-        case TwitterRequirementStep.Initial: {
-          const linkParams = this.getTwitterOAuthLink();
-          data.twitterConnect = {
-            step: TwitterRequirementStep.GeneratedLink,
-            linkParams: linkParams
-          };
-
-          twitter = {
-            step: Twitter.Connect,
-            data: {
-              url: linkParams.url
-            }
-          };
-          break;
-        }
-        case TwitterRequirementStep.GeneratedLink: {
-          twitter = {
-            step: Twitter.Connect,
-            data: {
-              url: data.twitterConnect.linkParams.url
-            }
-          };
-          break;
-        }
-
-        case TwitterRequirementStep.Connected: {
-          switch (data.twitterFollower.step) {
-            case TwitterFollowerStep.Initial: {
-              const { isFollowing, userAuth } = await this.isFollowingFlow(
-                {
-                  accessToken: data.twitterConnect.redirectParams.accessToken,
-                  refreshToken: data.twitterConnect.redirectParams.refreshToken,
-                  expiresAt: data.twitterConnect.redirectParams.expiresAt
-                },
-                data.twitterConnect.user.id
-              );
-
-              data.twitterConnect.redirectParams.accessToken = userAuth.accessToken;
-              data.twitterConnect.redirectParams.refreshToken = userAuth.refreshToken;
-              data.twitterConnect.redirectParams.expiresAt = userAuth.expiresAt;
-
-              if (isFollowing) {
-                twitter = {
-                  step: Twitter.Complete
-                };
-                data.twitterFollower = {
-                  step: TwitterFollowerStep.Follower
-                };
-              } else {
-                twitter = {
-                  step: Twitter.Follow,
-                  data: {
-                    url: 'https://twitter.com/flowdotso'
-                  }
-                };
-              }
-              break;
-            }
-            case TwitterFollowerStep.Follower: {
-              twitter = {
-                step: Twitter.Complete
-              };
-              break;
-            }
-          }
-          break;
-        }
-      }
-
-      switch (data.discord.step) {
-        case DiscordRequirementStep.Initial: {
-          discord = {
-            step: Discord.Connect,
-            data: {
-              url: `https://discord.com/api/oauth2/authorize?client_id=${this._discordClientId}&redirect_uri=${this._discordCallbackUrl}&response_type=code&scope=identify%20guilds`
-            }
-          };
-          break;
-        }
-        case DiscordRequirementStep.Connected: {
-          const { isMember, userAuth } = await this.isInFlowDiscord(data.discord.auth, data.discord.user.id);
-          data.discord.auth = userAuth;
-          if (isMember) {
-            data.discord = {
-              step: DiscordRequirementStep.Member,
-              auth: data.discord.auth,
-              user: data.discord.user
-            };
-            discord = {
-              step: Discord.Complete
-            };
-          } else {
-            discord = {
-              step: Discord.Join,
-              data: {
-                url: 'https://discord.gg/flowdotso'
-              }
-            };
-          }
-          break;
-        }
-        case DiscordRequirementStep.Member: {
-          discord = {
-            step: Discord.Complete
-          };
-          break;
-        }
-      }
-
-      const isAuthorized =
-        twitter.step === Twitter.Complete &&
-        discord.step === Discord.Complete &&
-        referral.step === ReferralStep.Complete;
-
-      if (isAuthorized && !data.metadata.timing.authorizedAt) {
+      if (referral.step === ReferralStep.Complete && !data.metadata.timing.authorizedAt) {
         data.metadata.timing.authorizedAt = Date.now();
       }
-      txn.set(betaRequirementsRef, data, { merge: true });
-      if (isAuthorized) {
+      const updatedAuthData: BetaRequirementsData = {
+        metadata: {
+          ...data.metadata
+        },
+        twitterConnect: twitterConnectRequirement,
+        twitterFollower: twitterFollowerRequirement,
+        discord: discordRequirements,
+        referral: referralRequirement
+      };
+
+      if (typeof saveReferralUpdate === 'function') {
+        saveReferralUpdate(txn);
+      }
+      txn.set(betaRequirementsRef, updatedAuthData, { merge: true });
+      if (referral.step === ReferralStep.Complete) {
         return {
           status: BetaAuthorizationStatus.Authorized,
-          referralCode: (referral as CompletedReferralStatus).referralCode
+          referralCode: referral.referralCode
         };
       }
       return {
@@ -266,7 +394,10 @@ export class BetaService {
   async referUser(
     user: ParsedUserId,
     referralCode: string
-  ): Promise<{ success: false; message: string } | { success: true; referralStatus: CompletedReferralStatus }> {
+  ): Promise<
+    | { success: false; message: string }
+    | { success: true; referralStatus: ReferredReferralStatus | CompletedReferralStatus }
+  > {
     const referralCodeRef = this.flowBetaReferralCodesColl.doc(referralCode);
 
     const betaRequirementsRef = this.flowBetaAuthColl.doc(user.userAddress);
@@ -288,103 +419,59 @@ export class BetaService {
       }
 
       const { referralStatus } = await this._firebase.firestore.runTransaction<{
-        referralStatus: CompletedReferralStatus;
+        referralStatus: ReferredReferralStatus | CompletedReferralStatus;
       }>(async (txn) => {
         const snap = await txn.get(betaRequirementsRef);
-        let data = snap.data();
+        const data = snap.data() ?? this.getDefaultBetaRequirements(user);
 
-        if (!data) {
-          const now = Date.now();
-          data = {
-            metadata: {
-              user: user.userAddress,
-              timing: {
-                updatedAt: now,
-                createdAt: now,
-                authorizedAt: null
-              }
-            },
-            referral: {
-              step: ReferralRequirementStep.Initial
-            },
-            twitterConnect: {
-              step: TwitterRequirementStep.Initial
-            },
-            twitterFollower: {
-              step: TwitterFollowerStep.Initial
-            },
-            discord: {
-              step: DiscordRequirementStep.Initial
-            }
-          };
-        }
-
-        const now = Date.now();
-
-        const referralEvent: Referral = {
-          referee: {
-            address: user.userAddress
-          },
-          referer: {
-            address: referralDocData.owner.address
-          },
-          createdAt: now,
-          processed: false
-        };
-
-        const referralEventRef = referralCodeRef
-          .collection('flowBetaUserReferrals')
-          .doc(referralEvent.referee.address) as DocRef<Referral>;
-
-        const userReferralCode = this.generateReferralCode();
-
-        const newReferralCode = {
-          referralCode: userReferralCode,
-          createdAt: now,
-          owner: {
-            address: user.userAddress
-          },
-          isValid: true
-        };
-
-        const newReferralCodeRef = this.flowBetaReferralCodesColl.doc(newReferralCode.referralCode);
-
-        let referral: CompletedReferralStatus;
         switch (data.referral.step) {
           case ReferralRequirementStep.Initial: {
-            referral = {
-              step: ReferralStep.Complete,
-              referralCode: userReferralCode
-            };
-            data.referral = {
-              step: ReferralRequirementStep.Complete,
-              referralCode: userReferralCode
-            };
-            break;
-          }
-          case ReferralRequirementStep.Complete: {
-            referral = {
-              step: ReferralStep.Complete,
-              referralCode: data.referral.referralCode
+            const referral: ReferredReferralStatus = {
+              step: ReferralStep.Referred
             };
 
-            // user has already been referred
+            const betaReferral: ReferralRequirementReferred = {
+              step: ReferralRequirementStep.Referred,
+              referral: {
+                referee: {
+                  address: user.userAddress
+                },
+                referer: {
+                  address: referralDocData.owner.address,
+                  code: referralCode
+                },
+                createdAt: Date.now()
+              }
+            };
+
+            txn.set(
+              betaRequirementsRef,
+              {
+                ...data,
+                referral: betaReferral
+              },
+              { merge: true }
+            );
             return {
               referralStatus: referral
             };
           }
+          case ReferralRequirementStep.Referred: {
+            return {
+              referralStatus: {
+                step: ReferralStep.Referred
+              }
+            };
+          }
+          case ReferralRequirementStep.Complete: {
+            return {
+              referralStatus: {
+                step: ReferralStep.Complete,
+                referralCode: data.referral.referralCode
+              }
+            };
+          }
         }
-
-        // update user beta requirements
-        txn.set(betaRequirementsRef, data, { merge: true });
-        // saves who referred the user
-        txn.create(referralEventRef, referralEvent);
-        // ensures there aren't duplicate referral codes
-        txn.create(newReferralCodeRef, newReferralCode);
-        await Promise.resolve(); // noop
-        return {
-          referralStatus: referral
-        };
       });
       return {
         success: true,
@@ -623,7 +710,7 @@ export class BetaService {
         if (!walletsWithSameDiscordAccount.empty) {
           return {
             success: false,
-            message: `Discord account ${userResponse.body.username} is already connected to another wallet`
+            message: `Discord account @${userResponse.body.username} is already connected to another wallet`
           };
         }
 
@@ -743,7 +830,7 @@ export class BetaService {
         if (!walletsWithSameTwitterAccount.empty) {
           return {
             success: false,
-            message: `Twitter account ${userObject.username} is already connected to another wallet`
+            message: `Twitter account @${userObject.username} is already connected to another wallet`
           };
         }
 

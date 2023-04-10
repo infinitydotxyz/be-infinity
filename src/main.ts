@@ -33,9 +33,6 @@ async function setup(app: INestApplication) {
   const supportedCollections = new SupportedCollectionsProvider(firebaseService.firestore);
   await supportedCollections.init();
 
-  const nftService = app.get(NftsService);
-  nftService.setSupportedCollections(supportedCollections);
-
   const setsService = app.get(SetsService);
   setsService.setSupportedCollections(supportedCollections);
 

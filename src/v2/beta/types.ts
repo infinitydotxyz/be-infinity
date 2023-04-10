@@ -104,6 +104,7 @@ export type DiscordRequirement = DiscordRequirementInitial | DiscordRequirementC
 
 export enum ReferralRequirementStep {
   Initial,
+  Referred,
   Complete
 }
 
@@ -111,8 +112,14 @@ export interface ReferralRequirementInitial {
   step: ReferralRequirementStep.Initial;
 }
 
+export interface ReferralRequirementReferred {
+  step: ReferralRequirementStep.Referred;
+  referral: Omit<Referral, 'processed'>;
+}
+
 export interface ReferralRequirementComplete {
   step: ReferralRequirementStep.Complete;
+  referral: Referral;
   referralCode: string;
 }
 
@@ -126,7 +133,7 @@ export interface BetaRequirementsData {
     };
   };
 
-  referral: ReferralRequirementInitial | ReferralRequirementComplete;
+  referral: ReferralRequirementInitial | ReferralRequirementReferred | ReferralRequirementComplete;
 
   twitterConnect: TwitterRequirement;
 
@@ -202,6 +209,7 @@ export interface Referral {
   };
   referer: {
     address: string;
+    code: string;
   };
   createdAt: number;
   processed: boolean;
@@ -209,11 +217,16 @@ export interface Referral {
 
 export enum ReferralStep {
   Incomplete,
+  Referred,
   Complete
 }
 
 export interface InitialReferralStatus {
   step: ReferralStep.Incomplete;
+}
+
+export interface ReferredReferralStatus {
+  step: ReferralStep.Referred;
 }
 
 export interface CompletedReferralStatus {
@@ -223,7 +236,7 @@ export interface CompletedReferralStatus {
 
 export interface BetaAuthorizationIncomplete {
   status: BetaAuthorizationStatus;
-  referral: InitialReferralStatus | CompletedReferralStatus;
+  referral: InitialReferralStatus | ReferredReferralStatus | CompletedReferralStatus;
   twitter: ConnectTwitter | FollowOnTwitter | CompletedTwitter;
   discord: ConnectDiscord | JoinDiscord | CompletedDiscord;
 }

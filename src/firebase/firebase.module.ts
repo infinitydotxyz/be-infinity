@@ -1,6 +1,5 @@
 import { FirebaseService } from './firebase.service';
-import { DynamicModule, Global, Module, ModuleMetadata, Provider } from '@nestjs/common';
-import { Type } from '@nestjs/common/interfaces/type.interface';
+import { DynamicModule, Module, ModuleMetadata, Provider } from '@nestjs/common';
 import { FirebaseModuleOptions } from './firebase.types';
 import { FIREBASE_OPTIONS } from './firebase.constants';
 
@@ -24,7 +23,6 @@ export interface FirebaseModuleAsyncOptions {
   inject?: any[];
 }
 
-@Global()
 @Module({})
 export class FirebaseModule {
   static forRoot(options: FirebaseModuleOptions): DynamicModule {
@@ -45,6 +43,7 @@ export class FirebaseModule {
   static forRootAsync(options: FirebaseAsyncOptions): DynamicModule {
     const providers = [...this.createAsyncProviders(options)];
     return {
+      global: true,
       module: FirebaseModule,
       imports: options.imports || [],
       providers,
@@ -53,7 +52,7 @@ export class FirebaseModule {
   }
 
   private static createAsyncProviders(options: FirebaseAsyncOptions): Provider[] {
-    return [this.createAsyncOptionsProvider(options)];
+    return [this.createAsyncOptionsProvider(options), FirebaseService];
   }
 
   private static createAsyncOptionsProvider(options: FirebaseAsyncOptions): Provider {
