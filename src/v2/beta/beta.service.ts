@@ -35,6 +35,7 @@ import { customAlphabet } from 'nanoid';
 export class BetaService {
   protected _twitterClient: TwitterApi;
   protected _twitterCallbackUrl: string;
+  protected _twitterBetaAuthAccountId: string;
   protected _discordCallbackUrl: string;
   protected _discordClientId: string;
   protected _discordClientSecret: string;
@@ -50,6 +51,7 @@ export class BetaService {
     this._discordClientId = this._configService.get('DISCORD_CLIENT_ID') ?? '';
     this._discordClientSecret = this._configService.get('DISCORD_CLIENT_SECRET') ?? '';
     this._discordGuildId = this._configService.get('DISCORD_GUILD_ID') ?? '';
+    this._twitterBetaAuthAccountId = this._configService.get('TWITTER_BETA_AUTH_ACCOUNT_ID') ?? '';
   }
 
   get flowBetaAuthColl() {
@@ -508,9 +510,8 @@ export class BetaService {
       client = refreshedClient;
     }
 
-    const flowId = '1444756392531922946';
     try {
-      console.log(`Checking if user ${userId} is following flow ${flowId}`);
+      console.log(`Checking if user ${userId} is following flow ${this._twitterBetaAuthAccountId}`);
       const pageSize = 1000;
       const followings = await client.v2.following(userId, { asPaginator: true, max_results: pageSize });
       let page = followings.data.data ?? [];
@@ -518,7 +519,7 @@ export class BetaService {
       // eslint-disable-next-line no-constant-condition
       while (pageNum < 10) {
         pageNum += 1;
-        const isFollowingFlow = page.some((item) => item.id === flowId);
+        const isFollowingFlow = page.some((item) => item.id === this._twitterBetaAuthAccountId);
         if (isFollowingFlow) {
           return { isFollowing: true, userAuth: updatedAuth };
         } else if (page.length < pageSize) {
@@ -533,11 +534,17 @@ export class BetaService {
     return { isFollowing: false, userAuth: updatedAuth };
   }
 
-  async handleDiscordOAuthCallback(data: { code: string }, user: ParsedUserId): Promise<{ success: boolean }> {
+  async handleDiscordOAuthCallback(
+    data: { code: string },
+    user: ParsedUserId
+  ): Promise<{ success: true } | { success: false; message: string }> {
     const betaRequirementsRef = this.flowBetaAuthColl.doc(user.userAddress);
 
     if (!data.code) {
-      throw new Error(`User denied app or session expired`);
+      return {
+        success: false,
+        message: 'User denied app or session expired'
+      };
     }
 
     try {
@@ -563,7 +570,7 @@ export class BetaService {
 
       if (response.statusCode !== 200) {
         console.log(`Failed to request discord access token for user ${user.userAddress}`, response.body);
-        return { success: false };
+        return { success: false, message: 'Failed to connect to discord, please try again' };
       }
       const auth: DiscordRequirementConnected['auth'] = {
         accessToken: response.body.access_token,
@@ -589,21 +596,36 @@ export class BetaService {
           `Failed to request discord user info for user ${user.userAddress} Response code ${userResponse.statusCode}`,
           userResponse.body
         );
-        return { success: false };
+        return { success: false, message: 'Failed to connect to discord, please try again' };
       }
 
-      const result = await this._firebase.firestore.runTransaction(async (txn) => {
+      const result = await this._firebase.firestore.runTransaction<
+        { success: true } | { success: false; message: string }
+      >(async (txn) => {
         const betaRequirementsSnap = await txn.get(betaRequirementsRef);
         const betaRequirements = betaRequirementsSnap.data();
         if (!betaRequirements) {
-          throw new Error(`User ${user.userAddress} initiated the beta authorization flow`);
+          return {
+            success: false,
+            message: 'Invalid'
+          };
         } else if (betaRequirements?.discord?.step === DiscordRequirementStep.Connected) {
           return { success: true };
         } else if (betaRequirements?.discord?.step === DiscordRequirementStep.Member) {
           return { success: true };
         }
 
-        // TODO require id is unique
+        const walletsWithSameDiscordAccountQuery = this.flowBetaAuthColl
+          .where('discord.user.id', '==', userResponse.body.id)
+          .limit(1);
+        const walletsWithSameDiscordAccount = await txn.get(walletsWithSameDiscordAccountQuery);
+
+        if (!walletsWithSameDiscordAccount.empty) {
+          return {
+            success: false,
+            message: `Discord account ${userResponse.body.username} is already connected to another wallet`
+          };
+        }
 
         console.log(`Successfully requested discord user info for user ${user.userAddress}`);
         betaRequirements.discord = {
@@ -625,18 +647,21 @@ export class BetaService {
       return result;
     } catch (err) {
       console.error(JSON.stringify(err, null, 2));
-      return { success: false };
+      return { success: false, message: 'Failed to connect discord, please try again' };
     }
   }
 
   public async handleTwitterOAuthCallback(
     data: { state: string; code: string },
     user: ParsedUserId
-  ): Promise<{ success: boolean }> {
+  ): Promise<{ success: true } | { success: false; message: string }> {
     const betaRequirementsRef = this.flowBetaAuthColl.doc(user.userAddress) as DocRef<BetaRequirementsData>;
 
     if (!data.state || !data.code) {
-      throw new Error(`User denied app or session expired`);
+      return {
+        success: false,
+        message: 'User denied app or session expired'
+      };
     }
 
     try {
@@ -648,16 +673,28 @@ export class BetaService {
       }
 
       if (!betaRequirements) {
-        throw new Error(`Failed to find code verifier for user ${user.userAddress}`);
+        return {
+          success: false,
+          message: 'Invalid'
+        };
       } else if (betaRequirements.twitterConnect.step === TwitterRequirementStep.Initial) {
-        throw new Error(`Failed to find code verifier for user ${user.userAddress}`);
+        return {
+          success: false,
+          message: 'Invalid'
+        };
       }
 
       const { codeVerifier, state } = betaRequirements.twitterConnect.linkParams;
       if (!codeVerifier || !state) {
-        throw new Error(`Failed to find code verifier for user ${user.userAddress}`);
+        return {
+          success: false,
+          message: 'Failed to connect twitter, please try again'
+        };
       } else if (state !== data.state) {
-        throw new Error(`Invalid state for user ${user.userAddress}`);
+        return {
+          success: false,
+          message: 'Failed to connect twitter, please try again'
+        };
       }
 
       console.log(`Logging in user ${user.userAddress}`);
@@ -676,31 +713,54 @@ export class BetaService {
       console.log(`Logged in user ${user.userAddress}`);
 
       if (!refreshToken) {
-        throw new Error(`Failed to get refresh token for user ${user.userAddress}`);
+        return {
+          success: false,
+          message: 'Failed to connect twitter, please try again'
+        };
       }
 
       const { data: userObject } = await loggedInClient.currentUserV2();
 
       if (!userObject.id) {
-        throw new Error(`Failed to get user id for user ${user.userAddress}`);
+        return {
+          success: false,
+          message: 'Failed to connect twitter (failed to get user account), please try again'
+        };
       }
 
       console.log(`Retrieved twitter account for user ${user.userAddress}`);
 
-      const result = await this._firebase.firestore.runTransaction(async (txn) => {
+      const result = await this._firebase.firestore.runTransaction<
+        { success: true } | { success: false; message: string }
+      >(async (txn) => {
         const betaRequirementsSnap = await txn.get(betaRequirementsRef);
         const betaRequirements = betaRequirementsSnap.data();
+        const walletsWithSameTwitterAccountQuery = this.flowBetaAuthColl
+          .where('twitterConnect.user.id', '==', userObject.id)
+          .limit(1);
+        const walletsWithSameTwitterAccount = await txn.get(walletsWithSameTwitterAccountQuery);
 
-        // TODO require id is unique
+        if (!walletsWithSameTwitterAccount.empty) {
+          return {
+            success: false,
+            message: `Twitter account ${userObject.username} is already connected to another wallet`
+          };
+        }
 
         if (betaRequirements?.twitterConnect.step === TwitterRequirementStep.Connected) {
           return { success: true };
         }
 
         if (!betaRequirements) {
-          throw new Error(`Failed to find code verifier for user ${user.userAddress}`);
+          return {
+            success: false,
+            message: 'Invalid'
+          };
         } else if (betaRequirements.twitterConnect.step === TwitterRequirementStep.Initial) {
-          throw new Error(`Failed to find code verifier for user ${user.userAddress}`);
+          return {
+            success: false,
+            message: 'Invalid'
+          };
         }
 
         betaRequirements.twitterConnect = {
@@ -724,7 +784,7 @@ export class BetaService {
       return result;
     } catch (err) {
       console.error(JSON.stringify(err, null, 2));
-      return { success: false };
+      return { success: false, message: 'Failed to connect twitter, please try again' };
     }
   }
 }

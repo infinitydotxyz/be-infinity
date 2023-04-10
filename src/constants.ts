@@ -59,6 +59,7 @@ export const validateAndTransformEnvVariables = (env: Record<string, string>) =>
   const isProd = INFINITY_NODE_ENV === Env.Prod;
   const firebaseServiceAccountName = isProd ? 'nftc-infinity-firebase-creds.json' : 'nftc-dev-firebase-creds.json';
   const firebaseServiceAccount = loadJsonFile<object>(firebaseServiceAccountName);
+  const FB_STORAGE_BUCKET = isProd ? 'nftc-infinity.appspot.com' : 'nftc-dev.appspot.com';
 
   const envVariables: EnvironmentVariables = {
     FRONTEND_HOST: env.FRONTEND_HOST,
@@ -76,6 +77,7 @@ export const validateAndTransformEnvVariables = (env: Record<string, string>) =>
     ZORA_API_KEY: env.ZORA_API_KEY,
     INFINITY_NODE_ENV,
     firebaseServiceAccount,
+    FB_STORAGE_BUCKET,
     PG_DB_NAME: env.PG_DB_NAME,
     PG_USER: env.PG_USER,
     PG_PASS: env.PG_PASS,
@@ -83,13 +85,11 @@ export const validateAndTransformEnvVariables = (env: Record<string, string>) =>
     PG_PORT: env.PG_PORT,
     TWITTER_CLIENT_ID: env.TWITTER_CLIENT_ID,
     TWITTER_CLIENT_SECRET: env.TWITTER_CLIENT_SECRET,
+    TWITTER_BETA_AUTH_ACCOUNT_ID: env.TWITTER_BETA_AUTH_ACCOUNT_ID,
     DISCORD_CLIENT_ID: env.DISCORD_CLIENT_ID,
     DISCORD_CLIENT_SECRET: env.DISCORD_CLIENT_SECRET,
     DISCORD_GUILD_ID: env.DISCORD_GUILD_ID,
-    snapshotBucket:
-      (firebaseServiceAccount as any).project_id === 'nftc-dev'
-        ? 'orderbook-snapshots'
-        : 'infinity-orderbook-snapshots',
+    snapshotBucket: isProd ? 'infinity-orderbook-snapshots' : 'orderbook-snapshots',
     GOERLI_MATCHING_ENGINE_API_URL: env.GOERLI_MATCHING_ENGINE_API_URL,
     GOERLI_MATCHING_ENGINE_API_KEY: env.GOERLI_MATCHING_ENGINE_API_KEY,
     GOERLI_EXECUTION_ENGINE_API_URL: env.GOERLI_EXECUTION_ENGINE_API_URL,
@@ -120,16 +120,12 @@ export const auth = {
   signature: AUTH_SIGNATURE_HEADER
 };
 
-export const API_BASE = 'http://localhost:9090';
-export const SITE_BASE = 'http://localhost:3000';
-
 export const DEFAULT_MIN_ETH = 0.0000001;
 export const DEFAULT_MAX_ETH = 1000000; // For listings
 export const DEFAULT_PRICE_SORT_DIRECTION = OrderDirection.Descending;
 
 export const INFINITY_EMAIL = 'hi@flow.so';
-export const FB_STORAGE_BUCKET = 'nftc-dev.appspot.com';
-export const FIREBASE_SERVICE_ACCOUNT = 'nftc-dev-firebase-creds.json';
+// export const FB_STORAGE_BUCKET = 'nftc-dev.appspot.com';
 export const ORIGIN = /http:\/\/localhost:\d+/;
 export const INFINITY_URL = 'https://flow.so/';
 

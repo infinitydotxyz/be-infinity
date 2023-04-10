@@ -16,7 +16,7 @@ import { ZoraModule } from 'zora/zora.module';
 import { AlchemyModule } from './alchemy/alchemy.module';
 import { ApiUserModule } from './api-user/api-user.module';
 import { AppController } from './app.controller';
-import { FB_STORAGE_BUCKET, secondaryEnvFileName, validateAndTransformEnvVariables } from './constants';
+import { secondaryEnvFileName, validateAndTransformEnvVariables } from './constants';
 import { DiscordModule } from './discord/discord.module';
 import { EthereumModule } from './ethereum/ethereum.module';
 import { FirebaseModule } from './firebase/firebase.module';
@@ -43,6 +43,7 @@ import { MatchingEngineModule } from './v2/matching-engine/matching-engine.modul
 
 import { BetaModule } from './v2/beta/beta.module';
 import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
+import { EnvironmentVariables } from 'types/environment-variables.interface';
 
 @Module({
   imports: [
@@ -51,8 +52,15 @@ import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
       isGlobal: true,
       validate: validateAndTransformEnvVariables
     }),
-    FirebaseModule.forRoot({
-      storageBucket: FB_STORAGE_BUCKET
+    FirebaseModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService<EnvironmentVariables>) => {
+        const storageBucket = config.get<string>('FB_STORAGE_BUCKET');
+        return {
+          storageBucket
+        };
+      }
     }),
     PostgresModule.forRoot(),
     CollectionsModule,
