@@ -52,10 +52,16 @@ export class BetaService {
     this._discordGuildId = this._configService.get('DISCORD_GUILD_ID') ?? '';
   }
 
+  get flowBetaAuthColl() {
+    return this._firebase.firestore.collection('flowBetaAuth') as CollRef<BetaRequirementsData>;
+  }
+
+  get flowBetaReferralCodesColl() {
+    return this._firebase.firestore.collection('flowBetaReferralCodes') as CollRef<ReferralCode>;
+  }
+
   async getBetaAuthorization(user: ParsedUserId): Promise<BetaAuthorization> {
-    const betaRequirementsRef = user.ref
-      .collection('flowBeta')
-      .doc('flowBetaAuthorization') as DocRef<BetaRequirementsData>;
+    const betaRequirementsRef = this.flowBetaAuthColl.doc(user.userAddress);
 
     const result = await this._firebase.firestore.runTransaction<BetaAuthorization>(async (txn) => {
       const snap = await txn.get(betaRequirementsRef);
@@ -259,12 +265,9 @@ export class BetaService {
     user: ParsedUserId,
     referralCode: string
   ): Promise<{ success: false; message: string } | { success: true; referralStatus: CompletedReferralStatus }> {
-    const referralCodesRef = this._firebase.firestore.collection('flowBetaReferralCodes') as CollRef<ReferralCode>;
-    const referralCodeRef = referralCodesRef.doc(referralCode);
+    const referralCodeRef = this.flowBetaReferralCodesColl.doc(referralCode);
 
-    const betaRequirementsRef = user.ref
-      .collection('flowBeta')
-      .doc('flowBetaAuthorization') as DocRef<BetaRequirementsData>;
+    const betaRequirementsRef = this.flowBetaAuthColl.doc(user.userAddress);
 
     try {
       const referralSnap = await referralCodeRef.get();
@@ -342,7 +345,7 @@ export class BetaService {
           isValid: true
         };
 
-        const newReferralCodeRef = referralCodesRef.doc(newReferralCode.referralCode);
+        const newReferralCodeRef = this.flowBetaReferralCodesColl.doc(newReferralCode.referralCode);
 
         let referral: CompletedReferralStatus;
         switch (data.referral.step) {
@@ -531,9 +534,7 @@ export class BetaService {
   }
 
   async handleDiscordOAuthCallback(data: { code: string }, user: ParsedUserId): Promise<{ success: boolean }> {
-    const betaRequirementsRef = user.ref
-      .collection('flowBeta')
-      .doc('flowBetaAuthorization') as DocRef<BetaRequirementsData>;
+    const betaRequirementsRef = this.flowBetaAuthColl.doc(user.userAddress);
 
     if (!data.code) {
       throw new Error(`User denied app or session expired`);
@@ -602,6 +603,8 @@ export class BetaService {
           return { success: true };
         }
 
+        // TODO require id is unique
+
         console.log(`Successfully requested discord user info for user ${user.userAddress}`);
         betaRequirements.discord = {
           step: DiscordRequirementStep.Connected,
@@ -630,9 +633,7 @@ export class BetaService {
     data: { state: string; code: string },
     user: ParsedUserId
   ): Promise<{ success: boolean }> {
-    const betaRequirementsRef = user.ref
-      .collection('flowBeta')
-      .doc('flowBetaAuthorization') as DocRef<BetaRequirementsData>;
+    const betaRequirementsRef = this.flowBetaAuthColl.doc(user.userAddress) as DocRef<BetaRequirementsData>;
 
     if (!data.state || !data.code) {
       throw new Error(`User denied app or session expired`);
@@ -689,6 +690,8 @@ export class BetaService {
       const result = await this._firebase.firestore.runTransaction(async (txn) => {
         const betaRequirementsSnap = await txn.get(betaRequirementsRef);
         const betaRequirements = betaRequirementsSnap.data();
+
+        // TODO require id is unique
 
         if (betaRequirements?.twitterConnect.step === TwitterRequirementStep.Connected) {
           return { success: true };
