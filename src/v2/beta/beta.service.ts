@@ -22,6 +22,7 @@ import {
   ReferralCode,
   ReferralRequirementReferred,
   ReferralRequirementStep,
+  ReferralRewards,
   ReferralStep,
   ReferredReferralStatus,
   Twitter,
@@ -873,5 +874,19 @@ export class BetaService {
       console.error(JSON.stringify(err, null, 2));
       return { success: false, message: 'Failed to connect twitter, please try again' };
     }
+  }
+
+  public async getReferralRewards(user: ParsedUserId): Promise<ReferralRewards> {
+    const referralRewardsRef = this._firebase.firestore
+      .collection('flowBetaReferralRewards')
+      .doc(user.userAddress) as DocRef<ReferralRewards>;
+
+    const referralRewardsSnap = await referralRewardsRef.get();
+
+    const referralRewards = referralRewardsSnap.data() ?? {
+      numberOfReferrals: 0
+    };
+
+    return referralRewards;
   }
 }

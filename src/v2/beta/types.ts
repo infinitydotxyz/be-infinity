@@ -268,3 +268,7 @@ export interface DiscordUserResponse {
   mfa_enabled: boolean;
   premium_type: number;
 }
+
+export interface ReferralRewards {
+  numberOfReferrals: number;
+}

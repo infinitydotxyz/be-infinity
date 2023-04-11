@@ -11,6 +11,7 @@ import { ResponseDescription } from 'common/response-description';
 import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 import { BetaService } from 'v2/beta/beta.service';
+import { ReferralRewards } from 'v2/beta/types';
 import { OrdersService } from 'v2/orders/orders.service';
 
 @Controller('v2/users')
@@ -51,6 +52,21 @@ export class UsersController {
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   public async getBetaAuth(@ParamUserId('userId', ParseUserIdPipe) userId: ParsedUserId): Promise<unknown> {
     return await this._betaService.getBetaAuthorization(userId);
+  }
+
+  @Get(':userId/beta/referrals')
+  @ApiOperation({
+    description: "Get the user's beta authorization status",
+    tags: [ApiTag.User]
+  })
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
+  @ApiOkResponse({ description: ResponseDescription.Success })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  public async getBetaReferrals(
+    @ParamUserId('userId', ParseUserIdPipe) userId: ParsedUserId
+  ): Promise<ReferralRewards> {
+    return await this._betaService.getReferralRewards(userId);
   }
 
   @Post(':userId/beta/auth/referral')
