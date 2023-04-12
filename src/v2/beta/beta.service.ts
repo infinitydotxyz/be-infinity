@@ -44,6 +44,7 @@ export class BetaService {
   protected _discordClientId: string;
   protected _discordClientSecret: string;
   protected _discordGuildId: string;
+  protected _discordGuildVerifiedRoleId: string;
 
   constructor(protected _firebase: FirebaseService, protected _configService: ConfigService<EnvironmentVariables>) {
     const clientId = this._configService.get('TWITTER_CLIENT_ID');
@@ -56,6 +57,7 @@ export class BetaService {
     this._discordClientSecret = this._configService.get('DISCORD_CLIENT_SECRET') ?? '';
     this._discordGuildId = this._configService.get('DISCORD_GUILD_ID') ?? '';
     this._twitterBetaAuthAccountId = this._configService.get('TWITTER_BETA_AUTH_ACCOUNT_ID') ?? '';
+    this._discordGuildVerifiedRoleId = this._configService.get('DISCORD_GUILD_VERIFIED_ROLE_ID') ?? '';
   }
 
   get flowBetaAuthColl() {
@@ -287,7 +289,7 @@ export class BetaService {
           auth: {
             step: Discord.Connect,
             data: {
-              url: `https://discord.com/api/oauth2/authorize?client_id=${this._discordClientId}&redirect_uri=${this._discordCallbackUrl}&response_type=code&scope=identify%20guilds`
+              url: `https://discord.com/api/oauth2/authorize?client_id=${this._discordClientId}&redirect_uri=${this._discordCallbackUrl}&response_type=code&scope=guilds.members.read%20identify%20guilds`
             }
           }
         };
@@ -295,6 +297,20 @@ export class BetaService {
       case DiscordRequirementStep.Connected: {
         const { isMember, userAuth } = await this.isInFlowDiscord(data.auth, data.user.id);
         if (isMember) {
+          const { isVerified, userAuth } = await this.isVerifiedInDiscord(data.auth, data.user.id);
+          if (isVerified) {
+            return {
+              discordRequirements: {
+                step: DiscordRequirementStep.Verified,
+                auth: userAuth,
+                user: data.user
+              },
+              auth: {
+                step: Discord.Complete
+              }
+            };
+          }
+
           return {
             discordRequirements: {
               step: DiscordRequirementStep.Member,
@@ -302,12 +318,15 @@ export class BetaService {
               user: data.user
             },
             auth: {
-              step: Discord.Complete
+              step: Discord.Verify
             }
           };
         }
         return {
-          discordRequirements: data,
+          discordRequirements: {
+            ...data,
+            auth: userAuth
+          },
           auth: {
             step: Discord.Join,
             data: {
@@ -317,6 +336,32 @@ export class BetaService {
         };
       }
       case DiscordRequirementStep.Member: {
+        const { isVerified, userAuth } = await this.isVerifiedInDiscord(data.auth, data.user.id);
+
+        if (isVerified) {
+          return {
+            discordRequirements: {
+              step: DiscordRequirementStep.Verified,
+              auth: userAuth,
+              user: data.user
+            },
+            auth: {
+              step: Discord.Complete
+            }
+          };
+        }
+        return {
+          discordRequirements: {
+            ...data,
+            auth: userAuth
+          },
+          auth: {
+            step: Discord.Verify
+          }
+        };
+      }
+
+      case DiscordRequirementStep.Verified: {
         return {
           discordRequirements: data,
           auth: {
@@ -498,6 +543,46 @@ export class BetaService {
     return id;
   }
 
+  async isVerifiedInDiscord(
+    userAuth: DiscordRequirementConnected['auth'],
+    userId: string
+  ): Promise<{ isVerified: boolean; userAuth: DiscordRequirementConnected['auth'] }> {
+    try {
+      userAuth = await this.refreshDiscordToken(userAuth);
+
+      const response = await got<{ roles: string[] }>(
+        `https://discord.com/api/users/@me/guilds/${this._discordGuildId}/member`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${userAuth.accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          responseType: 'json',
+          throwHttpErrors: false
+        }
+      );
+
+      if (response.statusCode === 200) {
+        const roles = response.body?.roles;
+        if (roles.includes(this._discordGuildVerifiedRoleId)) {
+          return { isVerified: true, userAuth: userAuth };
+        }
+        const isVerified = false;
+        return { isVerified, userAuth: userAuth };
+      } else {
+        console.error(
+          `Failed to retrieve discord guilds for user ${userId} Status code ${response.statusCode}`,
+          response.body
+        );
+        return { isVerified: false, userAuth: userAuth };
+      }
+    } catch (err) {
+      console.error(`Failed to retrieve discord user roles for user ${userId}`, err);
+      return { isVerified: false, userAuth: userAuth };
+    }
+  }
+
   async isInFlowDiscord(
     userAuth: DiscordRequirementConnected['auth'],
     userId: string
@@ -511,7 +596,8 @@ export class BetaService {
           Authorization: `Bearer ${userAuth.accessToken}`,
           'Content-Type': 'application/json'
         },
-        responseType: 'json'
+        responseType: 'json',
+        throwHttpErrors: false
       });
 
       if (response.statusCode === 200) {
@@ -540,7 +626,7 @@ export class BetaService {
       client_secret: this._discordClientSecret,
       grant_type: 'refresh_token',
       refresh_token: userAuth.refreshToken,
-      scope: 'identify guilds'
+      scope: 'identify guilds guilds.members.read'
     };
 
     if (userAuth.expiresAt < Date.now() - ONE_MIN * 2) {
@@ -646,7 +732,7 @@ export class BetaService {
         grant_type: 'authorization_code',
         code: data.code,
         redirect_uri: this._discordCallbackUrl,
-        scope: 'identify guilds'
+        scope: 'identify guilds guilds.members.read'
       };
 
       console.log(`Requesting access token for user ${user.userAddress} Code ${data.code}`);
@@ -738,7 +824,7 @@ export class BetaService {
 
       return result;
     } catch (err) {
-      console.error(JSON.stringify(err, null, 2));
+      console.error(`Failed to connect to discord ${err}`);
       return { success: false, message: 'Failed to connect discord, please try again' };
     }
   }

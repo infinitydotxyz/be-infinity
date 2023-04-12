@@ -61,7 +61,8 @@ export type TwitterFollowerRequirement = TwitterFollowerRequirementInitial | Twi
 export enum DiscordRequirementStep {
   Initial,
   Connected,
-  Member
+  Member,
+  Verified
 }
 export interface DiscordRequirementInitial {
   step: DiscordRequirementStep.Initial;
@@ -100,7 +101,23 @@ export interface DiscordRequirementMember {
   user: DiscordUser;
 }
 
-export type DiscordRequirement = DiscordRequirementInitial | DiscordRequirementConnected | DiscordRequirementMember;
+export interface DiscordRequirementVerified {
+  step: DiscordRequirementStep.Verified;
+  auth: {
+    accessToken: string;
+    expiresAt: number;
+    refreshToken: string;
+    scope: string;
+    tokenType: 'Bearer';
+  };
+  user: DiscordUser;
+}
+
+export type DiscordRequirement =
+  | DiscordRequirementInitial
+  | DiscordRequirementConnected
+  | DiscordRequirementMember
+  | DiscordRequirementVerified;
 
 export enum ReferralRequirementStep {
   Initial,
@@ -169,6 +186,7 @@ export interface CompletedTwitter {
 export enum Discord {
   Connect,
   Join,
+  Verify,
   Complete
 }
 export interface ConnectDiscord {
@@ -183,6 +201,10 @@ export interface JoinDiscord {
   data: {
     url: string;
   };
+}
+
+export interface VerifyDiscord {
+  step: Discord.Verify;
 }
 
 export interface CompletedDiscord {
@@ -238,7 +260,7 @@ export interface BetaAuthorizationIncomplete {
   status: BetaAuthorizationStatus;
   referral: InitialReferralStatus | ReferredReferralStatus | CompletedReferralStatus;
   twitter: ConnectTwitter | FollowOnTwitter | CompletedTwitter;
-  discord: ConnectDiscord | JoinDiscord | CompletedDiscord;
+  discord: ConnectDiscord | JoinDiscord | VerifyDiscord | CompletedDiscord;
 }
 
 export interface BetaAuthorizationComplete {

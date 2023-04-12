@@ -89,6 +89,7 @@ export const validateAndTransformEnvVariables = (env: Record<string, string>) =>
     DISCORD_CLIENT_ID: env.DISCORD_CLIENT_ID,
     DISCORD_CLIENT_SECRET: env.DISCORD_CLIENT_SECRET,
     DISCORD_GUILD_ID: env.DISCORD_GUILD_ID,
+    DISCORD_GUILD_VERIFIED_ROLE_ID: env.DISCORD_GUILD_VERIFIED_ROLE_ID,
     snapshotBucket: isProd ? 'infinity-orderbook-snapshots' : 'orderbook-snapshots',
     GOERLI_MATCHING_ENGINE_API_URL: env.GOERLI_MATCHING_ENGINE_API_URL,
     GOERLI_MATCHING_ENGINE_API_KEY: env.GOERLI_MATCHING_ENGINE_API_KEY,

@@ -10,6 +10,7 @@ export interface EnvironmentVariables {
   DISCORD_CLIENT_ID: string;
   DISCORD_CLIENT_SECRET: string;
   DISCORD_GUILD_ID: string;
+  DISCORD_GUILD_VERIFIED_ROLE_ID: string;
   ALCHEMY_API_KEY: string;
   mnemonicApiKey: string;
   alchemyJsonRpcEthMainnet: string;
