@@ -153,7 +153,11 @@ export class BetaService {
               referralCode: referralCode.referralCode
             },
             isAuthorized: true,
-            referralRequirement: data,
+            referralRequirement: {
+              step: ReferralRequirementStep.Complete,
+              referral: data.referral,
+              referralCode: referralCode.referralCode
+            },
             save
           };
         }

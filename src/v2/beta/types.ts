@@ -119,7 +119,7 @@ export interface ReferralRequirementReferred {
 
 export interface ReferralRequirementComplete {
   step: ReferralRequirementStep.Complete;
-  referral: Referral;
+  referral: Omit<Referral, 'processed'>;
   referralCode: string;
 }
 
