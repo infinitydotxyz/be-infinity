@@ -44,7 +44,7 @@ export class BetaService {
   protected _discordClientId: string;
   protected _discordClientSecret: string;
   protected _discordGuildId: string;
-  protected _discordGuildVerifiedRoleId: string;
+  protected _discordGuildVerifiedRoleIds: Set<string>;
 
   constructor(protected _firebase: FirebaseService, protected _configService: ConfigService<EnvironmentVariables>) {
     const clientId = this._configService.get('TWITTER_CLIENT_ID');
@@ -57,7 +57,7 @@ export class BetaService {
     this._discordClientSecret = this._configService.get('DISCORD_CLIENT_SECRET') ?? '';
     this._discordGuildId = this._configService.get('DISCORD_GUILD_ID') ?? '';
     this._twitterBetaAuthAccountId = this._configService.get('TWITTER_BETA_AUTH_ACCOUNT_ID') ?? '';
-    this._discordGuildVerifiedRoleId = this._configService.get('DISCORD_GUILD_VERIFIED_ROLE_ID') ?? '';
+    this._discordGuildVerifiedRoleIds = new Set(this._configService.get('DISCORD_GUILD_VERIFIED_ROLE_IDS') ?? []);
   }
 
   get flowBetaAuthColl() {
@@ -565,7 +565,7 @@ export class BetaService {
 
       if (response.statusCode === 200) {
         const roles = response.body?.roles;
-        if (roles.includes(this._discordGuildVerifiedRoleId)) {
+        if (roles.some((role) => this._discordGuildVerifiedRoleIds.has(role))) {
           return { isVerified: true, userAuth: userAuth };
         }
         const isVerified = false;
