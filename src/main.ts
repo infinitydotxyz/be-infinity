@@ -11,7 +11,6 @@ import { HttpExceptionFilter } from './http-exception.filter';
 import { API_KEY_HEADER, API_SECRET_HEADER } from 'auth/auth.constants';
 import { SupportedCollectionsProvider } from 'common/providers/supported-collections-provider';
 import { FirebaseService } from 'firebase/firebase.service';
-import { NftsService } from 'collections/nfts/nfts.service';
 import SetsService from 'sets/sets.service';
 
 async function setup(app: INestApplication) {
@@ -43,7 +42,7 @@ async function setup(app: INestApplication) {
 
 function setupSwagger(app: INestApplication, path: string) {
   const config = new DocumentBuilder()
-    .setTitle('Infinity API')
+    .setTitle('Flow API')
     .setDescription('Developer API')
     .setContact('infinity', INFINITY_URL, INFINITY_EMAIL)
     .setVersion('1.0.0')
