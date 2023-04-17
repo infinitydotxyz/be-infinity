@@ -53,6 +53,7 @@ import { ParseCollectionIdPipe, ParsedCollectionId } from './collection-id.pipe'
 import CollectionsService from './collections.service';
 import { CollectionStatsArrayDto } from './dto/collection-stats-array.dto';
 import { NftsService } from './nfts/nfts.service';
+import { Throttle } from '@nestjs/throttler';
 
 const EXCLUDED_COLLECTIONS = [
   '0x81ae0be3a8044772d04f32398bac1e1b4b215aa8', // Dreadfulz
@@ -273,6 +274,7 @@ export class CollectionsController {
     tags: [ApiTag.Collection, ApiTag.Orders],
     description: 'Get active orders for a single collection'
   })
+  @Throttle(20, 60)
   @ApiParamCollectionId()
   @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
@@ -280,8 +282,8 @@ export class CollectionsController {
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 10 }))
   async getCollectionOrders(
-    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId, 
-    @Query() query: {orderSide: 'buy' | 'sell'}
+    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
+    @Query() query: { orderSide: 'buy' | 'sell' }
   ): Promise<CollectionOrder[]> {
     let isSellOrder = true;
     if (query.orderSide === 'buy') {

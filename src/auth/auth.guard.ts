@@ -6,13 +6,12 @@ import { ApiUserService } from 'api-user/api-user.service';
 import { hasApiRole } from 'api-user/api-user.utils';
 import { ethers } from 'ethers';
 import { UserParserService } from 'user/parser/parser.service';
-import { base64Decode, base64Encode } from 'utils';
+import { base64Decode } from 'utils';
 import {
   ApiRoleHierarchy,
   API_KEY_HEADER,
   API_SECRET_HEADER,
   AUTH_API_ROLES,
-  AUTH_MESSAGE_HEADER,
   AUTH_NONCE_HEADER,
   AUTH_SIGNATURE_HEADER,
   AUTH_SITE_ROLES,
@@ -21,6 +20,7 @@ import {
   SiteRoleHierarchy
 } from './auth.constants';
 import { AuthException } from './auth.exception';
+import { EIP712Data } from '@infinityxyz/lib/types/core';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -129,24 +129,19 @@ export class AuthGuard implements CanActivate {
 
   protected async validateSignature(context: ExecutionContext, request: Record<string, any>): Promise<boolean> {
     const nonce = request.headers?.[AUTH_NONCE_HEADER];
-    const messageHeader = request.headers?.[AUTH_MESSAGE_HEADER];
     const signatureHeader = request.headers?.[AUTH_SIGNATURE_HEADER];
 
-    if (!nonce || !messageHeader || !signatureHeader) {
+    if (!nonce || !signatureHeader) {
       throw new AuthException(
-        `Invalid signature headers. ${AUTH_NONCE_HEADER}, ${AUTH_MESSAGE_HEADER}, and ${AUTH_SIGNATURE_HEADER} are required`
+        `Invalid signature headers. ${AUTH_NONCE_HEADER}, and ${AUTH_SIGNATURE_HEADER} are required`
       );
     }
 
-    const constructedMsg = AuthGuard.getEncodedLoginMessage(nonce);
-    if (constructedMsg !== messageHeader) {
-      throw new AuthException('Invalid signature');
-    }
+    const { domain, types, value } = AuthGuard.getLoginMessage(nonce);
 
-    const decodedMessageHeader = base64Decode(messageHeader);
     try {
       const signingAddress = trimLowerCase(
-        ethers.utils.verifyMessage(decodedMessageHeader, JSON.parse(signatureHeader))
+        ethers.utils.verifyTypedData(domain, types, value as Record<string, any>, signatureHeader)
       );
       if (!signingAddress) {
         throw new AuthException('Invalid signature');
@@ -170,16 +165,34 @@ export class AuthGuard implements CanActivate {
     }
   }
 
-  static getEncodedLoginMessage(nonce: number): string {
-    // ignore the formatting of this multiline string
-    const msg = `Welcome to Flow. Click "Sign" to sign in. No password needed. This request will not trigger a blockchain transaction or cost any gas fees.
- 
-I accept the Flow Terms of Service: https://flow.so/terms
+  static getLoginMessage(nonce: string): Omit<EIP712Data, 'domain'> & { domain: { name: string; version: string } } {
+    const domain = {
+      name: 'Flow',
+      version: '1'
+    };
+    const types = {
+      Data: [
+        { name: 'message', type: 'string' },
+        { name: 'terms', type: 'string' },
+        { name: 'nonce', type: 'uint256' }
+      ]
+    };
+    const getData = (nonce: string) => {
+      return {
+        message: `Welcome to Flow. Click "Sign" to sign in. This is a one-time action. No password needed. This request will not trigger a blockchain transaction or cost any gas fees.`,
+        terms: 'I accept the Flow Terms of Service: https://flow.so/terms',
+        nonce
+      };
+    };
 
-Nonce: ${nonce}
-Expires in: 24 hrs`;
+    const value = getData(nonce);
 
-    return base64Encode(msg);
+    return {
+      signatureKind: 'eip712',
+      domain: domain,
+      types,
+      value
+    };
   }
 
   protected getRequestResponse(context: ExecutionContext): {

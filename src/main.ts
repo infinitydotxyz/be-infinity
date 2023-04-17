@@ -33,9 +33,6 @@ async function setup(app: INestApplication) {
   const supportedCollections = new SupportedCollectionsProvider(firebaseService.firestore);
   await supportedCollections.init();
 
-  const nftService = app.get(NftsService);
-  nftService.setSupportedCollections(supportedCollections);
-
   const setsService = app.get(SetsService);
   setsService.setSupportedCollections(supportedCollections);
 
@@ -56,13 +53,6 @@ function setupSwagger(app: INestApplication, path: string) {
       name: auth.signature,
       in: 'header',
       description: `Pass the user signed messaged in the ${auth.signature} header`
-    })
-    .addSecurity(auth.message, {
-      type: 'apiKey',
-      scheme: `${auth.message}: <original message>`,
-      name: auth.message,
-      in: 'header',
-      description: `Pass the message that was signed in the ${auth.message} header`
     })
     .addSecurity(auth.nonce, {
       type: 'apiKey',

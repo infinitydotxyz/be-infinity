@@ -1,5 +1,5 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { BackfillModule } from 'backfill/backfill.module';
@@ -16,7 +16,7 @@ import { ZoraModule } from 'zora/zora.module';
 import { AlchemyModule } from './alchemy/alchemy.module';
 import { ApiUserModule } from './api-user/api-user.module';
 import { AppController } from './app.controller';
-import { FB_STORAGE_BUCKET, secondaryEnvFileName, validateAndTransformEnvVariables } from './constants';
+import { secondaryEnvFileName, validateAndTransformEnvVariables } from './constants';
 import { DiscordModule } from './discord/discord.module';
 import { EthereumModule } from './ethereum/ethereum.module';
 import { FirebaseModule } from './firebase/firebase.module';
@@ -41,6 +41,10 @@ import { SetsModule } from 'sets/sets.module';
 import { MatchingEngineService } from './v2/matching-engine/matching-engine.service';
 import { MatchingEngineModule } from './v2/matching-engine/matching-engine.module';
 
+import { BetaModule } from './v2/beta/beta.module';
+import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
+import { EnvironmentVariables } from 'types/environment-variables.interface';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -48,8 +52,15 @@ import { MatchingEngineModule } from './v2/matching-engine/matching-engine.modul
       isGlobal: true,
       validate: validateAndTransformEnvVariables
     }),
-    FirebaseModule.forRoot({
-      storageBucket: FB_STORAGE_BUCKET
+    FirebaseModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService<EnvironmentVariables>) => {
+        const storageBucket = config.get<string>('FB_STORAGE_BUCKET');
+        return {
+          storageBucket
+        };
+      }
     }),
     PostgresModule.forRoot(),
     CollectionsModule,
@@ -67,10 +78,21 @@ import { MatchingEngineModule } from './v2/matching-engine/matching-engine.modul
     OpenseaModule,
     ReservoirModule,
     GemModule,
-    ThrottlerModule.forRoot({
-      ttl: 60,
-      limit: 60,
-      storage: undefined
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        const redisUrl = config.get<string>('REDIS_URL');
+        let storage = undefined;
+        if (redisUrl) {
+          storage = new ThrottlerStorageRedisService(redisUrl);
+        }
+        return {
+          ttl: 60,
+          limit: 10,
+          storage
+        };
+      }
     }),
     ApiUserModule,
     SetsModule,
@@ -85,6 +107,7 @@ import { MatchingEngineModule } from './v2/matching-engine/matching-engine.modul
     V2CollectionsModule,
     GenerateModule,
     BulkModule,
+    BetaModule,
     MatchingEngineModule
   ],
   providers: [

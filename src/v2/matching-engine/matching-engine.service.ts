@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import got from 'got/dist/source';
 import { EnvironmentVariables } from 'types/environment-variables.interface';
+import { MatchingEngineStatus } from './types';
 
 @Injectable()
 export class MatchingEngineService {
@@ -87,17 +88,49 @@ export class MatchingEngineService {
     }
   }
 
-  async getCollectionStatus(collection: string, chainId: ChainId): Promise<any> {
+  async getCollectionStatus(collection: string, chainId: ChainId): Promise<MatchingEngineStatus> {
     const client = this.getClient(chainId, 'matchingEngine');
 
-    const response = await client.get(`matching/collection/${collection}`);
+    const response = await client.get(`matching/collection/${collection}`, {
+      responseType: 'json'
+    });
     if (response.statusCode === 200) {
-      return response.body as any;
+      return response.body as MatchingEngineStatus;
     } else {
       console.error(
         `Failed to get collection status from matching engine: ${response.statusCode} - ${response.requestUrl}`
       );
-      throw new Error('Failed to get collection status');
+      return {
+        isSynced: false,
+        matchingEngine: {
+          healthStatus: {
+            status: 'unhealthy'
+          },
+          jobsProcessing: 0
+        },
+        orderRelay: {
+          healthStatus: {
+            status: 'unhealthy'
+          },
+          jobsProcessing: 0
+        },
+        executionEngine: {
+          healthStatus: {
+            status: 'unhealthy'
+          },
+          jobsProcessing: 0
+        },
+        averages: {
+          matchingEngine: {
+            globalAverage: null,
+            collectionAverage: null
+          },
+          executionEngine: {
+            globalAverage: null,
+            collectionAverage: null
+          }
+        }
+      };
     }
   }
 }
