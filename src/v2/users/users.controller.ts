@@ -47,6 +47,7 @@ export class UsersController {
     tags: [ApiTag.User]
   })
   @Auth(SiteRole.User, ApiRole.Guest, 'userId')
+  @Throttle(20, 60)
   @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
