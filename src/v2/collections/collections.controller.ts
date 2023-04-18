@@ -7,6 +7,7 @@ import {
   ApiNotFoundResponse,
   ApiInternalServerErrorResponse
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { ParseCollectionIdPipe, ParsedCollectionId } from 'collections/collection-id.pipe';
 import { ApiTag } from 'common/api-tags';
 import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param-collection-id.decorator';
@@ -45,6 +46,7 @@ export class CollectionsController {
     description: 'Fetch collection orders',
     tags: [ApiTag.Collection, ApiTag.Curation]
   })
+  @Throttle(20, 60)
   @ApiOkResponse({ type: UserCuratedCollectionDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })

@@ -63,7 +63,7 @@ export class EthereumService {
   async getGasPrice(chainId: ChainId) {
     const provider = this.getProvider(chainId);
     const gasPrice = await provider.getGasPrice();
-    const result = getFeesAtTarget(gasPrice, 2);
+    const result = getFeesAtTarget(gasPrice, 3);
 
     return {
       baseFee: gasPrice.toString(),

@@ -12,9 +12,10 @@
 # below:
 .git
 .gitignore
+.DS_Store
 
 ci
-src
+test
 fs-bq-extensions
 
 .github
@@ -26,9 +27,12 @@ firestore-data-structure.txt
 firestore.js
 firestore.indexes.json
 .eslintrc.js
+.eslintrc
 .firebaserc
-tsconfig.json
+.prettierrc
+README.md
 tsconfig.tsbuildinfo
+docker-compose.yaml
 
 # Node.js dependencies:
 node_modules/
