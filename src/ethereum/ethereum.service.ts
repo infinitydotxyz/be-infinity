@@ -68,7 +68,7 @@ export class EthereumService {
 
     return {
       baseFee: gasPrice.toString(),
-      baseFeeGwei: ethers.utils.formatUnits(gasPrice, 'gwei'),
+      baseFeeGwei: formatUnits(gasPrice, 'gwei'),
       maxBaseFeeWei: result.maxBaseFeeWei,
       minBaseFeeWei: result.minBaseFeeWei,
       maxBaseFeeGwei: result.maxBaseFeeGwei,
