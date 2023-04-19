@@ -16,6 +16,7 @@ import { BaseOrdersService } from './base-orders.service';
 import { OrderBy, OrderQueries, Side } from '@infinityxyz/lib/types/dto';
 import { MatchingEngineService } from 'v2/matching-engine/matching-engine.service';
 import { BigNumber } from 'ethers';
+import { formatUnits } from 'ethers/lib/utils';
 
 @Injectable()
 export class OrdersService extends BaseOrdersService {
@@ -47,8 +48,8 @@ export class OrdersService extends BaseOrdersService {
     const gasToFulfillOnExternal = gasUsage ?? '300000';
     const buffer = 100_000;
     const totalGas = BigNumber.from(gasToFulfillOnExternal).add(buffer);
-
-    const gasFeesWei = bn(gasPrice.maxBaseFeeWei).mul(totalGas);
+    const priorityFee = formatUnits(3, 'gwei');
+    const gasFeesWei = bn(gasPrice.maxBaseFeeWei).add(priorityFee).mul(totalGas);
     return gasFeesWei;
   }
 

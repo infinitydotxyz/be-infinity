@@ -11,6 +11,7 @@ import { Token } from '@uniswap/sdk-core';
 import { USDC_MAINNET, WETH_MAINNET } from './token-price/constants';
 import { FirebaseService } from 'firebase/firebase.service';
 import { getFeesAtTarget } from './utils';
+import { formatUnits } from 'ethers/lib/utils';
 
 @Injectable()
 export class EthereumService {
