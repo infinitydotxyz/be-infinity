@@ -26,7 +26,7 @@
     "deploy:prod": "npm run build && gcloud app deploy -q --appyaml=./app.prod.yaml --project=nftc-infinity"
   },
   "dependencies": {
-    "@infinityxyz/lib": "^1.340.1",
+    "@infinityxyz/lib": "^1.341.0",
     "@nestjs/common": "^9.1.2",
     "@nestjs/config": "^2.2.0",
     "@nestjs/core": "^9.1.2",
@@ -49,7 +49,6 @@
     "got": "^11.8.3",
     "graphql-request": "^4.3.0",
     "helmet": "^5.0.2",
-    "ioredis": "^5.2.1",
     "jsbi": "^3.1.4",
     "lodash": "^4.17.21",
     "nanoid": "^3.3.4",
@@ -59,7 +58,8 @@
     "pg-promise": "^11.2.0",
     "pg-query-stream": "^4.3.0",
     "qs": "^6.10.3",
-    "rxjs": "^7.5.5"
+    "rxjs": "^7.5.5",
+    "twitter-api-v2": "^1.14.2"
   },
   "devDependencies": {
     "@nestjs/cli": "^9.1.3",

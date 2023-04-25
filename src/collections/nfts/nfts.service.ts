@@ -19,7 +19,6 @@ import {
 import { Injectable } from '@nestjs/common';
 import { BackfillService } from 'backfill/backfill.service';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
-import { SupportedCollectionsProvider } from 'common/providers/supported-collections-provider';
 import { EthereumService } from 'ethereum/ethereum.service';
 import { formatEther, parseEther } from 'ethers/lib/utils';
 import { firestore } from 'firebase-admin';
@@ -31,7 +30,6 @@ import { OrdersService } from 'v2/orders/orders.service';
 
 @Injectable()
 export class NftsService {
-  private _supportedCollections: SupportedCollectionsProvider;
   constructor(
     private firebaseService: FirebaseService,
     private paginationService: CursorService,
@@ -40,10 +38,6 @@ export class NftsService {
     private postgresService: PostgresService,
     protected ordersService: OrdersService
   ) {}
-
-  setSupportedCollections(supportedCollections: SupportedCollectionsProvider): void {
-    this._supportedCollections = supportedCollections;
-  }
 
   async getNft(nftQuery: NftQueryDto): Promise<NftDto | undefined> {
     const [nft] = await this.getNfts([

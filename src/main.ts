@@ -11,7 +11,6 @@ import { HttpExceptionFilter } from './http-exception.filter';
 import { API_KEY_HEADER, API_SECRET_HEADER } from 'auth/auth.constants';
 import { SupportedCollectionsProvider } from 'common/providers/supported-collections-provider';
 import { FirebaseService } from 'firebase/firebase.service';
-import { NftsService } from 'collections/nfts/nfts.service';
 import SetsService from 'sets/sets.service';
 
 async function setup(app: INestApplication) {
@@ -33,9 +32,6 @@ async function setup(app: INestApplication) {
   const supportedCollections = new SupportedCollectionsProvider(firebaseService.firestore);
   await supportedCollections.init();
 
-  const nftService = app.get(NftsService);
-  nftService.setSupportedCollections(supportedCollections);
-
   const setsService = app.get(SetsService);
   setsService.setSupportedCollections(supportedCollections);
 
@@ -46,7 +42,7 @@ async function setup(app: INestApplication) {
 
 function setupSwagger(app: INestApplication, path: string) {
   const config = new DocumentBuilder()
-    .setTitle('Infinity API')
+    .setTitle('Flow API')
     .setDescription('Developer API')
     .setContact('infinity', INFINITY_URL, INFINITY_EMAIL)
     .setVersion('1.0.0')
@@ -56,13 +52,6 @@ function setupSwagger(app: INestApplication, path: string) {
       name: auth.signature,
       in: 'header',
       description: `Pass the user signed messaged in the ${auth.signature} header`
-    })
-    .addSecurity(auth.message, {
-      type: 'apiKey',
-      scheme: `${auth.message}: <original message>`,
-      name: auth.message,
-      in: 'header',
-      description: `Pass the message that was signed in the ${auth.message} header`
     })
     .addSecurity(auth.nonce, {
       type: 'apiKey',

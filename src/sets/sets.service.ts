@@ -1,9 +1,9 @@
 import { ChainId, Erc721Token, SetsDataItem, SetsResponse } from '@infinityxyz/lib/types/core';
 import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
-import { SupportedCollectionsProvider } from 'common/providers/supported-collections-provider';
 import { PostgresService } from 'postgres/postgres.service';
 import { FirebaseService } from '../firebase/firebase.service';
+import { SupportedCollectionsProvider } from 'common/providers/supported-collections-provider';
 
 @Injectable()
 export default class SetsService {

@@ -11,6 +11,7 @@ import { Token } from '@uniswap/sdk-core';
 import { USDC_MAINNET, WETH_MAINNET } from './token-price/constants';
 import { FirebaseService } from 'firebase/firebase.service';
 import { getFeesAtTarget } from './utils';
+import { formatUnits } from 'ethers/lib/utils';
 
 @Injectable()
 export class EthereumService {
@@ -63,11 +64,11 @@ export class EthereumService {
   async getGasPrice(chainId: ChainId) {
     const provider = this.getProvider(chainId);
     const gasPrice = await provider.getGasPrice();
-    const result = getFeesAtTarget(gasPrice, 2);
+    const result = getFeesAtTarget(gasPrice, 3);
 
     return {
       baseFee: gasPrice.toString(),
-      baseFeeGwei: ethers.utils.formatUnits(gasPrice, 'gwei'),
+      baseFeeGwei: formatUnits(gasPrice, 'gwei'),
       maxBaseFeeWei: result.maxBaseFeeWei,
       minBaseFeeWei: result.minBaseFeeWei,
       maxBaseFeeGwei: result.maxBaseFeeGwei,

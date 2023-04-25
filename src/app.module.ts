@@ -16,7 +16,7 @@ import { ZoraModule } from 'zora/zora.module';
 import { AlchemyModule } from './alchemy/alchemy.module';
 import { ApiUserModule } from './api-user/api-user.module';
 import { AppController } from './app.controller';
-import { FB_STORAGE_BUCKET, secondaryEnvFileName, validateAndTransformEnvVariables } from './constants';
+import { secondaryEnvFileName, validateAndTransformEnvVariables } from './constants';
 import { DiscordModule } from './discord/discord.module';
 import { EthereumModule } from './ethereum/ethereum.module';
 import { FirebaseModule } from './firebase/firebase.module';
@@ -26,7 +26,6 @@ import { TwitterModule } from './twitter/twitter.module';
 import { UserModule } from './user/user.module';
 import { envFileName } from './constants';
 import { SalesModule } from 'sales/sales.module';
-import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
 import { RewardsModule } from './rewards/rewards.module';
 import { RafflesModule } from './raffles/raffles.module';
 import { FavoritesModule } from 'favorites/favorites.module';
@@ -42,6 +41,10 @@ import { SetsModule } from 'sets/sets.module';
 import { MatchingEngineService } from './v2/matching-engine/matching-engine.service';
 import { MatchingEngineModule } from './v2/matching-engine/matching-engine.module';
 
+import { BetaModule } from './v2/beta/beta.module';
+import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
+import { EnvironmentVariables } from 'types/environment-variables.interface';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -49,8 +52,15 @@ import { MatchingEngineModule } from './v2/matching-engine/matching-engine.modul
       isGlobal: true,
       validate: validateAndTransformEnvVariables
     }),
-    FirebaseModule.forRoot({
-      storageBucket: FB_STORAGE_BUCKET
+    FirebaseModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService<EnvironmentVariables>) => {
+        const storageBucket = config.get<string>('FB_STORAGE_BUCKET');
+        return {
+          storageBucket
+        };
+      }
     }),
     PostgresModule.forRoot(),
     CollectionsModule,
@@ -79,7 +89,7 @@ import { MatchingEngineModule } from './v2/matching-engine/matching-engine.modul
         }
         return {
           ttl: 60,
-          limit: 60,
+          limit: 10,
           storage
         };
       }
@@ -97,6 +107,7 @@ import { MatchingEngineModule } from './v2/matching-engine/matching-engine.modul
     V2CollectionsModule,
     GenerateModule,
     BulkModule,
+    BetaModule,
     MatchingEngineModule
   ],
   providers: [

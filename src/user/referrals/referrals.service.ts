@@ -10,12 +10,17 @@ export class ReferralsService {
   constructor(protected firebaseService: FirebaseService) {}
 
   async getReferralRewards(referrer: ParsedUserId, chainId: ChainId): Promise<ReferralTotals> {
-    const totalsRef = referrer.ref
-      .collection(firestoreConstants.REFERRALS_COLL)
-      .doc(chainId) as FirebaseFirestore.DocumentReference<ReferralTotals>;
+    const userAddress = referrer.userAddress;
+    const ref = this.firebaseService.firestore.collection('flowBetaReferralRewards').doc(userAddress);
+    const doc = await ref.get();
+    const numReferrals = doc.data()?.numberOfReferrals ?? 0;
 
-    const totalsSnap = await totalsRef.get();
-    const totals = totalsSnap.data() ?? {
+    const referralCodeRef = this.firebaseService.firestore.collection('flowBetaReferralCodes').where('owner.address', '==', userAddress);
+    const snap = await referralCodeRef.get();
+    const referralCode = snap.docs[0]?.data()?.referralCode ?? '';
+
+    const totals = {
+      referralLink: `https://flow.so/?ref=${referralCode}`,
       referrer: {
         address: referrer.userAddress,
         displayName: '',
@@ -28,6 +33,7 @@ export class ReferralsService {
         updatedAt: 0
       },
       stats: {
+        numReferrals,
         numReferralSales: 0,
         totalFeesGenerated: {
           feesGeneratedWei: '0',
@@ -39,6 +45,37 @@ export class ReferralsService {
 
     return totals;
   }
+
+  // async getReferralRewards(referrer: ParsedUserId, chainId: ChainId): Promise<ReferralTotals> {
+  //   const totalsRef = referrer.ref
+  //     .collection(firestoreConstants.REFERRALS_COLL)
+  //     .doc(chainId) as FirebaseFirestore.DocumentReference<ReferralTotals>;
+
+  //   const totalsSnap = await totalsRef.get();
+  //   const totals = totalsSnap.data() ?? {
+  //     referrer: {
+  //       address: referrer.userAddress,
+  //       displayName: '',
+  //       username: '',
+  //       profileImage: '',
+  //       bannerImage: ''
+  //     },
+  //     metadata: {
+  //       chainId,
+  //       updatedAt: 0
+  //     },
+  //     stats: {
+  //       numReferralSales: 0,
+  //       totalFeesGenerated: {
+  //         feesGeneratedWei: '0',
+  //         feesGeneratedEth: 0,
+  //         feesGeneratedUSDC: 0
+  //       }
+  //     }
+  //   };
+
+  //   return totals;
+  // }
 
   async saveReferral(user: ParsedUserId, referral: AssetReferralDto): Promise<void> {
     const collectionDocId = `${referral.assetChainId}:${referral.assetAddress}`;

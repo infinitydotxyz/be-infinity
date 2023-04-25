@@ -5,7 +5,6 @@ import { ResponseDescription } from 'common/response-description';
 import {
   API_KEY_HEADER,
   API_SECRET_HEADER,
-  AUTH_MESSAGE_HEADER,
   AUTH_NONCE_HEADER,
   AUTH_SIGNATURE_HEADER,
   SiteRole
@@ -15,11 +14,7 @@ import { AuthGuard } from './auth.guard';
 import { MatchSigner } from './match-signer.decorator';
 
 export function ApiSignatureAuth() {
-  return applyDecorators(
-    ApiSecurity(AUTH_SIGNATURE_HEADER),
-    ApiSecurity(AUTH_MESSAGE_HEADER),
-    ApiSecurity(AUTH_NONCE_HEADER)
-  );
+  return applyDecorators(ApiSecurity(AUTH_SIGNATURE_HEADER), ApiSecurity(AUTH_NONCE_HEADER));
 }
 
 export function ApiKeyAuth() {
