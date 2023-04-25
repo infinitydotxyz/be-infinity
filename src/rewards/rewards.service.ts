@@ -17,6 +17,8 @@ export class RewardsService {
     protected referralsService: ReferralsService
   ) {}
 
+  public NUM_TOKENS_PER_REFERRAL = 2000;
+
   async getConfig(chainId: ChainId): Promise<TokenomicsConfigDto | null> {
     const rewardsProgramRef = this.firebaseService.firestore
       .collection(firestoreConstants.REWARDS_COLL)
@@ -71,6 +73,10 @@ export class RewardsService {
 
     const v1Airdrop = userTotalRewards?.v1Airdrop ?? 0;
     const totalUserReward = (userTotalRewards?.rewards ?? 0) + v1Airdrop;
+
+    const numReferrals = referralTotals.stats.numReferrals;
+    const referralRewardBoost = numReferrals < 10 ? 0.1 : numReferrals < 50 ? 0.5 : numReferrals < 100 ? 1 : 3;
+    const referralRewardTokens = numReferrals * this.NUM_TOKENS_PER_REFERRAL;
 
     const rewards: UserRewardsDto = {
       chainId,
@@ -136,13 +142,118 @@ export class RewardsService {
         referrals: {
           totalRewardsWei: referralTotals.stats.totalFeesGenerated.feesGeneratedWei,
           totalRewardsEth: referralTotals.stats.totalFeesGenerated.feesGeneratedEth,
-          numReferrals: referralTotals.stats.numReferralSales
+          numReferrals,
+          referralLink: referralTotals.referralLink,
+          referralRewardBoost,
+          referralRewardTokens
         }
       }
     } as any;
 
     return rewards;
   }
+
+  // async getUserRewards(chainId: ChainId, parsedUser: ParsedUserId): Promise<UserRewardsDto> {
+  //   const userRewardRef = parsedUser.ref.collection(firestoreConstants.USER_REWARDS_COLL).doc(chainId);
+  //   const userAllTimeRewards = userRewardRef
+  //     .collection(firestoreConstants.USER_ALL_TIME_REWARDS_COLL)
+  //     .doc(
+  //       firestoreConstants.USER_ALL_TIME_TXN_FEE_REWARDS_DOC
+  //     ) as FirebaseFirestore.DocumentReference<AllTimeTransactionFeeRewardsDoc>;
+
+  //   const [INFTConfig, FLURConfig, FLOWConfig, ethConfig, userTotalSnap, userCurationTotals, referralTotals] =
+  //     await Promise.all([
+  //       this.merkleTreeService.getMerkleRootConfig(chainId, DistributionType.INFT),
+  //       this.merkleTreeService.getMerkleRootConfig(chainId, DistributionType.FLUR),
+  //       this.merkleTreeService.getMerkleRootConfig(chainId, DistributionType.FLOW),
+  //       this.merkleTreeService.getMerkleRootConfig(chainId, DistributionType.ETH),
+  //       userAllTimeRewards.get(),
+  //       this.curationService.getUserRewards(parsedUser),
+  //       this.referralsService.getReferralRewards(parsedUser, chainId)
+  //     ]);
+  //   const [inftLeaf, flurLeaf, flowLeaf, ethLeaf] = await Promise.all([
+  //     this.merkleTreeService.getLeaf(INFTConfig, parsedUser.userAddress),
+  //     this.merkleTreeService.getLeaf(FLURConfig, parsedUser.userAddress),
+  //     this.merkleTreeService.getLeaf(FLOWConfig, parsedUser.userAddress),
+  //     this.merkleTreeService.getLeaf(ethConfig, parsedUser.userAddress)
+  //   ]);
+
+  //   const userTotalRewards = userTotalSnap.data() ?? null;
+
+  //   const v1Airdrop = userTotalRewards?.v1Airdrop ?? 0;
+  //   const totalUserReward = (userTotalRewards?.rewards ?? 0) + v1Airdrop;
+
+  //   const rewards: UserRewardsDto = {
+  //     chainId,
+  //     totals: {
+  //       flurAirdrop: {
+  //         claim: {
+  //           contractAddress: FLURConfig.config.airdropContractAddress,
+  //           claimedWei: flurLeaf.cumulativeClaimed,
+  //           claimedEth: formatEth(flurLeaf.cumulativeClaimed),
+  //           claimableWei: flurLeaf.claimable,
+  //           claimableEth: formatEth(flurLeaf.claimable),
+  //           account: parsedUser.userAddress,
+  //           cumulativeAmount: flurLeaf.cumulativeAmount,
+  //           merkleRoot: flurLeaf.expectedMerkleRoot,
+  //           merkleProof: flurLeaf.proof
+  //         }
+  //       },
+  //       flowRewards: {
+  //         claim: {
+  //           contractAddress: FLOWConfig.config.airdropContractAddress,
+  //           claimedWei: flowLeaf.cumulativeClaimed,
+  //           claimedEth: formatEth(flowLeaf.cumulativeClaimed),
+  //           claimableWei: flowLeaf.claimable,
+  //           claimableEth: formatEth(flowLeaf.claimable),
+  //           account: parsedUser.userAddress,
+  //           cumulativeAmount: flowLeaf.cumulativeAmount,
+  //           merkleRoot: flowLeaf.expectedMerkleRoot,
+  //           merkleProof: flowLeaf.proof
+  //         }
+  //       },
+  //       tradingRefund: {
+  //         volume: userTotalRewards?.volumeEth ?? 0,
+  //         rewards: totalUserReward,
+  //         sells: userTotalRewards?.userSells ?? 0,
+  //         buys: userTotalRewards?.userBuys ?? 0,
+  //         claim: {
+  //           contractAddress: INFTConfig.config.airdropContractAddress,
+  //           claimedWei: inftLeaf.cumulativeClaimed,
+  //           claimedEth: formatEth(inftLeaf.cumulativeClaimed),
+  //           claimableWei: inftLeaf.claimable,
+  //           claimableEth: formatEth(inftLeaf.claimable),
+  //           account: parsedUser.userAddress,
+  //           cumulativeAmount: inftLeaf.cumulativeAmount,
+  //           merkleRoot: inftLeaf.expectedMerkleRoot,
+  //           merkleProof: inftLeaf.proof
+  //         }
+  //       },
+  //       curation: {
+  //         totalRewardsWei: userCurationTotals.totalProtocolFeesAccruedWei,
+  //         totalRewardsEth: userCurationTotals.totalProtocolFeesAccruedEth,
+  //         claim: {
+  //           contractAddress: ethConfig.config.airdropContractAddress,
+  //           claimedWei: ethLeaf.cumulativeClaimed,
+  //           claimedEth: formatEth(ethLeaf.cumulativeClaimed),
+  //           claimableWei: ethLeaf.claimable,
+  //           claimableEth: formatEth(ethLeaf.claimable),
+  //           account: parsedUser.userAddress,
+  //           cumulativeAmount: ethLeaf.cumulativeAmount,
+  //           merkleRoot: ethLeaf.expectedMerkleRoot,
+  //           merkleProof: ethLeaf.proof
+  //         }
+  //       },
+  //       referrals: {
+  //         totalRewardsWei: referralTotals.stats.totalFeesGenerated.feesGeneratedWei,
+  //         totalRewardsEth: referralTotals.stats.totalFeesGenerated.feesGeneratedEth,
+  //         numReferrals: referralTotals.stats.numReferralSales
+  //       }
+  //     }
+  //   } as any;
+
+  //   return rewards;
+  // }
 
   async getActivePhase(chainId: ChainId): Promise<TokenomicsPhaseDto> {
     const tokenomicsConfig = await this.getConfig(chainId);
