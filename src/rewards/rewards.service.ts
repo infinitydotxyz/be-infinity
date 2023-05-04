@@ -54,7 +54,7 @@ export class RewardsService {
     const referralRewardBoost = numReferrals < 10 ? 0 : numReferrals > 200 ? 2 : Math.floor(numReferrals / 10) * 0.1;
     const numReferralTokens = numReferrals * this.NUM_TOKENS_PER_REFERRAL;
 
-    const xflAmountWei = airdropData.get('xflAirdrop') as string;
+    const xflAmountWei = airdropData.get('xflAirdrop') ?? '0' as string;
     const xflAmountEth = parseFloat(ethers.utils.formatEther(xflAmountWei));
     const isINFT = airdropData.get('inftBalance') as string === '0' ? false : true;
 

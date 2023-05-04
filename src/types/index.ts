@@ -1,4 +1,4 @@
-export interface UserDailyBuyReward {
+export interface UserBuyReward {
   address: string;
   baseReward: number;
   finalReward: number;
@@ -19,10 +19,14 @@ export interface OverallBuyTotals {
 }
 
 export interface SaleData {
+  uniqueIdHash: string;
   txHash: string;
   buyer: string;
   seller: string;
   price: number;
   timestamp: number;
   quantity: number;
+  chainId: string;
+  collectionAddress: string;
+  tokenId: string;
 }
