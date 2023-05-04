@@ -1,8 +1,9 @@
-import { DistributionType, AllTimeTransactionFeeRewardsDoc, ChainId } from '@infinityxyz/lib/types/core';
+import { ChainId } from '@infinityxyz/lib/types/core';
 import { TokenomicsConfigDto, TokenomicsPhaseDto, UserRewardsDto } from '@infinityxyz/lib/types/dto/rewards';
-import { firestoreConstants, formatEth } from '@infinityxyz/lib/utils';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { CurationService } from 'collections/curation/curation.service';
+import { ethers } from 'ethers';
 import { FirebaseService } from 'firebase/firebase.service';
 import { MerkleTreeService } from 'merkle-tree/merkle-tree.service';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
@@ -45,107 +46,51 @@ export class RewardsService {
   }
 
   async getUserRewards(chainId: ChainId, parsedUser: ParsedUserId): Promise<UserRewardsDto> {
-    const userRewardRef = parsedUser.ref.collection(firestoreConstants.USER_REWARDS_COLL).doc(chainId);
-    const userAllTimeRewards = userRewardRef
-      .collection(firestoreConstants.USER_ALL_TIME_REWARDS_COLL)
-      .doc(
-        firestoreConstants.USER_ALL_TIME_TXN_FEE_REWARDS_DOC
-      ) as FirebaseFirestore.DocumentReference<AllTimeTransactionFeeRewardsDoc>;
+    const userAddress = parsedUser.userAddress;
+    const airdropRef = this.firebaseService.firestore.collection('xflAirdrop').doc(userAddress);
 
-    const [INFTConfig, FLURConfig, FLOWConfig, ethConfig, userTotalSnap, userCurationTotals, referralTotals] =
-      await Promise.all([
-        this.merkleTreeService.getMerkleRootConfig(chainId, DistributionType.INFT),
-        this.merkleTreeService.getMerkleRootConfig(chainId, DistributionType.FLUR),
-        this.merkleTreeService.getMerkleRootConfig(chainId, DistributionType.FLOW),
-        this.merkleTreeService.getMerkleRootConfig(chainId, DistributionType.ETH),
-        userAllTimeRewards.get(),
-        this.curationService.getUserRewards(parsedUser),
-        this.referralsService.getReferralRewards(parsedUser, chainId)
-      ]);
-    const [inftLeaf, flurLeaf, flowLeaf, ethLeaf] = await Promise.all([
-      this.merkleTreeService.getLeaf(INFTConfig, parsedUser.userAddress),
-      this.merkleTreeService.getLeaf(FLURConfig, parsedUser.userAddress),
-      this.merkleTreeService.getLeaf(FLOWConfig, parsedUser.userAddress),
-      this.merkleTreeService.getLeaf(ethConfig, parsedUser.userAddress)
-    ]);
-
-    const userTotalRewards = userTotalSnap.data() ?? null;
-
-    const v1Airdrop = userTotalRewards?.v1Airdrop ?? 0;
-    const totalUserReward = (userTotalRewards?.rewards ?? 0) + v1Airdrop;
-
+    const [airdropData, referralTotals] = await Promise.all([airdropRef.get(), this.referralsService.getReferralRewards(parsedUser, chainId)]);
     const numReferrals = referralTotals.stats.numReferrals;
     const referralRewardBoost = numReferrals < 10 ? 0.1 : numReferrals < 50 ? 0.5 : numReferrals < 100 ? 1 : 3;
-    const referralRewardTokens = numReferrals * this.NUM_TOKENS_PER_REFERRAL;
+    const numReferralTokens = numReferrals * this.NUM_TOKENS_PER_REFERRAL;
+
+    const xflAmountWei = airdropData.get('xflAirdrop') as string;
+    const xflAmountEth = parseFloat(ethers.utils.formatEther(xflAmountWei));
+    const isINFT = airdropData.get('inftBalance') as string === '0' ? false : true;
 
     const rewards: UserRewardsDto = {
       chainId,
       totals: {
-        flurAirdrop: {
+        totalRewards: {
           claim: {
-            contractAddress: FLURConfig.config.airdropContractAddress,
-            claimedWei: flurLeaf.cumulativeClaimed,
-            claimedEth: formatEth(flurLeaf.cumulativeClaimed),
-            claimableWei: flurLeaf.claimable,
-            claimableEth: formatEth(flurLeaf.claimable),
+            contractAddress: '',
+            claimedWei: '',
+            claimedEth: 0,
+            claimableWei: '',
+            claimableEth: 0,
             account: parsedUser.userAddress,
-            cumulativeAmount: flurLeaf.cumulativeAmount,
-            merkleRoot: flurLeaf.expectedMerkleRoot,
-            merkleProof: flurLeaf.proof
+            cumulativeAmount: '',
+            merkleRoot: '',
+            merkleProof: []
           }
         },
-        flowRewards: {
-          claim: {
-            contractAddress: FLOWConfig.config.airdropContractAddress,
-            claimedWei: flowLeaf.cumulativeClaimed,
-            claimedEth: formatEth(flowLeaf.cumulativeClaimed),
-            claimableWei: flowLeaf.claimable,
-            claimableEth: formatEth(flowLeaf.claimable),
-            account: parsedUser.userAddress,
-            cumulativeAmount: flowLeaf.cumulativeAmount,
-            merkleRoot: flowLeaf.expectedMerkleRoot,
-            merkleProof: flowLeaf.proof
-          }
+        airdrop: {
+          isINFT,
+          cumulative: xflAmountEth
         },
-        tradingRefund: {
-          volume: userTotalRewards?.volumeEth ?? 0,
-          rewards: totalUserReward,
-          sells: userTotalRewards?.userSells ?? 0,
-          buys: userTotalRewards?.userBuys ?? 0,
-          claim: {
-            contractAddress: INFTConfig.config.airdropContractAddress,
-            claimedWei: inftLeaf.cumulativeClaimed,
-            claimedEth: formatEth(inftLeaf.cumulativeClaimed),
-            claimableWei: inftLeaf.claimable,
-            claimableEth: formatEth(inftLeaf.claimable),
-            account: parsedUser.userAddress,
-            cumulativeAmount: inftLeaf.cumulativeAmount,
-            merkleRoot: inftLeaf.expectedMerkleRoot,
-            merkleProof: inftLeaf.proof
-          }
+        buyRewards: {
+          last24Hrs: 0,
+          cumulative: 0
         },
-        curation: {
-          totalRewardsWei: userCurationTotals.totalProtocolFeesAccruedWei,
-          totalRewardsEth: userCurationTotals.totalProtocolFeesAccruedEth,
-          claim: {
-            contractAddress: ethConfig.config.airdropContractAddress,
-            claimedWei: ethLeaf.cumulativeClaimed,
-            claimedEth: formatEth(ethLeaf.cumulativeClaimed),
-            claimableWei: ethLeaf.claimable,
-            claimableEth: formatEth(ethLeaf.claimable),
-            account: parsedUser.userAddress,
-            cumulativeAmount: ethLeaf.cumulativeAmount,
-            merkleRoot: ethLeaf.expectedMerkleRoot,
-            merkleProof: ethLeaf.proof
-          }
+        listingRewards: {
+          last24Hrs: 0,
+          cumulative: 0
         },
         referrals: {
-          totalRewardsWei: referralTotals.stats.totalFeesGenerated.feesGeneratedWei,
-          totalRewardsEth: referralTotals.stats.totalFeesGenerated.feesGeneratedEth,
           numReferrals,
           referralLink: referralTotals.referralLink,
           referralRewardBoost,
-          referralRewardTokens
+          numTokens: numReferralTokens
         }
       }
     } as any;
