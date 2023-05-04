@@ -115,6 +115,7 @@ export class RewardsService {
 
     const totalUserBuyRewards = totalUserBuyRewardsData.data() as UserBuyReward;
     const totalUserVolume = totalUserBuyRewards?.volumeETH ?? 0;
+    const totalBuyRewardEarned = totalUserBuyRewards?.finalReward ?? 0;
 
     const rewards: UserRewardsDto = {
       chainId,
@@ -137,12 +138,14 @@ export class RewardsService {
           cumulative: xflAmountEth
         },
         buyRewards: {
-          last24Hrs: dailyUserVolume,
-          cumulative: totalUserVolume
+          volLast24Hrs: dailyUserVolume,
+          volTotal: totalUserVolume,
+          earnedRewardsTotal: totalBuyRewardEarned
         },
         listingRewards: {
-          last24Hrs: 0,
-          cumulative: 0
+          numListings24Hrs: 0,
+          numListingsTotal: 0,
+          earnedRewardsTotal: 0
         },
         referrals: {
           numReferrals,
