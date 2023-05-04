@@ -42,7 +42,8 @@ export const calcDailyBuyRewards = async (timestamp: number) => {
     const numReferrals =
       (await firebaseService.firestore.collection('flowBetaReferralRewards').doc(buyer).get()).data()
         ?.numberOfReferrals ?? 0;
-    const referralBoost = numReferrals < 10 ? 0 : numReferrals > 200 ? 2 : Math.floor(numReferrals / 10) * 0.1;
+    const referralBoost =
+      numReferrals < 10 ? 0 : numReferrals > 200 ? 2 : Number((Math.floor(numReferrals / 10) * 0.1).toFixed(1));
 
     const stakeLevel = await stakerContract.getUserStakeLevel(buyer);
     const stakeBoost =
