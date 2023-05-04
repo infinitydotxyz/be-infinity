@@ -6,8 +6,11 @@ import { CurationService } from 'collections/curation/curation.service';
 import { ethers } from 'ethers';
 import { FirebaseService } from 'firebase/firebase.service';
 import { MerkleTreeService } from 'merkle-tree/merkle-tree.service';
+import { DailyBuyTotals, GlobalRewards, OverallBuyTotals } from 'types';
+import { UserBuyReward } from 'types';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 import { ReferralsService } from 'user/referrals/referrals.service';
+import { getZeroHourTimestamp } from 'utils';
 
 @Injectable()
 export class RewardsService {
@@ -45,23 +48,74 @@ export class RewardsService {
     return program;
   }
 
+  async getGlobalRewards(): Promise<GlobalRewards> {
+    const zeroHourTimestampOfTheDay = getZeroHourTimestamp(Date.now());
+
+    const dailyTotalBuyRewardsRef = this.firebaseService.firestore
+      .collection('xflBuyRewards')
+      .doc(zeroHourTimestampOfTheDay.toString());
+    const overallTotalBuyRewardsRef = this.firebaseService.firestore
+      .collection('xflBuyRewards')
+      .doc('totals');
+
+    const [dailyTotalBuyRewardsData, overallTotalBuyRewardsData] = await Promise.all([dailyTotalBuyRewardsRef.get(), overallTotalBuyRewardsRef.get()]);
+
+    const dailyTotalBuyRewards = dailyTotalBuyRewardsData.data() as DailyBuyTotals;
+    const dailyTotalVolume = dailyTotalBuyRewards?.dailyTotalVolumeETH ?? 0;
+    const dailyTotalNumBuys = dailyTotalBuyRewards?.dailyTotalNumBuys ?? 0;
+
+    const overallTotalBuyRewards = overallTotalBuyRewardsData.data() as OverallBuyTotals;
+    const overallTotalVolume = overallTotalBuyRewards?.totalVolumeETH ?? 0;
+    const overallTotalNumBuys = overallTotalBuyRewards?.totalNumBuys ?? 0;
+
+    const rewards: GlobalRewards = {
+      totalVolumeETH: overallTotalVolume,
+      totalNumBuys: overallTotalNumBuys,
+      last24HrsVolumeETH: dailyTotalVolume,
+      last24HrsNumBuys: dailyTotalNumBuys
+    };
+
+    return rewards;
+  }
+
   async getUserRewards(chainId: ChainId, parsedUser: ParsedUserId): Promise<UserRewardsDto> {
     const userAddress = parsedUser.userAddress;
     const airdropRef = this.firebaseService.firestore.collection('xflAirdrop').doc(userAddress);
 
-    const [airdropData, referralTotals] = await Promise.all([
-      airdropRef.get(),
-      this.referralsService.getReferralRewards(parsedUser, chainId)
-    ]);
-    const numReferrals = referralTotals.stats.numReferrals;
-    const referralRewardBoost =
-      numReferrals < 10 ? 0 : numReferrals > 200 ? 2 : Number((Math.floor(numReferrals / 10) * 0.1).toFixed(1));
-    console.log(referralRewardBoost);
-    const numReferralTokens = numReferrals * this.NUM_TOKENS_PER_REFERRAL;
+    const zeroHourTimestampOfTheDay = getZeroHourTimestamp(Date.now());
+    const dailyUserBuyRewardsRef = this.firebaseService.firestore
+      .collection('xflBuyRewards')
+      .doc(zeroHourTimestampOfTheDay.toString())
+      .collection('buyers')
+      .doc(userAddress);
+    const totalUserBuyRewardsRef = this.firebaseService.firestore
+      .collection('xflBuyRewards')
+      .doc('totals')
+      .collection('buyers')
+      .doc(userAddress);
+
+    const [airdropData, referralTotals, dailyUserBuyRewardsData, totalUserBuyRewardsData] =
+      await Promise.all([
+        airdropRef.get(),
+        this.referralsService.getReferralRewards(parsedUser, chainId),
+        dailyUserBuyRewardsRef.get(),
+        totalUserBuyRewardsRef.get()
+      ]);
 
     const xflAmountWei = airdropData.get('xflAirdrop') ?? ('0' as string);
     const xflAmountEth = parseFloat(ethers.utils.formatEther(xflAmountWei));
     const isINFT = (airdropData.get('inftBalance') as string) === '0' ? false : true;
+
+    const numReferrals = referralTotals.stats.numReferrals;
+    const referralRewardBoost = numReferrals < 10 ? 0 : numReferrals > 200 ? 2 : Math.floor(numReferrals / 10) * 0.1;
+    const numReferralTokens = numReferrals * this.NUM_TOKENS_PER_REFERRAL;
+
+    const dailyUserBuyRewards = dailyUserBuyRewardsData.data() as UserBuyReward;
+    const dailyUserVolume = dailyUserBuyRewards?.volumeETH ?? 0;
+
+    const totalUserBuyRewards = totalUserBuyRewardsData.data() as UserBuyReward;
+    const totalUserVolume = totalUserBuyRewards?.volumeETH ?? 0;
+    const totalBuyRewardEarned = totalUserBuyRewards?.finalReward ?? 0;
 
     const rewards: UserRewardsDto = {
       chainId,
@@ -84,12 +138,14 @@ export class RewardsService {
           cumulative: xflAmountEth
         },
         buyRewards: {
-          last24Hrs: 0,
-          cumulative: 0
+          volLast24Hrs: dailyUserVolume,
+          volTotal: totalUserVolume,
+          earnedRewardsTotal: totalBuyRewardEarned
         },
         listingRewards: {
-          last24Hrs: 0,
-          cumulative: 0
+          numListings24Hrs: 0,
+          numListingsTotal: 0,
+          earnedRewardsTotal: 0
         },
         referrals: {
           numReferrals,

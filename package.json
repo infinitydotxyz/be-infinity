@@ -9,7 +9,8 @@
     "build": "npm run clean && npm run update:lib && nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "node dist/main",
-    "script": "npm run clean && nest build && node dist/script",
+    "script:dev": "nest build && INFINITY_NODE_ENV=dev node dist/script",
+    "script:prod": "nest build && node dist/script",
     "start:dev": "npm run clean && cross-env INFINITY_NODE_ENV=dev nest start --watch",
     "dev": "npm run start:dev",
     "start:debug": "npm run clean && cross-env INFINITY_NODE_ENV=dev nest start --debug --watch",
@@ -26,7 +27,7 @@
     "deploy:prod": "npm run build && gcloud app deploy -q --appyaml=./app.prod.yaml --project=nftc-infinity"
   },
   "dependencies": {
-    "@infinityxyz/lib": "^1.344.0",
+    "@infinityxyz/lib": "^1.344.1",
     "@nestjs/common": "^9.1.2",
     "@nestjs/config": "^2.2.0",
     "@nestjs/core": "^9.1.2",
