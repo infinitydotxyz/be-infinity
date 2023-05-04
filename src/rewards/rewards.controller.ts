@@ -19,4 +19,16 @@ export class RewardsController {
     }
     return rewards;
   }
+
+  @Get('/global')
+  @ApiOperation({ summary: 'Get global rewards' })
+  @ApiOkResponse({ description: ResponseDescription.Success })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  async getRewards() {
+    const rewards = await this.rewardsService.getGlobalRewards();
+    if (!rewards) {
+      throw new NotFoundException(`No global rewards found`);
+    }
+    return rewards;
+  }
 }

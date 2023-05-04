@@ -30,3 +30,10 @@ export interface SaleData {
   collectionAddress: string;
   tokenId: string;
 }
+
+export interface GlobalRewards {
+  totalVolumeETH: number;
+  totalNumBuys: number;
+  last24HrsVolumeETH: number;
+  last24HrsNumBuys: number;
+}
