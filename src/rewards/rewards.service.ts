@@ -51,8 +51,7 @@ export class RewardsService {
 
     const [airdropData, referralTotals] = await Promise.all([airdropRef.get(), this.referralsService.getReferralRewards(parsedUser, chainId)]);
     const numReferrals = referralTotals.stats.numReferrals;
-    const referralRewardBoost = numReferrals < 10 ? 0.1 : numReferrals < 50 ? 0.5 : numReferrals < 100 ? 1 : 3;
-    const numReferralTokens = numReferrals * this.NUM_TOKENS_PER_REFERRAL;
+    const referralRewardBoost = numReferrals < 10 ? 0 : numReferrals > 200 ? 2 : Math.floor(numReferrals / 10) * 0.1;    const numReferralTokens = numReferrals * this.NUM_TOKENS_PER_REFERRAL;
 
     const xflAmountWei = airdropData.get('xflAirdrop') as string;
     const xflAmountEth = parseFloat(ethers.utils.formatEther(xflAmountWei));
