@@ -4,6 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from 'app.module';
 import { buildBlurBuyersFromCsv } from 'scripts/blurBuyers';
+import { calcDailyBuyRewards } from 'scripts/calcDailyBuyRewards';
 import {
   pushMetadataToSupportedColls,
   pushSupportedCollFlagToMainColls,
@@ -30,7 +31,8 @@ export const run = async () => {
   // await pushMetadataToSupportedColls();
   // await pushSupportedCollFlagToMainColls();
   // buildBlurBuyersFromCsv();
-  await fetchSupportedColls('1');
+  // await fetchSupportedColls('1');
+  await calcDailyBuyRewards(1683072000000); // this is the timestamp of the day at 00:00:00 UTC for which daily buy rewards are being calculated
 };
 
 void run();
