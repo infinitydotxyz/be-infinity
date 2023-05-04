@@ -46,7 +46,8 @@ export class RewardsService {
   }
 
   async getUserRewards(chainId: ChainId, parsedUser: ParsedUserId): Promise<UserRewardsDto> {
-    const userAddress = parsedUser.userAddress;
+    // const userAddress = parsedUser.userAddress;
+    const userAddress = '0x485cfbddca60e603fd2d63c792c12740d749b39c';
     const airdropRef = this.firebaseService.firestore.collection('xflAirdrop').doc(userAddress);
 
     const [airdropData, referralTotals] = await Promise.all([
@@ -59,7 +60,7 @@ export class RewardsService {
     console.log(referralRewardBoost);
     const numReferralTokens = numReferrals * this.NUM_TOKENS_PER_REFERRAL;
 
-    const xflAmountWei = airdropData.get('xflAirdrop') as string;
+    const xflAmountWei = airdropData.get('xflAirdrop') ?? '0' as string;
     const xflAmountEth = parseFloat(ethers.utils.formatEther(xflAmountWei));
     const isINFT = (airdropData.get('inftBalance') as string) === '0' ? false : true;
 
