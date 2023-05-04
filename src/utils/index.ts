@@ -4,6 +4,17 @@ import { BigNumber, BigNumberish } from 'ethers';
 import { List, uniqBy } from 'lodash';
 import { customAlphabet } from 'nanoid';
 
+export function getZeroHourTimestamp(utcTimestamp: number): number {
+  // Create a Date object from the given UTC timestamp
+  const date = new Date(utcTimestamp);
+
+  // Set the hours, minutes, seconds, and milliseconds to zero
+  date.setUTCHours(0, 0, 0, 0);
+
+  // Return the timestamp of the 0th hour
+  return date.getTime();
+}
+
 export const base64Encode = (data: string) => Buffer.from(data).toString('base64');
 
 export const base64Decode = (data?: string) => Buffer.from(data ?? '', 'base64').toString();

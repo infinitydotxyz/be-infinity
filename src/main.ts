@@ -12,6 +12,9 @@ import { API_KEY_HEADER, API_SECRET_HEADER } from 'auth/auth.constants';
 import { SupportedCollectionsProvider } from 'common/providers/supported-collections-provider';
 import { FirebaseService } from 'firebase/firebase.service';
 import SetsService from 'sets/sets.service';
+import { getZeroHourTimestamp } from 'utils';
+import { trimLowerCase } from '@infinityxyz/lib/utils';
+import { DailyBuyTotals, OverallBuyTotals, SaleData, UserDailyBuyReward } from 'types';
 
 async function setup(app: INestApplication) {
   app.enableCors({
@@ -81,9 +84,102 @@ function setupSwagger(app: INestApplication, path: string) {
   SwaggerModule.setup(path, app, document);
 }
 
+function setupFirestoreQueryListeners(app: INestApplication) {
+  const firestore = app.get(FirebaseService).firestore;
+
+  // setup sales query listener to show realtime trailing 24hr volume to end users
+  const collection = firestore.collection('sales');
+  const zeroHourTimestampOfTheDay = getZeroHourTimestamp(Date.now());
+  const query = collection.where('source', '==', 'flow').where('timestamp', '>=', zeroHourTimestampOfTheDay);
+  const observer = query.onSnapshot(
+    (snap) => {
+      console.log(`Received flow sales 24hr snapshot of size ${snap.size}`);
+      handleFlow24HrSalesSnapshot(firestore, snap);
+    },
+    (err) => {
+      console.log(`Encountered error while listening to flow sales 24hr snapshot: ${err}`);
+    }
+  );
+}
+
+function handleFlow24HrSalesSnapshot(firestore: FirebaseFirestore.Firestore, snap: FirebaseFirestore.QuerySnapshot<FirebaseFirestore.DocumentData>) {
+  snap.docs.forEach((doc) => {
+    const data = doc.data() as SaleData;
+    const buyer = trimLowerCase(data.buyer);
+    const price = data.price;
+    const quantity = data.quantity;
+    const timestamp = data.timestamp;
+    const zeroHourTimestampOfTheDay = getZeroHourTimestamp(timestamp);
+
+    const dailyBuyRewardDocRef = firestore.collection('xflBuyRewards').doc(zeroHourTimestampOfTheDay.toString());
+
+    // record in rewards per day for the buyer
+    const dailyBuyerRewardDocRef = dailyBuyRewardDocRef.collection('buyers').doc(buyer);
+    dailyBuyerRewardDocRef
+      .get()
+      .then((snap) => {
+        const data = snap.data() as UserDailyBuyReward;
+        if (data) {
+          const volumeETH = data.volumeETH + price;
+          const numBuys = data.numBuys + quantity;
+          dailyBuyerRewardDocRef.set({ volumeETH, numBuys }, { merge: true }).catch((err) => {
+            console.log(`Encountered error while updating daily buyer amounts for ${buyer}: ${err}`);
+          });
+        } else {
+          dailyBuyerRewardDocRef.set({ volumeETH: price, numBuys: quantity }, { merge: true }).catch((err) => {
+            console.log(`Encountered error while updating daily buyer amounts for ${buyer}: ${err}`);
+          });
+        }
+      })
+      .catch((err) => {
+        console.log(`Encountered error while updating daily buyer amounts for ${buyer}: ${err}`);
+      });
+
+    // record in rewards per day total
+    dailyBuyRewardDocRef
+      .get()
+      .then((snap) => {
+        const data = snap.data() as DailyBuyTotals;
+        if (data) {
+          const dailyTotalVolumeETH = data.dailyTotalVolumeETH + price;
+          const dailyTotalNumBuys = data.dailyTotalNumBuys + quantity;
+          dailyBuyRewardDocRef.set({ dailyTotalVolumeETH, dailyTotalNumBuys }, { merge: true }).catch((err) => {
+            console.log(`Encountered error while updating daily buy total: ${err}`);
+          });
+        } else {
+          dailyBuyRewardDocRef
+            .set({ dailyTotalVolumeETH: price, dailyTotalNumBuys: quantity }, { merge: true })
+            .catch((err) => {
+              console.log(`Encountered error while updating daily buy total: ${err}`);
+            });
+        }
+      })
+      .catch((err) => {
+        console.log(`Encountered error while updating daily buy total: ${err}`);
+      });
+
+    // record in overall total
+    const overallBuyRewardDocRef = firestore.collection('xflBuyRewards').doc('totals');
+    overallBuyRewardDocRef
+      .get()
+      .then((snap) => {
+        const data = snap.data() as OverallBuyTotals;
+        const totalVolumeETH = data.totalVolumeETH + price;
+        const totalNumBuys = data.totalNumBuys + quantity;
+        overallBuyRewardDocRef.set({ totalVolumeETH, totalNumBuys }, { merge: true }).catch((err) => {
+          console.log(`Encountered error while updating overall buy total: ${err}`);
+        });
+      })
+      .catch((err) => {
+        console.log(`Encountered error while updating overall buy total: ${err}`);
+      });
+  });
+}
+
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   await setup(app);
+  // setupFirestoreQueryListeners(app);
   await app.listen(process.env.PORT || 9090);
 }
 
