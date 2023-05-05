@@ -31,8 +31,8 @@ export const run = async () => {
   // await pushMetadataToSupportedColls();
   // await pushSupportedCollFlagToMainColls();
   // buildBlurBuyersFromCsv();
-  // await fetchSupportedColls('1');
-  await calcDailyBuyRewards(1683072000000); // this is the timestamp of the day at 00:00:00 UTC for which daily buy rewards are being calculated
+  await fetchSupportedColls('1');
+  // await calcDailyBuyRewards(1683072000000); // this is the timestamp of the day at 00:00:00 UTC for which daily buy rewards are being calculated
 };
 
 void run();
