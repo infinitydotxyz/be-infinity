@@ -4,18 +4,17 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
-import { auth, INFINITY_EMAIL, INFINITY_URL } from './constants';
+import { INFINITY_EMAIL, INFINITY_URL, auth } from './constants';
 import { HttpExceptionFilter } from './http-exception.filter';
 // This is a hack to make Multer available in the Express namespace
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { trimLowerCase } from '@infinityxyz/lib/utils';
 import { API_KEY_HEADER, API_SECRET_HEADER } from 'auth/auth.constants';
 import { SupportedCollectionsProvider } from 'common/providers/supported-collections-provider';
 import { FirebaseService } from 'firebase/firebase.service';
 import SetsService from 'sets/sets.service';
-import { getZeroHourTimestamp } from 'utils';
-import { trimLowerCase } from '@infinityxyz/lib/utils';
 import { DailyBuyTotals, OverallBuyTotals, SaleData, UserBuyReward } from 'types';
-import { createHash } from 'crypto';
+import { getZeroHourTimestamp } from 'utils';
 
 async function setup(app: INestApplication) {
   app.enableCors({
@@ -123,22 +122,11 @@ function handleDeDuplication(
 ) {
   snap.docs.forEach((doc) => {
     const data = doc.data() as SaleData;
-    const chainId = data.chainId;
-    const collectionAddress = data.collectionAddress;
-    const tokenId = data.tokenId;
-    const buyer = trimLowerCase(data.buyer);
     const txHash = data.txHash;
-    const price = data.price;
-    const quantity = data.quantity;
-    const timestamp = data.timestamp;
-
-    const uniqueId = `${chainId}-${collectionAddress}-${tokenId}-${buyer}-${txHash}-${price}-${quantity}-${timestamp}`;
-    const uniqueIdHash = createHash('sha256').update(uniqueId).digest('hex');
-    const dataWithHash = { ...data, uniqueIdHash };
 
     // write to deDuplicatedSales collection
-    const deDuplicatedSalesDocRef = firestore.collection('deDuplicatedSales').doc(uniqueIdHash);
-    deDuplicatedSalesDocRef.set({ ...dataWithHash }, { merge: true }).catch((err) => {
+    const deDuplicatedSalesDocRef = firestore.collection('deDuplicatedSales').doc(txHash);
+    deDuplicatedSalesDocRef.set({ ...data }, { merge: true }).catch((err) => {
       console.log(`Encountered error while writing to deDuplicatedSales collection: ${err}`);
     });
   });
@@ -150,7 +138,7 @@ function handleFlow24HrDeDuplicatedSalesSnapshot(
 ) {
   snap.docs.forEach((doc) => {
     const data = doc.data() as SaleData;
-    const uniqueIdHash = data.uniqueIdHash;
+    const txHash = data.txHash;
     const buyer = trimLowerCase(data.buyer);
     const price = data.price;
     const quantity = data.quantity;
@@ -163,7 +151,7 @@ function handleFlow24HrDeDuplicatedSalesSnapshot(
     firestore
       .runTransaction(async (t) => {
         // first check if this sale has already been processed
-        const processedSaleDocRef = processedBuyRewardsCollectionRef.doc(uniqueIdHash);
+        const processedSaleDocRef = processedBuyRewardsCollectionRef.doc(txHash);
         // if this doc exists, sale has been processed, so return
         if ((await t.get(processedSaleDocRef)).exists) {
           return;
@@ -227,7 +215,7 @@ function handleFlow24HrDeDuplicatedSalesSnapshot(
         t.set(overallBuyRewardDocRef, { totalVolumeETH, totalNumBuys });
 
         // finally write the processed doc to processedBuyRewardHashes collection
-        t.set(processedSaleDocRef, { processed: true, uniqueIdHash });
+        t.set(processedSaleDocRef, { processed: true, uniqueIdHash: txHash });
       })
       .catch((err) => {
         console.log(`Encountered error while updating daily buyer amounts for ${buyer}: ${err}`);

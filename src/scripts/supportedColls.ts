@@ -185,8 +185,7 @@ export const fetchSupportedColls = async (chainId: string) => {
     .where('isSupported', '==', true);
   const querySnapshot = await supportedCollsRef.get();
   const supportedColls = querySnapshot.docs.map((doc) => doc.data() as SupportedCollection);
-  const supportedCollsAddresses = supportedColls.map((coll) => coll.address);
-  console.log(`Found ${supportedCollsAddresses.length} supported collections.`);
+  console.log(`Found ${supportedColls.length} supported collections.`);
   // dump to a new line separated file
   const filePath = path.join(__dirname, `../../src/scripts/supported-colls-${chainId}.txt`);
   if (existsSync(filePath)) {
@@ -196,8 +195,8 @@ export const fetchSupportedColls = async (chainId: string) => {
     // create file if it doesn't exist
     exec(`touch ${filePath}`);
   }
-  for (const address of supportedCollsAddresses) {
-    appendFileSync(filePath, `${address}\n`);
+  for (const coll of supportedColls) {
+    appendFileSync(filePath, `${coll.name}: https://flow.so/collection/${coll.slug}\n`);
   }
   console.log('Done!');
 };
