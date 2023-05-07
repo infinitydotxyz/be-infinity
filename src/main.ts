@@ -97,7 +97,12 @@ function setupFirestoreQueryListeners(app: INestApplication) {
   query.onSnapshot(
     (snap) => {
       console.log(`Received flow sales 24hr snapshot of size ${snap.size}`);
-      handleDeDuplication(firestore, snap);
+      snap.docChanges().forEach((change) => {
+        if (change.type === 'added') {
+          const data = change.doc.data() as SaleData;
+          handleDeDuplication(firestore, data);
+        }
+      });
     },
     (err) => {
       console.log(`Encountered error while listening to flow sales 24hr snapshot: ${err}`);
@@ -108,7 +113,12 @@ function setupFirestoreQueryListeners(app: INestApplication) {
   deDupQuery.onSnapshot(
     (snap) => {
       console.log(`Received de-duplicated flow sales 24hr snapshot of size ${snap.size}`);
-      handleFlow24HrDeDuplicatedSalesSnapshot(firestore, snap);
+      snap.docChanges().forEach((change) => {
+        if (change.type === 'added') {
+          const data = change.doc.data() as SaleData;
+          handleFlow24HrDeDuplicatedSalesSnapshot(firestore, data);
+        }
+      });
     },
     (err) => {
       console.log(`Encountered error while listening to de-duplicated flow sales 24hr snapshot: ${err}`);
@@ -116,111 +126,101 @@ function setupFirestoreQueryListeners(app: INestApplication) {
   );
 }
 
-function handleDeDuplication(
-  firestore: FirebaseFirestore.Firestore,
-  snap: FirebaseFirestore.QuerySnapshot<FirebaseFirestore.DocumentData>
-) {
-  snap.docs.forEach((doc) => {
-    const data = doc.data() as SaleData;
-    const txHash = data.txHash;
-
-    // write to deDuplicatedSales collection
-    const deDuplicatedSalesDocRef = firestore.collection('deDuplicatedSales').doc(txHash);
-    deDuplicatedSalesDocRef.set({ ...data }, { merge: true }).catch((err) => {
-      console.log(`Encountered error while writing to deDuplicatedSales collection: ${err}`);
-    });
+function handleDeDuplication(firestore: FirebaseFirestore.Firestore, data: SaleData) {
+  const txHash = data.txHash;
+  // write to deDuplicatedSales collection
+  const deDuplicatedSalesDocRef = firestore.collection('deDuplicatedSales').doc(txHash);
+  deDuplicatedSalesDocRef.set({ ...data }, { merge: true }).catch((err) => {
+    console.log(`Encountered error while writing to deDuplicatedSales collection: ${err}`);
   });
 }
 
-function handleFlow24HrDeDuplicatedSalesSnapshot(
-  firestore: FirebaseFirestore.Firestore,
-  snap: FirebaseFirestore.QuerySnapshot<FirebaseFirestore.DocumentData>
-) {
-  snap.docs.forEach((doc) => {
-    const data = doc.data() as SaleData;
-    const txHash = data.txHash;
-    const buyer = trimLowerCase(data.buyer);
-    const price = data.price;
-    const quantity = data.quantity;
-    const timestamp = data.timestamp;
-    const zeroHourTimestampOfTheDay = getZeroHourTimestamp(timestamp);
+function handleFlow24HrDeDuplicatedSalesSnapshot(firestore: FirebaseFirestore.Firestore, data: SaleData) {
+  const txHash = data.txHash;
+  const buyer = trimLowerCase(data.buyer);
+  const price = data.price;
+  const quantity = data.quantity;
+  const timestamp = data.timestamp;
+  const zeroHourTimestampOfTheDay = getZeroHourTimestamp(timestamp);
 
-    const processedBuyRewardsCollectionRef = firestore.collection('processedBuyRewardHashes').doc(zeroHourTimestampOfTheDay.toString()).collection('hashes');
-    const dailyTotalBuyRewardDocRef = firestore.collection('xflBuyRewards').doc(zeroHourTimestampOfTheDay.toString());
+  const processedBuyRewardsCollectionRef = firestore
+    .collection('processedBuyRewardHashes')
+    .doc(zeroHourTimestampOfTheDay.toString())
+    .collection('hashes');
+  const dailyTotalBuyRewardDocRef = firestore.collection('xflBuyRewards').doc(zeroHourTimestampOfTheDay.toString());
 
-    firestore
-      .runTransaction(async (t) => {
-        // first check if this sale has already been processed
-        const processedSaleDocRef = processedBuyRewardsCollectionRef.doc(txHash);
-        // if this doc exists, sale has been processed, so return
-        if ((await t.get(processedSaleDocRef)).exists) {
-          return;
-        }
+  firestore
+    .runTransaction(async (t) => {
+      // first check if this sale has already been processed
+      const processedSaleDocRef = processedBuyRewardsCollectionRef.doc(txHash);
+      // if this doc exists, sale has been processed, so return
+      if ((await t.get(processedSaleDocRef)).exists) {
+        return;
+      }
 
-        // read from rewards per day per buyer
-        const dailyBuyerRewardDocRef = dailyTotalBuyRewardDocRef.collection('buyers').doc(buyer);
-        const dailyBuyerRewardDocData = ((await t.get(dailyBuyerRewardDocRef)).data() as UserBuyReward) ?? {
-          volumeETH: 0,
-          numBuys: 0,
-          address: buyer
-        };
-        const volumeETH = dailyBuyerRewardDocData.volumeETH + price;
-        const numBuys = dailyBuyerRewardDocData.numBuys + quantity;
+      // read from rewards per day per buyer
+      const dailyBuyerRewardDocRef = dailyTotalBuyRewardDocRef.collection('buyers').doc(buyer);
+      const dailyBuyerRewardDocData = ((await t.get(dailyBuyerRewardDocRef)).data() as UserBuyReward) ?? {
+        volumeETH: 0,
+        numBuys: 0,
+        address: buyer
+      };
+      const volumeETH = dailyBuyerRewardDocData.volumeETH + price;
+      const numBuys = dailyBuyerRewardDocData.numBuys + quantity;
 
-        // read from rewards per day total
-        const dailyTotalBuyRewardDocData = ((await t.get(dailyTotalBuyRewardDocRef)).data() as DailyBuyTotals) ?? {
-          dailyTotalNumBuys: 0,
-          dailyTotalVolumeETH: 0
-        };
-        const dailyTotalVolumeETH = dailyTotalBuyRewardDocData.dailyTotalVolumeETH + price;
-        const dailyTotalNumBuys = dailyTotalBuyRewardDocData.dailyTotalNumBuys + quantity;
+      // read from rewards per day total
+      const dailyTotalBuyRewardDocData = ((await t.get(dailyTotalBuyRewardDocRef)).data() as DailyBuyTotals) ?? {
+        dailyTotalNumBuys: 0,
+        dailyTotalVolumeETH: 0
+      };
+      const dailyTotalVolumeETH = dailyTotalBuyRewardDocData.dailyTotalVolumeETH + price;
+      const dailyTotalNumBuys = dailyTotalBuyRewardDocData.dailyTotalNumBuys + quantity;
 
-        // read from overall rewards per buyer
-        const overallBuyerRewardDocRef = firestore
-          .collection('xflBuyRewards')
-          .doc('totals')
-          .collection('buyers')
-          .doc(buyer);
-        const overallBuyerRewardDocData = ((await t.get(overallBuyerRewardDocRef)).data() as UserBuyReward) ?? {
-          volumeETH: 0,
-          numBuys: 0,
-          address: buyer
-        };
-        const overallBuyerolumeETH = overallBuyerRewardDocData.volumeETH + price;
-        const overallBuyerNumBuys = overallBuyerRewardDocData.numBuys + quantity;
+      // read from overall rewards per buyer
+      const overallBuyerRewardDocRef = firestore
+        .collection('xflBuyRewards')
+        .doc('totals')
+        .collection('buyers')
+        .doc(buyer);
+      const overallBuyerRewardDocData = ((await t.get(overallBuyerRewardDocRef)).data() as UserBuyReward) ?? {
+        volumeETH: 0,
+        numBuys: 0,
+        address: buyer
+      };
+      const overallBuyerolumeETH = overallBuyerRewardDocData.volumeETH + price;
+      const overallBuyerNumBuys = overallBuyerRewardDocData.numBuys + quantity;
 
-        // read from rewards overall total
-        const overallBuyRewardDocRef = firestore.collection('xflBuyRewards').doc('totals');
-        const overallBuyRewardDocData = ((await t.get(overallBuyRewardDocRef)).data() as OverallBuyTotals) ?? {
-          totalVolumeETH: 0,
-          totalNumBuys: 0
-        };
-        const totalVolumeETH = overallBuyRewardDocData.totalVolumeETH + price;
-        const totalNumBuys = overallBuyRewardDocData.totalNumBuys + quantity;
+      // read from rewards overall total
+      const overallBuyRewardDocRef = firestore.collection('xflBuyRewards').doc('totals');
+      const overallBuyRewardDocData = ((await t.get(overallBuyRewardDocRef)).data() as OverallBuyTotals) ?? {
+        totalVolumeETH: 0,
+        totalNumBuys: 0
+      };
+      const totalVolumeETH = overallBuyRewardDocData.totalVolumeETH + price;
+      const totalNumBuys = overallBuyRewardDocData.totalNumBuys + quantity;
 
-        // write to rewards per day per buyer
-        t.set(dailyBuyerRewardDocRef, { volumeETH, numBuys, address: buyer });
+      // write to rewards per day per buyer
+      t.set(dailyBuyerRewardDocRef, { volumeETH, numBuys, address: buyer });
 
-        // write to total rewards per day
-        t.set(dailyTotalBuyRewardDocRef, { dailyTotalVolumeETH, dailyTotalNumBuys });
+      // write to total rewards per day
+      t.set(dailyTotalBuyRewardDocRef, { dailyTotalVolumeETH, dailyTotalNumBuys });
 
-        // write to overall rewards per buyer
-        t.set(overallBuyerRewardDocRef, {
-          volumeETH: overallBuyerolumeETH,
-          numBuys: overallBuyerNumBuys,
-          address: buyer
-        });
-
-        // write to total overall rewards
-        t.set(overallBuyRewardDocRef, { totalVolumeETH, totalNumBuys });
-
-        // finally write the processed doc to processedBuyRewardHashes collection
-        t.set(processedSaleDocRef, { processed: true, uniqueIdHash: txHash });
-      })
-      .catch((err) => {
-        console.log(`Encountered error while updating daily buyer amounts for ${buyer}: ${err}`);
+      // write to overall rewards per buyer
+      t.set(overallBuyerRewardDocRef, {
+        volumeETH: overallBuyerolumeETH,
+        numBuys: overallBuyerNumBuys,
+        address: buyer
       });
-  });
+
+      // write to total overall rewards
+      t.set(overallBuyRewardDocRef, { totalVolumeETH, totalNumBuys });
+
+      // finally write the processed doc to processedBuyRewardHashes collection
+      t.set(processedSaleDocRef, { processed: true, uniqueIdHash: txHash });
+    })
+    .catch((err) => {
+      console.log(`Encountered error while updating daily buyer amounts for ${buyer}: ${err}`);
+    });
 }
 
 async function bootstrap() {
