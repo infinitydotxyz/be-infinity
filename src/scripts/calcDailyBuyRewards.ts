@@ -37,7 +37,7 @@ export const calcDailyBuyRewards = async (timestamp: number) => {
 
   let numHandled = 0;
   // now loop over all buyers for the day and calculate their rewards
-  xflDailyBuyersDocsData.map(async (data) => {
+  for (const data of xflDailyBuyersDocsData) {
     const buyer = data.address;
     const volumeETH = data.volumeETH;
 
@@ -60,7 +60,7 @@ export const calcDailyBuyRewards = async (timestamp: number) => {
       .doc('totals')
       .collection('processedTimestamps');
 
-    firebaseService.firestore
+    await firebaseService.firestore
       .runTransaction(async (t) => {
         // check if timestamp and buyer is already processed
         const processedTimestampsDocRef = processedTimestampsRef.doc(timestamp.toString());
@@ -94,6 +94,8 @@ export const calcDailyBuyRewards = async (timestamp: number) => {
             },
             { merge: true }
           );
+        } else {
+          console.log('Already processed', buyer, 'for timestamp', timestamp);
         }
 
         // write to processed timestamps
@@ -105,5 +107,5 @@ export const calcDailyBuyRewards = async (timestamp: number) => {
       .catch((err) => {
         console.log(`Encountered error while updating daily buyer amounts for ${buyer}: ${err}`);
       });
-  });
+  }
 };
