@@ -210,7 +210,7 @@ function handleFlow24HrDeDuplicatedSalesSnapshot(firestore: FirebaseFirestore.Fi
         volumeETH: overallBuyerolumeETH,
         numBuys: overallBuyerNumBuys,
         address: buyer
-      });
+      }, { merge: true });
 
       // write to total overall rewards
       t.set(overallBuyRewardDocRef, { totalVolumeETH, totalNumBuys });
