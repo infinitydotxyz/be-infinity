@@ -20,6 +20,8 @@ export const calcDailyBuyRewards = async (timestamp: number) => {
     throw new Error('Firebase service not found');
   }
 
+  console.log('Calculating daily buy rewards for timestamp', timestamp);
+
   const rpcProvider = new ethers.providers.StaticJsonRpcProvider(configService.get('alchemyJsonRpcEthMainnet'));
 
   const stakerAddress = getXFLStakerAddress(ChainId.Mainnet);
@@ -27,6 +29,10 @@ export const calcDailyBuyRewards = async (timestamp: number) => {
 
   const xflDailyBuyRewardsDocRef = firebaseService.firestore.collection('xflBuyRewards').doc(timestamp.toString());
   const xflDailyBuyRewardsData = (await xflDailyBuyRewardsDocRef.get()).data() as DailyBuyTotals;
+  if (!xflDailyBuyRewardsData) {
+    console.error('No daily buy rewards data found for timestamp ' + timestamp.toString());
+    return;
+  }
   const totalDailyVolume = xflDailyBuyRewardsData.dailyTotalVolumeETH;
 
   // now loop over all buyers for the day and calculate their rewards
@@ -62,7 +68,7 @@ export const calcDailyBuyRewards = async (timestamp: number) => {
 
     await firebaseService.firestore
       .runTransaction(async (t) => {
-        // check if timestamp and buyer is already processed
+        // check if timestamp and buyer is already processed in totals
         const processedTimestampsDocRef = processedTimestampsRef.doc(timestamp.toString());
         const processedTimestampBuyerDocRef = processedTimestampsDocRef.collection('buyers').doc(buyer);
         const isProcessed = (await t.get(processedTimestampBuyerDocRef)).exists;
@@ -100,8 +106,10 @@ export const calcDailyBuyRewards = async (timestamp: number) => {
 
         // write to processed timestamps
         t.set(processedTimestampBuyerDocRef, { processed: true, address: buyer });
-
+      })
+      .then(() => {
         numHandled++;
+        console.log(`Successfully updated daily buyer amounts for ${buyer}`);
         console.log('Handled', numHandled, 'of', xflDailyBuyersDocs.size);
       })
       .catch((err) => {

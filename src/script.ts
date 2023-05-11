@@ -13,7 +13,7 @@ import {
   setSupportedCollsInFirestore,
   fetchSupportedColls
 } from 'scripts/supportedColls';
-import { bn } from 'utils';
+import { bn, getZeroHourTimestamp } from 'utils';
 
 let app: NestExpressApplication;
 
@@ -79,6 +79,27 @@ export const inftClaims = async () => {
   }
 };
 
+export const cleanBuyerTotals = async () => {
+  const firebaseService = getService(FirebaseService);
+  if (!firebaseService) {
+    throw new Error('Firebase service not found');
+  }
+  const totalsCollection = firebaseService.firestore.collection('xflBuyRewards').doc('totals').collection('buyers');
+  const totals = await totalsCollection.get();
+  const batch = firebaseService.firestore.batch();
+  totals.forEach((doc) => {
+    batch.set(doc.ref, { baseReward: 0, finalReward: 0 }, { merge: true });
+  });
+  batch
+    .commit()
+    .then(() => {
+      console.log('done');
+    })
+    .catch((err) => {
+      console.error(err);
+    });
+};
+
 export const run = async () => {
   app = await NestFactory.create<NestExpressApplication>(AppModule);
   // await setSupportedCollsInFirestore();
@@ -87,7 +108,22 @@ export const run = async () => {
   // buildBlurBuyersFromCsv();
   // await fetchSupportedColls('1');
   // await inftClaims();
-  // await calcDailyBuyRewards(1683417600000); // this is the timestamp of the day at 00:00:00 UTC for which daily buy rewards are being calculated
+  // await cleanBuyerTotals();
+
+  // these are the timestamps of the day at 00:00:00 UTC for which daily buy rewards are being calculated
+  // const timestamps = [];
+  // // get zero hour timestamp from May 3 2023 to yesterday
+  // const zeroHourTimestampYesterday = getZeroHourTimestamp(new Date().getTime() - 86400000);
+  // const zeroHourTimestampMay32023 = getZeroHourTimestamp(new Date(2023, 4, 3).getTime());
+  // for (let i = zeroHourTimestampMay32023; i <= zeroHourTimestampYesterday; i += 86400000) {
+  //   timestamps.push(i);
+  // }
+  // console.log(timestamps);
+
+  const timestamps = [1683763200000];
+  for (const timestamp of timestamps) {
+    await calcDailyBuyRewards(timestamp);
+  }
 };
 
 void run();
