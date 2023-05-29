@@ -6,7 +6,7 @@ import { AppModule } from 'app.module';
 import { ethers } from 'ethers';
 import { FirebaseService } from 'firebase/firebase.service';
 import { buildBlurBuyersFromCsv } from 'scripts/blurBuyers';
-import { calcDailyBuyRewards } from 'scripts/calcDailyBuyRewards';
+import { calcDailyBuyRewards, calcTotalBuyRewards } from 'scripts/calcDailyBuyRewards';
 import {
   pushMetadataToSupportedColls,
   pushSupportedCollFlagToMainColls,
@@ -120,7 +120,9 @@ export const run = async () => {
   // }
   // console.log(timestamps);
 
-  const timestamps = [1683763200000];
+  // await calcTotalBuyRewards();
+
+  const timestamps = [1685232000000];
   for (const timestamp of timestamps) {
     await calcDailyBuyRewards(timestamp);
   }
