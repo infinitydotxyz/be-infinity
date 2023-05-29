@@ -15,6 +15,7 @@ import { FirebaseService } from 'firebase/firebase.service';
 import SetsService from 'sets/sets.service';
 import { DailyBuyTotals, OverallBuyTotals, SaleData, UserBuyReward } from 'types';
 import { getZeroHourTimestamp } from 'utils';
+import { createHash } from 'crypto';
 
 async function setup(app: INestApplication) {
   app.enableCors({
@@ -127,16 +128,27 @@ function setupFirestoreQueryListeners(app: INestApplication) {
 }
 
 function handleDeDuplication(firestore: FirebaseFirestore.Firestore, data: SaleData) {
+  const chainId = data.chainId;
+  const collectionAddress = data.collectionAddress;
+  const tokenId = data.tokenId;
+  const buyer = trimLowerCase(data.buyer);
   const txHash = data.txHash;
+  const price = data.price;
+  const quantity = data.quantity;
+
+  const uniqueId = `${chainId}-${collectionAddress}-${tokenId}-${buyer}-${txHash}-${price}-${quantity}`;
+  const uniqueIdHash = createHash('sha256').update(uniqueId).digest('hex');
+  const dataWithHash = { ...data, uniqueIdHash };
+
   // write to deDuplicatedSales collection
-  const deDuplicatedSalesDocRef = firestore.collection('deDuplicatedSales').doc(txHash);
-  deDuplicatedSalesDocRef.set({ ...data }, { merge: true }).catch((err) => {
+  const deDuplicatedSalesDocRef = firestore.collection('deDuplicatedSales').doc(uniqueIdHash);
+  deDuplicatedSalesDocRef.set({ ...dataWithHash }, { merge: true }).catch((err) => {
     console.log(`Encountered error while writing to deDuplicatedSales collection: ${err}`);
   });
 }
 
 function handleFlow24HrDeDuplicatedSalesSnapshot(firestore: FirebaseFirestore.Firestore, data: SaleData) {
-  const txHash = data.txHash;
+  const uniqueIdHash = data.uniqueIdHash;
   const buyer = trimLowerCase(data.buyer);
   const price = data.price;
   const quantity = data.quantity;
@@ -152,7 +164,7 @@ function handleFlow24HrDeDuplicatedSalesSnapshot(firestore: FirebaseFirestore.Fi
   firestore
     .runTransaction(async (t) => {
       // first check if this sale has already been processed
-      const processedSaleDocRef = processedBuyRewardsCollectionRef.doc(txHash);
+      const processedSaleDocRef = processedBuyRewardsCollectionRef.doc(uniqueIdHash);
       // if this doc exists, sale has been processed, so return
       if ((await t.get(processedSaleDocRef)).exists) {
         return;
@@ -216,7 +228,7 @@ function handleFlow24HrDeDuplicatedSalesSnapshot(firestore: FirebaseFirestore.Fi
       t.set(overallBuyRewardDocRef, { totalVolumeETH, totalNumBuys });
 
       // finally write the processed doc to processedBuyRewardHashes collection
-      t.set(processedSaleDocRef, { processed: true, uniqueIdHash: txHash });
+      t.set(processedSaleDocRef, { processed: true, uniqueIdHash });
     })
     .catch((err) => {
       console.log(`Encountered error while updating daily buyer amounts for ${buyer}: ${err}`);
