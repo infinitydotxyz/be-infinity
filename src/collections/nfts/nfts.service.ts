@@ -169,10 +169,14 @@ export class NftsService {
     }
 
     const startPriceField = `ordersSnippet.${orderType}.orderItem.startPriceEth`;
-
+    
     const hasPriceFilter = query.minPrice !== undefined || query.maxPrice !== undefined;
     if (query.orderType || hasPriceFilter) {
       nftsQuery = nftsQuery.where(`ordersSnippet.${orderType}.hasOrder`, '==', true);
+    }
+    
+    if (query.source) {
+      nftsQuery = nftsQuery.where(`ordersSnippet.${orderType}.orderItem.source`, '==', query.source);
     }
 
     if (query.traitTypes) {
