@@ -134,20 +134,20 @@ export class NftsService {
       };
     });
 
-    const nftsToBackfill = [];
+    // const nftsToBackfill = [];
 
-    for (const nft of nftsMergedWithSnapshot) {
-      if (!nft || !(nft.image?.url || nft.image?.originalUrl)) {
-        const address = nft.address || nft.collectionAddress;
-        if (nft.tokenId && address && nft.chainId) {
-          nftsToBackfill.push({
-            chainId: nft.chainId,
-            address,
-            tokenId: nft.tokenId
-          });
-        }
-      }
-    }
+    // for (const nft of nftsMergedWithSnapshot) {
+    //   if (!nft || !(nft.image?.url || nft.image?.originalUrl)) {
+    //     const address = nft.address || nft.collectionAddress;
+    //     if (nft.tokenId && address && nft.chainId) {
+    //       nftsToBackfill.push({
+    //         chainId: nft.chainId,
+    //         address,
+    //         tokenId: nft.tokenId
+    //       });
+    //     }
+    //   }
+    // }
 
     // async backfill
     // this.backfillService.backfillNfts(nftsToBackfill).catch((err) => {
