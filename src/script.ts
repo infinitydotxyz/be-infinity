@@ -122,7 +122,7 @@ export const run = async () => {
 
   // await calcTotalBuyRewards();
 
-  const timestamps = [1685491200000];
+  const timestamps = [1685577600000];
   for (const timestamp of timestamps) {
     await calcDailyBuyRewards(timestamp);
   }
