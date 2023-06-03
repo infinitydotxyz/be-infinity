@@ -11,7 +11,6 @@ import { ConfigService } from '@nestjs/config/dist/config.service';
 import axios, { AxiosInstance } from 'axios';
 import { normalize } from 'path';
 import { EnvironmentVariables } from 'types/environment-variables.interface';
-import { alchemyParamSerializer } from 'utils/formatters';
 
 @Injectable()
 export class AlchemyService {
@@ -47,14 +46,14 @@ export class AlchemyService {
   ): Promise<AlchemyUserCollectionsResponse | undefined> {
     const url = this.getBaseUrl(chainId, 'getContractsForOwner', 'nft');
     try {
-      const excludeFilters = [];
-      if (query.hideSpam) {
-        excludeFilters.push('SPAM');
-      }
-      if (query.hideAirdrops) {
-        excludeFilters.push('AIRDROPS');
-      }
-      const serializedExcludeFilters = alchemyParamSerializer({ 'excludeFilters[]': excludeFilters });
+      // const excludeFilters = [];
+      // if (query.hideSpam) {
+      //   excludeFilters.push('SPAM');
+      // }
+      // if (query.hideAirdrops) {
+      //   excludeFilters.push('AIRDROPS');
+      // }
+      // const serializedExcludeFilters = alchemyParamSerializer({ 'excludeFilters[]': excludeFilters });
 
       const response = await this.client.get(url.toString(), {
         params: {
@@ -63,7 +62,7 @@ export class AlchemyService {
           pageSize: query.limit ?? 20,
           ...(query.orderBy ? { orderBy: query.orderBy } : { orderBy: 'transferTime' }),
           ...(query.cursor ? { pageKey: query.cursor } : {}),
-          ...(excludeFilters.length > 0 ? { serializedExcludeFilters } : {})
+          ...(query.hideSpam ? { 'excludeFilters[]': 'SPAM' } : {})
         }
       });
       const data = response.data as AlchemyUserCollectionsResponse;
@@ -82,30 +81,21 @@ export class AlchemyService {
     owner: string,
     chainId: ChainId,
     cursor: string,
-    contractAddresses?: string[],
-    query?: UserCollectionsQuery
+    contractAddresses: string[],
+    query: UserCollectionsQuery
   ): Promise<AlchemyUserNftsResponse | undefined> {
     const url = this.getBaseUrl(chainId, 'getNFTs', 'nft');
-
-    const excludeFilters = [];
-    if (query?.hideSpam) {
-      excludeFilters.push('SPAM');
-    }
-    if (query?.hideAirdrops) {
-      excludeFilters.push('AIRDROPS');
-    }
-    const serializedExcludeFilters = alchemyParamSerializer({ 'excludeFilters[]': excludeFilters });
-
     try {
+      const shouldOrderBy = query.orderBy && contractAddresses.length === 0;
       const response = await this.client.get(url.toString(), {
         params: {
           owner: owner,
           withMetadata: 'true',
-          pageSize: query?.limit ?? 50,
-          ...(query?.orderBy ? { orderBy: query.orderBy } : { orderBy: 'transferTime' }),
+          pageSize: query.limit ?? 50,
+          ...(shouldOrderBy ? { orderBy: query.orderBy } : {}),
           ...(cursor ? { pageKey: cursor } : {}),
           ...(contractAddresses && contractAddresses?.length > 0 ? { contractAddresses } : {}),
-          ...(excludeFilters.length > 0 ? { serializedExcludeFilters } : {})
+          ...(query.hideSpam ? { 'excludeFilters[]': 'SPAM' } : {})
         }
       });
       const data = response.data as AlchemyUserNftsResponse;

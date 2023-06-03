@@ -257,7 +257,13 @@ export class UserService {
       pageKey: string,
       startAtToken?: string
     ): Promise<{ pageKey: string; nfts: NftDto[]; hasNextPage: boolean }> => {
-      const response = await this.alchemyService.getUserNfts(user.userAddress, chainId, pageKey, query.collections);
+      const response = await this.alchemyService.getUserNfts(
+        user.userAddress,
+        chainId,
+        pageKey,
+        query.collections ?? [],
+        { limit: 50, orderBy: 'transferTime' }
+      );
       totalOwned = response?.totalCount ?? NaN;
       const nextPageKey = response?.pageKey ?? '';
       let nfts = response?.ownedNfts ?? [];
