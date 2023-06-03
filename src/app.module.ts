@@ -89,7 +89,7 @@ import { EnvironmentVariables } from 'types/environment-variables.interface';
         }
         return {
           ttl: 60,
-          limit: 10,
+          limit: 30,
           storage
         };
       }

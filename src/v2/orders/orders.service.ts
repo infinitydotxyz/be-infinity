@@ -118,8 +118,8 @@ export class OrdersService extends BaseOrdersService {
       let endPriceWei = bn(item.order.endPrice);
 
       // joe-todo: update gas estimates once we have a better idea of how much gas is used
-      const isNative = item.metadata.source === 'flow';
-      const gasCostWei = this.getGasCostWei(isNative, gasPrice, item.order.gasUsageString);
+      // const isNative = item.metadata.source === 'flow';
+      // const gasCostWei = this.getGasCostWei(isNative, gasPrice, item.order.gasUsageString);
 
       if (item.metadata.source !== 'flow') {
         const startPriceFees = startPriceWei.mul(PROTOCOL_FEE_BPS).div(10_000);
@@ -127,8 +127,8 @@ export class OrdersService extends BaseOrdersService {
         startPriceWei = startPriceWei.add(startPriceFees);
         endPriceWei = endPriceWei.add(endPriceFees);
       }
-      startPriceWei = startPriceWei.add(gasCostWei);
-      endPriceWei = endPriceWei.add(gasCostWei);
+      // startPriceWei = startPriceWei.add(gasCostWei);
+      // endPriceWei = endPriceWei.add(gasCostWei);
 
       const startPriceEth = formatEth(startPriceWei.toString(), 6);
       const endPriceEth = formatEth(endPriceWei.toString(), 6);
