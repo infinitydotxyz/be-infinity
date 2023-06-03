@@ -10,10 +10,13 @@ import {
   CuratedCollectionsOrderBy,
   CuratedCollectionsQuery
 } from '@infinityxyz/lib/types/dto/collections/curation/curated-collections-query.dto';
-import { NftArrayDto, NftCollectionDto, NftDto } from '@infinityxyz/lib/types/dto/collections/nfts';
+import { NftArrayDto, NftDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import {
   UserActivityArrayDto,
   UserActivityQueryDto,
+  UserCollection,
+  UserCollectionsQuery,
+  UserCollectionsResponse,
   UserFollowingCollection,
   UserFollowingCollectionDeletePayload,
   UserFollowingCollectionPostPayload,
@@ -24,7 +27,7 @@ import {
   UserProfileDto
 } from '@infinityxyz/lib/types/dto/user';
 import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
-import { Injectable, Optional } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { AlchemyService } from 'alchemy/alchemy.service';
 import { CurationService } from 'collections/curation/curation.service';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
@@ -32,7 +35,6 @@ import { InvalidUserError } from 'common/errors/invalid-user.error';
 import { BigNumber } from 'ethers/lib/ethers';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
-import { StatsService } from 'stats/stats.service';
 import { NftsService } from '../collections/nfts/nfts.service';
 import { AlchemyNftToInfinityNft } from '../common/transformers/alchemy-nft-to-infinity-nft.pipe';
 import { ParsedUserId } from './parser/parsed-user-id';
@@ -45,8 +47,7 @@ export class UserService {
     private alchemyService: AlchemyService,
     private paginationService: CursorService,
     private nftsService: NftsService,
-    private curationService: CurationService,
-    @Optional() private statsService: StatsService
+    private curationService: CurationService
   ) {
     this.alchemyNftToInfinityNft = new AlchemyNftToInfinityNft(this.nftsService);
   }
@@ -220,21 +221,30 @@ export class UserService {
     return {};
   }
 
-  async getUserNftCollections(user: ParsedUserId) {
-    const collRef = user.ref.collection(firestoreConstants.USER_NFTS_COLL);
-
-    const snap = await collRef.get();
-    const nftCollections: NftCollectionDto[] = snap.docs.map((doc) => {
-      const docData = doc.data() as NftCollectionDto;
-      return docData;
+  async getCollections(user: ParsedUserId, query: UserCollectionsQuery): Promise<UserCollectionsResponse> {
+    const chainId = query.chainId || ChainId.Mainnet;
+    const data = await this.alchemyService.getUserCollections(user.userAddress, chainId, query);
+    const collections = (data?.contracts ?? []).map((item) => {
+      const collection: UserCollection = {
+        address: item.address,
+        numNFTs: item.numDistinctTokensOwned,
+        name: item.opensea.collectionName ?? item.name,
+        symbol: item.symbol,
+        imageUrl: item.opensea.imageUrl,
+        floorPrice: item.opensea.floorPrice
+      };
+      return collection;
     });
-    return nftCollections;
+
+    const cursor = data?.pageKey ?? '';
+    return {
+      data: collections,
+      cursor,
+      hasNextPage: !!cursor
+    };
   }
 
-  async getNfts(
-    user: ParsedUserId,
-    query: Pick<UserNftsQueryDto, 'collections' | 'cursor' | 'limit' | 'chainId'>
-  ): Promise<NftArrayDto> {
+  async getNfts(user: ParsedUserId, query: UserNftsQueryDto): Promise<NftArrayDto> {
     const chainId = query.chainId || ChainId.Mainnet;
     type Cursor = { pageKey?: string; startAtToken?: string };
     const cursor = this.paginationService.decodeCursorToObject<Cursor>(query.cursor);
@@ -244,7 +254,13 @@ export class UserService {
       pageKey: string,
       startAtToken?: string
     ): Promise<{ pageKey: string; nfts: NftDto[]; hasNextPage: boolean }> => {
-      const response = await this.alchemyService.getUserNfts(user.userAddress, chainId, pageKey, query.collections);
+      const response = await this.alchemyService.getUserNfts(
+        user.userAddress,
+        chainId,
+        pageKey,
+        query.collections ?? [],
+        { limit: 50, orderBy: 'transferTime', hideSpam: query.hideSpam }
+      );
       totalOwned = response?.totalCount ?? NaN;
       const nextPageKey = response?.pageKey ?? '';
       let nfts = response?.ownedNfts ?? [];

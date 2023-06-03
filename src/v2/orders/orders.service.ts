@@ -42,10 +42,10 @@ export class OrdersService extends BaseOrdersService {
     },
     gasUsage?: string
   ) {
-    if (isNative) {
-      return '0';
-    }
-    const gasToFulfillOnExternal = gasUsage ?? '300000';
+    // if (isNative) {
+    //   return '0';
+    // }
+    const gasToFulfillOnExternal = gasUsage ?? '400000';
     const buffer = 100_000;
     const totalGas = BigNumber.from(gasToFulfillOnExternal).add(buffer);
     const priorityFee = parseUnits('3', 'gwei');

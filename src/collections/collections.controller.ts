@@ -4,7 +4,8 @@ import {
   CollectionHistoricalSale,
   CollectionOrder,
   CollectionPeriodStatsContent,
-  CollectionSaleAndOrder
+  CollectionSaleAndOrder,
+  SupportedCollection
 } from '@infinityxyz/lib/types/core';
 import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
 import {
@@ -198,6 +199,21 @@ export class CollectionsController {
     return {
       data: results
     };
+  }
+
+  @Get('/supported')
+  @ApiOperation({
+    tags: [ApiTag.Collection],
+    description: 'Get supported collections by chain id'
+  })
+  @ApiParamCollectionId()
+  @ApiOkResponse({ description: ResponseDescription.Success })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 1 }))
+  async getSupportedColls(@Query() query: { chainId: string }): Promise<SupportedCollection[]> {
+    return this.collectionsService.fetchSupportedColls(query.chainId);
   }
 
   @Get('/:id')

@@ -20,6 +20,7 @@ import { Injectable } from '@nestjs/common';
 import { BackfillService } from 'backfill/backfill.service';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
 import { EthereumService } from 'ethereum/ethereum.service';
+import { BigNumber } from 'ethers';
 import { formatEther, parseEther } from 'ethers/lib/utils';
 import { firestore } from 'firebase-admin';
 import { FirebaseService } from 'firebase/firebase.service';
@@ -134,20 +135,20 @@ export class NftsService {
       };
     });
 
-    const nftsToBackfill = [];
+    // const nftsToBackfill = [];
 
-    for (const nft of nftsMergedWithSnapshot) {
-      if (!nft || !(nft.image?.url || nft.image?.originalUrl)) {
-        const address = nft.address || nft.collectionAddress;
-        if (nft.tokenId && address && nft.chainId) {
-          nftsToBackfill.push({
-            chainId: nft.chainId,
-            address,
-            tokenId: nft.tokenId
-          });
-        }
-      }
-    }
+    // for (const nft of nftsMergedWithSnapshot) {
+    //   if (!nft || !(nft.image?.url || nft.image?.originalUrl)) {
+    //     const address = nft.address || nft.collectionAddress;
+    //     if (nft.tokenId && address && nft.chainId) {
+    //       nftsToBackfill.push({
+    //         chainId: nft.chainId,
+    //         address,
+    //         tokenId: nft.tokenId
+    //       });
+    //     }
+    //   }
+    // }
 
     // async backfill
     // this.backfillService.backfillNfts(nftsToBackfill).catch((err) => {
@@ -169,10 +170,14 @@ export class NftsService {
     }
 
     const startPriceField = `ordersSnippet.${orderType}.orderItem.startPriceEth`;
-
+    
     const hasPriceFilter = query.minPrice !== undefined || query.maxPrice !== undefined;
     if (query.orderType || hasPriceFilter) {
       nftsQuery = nftsQuery.where(`ordersSnippet.${orderType}.hasOrder`, '==', true);
+    }
+    
+    if (query.source) {
+      nftsQuery = nftsQuery.where(`ordersSnippet.${orderType}.orderItem.source`, '==', query.source);
     }
 
     if (query.traitTypes) {
@@ -288,27 +293,20 @@ export class NftsService {
         const orderItem = item.ordersSnippet?.[side]?.orderItem;
         if (orderItem) {
           const startPrice = orderItem.startPriceEth;
-          const endPrice = orderItem.endPriceEth;
           const gasUsage = orderItem.gasUsage;
           const source = orderItem.source;
           const isNative = source === 'flow';
 
           const gasCostWei = this.ordersService.getGasCostWei(isNative, gasPrice, gasUsage);
-
-          let startPriceWei = parseEther(startPrice.toString());
-          let endPriceWei = parseEther(endPrice.toString());
+          let feeCostWei = BigNumber.from(0);
 
           if (orderItem.source !== 'flow') {
-            const startPriceFees = startPriceWei.mul(PROTOCOL_FEE_BPS).div(10_000);
-            const endPriceFees = endPriceWei.mul(PROTOCOL_FEE_BPS).div(10_000);
-            startPriceWei = startPriceWei.add(startPriceFees);
-            endPriceWei = endPriceWei.add(endPriceFees);
+            const startPriceWei = parseEther(startPrice.toString());
+            feeCostWei = startPriceWei.mul(PROTOCOL_FEE_BPS).div(10_000);
           }
-          startPriceWei = startPriceWei.add(gasCostWei);
-          endPriceWei = endPriceWei.add(gasCostWei);
 
-          orderItem.startPriceEth = parseFloat(formatEther(startPriceWei));
-          orderItem.endPriceEth = parseFloat(formatEther(endPriceWei));
+          orderItem.gasCostEth = parseFloat(formatEther(gasCostWei));
+          orderItem.feeCostEth = parseFloat(formatEther(feeCostWei));
         }
       }
 

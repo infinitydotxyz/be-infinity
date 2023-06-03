@@ -6,6 +6,7 @@ import {
   CollectionSaleAndOrder,
   CreationFlow,
   CurrentCurationSnippetDoc,
+  SupportedCollection,
   TopOwner
 } from '@infinityxyz/lib/types/core';
 import { TopOwnerDto, TopOwnersQueryDto } from '@infinityxyz/lib/types/dto/collections';
@@ -86,6 +87,17 @@ export default class CollectionsService {
       colls.push(stats);
     }
     return colls;
+  }
+
+  async fetchSupportedColls(chainId: string): Promise<SupportedCollection[]> {
+    const supportedCollsRef = this.firebaseService.firestore
+      .collection(firestoreConstants.SUPPORTED_COLLECTIONS_COLL)
+      .where('chainId', '==', chainId)
+      .where('isSupported', '==', true)
+      .limit(100); // future-todo: pagination
+    const querySnapshot = await supportedCollsRef.get();
+    const supportedColls = querySnapshot.docs.map((doc) => doc.data() as SupportedCollection);
+    return supportedColls;
   }
 
   async getRecentSalesAndOrders(collection: ParsedCollectionId): Promise<CollectionSaleAndOrder[]> {
