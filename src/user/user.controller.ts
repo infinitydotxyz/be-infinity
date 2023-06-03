@@ -12,6 +12,8 @@ import {
   UserActivityArrayDto,
   UserActivityQueryDto,
   UserCollectionPermissions,
+  UserCollectionsQuery,
+  UserCollectionsResponse,
   UserFollowingCollectionDeletePayload,
   UserFollowingCollectionPostPayload,
   UserFollowingCollectionsArrayDto,
@@ -156,6 +158,24 @@ export class UserController {
     };
   }
 
+  @Get('/:userId/collections')
+  @ApiOperation({
+    description: "Get a user's collections",
+    tags: [ApiTag.User, ApiTag.Collection]
+  })
+  @ApiParamUserId('userId')
+  @ApiOkResponse({ description: ResponseDescription.Success })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 30 }))
+  async getCollections(
+    @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
+    @Query() filters: UserCollectionsQuery
+  ): Promise<UserCollectionsResponse> {
+    const data = await this.userService.getCollections(user, filters);
+    return data;
+  }
+
   @Get('/:userId/nfts')
   @ApiOperation({
     description: "Get a user's NFTs. Optionally, filter by a user's nfts with orders",
@@ -165,7 +185,7 @@ export class UserController {
   @ApiOkResponse({ description: ResponseDescription.Success, type: NftArrayDto })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 10 }))
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 30 }))
   async getNfts(
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
     @Query() filters: UserNftsQueryDto

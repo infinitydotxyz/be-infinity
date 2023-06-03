@@ -7,11 +7,11 @@ import qs from 'qs';
  * e.g. serializing  { key: [value1, value2, value3] } results in
  * ?key=value1&key=value2&key=value3
  */
-export function openseaParamSerializer(params: string[]) {
+export function openseaParamSerializer(params: any) {
   return qs.stringify(params, { arrayFormat: 'repeat' });
 }
 
-export function alchemyParamSerializer(params: string[]) {
+export function alchemyParamSerializer(params: any) {
   return qs.stringify(params, { arrayFormat: 'repeat' });
 }
 
