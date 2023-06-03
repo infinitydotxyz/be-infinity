@@ -244,10 +244,7 @@ export class UserService {
     };
   }
 
-  async getNfts(
-    user: ParsedUserId,
-    query: Pick<UserNftsQueryDto, 'collections' | 'cursor' | 'limit' | 'chainId'>
-  ): Promise<NftArrayDto> {
+  async getNfts(user: ParsedUserId, query: UserNftsQueryDto): Promise<NftArrayDto> {
     const chainId = query.chainId || ChainId.Mainnet;
     type Cursor = { pageKey?: string; startAtToken?: string };
     const cursor = this.paginationService.decodeCursorToObject<Cursor>(query.cursor);
@@ -262,7 +259,7 @@ export class UserService {
         chainId,
         pageKey,
         query.collections ?? [],
-        { limit: 50, orderBy: 'transferTime' }
+        { limit: 50, orderBy: 'transferTime', hideSpam: query.hideSpam }
       );
       totalOwned = response?.totalCount ?? NaN;
       const nextPageKey = response?.pageKey ?? '';
