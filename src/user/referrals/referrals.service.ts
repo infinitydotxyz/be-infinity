@@ -15,12 +15,14 @@ export class ReferralsService {
     const doc = await ref.get();
     const numReferrals = doc.data()?.numberOfReferrals ?? 0;
 
-    const referralCodeRef = this.firebaseService.firestore.collection('flowBetaReferralCodes').where('owner.address', '==', userAddress);
+    const referralCodeRef = this.firebaseService.firestore
+      .collection('flowBetaReferralCodes')
+      .where('owner.address', '==', userAddress);
     const snap = await referralCodeRef.get();
     const referralCode = snap.docs[0]?.data()?.referralCode ?? '';
 
     const totals = {
-      referralLink: `https://flow.so/?ref=${referralCode}`,
+      referralLink: `https://pixelpack.io/?ref=${referralCode}`,
       referrer: {
         address: referrer.userAddress,
         displayName: '',

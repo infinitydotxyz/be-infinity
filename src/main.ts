@@ -46,7 +46,7 @@ async function setup(app: INestApplication) {
 
 function setupSwagger(app: INestApplication, path: string) {
   const config = new DocumentBuilder()
-    .setTitle('Flow API')
+    .setTitle('Pixelpack API')
     .setDescription('Developer API')
     .setContact('infinity', INFINITY_URL, INFINITY_EMAIL)
     .setVersion('1.0.0')
@@ -218,11 +218,15 @@ function handleFlow24HrDeDuplicatedSalesSnapshot(firestore: FirebaseFirestore.Fi
       t.set(dailyTotalBuyRewardDocRef, { dailyTotalVolumeETH, dailyTotalNumBuys });
 
       // write to overall rewards per buyer
-      t.set(overallBuyerRewardDocRef, {
-        volumeETH: overallBuyerolumeETH,
-        numBuys: overallBuyerNumBuys,
-        address: buyer
-      }, { merge: true });
+      t.set(
+        overallBuyerRewardDocRef,
+        {
+          volumeETH: overallBuyerolumeETH,
+          numBuys: overallBuyerNumBuys,
+          address: buyer
+        },
+        { merge: true }
+      );
 
       // write to total overall rewards
       t.set(overallBuyRewardDocRef, { totalVolumeETH, totalNumBuys });

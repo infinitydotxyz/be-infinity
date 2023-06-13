@@ -196,7 +196,7 @@ export const fetchSupportedColls = async (chainId: string) => {
     exec(`touch ${filePath}`);
   }
   for (const coll of supportedColls) {
-    appendFileSync(filePath, `${coll.name}: https://flow.so/collection/${coll.slug}\n`);
+    appendFileSync(filePath, `${coll.name}: https://pixelpack.io/collection/${coll.slug}\n`);
   }
   console.log('Done!');
 };
