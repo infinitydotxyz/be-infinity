@@ -10,6 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import got, { Got, Response } from 'got/dist/source';
 import { EnvironmentVariables } from 'types/environment-variables.interface';
 import { gotErrorHandler } from '../utils/got';
+import { ReservoirOrders } from './types';
 
 @Injectable()
 export class ReservoirService {
@@ -37,6 +38,54 @@ export class ReservoirService {
       cache: false,
       timeout: 20_000
     });
+  }
+
+  public async getListings(
+    chainId: string,
+    collectionAddress: string,
+    tokenId?: string,
+    continuation?: string
+  ): Promise<ReservoirOrders | undefined> {
+    try {
+      const res: Response<ReservoirOrders> = await this.errorHandler(() => {
+        const searchParams: any = {
+          contracts: collectionAddress,
+          status: 'active',
+          limit: 50,
+          includeCriteriaMetadata: true,
+          sortBy: 'price'
+        };
+
+        if (tokenId) {
+          searchParams.token = `${collectionAddress}:${tokenId}`;
+        }
+
+        if (continuation) {
+          searchParams.continuation = continuation;
+        }
+
+        return this.client.get(`orders/asks/v4`, {
+          searchParams,
+          responseType: 'json'
+        });
+      });
+      
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      const response = res.body;
+      // remove duplicate tokenIds
+      const set = new Set<string>();
+      response.orders = response.orders.filter((order) => {
+        if (set.has(order.tokenSetId)) {
+          return false;
+        }
+        set.add(order.tokenSetId);
+        return true;
+      });
+
+      return response;
+    } catch (e) {
+      console.error('failed to get listings from reservoir', chainId, collectionAddress, tokenId, e);
+    }
   }
 
   public async reindexCollection(chainId: string, collectionAddress: string) {

@@ -3,9 +3,16 @@ import {
   FirestoreDisplayOrderWithoutError,
   OrderDirection,
   Order,
-  FirestoreDisplayOrder
+  FirestoreDisplayOrder,
+  Erc721Token
 } from '@infinityxyz/lib/types/core';
-import { PROTOCOL_FEE_BPS, firestoreConstants, formatEth, getOBOrderPrice } from '@infinityxyz/lib/utils';
+import {
+  PROTOCOL_FEE_BPS,
+  firestoreConstants,
+  formatEth,
+  getCollectionDocId,
+  getOBOrderPrice
+} from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { ContractService } from 'ethereum/contract.service';
 import { EthereumService } from 'ethereum/ethereum.service';
@@ -17,6 +24,8 @@ import { OrderBy, OrderQueries, Side } from '@infinityxyz/lib/types/dto';
 import { MatchingEngineService } from 'v2/matching-engine/matching-engine.service';
 import { BigNumber } from 'ethers';
 import { parseUnits } from 'ethers/lib/utils';
+import { ReservoirService } from 'reservoir/reservoir.service';
+import { AggregatedOrder } from './types';
 
 @Injectable()
 export class OrdersService extends BaseOrdersService {
@@ -24,10 +33,51 @@ export class OrdersService extends BaseOrdersService {
     firebaseService: FirebaseService,
     contractService: ContractService,
     ethereumService: EthereumService,
+    protected reservoirService: ReservoirService,
     protected cursorService: CursorService,
     protected matchingEngineService: MatchingEngineService
   ) {
     super(firebaseService, contractService, ethereumService);
+  }
+
+  public async getAggregatedListings(
+    chainId: string,
+    collection: string,
+    tokenId?: string,
+    continuation?: string
+  ): Promise<{ continuation: string | undefined; orders: AggregatedOrder[] | undefined }> {
+    const listings = await this.reservoirService.getListings(chainId, collection, tokenId, continuation);
+    if (!listings) {
+      return {
+        continuation: undefined,
+        orders: undefined
+      };
+    }
+
+    // fetch last sale price from firestore
+    const collsRef = this._firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL);
+    const collDocId = getCollectionDocId({ chainId, collectionAddress: collection });
+    const tokenIds = listings.orders.map((order) => `${order.criteria.data.token.tokenId}`);
+    const nftRefs = tokenIds.map((tokenId) => collsRef.doc(collDocId).collection('nfts').doc(tokenId));
+    const nftsSnap = await this._firebaseService.firestore.getAll(...nftRefs);
+    const nfts = nftsSnap.map((snap) => snap.data() as Erc721Token);
+
+    const augmentedOrders = listings.orders.map((order) => {
+      const nft = nfts.find((nft) => nft?.tokenId === order.criteria.data.token.tokenId);
+      const lastSalePriceEth = nft?.lastSalePriceEth ?? 0;
+      const mintPriceEth = nft?.mintPrice ?? 0;
+      return {
+        ...order,
+        chainId,
+        lastSalePriceEth,
+        mintPriceEth
+      };
+    });
+
+    return {
+      continuation: listings.continuation,
+      orders: augmentedOrders
+    }
   }
 
   public getGasCostWei(

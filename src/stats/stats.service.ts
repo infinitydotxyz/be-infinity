@@ -200,6 +200,7 @@ export class StatsService {
 
     const result = await pool.query(q);
     const data = [];
+    const map = new Map<string, Partial<CollectionHistoricalSale>>();
     for (const row of result.rows) {
       const tokenId = row.token_id;
       const salePriceEth = parseFloat(row.sale_price_eth);
@@ -217,9 +218,10 @@ export class StatsService {
         tokenImage
       };
 
-      data.push(dataPoint);
+      map.set(`${tokenId}:${salePriceEth}:${timestamp}`,dataPoint);
     }
 
+    data.push(...map.values());
     return data;
   }
 
