@@ -130,6 +130,8 @@ export const INFINITY_EMAIL = 'hi@pixelpack.io';
 export const ORIGIN = /http:\/\/localhost:\d+/;
 export const INFINITY_URL = 'https://pixelpack.io/';
 
+export const DEFAULT_MIN_XFL_BALANCE_FOR_ZERO_FEE = 100_000;
+
 export const ONE_MIN = 1000 * 60;
 export const TEN_MINS = ONE_MIN * 10;
 export const ONE_HOUR = 3_600_000; // In ms

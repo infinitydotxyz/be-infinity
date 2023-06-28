@@ -1,30 +1,32 @@
 import {
   ChainId,
-  FirestoreDisplayOrderWithoutError,
-  OrderDirection,
-  Order,
+  Erc721Token,
   FirestoreDisplayOrder,
-  Erc721Token
+  FirestoreDisplayOrderWithoutError,
+  Order,
+  OrderDirection
 } from '@infinityxyz/lib/types/core';
+import { OrderBy, OrderQueries, Side } from '@infinityxyz/lib/types/dto';
 import {
   PROTOCOL_FEE_BPS,
   firestoreConstants,
   formatEth,
   getCollectionDocId,
-  getOBOrderPrice
+  getOBOrderPrice,
+  trimLowerCase
 } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { ContractService } from 'ethereum/contract.service';
 import { EthereumService } from 'ethereum/ethereum.service';
-import { FirebaseService } from 'firebase/firebase.service';
-import { CursorService } from 'pagination/cursor.service';
-import { bn } from 'utils';
-import { BaseOrdersService } from './base-orders.service';
-import { OrderBy, OrderQueries, Side } from '@infinityxyz/lib/types/dto';
-import { MatchingEngineService } from 'v2/matching-engine/matching-engine.service';
 import { BigNumber } from 'ethers';
 import { parseUnits } from 'ethers/lib/utils';
+import { FirebaseService } from 'firebase/firebase.service';
+import { CursorService } from 'pagination/cursor.service';
 import { ReservoirService } from 'reservoir/reservoir.service';
+import { bn } from 'utils';
+import { MatchingEngineService } from 'v2/matching-engine/matching-engine.service';
+import { DEFAULT_MIN_XFL_BALANCE_FOR_ZERO_FEE } from '../../constants';
+import { BaseOrdersService } from './base-orders.service';
 import { AggregatedOrder } from './types';
 
 @Injectable()
@@ -38,6 +40,30 @@ export class OrdersService extends BaseOrdersService {
     protected matchingEngineService: MatchingEngineService
   ) {
     super(firebaseService, contractService, ethereumService);
+  }
+
+  public async getMinXflBalanceForZeroFees(chainId: string, collection: string, user: string): Promise<number> {
+    const defaultFeeDoc = await this._firebaseService.firestore.collection('platformFees').doc('default').get();
+    let fees = defaultFeeDoc.data()?.minXflBalanceForZeroFee ?? DEFAULT_MIN_XFL_BALANCE_FOR_ZERO_FEE;
+
+    // check if fees are waived for this user
+    if (user) {
+      const userDoc = await this._firebaseService.firestore.collection('platformFees').doc(trimLowerCase(user)).get();
+      if (userDoc.exists) {
+        fees = userDoc.data()?.minXflBalanceForZeroFee ?? fees;
+      }
+    }
+
+    // check if fees are waived for this collection
+    if (chainId && collection) {
+      const collDocId = getCollectionDocId({ chainId, collectionAddress: collection });
+      const platformFeesDoc = await this._firebaseService.firestore.collection('platformFees').doc(collDocId).get();
+      if (platformFeesDoc.exists) {
+        fees = platformFeesDoc.data()?.minXflBalanceForZeroFee ?? fees;
+      }
+    }
+
+    return fees;
   }
 
   public async getAggregatedListings(
@@ -77,7 +103,7 @@ export class OrdersService extends BaseOrdersService {
     return {
       continuation: listings.continuation,
       orders: augmentedOrders
-    }
+    };
   }
 
   public getGasCostWei(
