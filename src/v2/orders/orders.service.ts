@@ -70,9 +70,10 @@ export class OrdersService extends BaseOrdersService {
     chainId: string,
     collection: string,
     tokenId?: string,
-    continuation?: string
+    continuation?: string,
+    user?: string
   ): Promise<{ continuation: string | undefined; orders: AggregatedOrder[] | undefined }> {
-    const listings = await this.reservoirService.getListings(chainId, collection, tokenId, continuation);
+    const listings = await this.reservoirService.getListings(chainId, collection, tokenId, continuation, user);
     if (!listings) {
       return {
         continuation: undefined,
@@ -82,9 +83,12 @@ export class OrdersService extends BaseOrdersService {
 
     // fetch last sale price from firestore
     const collsRef = this._firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL);
-    const collDocId = getCollectionDocId({ chainId, collectionAddress: collection });
-    const tokenIds = listings.orders.map((order) => `${order.criteria.data.token.tokenId}`);
-    const nftRefs = tokenIds.map((tokenId) => collsRef.doc(collDocId).collection('nfts').doc(tokenId));
+    const nftRefs = listings.orders.map((listing) =>
+      collsRef
+        .doc(getCollectionDocId({ collectionAddress: listing.contract, chainId }))
+        .collection('nfts')
+        .doc(listing.criteria.data.token.tokenId)
+    );
     const nftsSnap = await this._firebaseService.firestore.getAll(...nftRefs);
     const nfts = nftsSnap.map((snap) => snap.data() as Erc721Token);
 

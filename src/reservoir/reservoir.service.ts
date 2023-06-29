@@ -42,19 +42,27 @@ export class ReservoirService {
 
   public async getListings(
     chainId: string,
-    collectionAddress: string,
+    collectionAddress?: string,
     tokenId?: string,
-    continuation?: string
+    continuation?: string,
+    user?: string
   ): Promise<ReservoirOrders | undefined> {
     try {
       const res: Response<ReservoirOrders> = await this.errorHandler(() => {
         const searchParams: any = {
-          contracts: collectionAddress,
           status: 'active',
           limit: 50,
           includeCriteriaMetadata: true,
           sortBy: 'price'
         };
+
+        if (collectionAddress) {
+          searchParams.contracts = collectionAddress;
+        }
+
+        if (user) {
+          searchParams.maker = user;
+        }
 
         if (tokenId) {
           searchParams.token = `${collectionAddress}:${tokenId}`;
@@ -84,7 +92,7 @@ export class ReservoirService {
 
       return response;
     } catch (e) {
-      console.error('failed to get listings from reservoir', chainId, collectionAddress, tokenId, e);
+      console.error('failed to get listings from reservoir', chainId, collectionAddress, tokenId, user, e);
     }
   }
 

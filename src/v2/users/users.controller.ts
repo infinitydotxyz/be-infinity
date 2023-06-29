@@ -1,6 +1,6 @@
 import { ApiRole, ChainId } from '@infinityxyz/lib/types/core';
 import { ErrorResponseDto, Side, TakerOrdersQuery } from '@infinityxyz/lib/types/dto';
-import { BadRequestException, Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { Auth } from 'auth/api-auth.decorator';
@@ -18,6 +18,29 @@ import { OrdersService } from 'v2/orders/orders.service';
 export class UsersController {
   constructor(protected _ordersService: OrdersService, protected _betaService: BetaService) {}
 
+  // @Get(':userId/orders')
+  // @ApiOperation({
+  //   description: 'Get orders for a user',
+  //   tags: [ApiTag.Orders, ApiTag.User]
+  // })
+  // @ApiOkResponse({ description: ResponseDescription.Success })
+  // @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  // @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  // public async getUserOrders(
+  //   @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
+  //   @Query() query: TakerOrdersQuery
+  // ) {
+  //   if (query.side === Side.Taker) {
+  //     if (!('status' in query)) {
+  //       throw new BadRequestException('Status is required for taker orders');
+  //     }
+  //   }
+  //   const orders = await this._ordersService.getDisplayOrders(query.chainId ?? ChainId.Mainnet, query, {
+  //     user: user.userAddress
+  //   });
+  //   return orders;
+  // }
+
   @Get(':userId/orders')
   @ApiOperation({
     description: 'Get orders for a user',
@@ -30,15 +53,23 @@ export class UsersController {
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
     @Query() query: TakerOrdersQuery
   ) {
+    let orders;
     if (query.side === Side.Taker) {
-      if (!('status' in query)) {
-        throw new BadRequestException('Status is required for taker orders');
-      }
+      // get bids
+    } else {
+      orders = await this._ordersService.getAggregatedListings(
+        query.chainId as string,
+        query.collection as string,
+        '',
+        query.cursor,
+        user.userAddress
+      );
     }
-    const orders = await this._ordersService.getDisplayOrders(query.chainId ?? ChainId.Mainnet, query, {
-      user: user.userAddress
-    });
-    return orders;
+    return {
+      data: orders?.orders,
+      cursor: orders?.continuation,
+      hasNextPage: orders?.continuation ? true : false
+    };
   }
 
   @Get(':userId/beta/auth')
