@@ -105,17 +105,18 @@ export class OrdersService extends BaseOrdersService {
     if (!collBidsOnly) {
       // fetch last sale price from firestore
       const collsRef = this._firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL);
-      const nftRefs = orders.orders.map((listing) =>
+      const ordersWithTokenIds = orders.orders.filter((order) => order.criteria?.data?.token?.tokenId);
+      const nftRefs = ordersWithTokenIds.map((order) =>
         collsRef
-          .doc(getCollectionDocId({ collectionAddress: listing.contract, chainId }))
+          .doc(getCollectionDocId({ collectionAddress: order.contract, chainId }))
           .collection('nfts')
-          .doc(listing.criteria.data.token.tokenId)
+          .doc(order.criteria.data.token.tokenId)
       );
       const nftsSnap = await this._firebaseService.firestore.getAll(...nftRefs);
       const nfts = nftsSnap.map((snap) => snap.data() as Erc721Token);
 
       augmentedOrders = orders.orders.map((order) => {
-        const nft = nfts.find((nft) => nft?.tokenId === order.criteria.data.token.tokenId);
+        const nft = nfts.find((nft) => nft?.tokenId === order.criteria?.data?.token?.tokenId);
         const lastSalePriceEth = nft?.lastSalePriceEth ?? 0;
         const mintPriceEth = nft?.mintPrice ?? 0;
         return {
@@ -312,7 +313,7 @@ export class OrdersService extends BaseOrdersService {
     }
 
     const orderDirection = query.orderDirection ? query.orderDirection : DEFAULT_ORDER_DIRECTION;
-    const limit = query.limit ?? 50;
+    const limit = Number(query.limit) ?? 50;
     const cursor = this.cursorService.decodeCursorToObject<Cursor>(query.cursor);
 
     let firestoreQuery: FirebaseFirestore.Query<FirestoreDisplayOrderWithoutError> = ref.where(

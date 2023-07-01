@@ -1,5 +1,5 @@
 import { ApiRole, ChainId } from '@infinityxyz/lib/types/core';
-import { ErrorResponseDto, Side, TakerOrdersQuery } from '@infinityxyz/lib/types/dto';
+import { ErrorResponseDto, MakerOrdersQuery, Side, TakerOrdersQuery } from '@infinityxyz/lib/types/dto';
 import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
@@ -18,29 +18,6 @@ import { OrdersService } from 'v2/orders/orders.service';
 export class UsersController {
   constructor(protected _ordersService: OrdersService, protected _betaService: BetaService) {}
 
-  // @Get(':userId/orders')
-  // @ApiOperation({
-  //   description: 'Get orders for a user',
-  //   tags: [ApiTag.Orders, ApiTag.User]
-  // })
-  // @ApiOkResponse({ description: ResponseDescription.Success })
-  // @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
-  // @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  // public async getUserOrders(
-  //   @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
-  //   @Query() query: TakerOrdersQuery
-  // ) {
-  //   if (query.side === Side.Taker) {
-  //     if (!('status' in query)) {
-  //       throw new BadRequestException('Status is required for taker orders');
-  //     }
-  //   }
-  //   const orders = await this._ordersService.getDisplayOrders(query.chainId ?? ChainId.Mainnet, query, {
-  //     user: user.userAddress
-  //   });
-  //   return orders;
-  // }
-
   @Get(':userId/orders')
   @ApiOperation({
     description: 'Get orders for a user',
@@ -51,19 +28,27 @@ export class UsersController {
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   public async getUserOrders(
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
-    @Query() query: TakerOrdersQuery
+    @Query() query: MakerOrdersQuery | TakerOrdersQuery
   ) {
     let orders;
     if (query.side === Side.Taker) {
-      // get bids
+      // get offers-received
     } else {
-      orders = await this._ordersService.getAggregatedOrders(
-        query.chainId as string,
-        query.collection as string,
-        '',
-        query.cursor,
-        user.userAddress
-      );
+      if (query.isIntent) {
+        // fetch from firestore
+        return await this._ordersService.getDisplayOrders(query.chainId ?? ChainId.Mainnet, query, {
+          user: user.userAddress
+        });
+      } else {
+        orders = await this._ordersService.getAggregatedOrders(
+          query.chainId as string,
+          query.collection as string,
+          '',
+          query.cursor,
+          user.userAddress,
+          String(query.isSellOrder) === 'true' ? 'sell' : 'buy'
+        );
+      }
     }
     return {
       data: orders?.orders,
