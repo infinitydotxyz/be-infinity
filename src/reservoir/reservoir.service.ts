@@ -40,12 +40,14 @@ export class ReservoirService {
     });
   }
 
-  public async getListings(
+  public async getOrders(
     chainId: string,
     collectionAddress?: string,
     tokenId?: string,
     continuation?: string,
-    user?: string
+    user?: string,
+    side?: string,
+    collBidsOnly?: boolean
   ): Promise<ReservoirOrders | undefined> {
     try {
       const res: Response<ReservoirOrders> = await this.errorHandler(() => {
@@ -56,7 +58,7 @@ export class ReservoirService {
           sortBy: 'price'
         };
 
-        if (collectionAddress) {
+        if (collectionAddress && !collBidsOnly) {
           searchParams.contracts = collectionAddress;
         }
 
@@ -72,12 +74,20 @@ export class ReservoirService {
           searchParams.continuation = continuation;
         }
 
-        return this.client.get(`orders/asks/v4`, {
+        let endpoint = 'orders/asks/v4';
+        if (side === 'buy') {
+          endpoint = 'orders/bids/v5';
+          if (collBidsOnly) {
+            searchParams.collection = collectionAddress;
+          }
+        }
+
+        return this.client.get(endpoint, {
           searchParams,
           responseType: 'json'
         });
       });
-      
+
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       const response = res.body;
       // remove duplicate tokenIds
@@ -92,7 +102,7 @@ export class ReservoirService {
 
       return response;
     } catch (e) {
-      console.error('failed to get listings from reservoir', chainId, collectionAddress, tokenId, user, e);
+      console.error('failed to get orders from reservoir', chainId, collectionAddress, tokenId, user, side, e);
     }
   }
 

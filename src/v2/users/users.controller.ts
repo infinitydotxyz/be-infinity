@@ -57,7 +57,7 @@ export class UsersController {
     if (query.side === Side.Taker) {
       // get bids
     } else {
-      orders = await this._ordersService.getAggregatedListings(
+      orders = await this._ordersService.getAggregatedOrders(
         query.chainId as string,
         query.collection as string,
         '',

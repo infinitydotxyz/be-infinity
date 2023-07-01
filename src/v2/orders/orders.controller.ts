@@ -27,35 +27,36 @@ export class OrdersController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 }))
-  public async getMinXflBalanceForZeroFees(
-    @Query() query: { collection: string; chainId: string; user: string }
-  ) {
+  public async getMinXflBalanceForZeroFees(@Query() query: { collection: string; chainId: string; user: string }) {
     return await this._ordersService.getMinXflBalanceForZeroFees(query.chainId, query.collection, query.user);
   }
 
   @Get()
   @ApiOperation({
-    description: 'Get listings from all marketplaces',
+    description: 'Get orders from all marketplaces',
     tags: [ApiTag.Orders]
   })
   @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 20 }))
-  public async getAggregatedListings(
-    @Query() query: { collection: string; chainId: string; tokenId?: string; continuation?: string }
+  public async getAggregatedOrders(
+    @Query() query: { collection: string; chainId: string; tokenId?: string; continuation?: string; side?: string, collBidsOnly?: boolean }
   ) {
     try {
-      const listings = await this._ordersService.getAggregatedListings(
+      const orders = await this._ordersService.getAggregatedOrders(
         query.chainId,
         query.collection,
         query.tokenId,
-        query.continuation
+        query.continuation,
+        undefined,
+        query.side,
+        query.collBidsOnly
       );
       return {
-        data: listings?.orders,
-        cursor: listings?.continuation,
-        hasNextPage: listings?.continuation ? true : false
+        data: orders?.orders,
+        cursor: orders?.continuation,
+        hasNextPage: orders?.continuation ? true : false
       };
     } catch (err) {
       if (err instanceof InvalidCollectionError) {

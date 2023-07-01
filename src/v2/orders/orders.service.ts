@@ -66,36 +66,34 @@ export class OrdersService extends BaseOrdersService {
     return fees;
   }
 
-  public async getAggregatedListings(
+  public async getAggregatedOrders(
     chainId: string,
     collection: string,
     tokenId?: string,
     continuation?: string,
-    user?: string
+    user?: string,
+    side?: string,
+    collBidsOnly?: boolean
   ): Promise<{ continuation: string | undefined; orders: AggregatedOrder[] | undefined }> {
-    const listings = await this.reservoirService.getListings(chainId, collection, tokenId, continuation, user);
-    if (!listings) {
+    const orders = await this.reservoirService.getOrders(
+      chainId,
+      collection,
+      tokenId,
+      continuation,
+      user,
+      side,
+      collBidsOnly
+    );
+    if (!orders) {
       return {
         continuation: undefined,
         orders: undefined
       };
     }
 
-    // fetch last sale price from firestore
-    const collsRef = this._firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL);
-    const nftRefs = listings.orders.map((listing) =>
-      collsRef
-        .doc(getCollectionDocId({ collectionAddress: listing.contract, chainId }))
-        .collection('nfts')
-        .doc(listing.criteria.data.token.tokenId)
-    );
-    const nftsSnap = await this._firebaseService.firestore.getAll(...nftRefs);
-    const nfts = nftsSnap.map((snap) => snap.data() as Erc721Token);
-
-    const augmentedOrders = listings.orders.map((order) => {
-      const nft = nfts.find((nft) => nft?.tokenId === order.criteria.data.token.tokenId);
-      const lastSalePriceEth = nft?.lastSalePriceEth ?? 0;
-      const mintPriceEth = nft?.mintPrice ?? 0;
+    let augmentedOrders = orders.orders.map((order) => {
+      const lastSalePriceEth = 0;
+      const mintPriceEth = 0;
       return {
         ...order,
         chainId,
@@ -104,8 +102,33 @@ export class OrdersService extends BaseOrdersService {
       };
     });
 
+    if (!collBidsOnly) {
+      // fetch last sale price from firestore
+      const collsRef = this._firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL);
+      const nftRefs = orders.orders.map((listing) =>
+        collsRef
+          .doc(getCollectionDocId({ collectionAddress: listing.contract, chainId }))
+          .collection('nfts')
+          .doc(listing.criteria.data.token.tokenId)
+      );
+      const nftsSnap = await this._firebaseService.firestore.getAll(...nftRefs);
+      const nfts = nftsSnap.map((snap) => snap.data() as Erc721Token);
+
+      augmentedOrders = orders.orders.map((order) => {
+        const nft = nfts.find((nft) => nft?.tokenId === order.criteria.data.token.tokenId);
+        const lastSalePriceEth = nft?.lastSalePriceEth ?? 0;
+        const mintPriceEth = nft?.mintPrice ?? 0;
+        return {
+          ...order,
+          chainId,
+          lastSalePriceEth,
+          mintPriceEth
+        };
+      });
+    }
+
     return {
-      continuation: listings.continuation,
+      continuation: orders.continuation,
       orders: augmentedOrders
     };
   }
