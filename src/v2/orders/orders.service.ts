@@ -121,26 +121,28 @@ export class OrdersService extends BaseOrdersService {
       // fetch last sale price from firestore
       const collsRef = this._firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL);
       const ordersWithTokenIds = orders.orders.filter((order) => order.criteria?.data?.token?.tokenId);
-      const nftRefs = ordersWithTokenIds.map((order) =>
-        collsRef
-          .doc(getCollectionDocId({ collectionAddress: order.contract, chainId }))
-          .collection('nfts')
-          .doc(order.criteria.data.token.tokenId)
-      );
-      const nftsSnap = await this._firebaseService.firestore.getAll(...nftRefs);
-      const nfts = nftsSnap.map((snap) => snap.data() as Erc721Token);
+      if (ordersWithTokenIds.length > 0) {
+        const nftRefs = ordersWithTokenIds.map((order) =>
+          collsRef
+            .doc(getCollectionDocId({ collectionAddress: order.contract, chainId }))
+            .collection('nfts')
+            .doc(order.criteria.data.token.tokenId)
+        );
+        const nftsSnap = await this._firebaseService.firestore.getAll(...nftRefs);
+        const nfts = nftsSnap.map((snap) => snap.data() as Erc721Token);
 
-      augmentedOrders = orders.orders.map((order) => {
-        const nft = nfts.find((nft) => nft?.tokenId === order.criteria?.data?.token?.tokenId);
-        const lastSalePriceEth = nft?.lastSalePriceEth ?? 0;
-        const mintPriceEth = nft?.mintPrice ?? 0;
-        return {
-          ...order,
-          chainId,
-          lastSalePriceEth,
-          mintPriceEth
-        };
-      });
+        augmentedOrders = orders.orders.map((order) => {
+          const nft = nfts.find((nft) => nft?.tokenId === order.criteria?.data?.token?.tokenId);
+          const lastSalePriceEth = nft?.lastSalePriceEth ?? 0;
+          const mintPriceEth = nft?.mintPrice ?? 0;
+          return {
+            ...order,
+            chainId,
+            lastSalePriceEth,
+            mintPriceEth
+          };
+        });
+      }
     }
 
     return {
@@ -355,7 +357,7 @@ export class OrdersService extends BaseOrdersService {
     );
 
     if (filterBySellOrder) {
-      firestoreQuery = firestoreQuery.where('order.isSellOrder', '==', query.isSellOrder);
+      firestoreQuery = firestoreQuery.where('order.isSellOrder', '==', String(query.isSellOrder) === 'true');
     }
 
     if (filterByStatus) {
@@ -411,7 +413,6 @@ export class OrdersService extends BaseOrdersService {
     ]);
 
     const orders = snap.docs.map((item) => item.data());
-
     const hasNextPage = orders.length > limit;
 
     if (hasNextPage) {
