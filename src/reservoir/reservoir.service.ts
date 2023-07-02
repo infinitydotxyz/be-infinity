@@ -10,7 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import got, { Got, Response } from 'got/dist/source';
 import { EnvironmentVariables } from 'types/environment-variables.interface';
 import { gotErrorHandler } from '../utils/got';
-import { ReservoirOrders } from './types';
+import { ReservoirOrders, ReservoirUserTopOffers } from './types';
 
 @Injectable()
 export class ReservoirService {
@@ -103,6 +103,54 @@ export class ReservoirService {
       return response;
     } catch (e) {
       console.error('failed to get orders from reservoir', chainId, collectionAddress, tokenId, user, side, e);
+    }
+  }
+
+  public async getUserTopOffers(
+    chainId: string,
+    user: string,
+    collectionAddress?: string,
+    continuation?: string
+  ): Promise<ReservoirUserTopOffers | undefined> {
+    try {
+      const res: Response<ReservoirUserTopOffers> = await this.errorHandler(() => {
+        const searchParams: any = {
+          limit: 50,
+          includeCriteriaMetadata: true,
+          sortBy: 'topBidValue'
+        };
+
+        if (collectionAddress) {
+          searchParams.collection = collectionAddress;
+        }
+
+        if (continuation) {
+          searchParams.continuation = continuation;
+        }
+
+        const endpoint = `orders/users/${user}/top-bids/v4`;
+
+        return this.client.get(endpoint, {
+          searchParams,
+          responseType: 'json'
+        });
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      const response = res.body;
+      // remove duplicate tokenIds
+      const set = new Set<string>();
+      response.topBids = response.topBids.filter((bid) => {
+        if (set.has(bid.token.tokenId)) {
+          return false;
+        }
+        set.add(bid.token.tokenId);
+        return true;
+      });
+
+      return response;
+    } catch (e) {
+      console.error('failed to get user top bids from reservoir', chainId, collectionAddress, user, e);
     }
   }
 

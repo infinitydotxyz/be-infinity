@@ -23,6 +23,7 @@ import { parseUnits } from 'ethers/lib/utils';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
 import { ReservoirService } from 'reservoir/reservoir.service';
+import { ReservoirUserTopOffers } from 'reservoir/types';
 import { bn } from 'utils';
 import { MatchingEngineService } from 'v2/matching-engine/matching-engine.service';
 import { DEFAULT_MIN_XFL_BALANCE_FOR_ZERO_FEE } from '../../constants';
@@ -132,6 +133,23 @@ export class OrdersService extends BaseOrdersService {
       continuation: orders.continuation,
       orders: augmentedOrders
     };
+  }
+
+  public async getUserTopOffers(
+    chainId: string,
+    user: string,
+    collection?: string,
+    continuation?: string
+  ): Promise<ReservoirUserTopOffers | undefined> {
+    const offers = await this.reservoirService.getUserTopOffers(chainId, user, collection, continuation);
+    if (!offers) {
+      return undefined;
+    }
+
+    const offersWithChainId = offers.topBids.map((offer) => ({ ...offer, chainId }));
+    offers.topBids = offersWithChainId;
+
+    return offers;
   }
 
   public getGasCostWei(

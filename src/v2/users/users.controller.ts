@@ -33,6 +33,28 @@ export class UsersController {
     let orders;
     if (query.side === Side.Taker) {
       // get offers-received
+      const offersReceived = await this._ordersService.getUserTopOffers(
+        query.chainId as string,
+        user.userAddress,
+        query.collection,
+        query.cursor
+      );
+
+      if (!offersReceived) {
+        return {
+          data: [],
+          cursor: undefined,
+          hasNextPage: false
+        };
+      }
+
+      return {
+        data: offersReceived.topBids,
+        cursor: offersReceived.continuation,
+        totalAmount: offersReceived.totalAmount,
+        totalTokensWithBids: offersReceived.totalTokensWithBids,
+        hasNextPage: offersReceived.continuation ? true : false
+      };
     } else {
       if (query.isIntent) {
         // fetch from firestore
