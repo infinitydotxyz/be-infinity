@@ -291,7 +291,7 @@ export class NftsService {
 
       for (const side of ['listing' as const, 'offer' as const]) {
         const orderItem = item.ordersSnippet?.[side]?.orderItem;
-        if (orderItem) {
+        if (orderItem && orderItem.startPriceEth) {
           const startPrice = orderItem.startPriceEth;
           const gasUsage = orderItem.gasUsage;
           const source = orderItem.source;
