@@ -31,6 +31,39 @@ export class OrdersController {
     return await this._ordersService.getMinXflBalanceForZeroFees(query.chainId, query.collection, query.user);
   }
 
+  @Get('token/bestbidask')
+  @ApiOperation({
+    description: 'Get bid and ask for a token',
+    tags: [ApiTag.Orders]
+  })
+  @ApiOkResponse({ description: ResponseDescription.Success })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 20 }))
+  public async getBestAskBidForToken(
+    @Query()
+    query: {
+      collection: string;
+      chainId: string;
+      tokenId: string;
+    }
+  ) {
+    try {
+      return await this._ordersService.getBestAskBidForToken(
+        query.chainId,
+        query.collection,
+        query.tokenId
+      );
+    } catch (err) {
+      if (err instanceof InvalidCollectionError) {
+        throw new BadRequestException(err.message);
+      } else if (err instanceof InvalidTokenError) {
+        throw new BadRequestException(err.message);
+      }
+      throw err;
+    }
+  }
+
   @Get()
   @ApiOperation({
     description: 'Get orders from all marketplaces',
@@ -41,7 +74,15 @@ export class OrdersController {
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 20 }))
   public async getAggregatedOrders(
-    @Query() query: { collection: string; chainId: string; tokenId?: string; continuation?: string; side?: string, collBidsOnly?: boolean }
+    @Query()
+    query: {
+      collection: string;
+      chainId: string;
+      tokenId?: string;
+      continuation?: string;
+      side?: string;
+      collBidsOnly?: boolean;
+    }
   ) {
     try {
       const orders = await this._ordersService.getAggregatedOrders(

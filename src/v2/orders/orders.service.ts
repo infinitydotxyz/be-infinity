@@ -23,7 +23,7 @@ import { parseUnits } from 'ethers/lib/utils';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
 import { ReservoirService } from 'reservoir/reservoir.service';
-import { ReservoirUserTopOffers } from 'reservoir/types';
+import { ReservoirTokenV6, ReservoirUserTopOffers } from 'reservoir/types';
 import { bn } from 'utils';
 import { MatchingEngineService } from 'v2/matching-engine/matching-engine.service';
 import { DEFAULT_MIN_XFL_BALANCE_FOR_ZERO_FEE } from '../../constants';
@@ -65,6 +65,20 @@ export class OrdersService extends BaseOrdersService {
     }
 
     return fees;
+  }
+
+  public async getBestAskBidForToken(
+    chainId: string,
+    collection: string,
+    tokenId: string
+  ): Promise<ReservoirTokenV6 | undefined> {
+    const data = await this.reservoirService.getSingleTokenInfo(chainId, collection, tokenId);
+    if (!data) {
+      return undefined;
+    }
+    const token = data.tokens[0];
+    const tokenWithChainId = { ...token, chainId };
+    return tokenWithChainId;
   }
 
   public async getAggregatedOrders(

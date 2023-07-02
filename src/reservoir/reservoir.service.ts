@@ -10,7 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import got, { Got, Response } from 'got/dist/source';
 import { EnvironmentVariables } from 'types/environment-variables.interface';
 import { gotErrorHandler } from '../utils/got';
-import { ReservoirOrders, ReservoirUserTopOffers } from './types';
+import { ReservoirOrders, ReservoirTokensResponseV6, ReservoirUserTopOffers } from './types';
 
 @Injectable()
 export class ReservoirService {
@@ -213,6 +213,28 @@ export class ReservoirService {
       return res.body;
     } catch (e) {
       console.error('failed to get single contract info from reservoir', chainId, collectionAddress, e);
+    }
+  }
+
+  public async getSingleTokenInfo(
+    chainId: string,
+    collectionAddress: string,
+    tokenId: string
+  ): Promise<ReservoirTokensResponseV6 | undefined> {
+    try {
+      const res: Response<ReservoirTokensResponseV6> = await this.errorHandler(() => {
+        const searchParams: any = {
+          tokenSetId: `token:${collectionAddress}:${tokenId}`
+        };
+        return this.client.get(`tokens/v6`, {
+          searchParams,
+          responseType: 'json'
+        });
+      });
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return res.body;
+    } catch (e) {
+      console.error('failed to get single token info from reservoir', chainId, collectionAddress, e);
     }
   }
 
