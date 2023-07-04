@@ -74,9 +74,9 @@ export class ReservoirService {
           searchParams.continuation = continuation;
         }
 
-        let endpoint = 'orders/asks/v4';
+        let endpoint = 'orders/asks/v5';
         if (side === 'buy') {
-          endpoint = 'orders/bids/v5';
+          endpoint = 'orders/bids/v6';
           if (collBidsOnly) {
             searchParams.collection = collectionAddress;
           }
