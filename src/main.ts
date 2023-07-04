@@ -19,7 +19,7 @@ import { createHash } from 'crypto';
 
 async function setup(app: INestApplication) {
   app.enableCors({
-    origin: '*', // ORIGIN, // todo: use '*' for testing
+    origin: 'https://pixelpack.io',
     optionsSuccessStatus: 200
   });
   app.use(helmet());
