@@ -90,15 +90,18 @@ export class ReservoirService {
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       const response = res.body;
-      // remove duplicate tokenIds
-      const set = new Set<string>();
-      response.orders = response.orders.filter((order) => {
-        if (set.has(order.tokenSetId)) {
-          return false;
-        }
-        set.add(order.tokenSetId);
-        return true;
-      });
+
+      // remove duplicate tokenIds unless we are getting orders for a user
+      if (!user) {
+        const set = new Set<string>();
+        response.orders = response.orders.filter((order) => {
+          if (set.has(order.tokenSetId)) {
+            return false;
+          }
+          set.add(order.tokenSetId);
+          return true;
+        });
+      }
 
       return response;
     } catch (e) {
