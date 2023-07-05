@@ -55,7 +55,6 @@ export class NftsService {
         });
         if (owner && nft.owner !== owner) {
           nft.owner = owner;
-          this.updateOwnershipInFirestore(nft);
         }
       } catch (err) {
         console.error(`failed to get owner for NFT: ${nftQuery.chainId}:${nftQuery.address}:${nftQuery.tokenId}`);
@@ -63,26 +62,6 @@ export class NftsService {
     }
 
     return nft;
-  }
-
-  private updateOwnershipInFirestore(nft: NftDto): void {
-    const chainId = nft.chainId;
-    const collectionAddress = nft.collectionAddress ?? '';
-    const tokenId = nft.tokenId;
-    const collectionDocId = getCollectionDocId({ chainId, collectionAddress });
-    this.firebaseService.firestore
-      .collection(firestoreConstants.COLLECTIONS_COLL)
-      .doc(collectionDocId)
-      .collection(firestoreConstants.COLLECTION_NFTS_COLL)
-      .doc(tokenId)
-      .set({ owner: nft.owner }, { merge: true })
-      .then(() => {
-        console.log(`Updated ownership of ${chainId}:${collectionAddress}:${tokenId} to ${nft.owner}`);
-      })
-      .catch((err) => {
-        console.error(`Failed to update ownership of ${chainId}:${collectionAddress}:${tokenId} to ${nft.owner}`);
-        console.error(err);
-      });
   }
 
   isSupported(nfts: NftDto[]) {
