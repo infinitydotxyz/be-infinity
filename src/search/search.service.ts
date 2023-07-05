@@ -173,18 +173,12 @@ export class SearchService {
       .where('chainId', '==', query.chainId)
       .where('searchTags', 'array-contains', trimLowerCase(query.query));
 
-    const verifiedQuery = q.where('hasBlueCheck', '==', true).orderBy('slug');
-    const unverifiedQuery = q.where('hasBlueCheck', '==', false).orderBy('slug');
+    const supportedCollsQuery = q.where('isSupported', '==', true).orderBy('slug');
     const queries = [
       {
         key: 'verified',
-        query: verifiedQuery,
+        query: supportedCollsQuery,
         cursor: cursor?.[SearchType.Collection]?.verified ?? ''
-      },
-      {
-        key: 'unverified',
-        query: unverifiedQuery,
-        cursor: cursor?.[SearchType.Collection]?.unverified ?? ''
       }
     ];
 
