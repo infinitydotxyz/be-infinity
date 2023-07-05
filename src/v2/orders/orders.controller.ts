@@ -18,17 +18,17 @@ import { CacheControlInterceptor } from 'common/interceptors/cache-control.inter
 export class OrdersController {
   constructor(protected _ordersService: OrdersService, protected _protocolOrdersService: ProtocolOrdersService) {}
 
-  @Get('minxflbalanceforzerofees')
+  @Get('minxflstakeforzerofees')
   @ApiOperation({
-    description: 'Get min xfl balance for zero fees',
+    description: 'Get min xfl stake for zero fees',
     tags: [ApiTag.Orders]
   })
   @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 }))
-  public async getMinXflBalanceForZeroFees(@Query() query: { collection: string; chainId: string; user: string }) {
-    return await this._ordersService.getMinXflBalanceForZeroFees(query.chainId, query.collection, query.user);
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 2 * 60 }))
+  public async getMinXflStakeForZeroFees(@Query() query: { collection: string; chainId: string; user: string }) {
+    return await this._ordersService.getMinXflStakeForZeroFees(query.chainId, query.collection, query.user);
   }
 
   @Get('token/bestbidask')
@@ -49,11 +49,7 @@ export class OrdersController {
     }
   ) {
     try {
-      return await this._ordersService.getBestAskBidForToken(
-        query.chainId,
-        query.collection,
-        query.tokenId
-      );
+      return await this._ordersService.getBestAskBidForToken(query.chainId, query.collection, query.tokenId);
     } catch (err) {
       if (err instanceof InvalidCollectionError) {
         throw new BadRequestException(err.message);

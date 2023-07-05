@@ -43,15 +43,15 @@ export class OrdersService extends BaseOrdersService {
     super(firebaseService, contractService, ethereumService);
   }
 
-  public async getMinXflBalanceForZeroFees(chainId: string, collection: string, user: string): Promise<number> {
+  public async getMinXflStakeForZeroFees(chainId: string, collection: string, user: string): Promise<number> {
     const defaultFeeDoc = await this._firebaseService.firestore.collection('platformFees').doc('default').get();
-    let fees = defaultFeeDoc.data()?.minXflBalanceForZeroFee ?? DEFAULT_MIN_XFL_BALANCE_FOR_ZERO_FEE;
+    let fees = defaultFeeDoc.data()?.minXflStakeForZeroFees ?? DEFAULT_MIN_XFL_BALANCE_FOR_ZERO_FEE;
 
     // check if fees are waived for this user
     if (user) {
       const userDoc = await this._firebaseService.firestore.collection('platformFees').doc(trimLowerCase(user)).get();
       if (userDoc.exists) {
-        fees = userDoc.data()?.minXflBalanceForZeroFee ?? fees;
+        fees = userDoc.data()?.minXflStakeForZeroFees ?? fees;
       }
     }
 
@@ -60,7 +60,7 @@ export class OrdersService extends BaseOrdersService {
       const collDocId = getCollectionDocId({ chainId, collectionAddress: collection });
       const platformFeesDoc = await this._firebaseService.firestore.collection('platformFees').doc(collDocId).get();
       if (platformFeesDoc.exists) {
-        fees = platformFeesDoc.data()?.minXflBalanceForZeroFee ?? fees;
+        fees = platformFeesDoc.data()?.minXflStakeForZeroFees ?? fees;
       }
     }
 
