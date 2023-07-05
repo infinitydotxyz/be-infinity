@@ -202,21 +202,6 @@ export default class CollectionsService {
       orders.push(dataPoint);
     }
 
-    try {
-      const orderExecInfo = await this.matchingEngineService.getExecutionStatuses(
-        collection.chainId,
-        orders.map((item) => item.id)
-      );
-      orderExecInfo.forEach((item, index) => {
-        data.push({ ...orders[index], executionStatus: item });
-      });
-    } catch (err) {
-      console.error(err);
-      orders.forEach((order) => {
-        data.push({ ...order, executionStatus: null });
-      });
-    }
-
     return data;
   }
 
