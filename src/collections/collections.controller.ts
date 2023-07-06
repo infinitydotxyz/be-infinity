@@ -55,6 +55,7 @@ import CollectionsService from './collections.service';
 import { CollectionStatsArrayDto } from './dto/collection-stats-array.dto';
 import { NftsService } from './nfts/nfts.service';
 import { Throttle } from '@nestjs/throttler';
+import { ReservoirOrderDepth } from 'reservoir/types';
 
 const EXCLUDED_COLLECTIONS = [
   '0x81ae0be3a8044772d04f32398bac1e1b4b215aa8', // Dreadfulz
@@ -323,6 +324,23 @@ export class CollectionsController {
     @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
   ): Promise<CollectionSaleAndOrder[]> {
     return await this.collectionsService.getRecentSalesAndOrders(collection);
+  }
+
+  @Get('/:id/orderdepth')
+  @ApiOperation({
+    tags: [ApiTag.Collection, ApiTag.Orders],
+    description: 'Get order depth for a single collection'
+  })
+  @ApiParamCollectionId()
+  @ApiOkResponse({ description: ResponseDescription.Success })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 }))
+  async getOrderDepth(
+    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
+  ): Promise<{ buy: ReservoirOrderDepth | undefined; sell: ReservoirOrderDepth | undefined }> {
+    return await this.collectionsService.getOrderDepth(collection);
   }
 
   @Get('/:id/stats')

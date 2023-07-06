@@ -1,6 +1,62 @@
+export interface ReservoirSales {
+  sales: ReservoirSale[];
+  continuation: string;
+}
+export interface ReservoirSale {
+  chainId: string;
+  id: string;
+  saleId: string;
+  orderId: string;
+  orderSource: string;
+  orderSide: string;
+  orderKind: string;
+  from: string; // seller
+  to: string; // buyer
+  fillSource: string;
+  block: number;
+  txHash: string;
+  logIndex: number;
+  batchIndex: number;
+  timestamp: number; // seconds since epoch
+  price: {
+    currency: {
+      contract: string;
+      name: string;
+      symbol: string;
+      decimals: number;
+    };
+    amount: {
+      raw: string;
+      decimal: number;
+      usd: number;
+      native: number;
+    };
+    netAmount: {
+      raw: string;
+      decimal: number;
+      usd: number;
+      native: number;
+    };
+  };
+  token: {
+    contract: string;
+    tokenId: string;
+    name: string;
+    image: string;
+    collection: {
+      id: string;
+      name: string;
+    };
+  };
+}
+
 export interface ReservoirOrders {
   orders: ReservoirOrder[];
   continuation: string;
+}
+
+export interface ReservoirOrderDepth {
+  depth: { price: number; quantity: number }[];
 }
 
 export interface ReservoirOrder {
@@ -15,6 +71,8 @@ export interface ReservoirOrder {
   taker: string;
   validFrom: number;
   validUntil: number;
+  createdAt: string;
+  updatedAt: string;
   price: {
     currency: {
       contract: string;

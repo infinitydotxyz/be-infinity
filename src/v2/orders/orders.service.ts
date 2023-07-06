@@ -97,7 +97,8 @@ export class OrdersService extends BaseOrdersService {
       continuation,
       user,
       side,
-      collBidsOnly
+      collBidsOnly,
+      'price'
     );
     if (!orders) {
       return {

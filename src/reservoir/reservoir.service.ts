@@ -10,7 +10,13 @@ import { ConfigService } from '@nestjs/config';
 import got, { Got, Response } from 'got/dist/source';
 import { EnvironmentVariables } from 'types/environment-variables.interface';
 import { gotErrorHandler } from '../utils/got';
-import { ReservoirOrders, ReservoirTokensResponseV6, ReservoirUserTopOffers } from './types';
+import {
+  ReservoirOrderDepth,
+  ReservoirOrders,
+  ReservoirSales,
+  ReservoirTokensResponseV6,
+  ReservoirUserTopOffers
+} from './types';
 
 @Injectable()
 export class ReservoirService {
@@ -40,6 +46,48 @@ export class ReservoirService {
     });
   }
 
+  public async getSales(
+    chainId: string,
+    collectionAddress: string,
+    tokenId?: string,
+    continuation?: string,
+    sortBy?: string,
+    limit?: number
+  ): Promise<ReservoirSales | undefined> {
+    try {
+      const res: Response<ReservoirSales> = await this.errorHandler(() => {
+        const searchParams: any = {
+          limit: limit ?? 50,
+          includeTokenMetadata: true,
+          sortBy: sortBy ? sortBy : 'time'
+        };
+
+        if (tokenId) {
+          searchParams.tokens = `${collectionAddress}:${tokenId}`;
+        } else {
+          searchParams.collection = collectionAddress;
+        }
+
+        if (continuation) {
+          searchParams.continuation = continuation;
+        }
+
+        const endpoint = 'sales/v5';
+
+        return this.client.get(endpoint, {
+          searchParams,
+          responseType: 'json'
+        });
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      const response = res.body;
+      return response;
+    } catch (e) {
+      console.error('failed to get sales from reservoir', chainId, collectionAddress, tokenId, e);
+    }
+  }
+
   public async getOrders(
     chainId: string,
     collectionAddress?: string,
@@ -47,18 +95,20 @@ export class ReservoirService {
     continuation?: string,
     user?: string,
     side?: string,
-    collBidsOnly?: boolean
+    collBidsOnly?: boolean,
+    sortBy?: string,
+    limit?: number
   ): Promise<ReservoirOrders | undefined> {
     try {
       const res: Response<ReservoirOrders> = await this.errorHandler(() => {
         const searchParams: any = {
           status: 'active',
-          limit: 50,
+          limit: limit ?? 50,
           includeCriteriaMetadata: true,
-          sortBy: 'price'
+          sortBy: sortBy ? sortBy : 'price'
         };
 
-        if (collectionAddress && !collBidsOnly) {
+        if (collectionAddress && !collBidsOnly && !tokenId) {
           searchParams.contracts = collectionAddress;
         }
 
@@ -157,6 +207,36 @@ export class ReservoirService {
     }
   }
 
+  public async getOrderDepth(
+    chainId: string,
+    collectionAddress: string,
+    side: string,
+    tokenId?: string
+  ): Promise<ReservoirOrderDepth | undefined> {
+    try {
+      const res: Response<ReservoirOrderDepth> = await this.errorHandler(() => {
+        const searchParams: any = {
+          side
+        };
+
+        if (tokenId) {
+          searchParams.token = `${collectionAddress}:${tokenId}`;
+        } else {
+          searchParams.collection = collectionAddress;
+        }
+
+        return this.client.get(`orders/depth/v1`, {
+          searchParams,
+          responseType: 'json'
+        });
+      });
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return res.body;
+    } catch (e) {
+      console.error('failed to get order depth from reservoir', chainId, collectionAddress, tokenId, side, e);
+    }
+  }
+
   public async reindexCollection(chainId: string, collectionAddress: string) {
     try {
       await this.errorHandler(() => {
@@ -227,7 +307,8 @@ export class ReservoirService {
     try {
       const res: Response<ReservoirTokensResponseV6> = await this.errorHandler(() => {
         const searchParams: any = {
-          tokenSetId: `token:${collectionAddress}:${tokenId}`
+          tokenSetId: `token:${collectionAddress}:${tokenId}`,
+          includeTopBid: true
         };
         return this.client.get(`tokens/v6`, {
           searchParams,

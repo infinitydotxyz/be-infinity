@@ -26,6 +26,7 @@ import { firestore } from 'firebase-admin';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
 import { PostgresService } from 'postgres/postgres.service';
+import { ReservoirService } from 'reservoir/reservoir.service';
 import { getNftActivity, getNftSocialActivity } from 'utils/activity';
 import { OrdersService } from 'v2/orders/orders.service';
 
@@ -35,6 +36,7 @@ export class NftsService {
     private firebaseService: FirebaseService,
     private paginationService: CursorService,
     private ethereumService: EthereumService,
+    private reservoirService: ReservoirService,
     private backfillService: BackfillService,
     private postgresService: PostgresService,
     protected ordersService: OrdersService
@@ -149,12 +151,12 @@ export class NftsService {
     }
 
     const startPriceField = `ordersSnippet.${orderType}.orderItem.startPriceEth`;
-    
+
     const hasPriceFilter = query.minPrice !== undefined || query.maxPrice !== undefined;
     if (query.orderType || hasPriceFilter) {
       nftsQuery = nftsQuery.where(`ordersSnippet.${orderType}.hasOrder`, '==', true);
     }
-    
+
     if (query.source) {
       nftsQuery = nftsQuery.where(`ordersSnippet.${orderType}.orderItem.source`, '==', query.source);
     }
@@ -356,17 +358,21 @@ export class NftsService {
   }
 
   async getSalesAndOrders(collection: ParsedCollectionId, tokenId: string): Promise<NftSaleAndOrder[]> {
-    const pool = this.postgresService.pool;
     const data: NftSaleAndOrder[] = [];
+    const chainId = collection.chainId;
+    const collectionAddress = collection.address;
 
-    const salesQuery = `SELECT sale_price_eth, sale_timestamp\
-       FROM eth_nft_sales \
-       WHERE collection_address = '${collection.address}' AND token_id = '${tokenId}' \
-       ORDER BY sale_timestamp DESC LIMIT 100`;
-    const salesResult = await pool.query(salesQuery);
-    for (const row of salesResult.rows) {
-      const priceEth = parseFloat(row.sale_price_eth);
-      const timestamp = Number(row.sale_timestamp);
+    const salesResult = await this.reservoirService.getSales(
+      chainId,
+      collectionAddress,
+      tokenId,
+      undefined,
+      undefined,
+      100
+    );
+    for (const sale of salesResult?.sales ?? []) {
+      const priceEth = sale.price.amount.native;
+      const timestamp = sale.timestamp * 1000;
 
       if (!priceEth || !timestamp) {
         continue;
@@ -381,15 +387,52 @@ export class NftsService {
       data.push(dataPoint);
     }
 
-    const ordersQuery = `SELECT price_eth, is_sell_order, start_time_millis\
-       FROM eth_nft_orders \
-       WHERE collection_address = '${collection.address}' AND token_id = '${tokenId}' \
-       ORDER BY start_time_millis DESC LIMIT 500`;
-    const ordersResult = await pool.query(ordersQuery);
-    for (const row of ordersResult.rows) {
-      const priceEth = parseFloat(row.price_eth);
-      const timestamp = Number(row.start_time_millis);
-      const isSellOrder = row.is_sell_order;
+    const listings = await this.reservoirService.getOrders(
+      chainId,
+      collectionAddress,
+      tokenId,
+      undefined,
+      undefined,
+      'sell',
+      false,
+      'updatedAt',
+      100
+    );
+    
+    const bids = await this.reservoirService.getOrders(
+      chainId,
+      collectionAddress,
+      tokenId,
+      undefined,
+      undefined,
+      'buy',
+      false,
+      'updatedAt',
+      100
+    );
+
+    for (const listing of listings?.orders ?? []) {
+      const priceEth = listing.price.amount.native;
+      const timestamp = new Date(listing.updatedAt).getTime();
+      const isSellOrder = true;
+
+      if (!priceEth || !timestamp) {
+        continue;
+      }
+
+      const dataPoint: NftSaleAndOrder = {
+        dataType: isSellOrder ? 'Listing' : 'Offer',
+        priceEth,
+        timestamp
+      };
+
+      data.push(dataPoint);
+    }
+
+    for (const bid of bids?.orders ?? []) {
+      const priceEth = bid.price.amount.native;
+      const timestamp = new Date(bid.updatedAt).getTime();
+      const isSellOrder = false;
 
       if (!priceEth || !timestamp) {
         continue;

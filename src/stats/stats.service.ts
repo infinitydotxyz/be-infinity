@@ -190,22 +190,17 @@ export class StatsService {
   }
 
   async getCollectionHistoricalSales(collection: ParsedCollectionId): Promise<Partial<CollectionHistoricalSale>[]> {
-    const timestamp = Date.now() - 1000 * 60 * 60 * 24 * 30; // 30 days ago
-    const q = `SELECT token_id, sale_price_eth, sale_timestamp, token_image\
-       FROM eth_nft_sales \
-       WHERE collection_address = '${collection.address}' AND sale_timestamp > '${timestamp}'\
-       ORDER BY sale_timestamp DESC LIMIT 2000`;
-
-    const pool = this.postgresService.pool;
-
-    const result = await pool.query(q);
+    const chainId = collection.chainId;
+    const collectionAddress = collection.address;
+    const result = await this.reservoirService.getSales(chainId, collectionAddress, undefined, undefined, 'time', 1000);
     const data = [];
     const map = new Map<string, Partial<CollectionHistoricalSale>>();
-    for (const row of result.rows) {
-      const tokenId = row.token_id;
-      const salePriceEth = parseFloat(row.sale_price_eth);
-      const timestamp = Number(row.sale_timestamp);
-      const tokenImage = row.token_image;
+    for (const sale of result?.sales ?? []) {
+      const tokenId = sale.token.tokenId;
+      const salePriceEth = sale.price.amount.native;
+      const timestamp = sale.timestamp * 1000;
+      const tokenImage = sale.token.image;
+      const id = sale.id;
 
       if (!tokenId || !salePriceEth || !timestamp || !tokenImage) {
         continue;
@@ -218,7 +213,7 @@ export class StatsService {
         tokenImage
       };
 
-      map.set(`${tokenId}:${salePriceEth}:${timestamp}`,dataPoint);
+      map.set(id, dataPoint);
     }
 
     data.push(...map.values());
@@ -226,39 +221,93 @@ export class StatsService {
   }
 
   async getCollectionOrders(collection: ParsedCollectionId, isSellOrder: boolean): Promise<CollectionOrder[]> {
-    const q = `SELECT id, token_id, maker, is_private, token_image, price_eth, is_sell_order \
-       FROM eth_nft_orders \
-       WHERE collection_address = '${collection.address}' AND status = 'active' AND is_sell_order = '${isSellOrder}' \
-       LIMIT 1000`;
+    const chainId = collection.chainId;
+    const collectionAddress = collection.address;
 
-    const pool = this.postgresService.pool;
-
-    const result = await pool.query(q);
     const data: CollectionOrder[] = [];
-    for (const order of result.rows) {
-      const id = order.id;
-      const tokenId = order.token_id;
-      const priceEth = parseFloat(order.price_eth);
-      const isSellOrder = Boolean(order.is_sell_order);
-      const tokenImage = order.token_image;
-      const maker = order.maker;
-      const isPrivate = Boolean(order.is_private);
 
-      if (!priceEth) {
-        continue;
+    if (isSellOrder) {
+      const listings = await this.reservoirService.getOrders(
+        chainId,
+        collectionAddress,
+        undefined,
+        undefined,
+        undefined,
+        'sell',
+        false,
+        'updatedAt',
+        1000
+      );
+
+      for (const listing of listings?.orders ?? []) {
+        const isSellOrder = true;
+        const maker = listing.maker;
+        const isPrivate = false;
+        const priceEth = listing.price.amount.native;
+        const id = listing.id;
+        const tokenId = listing.criteria?.data?.token?.tokenId;
+        const tokenImage = listing.criteria?.data?.token?.image;
+
+        if (!priceEth || !tokenId || !tokenImage) {
+          continue;
+        }
+
+        const dataPoint: CollectionOrder = {
+          id,
+          tokenId,
+          priceEth,
+          isSellOrder,
+          tokenImage,
+          maker,
+          isPrivate
+        };
+
+        data.push(dataPoint);
       }
+    } else {
+      const bids = await this.reservoirService.getOrders(
+        chainId,
+        collectionAddress,
+        undefined,
+        undefined,
+        undefined,
+        'buy',
+        false,
+        'updatedAt',
+        1000
+      );
 
-      const dataPoint: CollectionOrder = {
-        id,
-        tokenId,
-        priceEth,
-        isSellOrder,
-        tokenImage,
-        maker,
-        isPrivate
-      };
+      for (const bid of bids?.orders ?? []) {
+        const isSellOrder = false;
+        const maker = bid.maker;
+        const isPrivate = false;
+        const priceEth = bid.price.amount.native;
+        const id = bid.id;
+        const isCollBid = bid.criteria?.kind === 'collection';
+        const isAttrBid = bid.criteria?.kind === 'attribute';
+        const tokenTitle = isCollBid ? 'Collection Bid' : isAttrBid ? 'Trait Bid' : bid.criteria?.data?.token?.tokenId;
+        const image = isCollBid
+          ? bid.criteria?.data?.collection?.image
+          : isAttrBid
+          ? ''
+          : bid.criteria?.data?.token?.image;
 
-      data.push(dataPoint);
+        if (!priceEth || !tokenTitle || !image) {
+          continue;
+        }
+
+        const dataPoint: CollectionOrder = {
+          id,
+          tokenId: tokenTitle,
+          priceEth,
+          isSellOrder,
+          tokenImage: image,
+          maker,
+          isPrivate
+        };
+
+        data.push(dataPoint);
+      }
     }
 
     return data;
@@ -303,8 +352,9 @@ export class StatsService {
     const [primarySnap, trendingStatsSnap] = await this.firebaseService.firestore.getAll(statsQuery, trendingStatsRef);
     const primary = (primarySnap.data() ?? {}) as CollectionStats;
     const trendingStats = trendingStatsSnap.data() ?? {};
+    const updatedAt = primary?.updatedAt ?? 0;
 
-    let numSales = primary?.numSales ?? NaN;
+    const numSales = primary?.numSales ?? NaN;
     let numNfts = primary?.numNfts ?? NaN;
     let numOwners = primary?.numOwners ?? NaN;
     let floorPrice = trendingStats?.floorPrice ?? primary?.floorPrice ?? NaN;
@@ -330,7 +380,8 @@ export class StatsService {
       .collection(firestoreConstants.COLLECTION_STATS_COLL)
       .doc('all');
 
-    if (floorPrice === 0 || isNaN(floorPrice) || isNaN(numOwners) || isNaN(volume) || isNaN(numNfts)) {
+    const isStale = updatedAt < Date.now() - 1000 * 60 * 5;
+    if (isStale) {
       // fetch from reservoir
       try {
         console.log('Fetching stats from reservoir for collection', collection.chainId, collection.address);
@@ -369,51 +420,6 @@ export class StatsService {
       }
     }
 
-    if (isNaN(numNfts) || isNaN(numOwners) || isNaN(volume)) {
-      // fetch from zora
-      try {
-        console.log('Fetching stats from zora for collection', collection.chainId, collection.address);
-        const stats = await this.zoraService.getAggregatedCollectionStats(collection.chainId, collection.address, 10);
-        if (stats) {
-          const data: Partial<CollectionStats> = {};
-
-          if (stats.aggregateStat?.salesVolume?.totalCount) {
-            numSales = stats.aggregateStat?.salesVolume?.totalCount;
-            data.numSales = numSales;
-          }
-          if (stats.aggregateStat?.nftCount) {
-            numNfts = stats.aggregateStat.nftCount;
-            data.numNfts = numNfts;
-          }
-          if (stats.aggregateStat.ownerCount) {
-            numOwners = stats.aggregateStat.ownerCount;
-            data.numOwners = numOwners;
-          }
-          if (stats.aggregateStat?.salesVolume.chainTokenPrice) {
-            volume = stats.aggregateStat.salesVolume.chainTokenPrice;
-            data.volume = volume;
-          }
-          if (stats.aggregateStat?.salesVolume.usdcPrice) {
-            data.volumeUSDC = stats.aggregateStat.salesVolume.usdcPrice;
-          }
-          if (stats.aggregateStat?.ownersByCount?.nodes && stats.aggregateStat?.ownersByCount?.nodes.length >= 10) {
-            data.topOwnersByOwnedNftsCount = stats.aggregateStat.ownersByCount.nodes;
-          }
-
-          if (data) {
-            data.updatedAt = Date.now();
-          }
-
-          // save
-          allTimeCollStatsDocRef.set(data, { merge: true }).catch((err) => {
-            console.error('Error saving zora stats', err);
-          });
-        }
-      } catch (err) {
-        console.error('Error getting zora data', err);
-      }
-    }
-
     const stats: Partial<CollectionStatsDto> = {
       numSales,
       numNfts,
@@ -428,15 +434,6 @@ export class StatsService {
     };
 
     return stats;
-  }
-
-  async getCollectionFloorPrice(collection: { address: string; chainId: ChainId }): Promise<number | null> {
-    try {
-      const floorPrice = await this.alchemyService.getFloorPrice(collection.chainId, collection.address);
-      return floorPrice;
-    } catch (err) {
-      return null;
-    }
   }
 
   async refreshSocialsStats(collectionRef: FirebaseFirestore.DocumentReference) {
