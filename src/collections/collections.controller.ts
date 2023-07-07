@@ -14,7 +14,6 @@ import {
   Get,
   InternalServerErrorException,
   NotFoundException,
-  Put,
   Query,
   UseInterceptors
 } from '@nestjs/common';
@@ -39,6 +38,7 @@ import {
 import { NftActivityArrayDto, NftActivityFiltersDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { TweetArrayDto } from '@infinityxyz/lib/types/dto/twitter';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
+import { Throttle } from '@nestjs/throttler';
 import { ApiTag } from 'common/api-tags';
 import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param-collection-id.decorator';
 import { ErrorResponseDto } from 'common/dto/error-response.dto';
@@ -48,14 +48,13 @@ import { CacheControlInterceptor } from 'common/interceptors/cache-control.inter
 import { ResponseDescription } from 'common/response-description';
 import { FirebaseService } from 'firebase/firebase.service';
 import { mnemonicByParam } from 'mnemonic/mnemonic.service';
+import { ReservoirOrderDepth } from 'reservoir/types';
 import { StatsService } from 'stats/stats.service';
 import { TwitterService } from 'twitter/twitter.service';
 import { ParseCollectionIdPipe, ParsedCollectionId } from './collection-id.pipe';
 import CollectionsService from './collections.service';
 import { CollectionStatsArrayDto } from './dto/collection-stats-array.dto';
 import { NftsService } from './nfts/nfts.service';
-import { Throttle } from '@nestjs/throttler';
-import { ReservoirOrderDepth } from 'reservoir/types';
 
 const EXCLUDED_COLLECTIONS = [
   '0x81ae0be3a8044772d04f32398bac1e1b4b215aa8', // Dreadfulz
@@ -101,19 +100,6 @@ export class CollectionsController {
       }
     }
     return query;
-  }
-
-  @Put('update-trending-colls')
-  @ApiOperation({
-    tags: [ApiTag.Collection, ApiTag.Stats],
-    description: 'Update top collections in firebase. Called by an external job'
-  })
-  @ApiOkResponse({ description: ResponseDescription.Success })
-  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
-  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  async storeTrendingCollections() {
-    await this.statsService.fetchAndStoreTopCollectionsFromReservoir();
   }
 
   @Get('stats')

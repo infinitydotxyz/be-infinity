@@ -12,6 +12,7 @@ import { API_KEY_HEADER, API_SECRET_HEADER } from 'auth/auth.constants';
 import { SupportedCollectionsProvider } from 'common/providers/supported-collections-provider';
 import { FirebaseService } from 'firebase/firebase.service';
 import SetsService from 'sets/sets.service';
+import { StatsService } from 'stats/stats.service';
 
 async function setup(app: INestApplication) {
   app.enableCors({
@@ -34,6 +35,12 @@ async function setup(app: INestApplication) {
 
   const setsService = app.get(SetsService);
   setsService.setSupportedCollections(supportedCollections);
+
+  // update trending collections every 30 minutes
+  const statsService = app.get(StatsService);
+  setInterval(async () => {
+    await statsService.fetchAndStoreTopCollectionsFromReservoir();
+  }, 30 * 60 * 1000);
 
   if (process.env.INFINITY_NODE_ENV === 'dev') {
     setupSwagger(app, 'docs');
