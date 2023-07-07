@@ -25,7 +25,6 @@ import { formatEther, parseEther } from 'ethers/lib/utils';
 import { firestore } from 'firebase-admin';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
-import { PostgresService } from 'postgres/postgres.service';
 import { ReservoirService } from 'reservoir/reservoir.service';
 import { getNftActivity, getNftSocialActivity } from 'utils/activity';
 import { OrdersService } from 'v2/orders/orders.service';
@@ -38,7 +37,6 @@ export class NftsService {
     private ethereumService: EthereumService,
     private reservoirService: ReservoirService,
     private backfillService: BackfillService,
-    private postgresService: PostgresService,
     protected ordersService: OrdersService
   ) {}
 

@@ -18,7 +18,6 @@ import { Injectable } from '@nestjs/common';
 import { AlchemyService } from 'alchemy/alchemy.service';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
-import { PostgresService } from 'postgres/postgres.service';
 import { ReservoirService } from 'reservoir/reservoir.service';
 import { ZoraService } from 'zora/zora.service';
 import { DiscordService } from '../discord/discord.service';
@@ -46,8 +45,7 @@ export class StatsService {
     private firebaseService: FirebaseService,
     private zoraService: ZoraService,
     private reservoirService: ReservoirService,
-    private alchemyService: AlchemyService,
-    private postgresService: PostgresService
+    private alchemyService: AlchemyService
   ) {
     this.fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
   }

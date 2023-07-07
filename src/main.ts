@@ -11,7 +11,6 @@ import { HttpExceptionFilter } from './http-exception.filter';
 import { API_KEY_HEADER, API_SECRET_HEADER } from 'auth/auth.constants';
 import { SupportedCollectionsProvider } from 'common/providers/supported-collections-provider';
 import { FirebaseService } from 'firebase/firebase.service';
-import SetsService from 'sets/sets.service';
 import { StatsService } from 'stats/stats.service';
 
 async function setup(app: INestApplication) {
@@ -32,9 +31,6 @@ async function setup(app: INestApplication) {
   const firebaseService = app.get(FirebaseService);
   const supportedCollections = new SupportedCollectionsProvider(firebaseService.firestore);
   await supportedCollections.init();
-
-  const setsService = app.get(SetsService);
-  setsService.setSupportedCollections(supportedCollections);
 
   // update trending collections every 30 minutes
   const statsService = app.get(StatsService);

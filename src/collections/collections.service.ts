@@ -15,7 +15,6 @@ import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
-import { PostgresService } from 'postgres/postgres.service';
 import { ReservoirService } from 'reservoir/reservoir.service';
 import { StatsService } from 'stats/stats.service';
 import { MatchingEngineService } from 'v2/matching-engine/matching-engine.service';
@@ -41,7 +40,6 @@ export default class CollectionsService {
     private reservoirService: ReservoirService,
     private paginationService: CursorService,
     private statsService: StatsService,
-    private postgresService: PostgresService,
     protected matchingEngineService: MatchingEngineService
   ) {}
 

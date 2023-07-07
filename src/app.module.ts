@@ -4,6 +4,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { BackfillModule } from 'backfill/backfill.module';
 import { CollectionsModule } from 'collections/collections.module';
+import { FavoritesModule } from 'favorites/favorites.module';
 import { FeedModule } from 'feed/feed.module';
 import { GemModule } from 'gem/gem.module';
 import { LoggerMiddleware } from 'logger.middleware';
@@ -11,39 +12,35 @@ import { MnemonicModule } from 'mnemonic/mnemonic.module';
 import { OpenseaModule } from 'opensea/opensea.module';
 import { join } from 'path';
 import { ReservoirModule } from 'reservoir/reservoir.module';
+import { SalesModule } from 'sales/sales.module';
 import { ApiKeyThrottlerGuard } from 'throttler/throttler.guard';
 import { ZoraModule } from 'zora/zora.module';
 import { AlchemyModule } from './alchemy/alchemy.module';
 import { ApiUserModule } from './api-user/api-user.module';
 import { AppController } from './app.controller';
-import { secondaryEnvFileName, validateAndTransformEnvVariables } from './constants';
+import { envFileName, secondaryEnvFileName, validateAndTransformEnvVariables } from './constants';
 import { DiscordModule } from './discord/discord.module';
 import { EthereumModule } from './ethereum/ethereum.module';
 import { FirebaseModule } from './firebase/firebase.module';
+import { MerkleTreeModule } from './merkle-tree/merkle-tree.module';
+import { RafflesModule } from './raffles/raffles.module';
+import { RewardsModule } from './rewards/rewards.module';
+import { SearchModule } from './search/search.module';
 import { StatsModule } from './stats/stats.module';
 import { StorageModule } from './storage/storage.module';
 import { TwitterModule } from './twitter/twitter.module';
 import { UserModule } from './user/user.module';
-import { envFileName } from './constants';
-import { SalesModule } from 'sales/sales.module';
-import { RewardsModule } from './rewards/rewards.module';
-import { RafflesModule } from './raffles/raffles.module';
-import { FavoritesModule } from 'favorites/favorites.module';
-import { MerkleTreeModule } from './merkle-tree/merkle-tree.module';
-import { SearchModule } from './search/search.module';
-import { OrdersModule as V2OrdersModule } from './v2/orders/orders.module';
-import { UsersModule as V2UsersModule } from './v2/users/users.module';
+import { BulkModule } from './v2/bulk/bulk.module';
 import { CollectionsModule as V2CollectionsModule } from './v2/collections/collections.module';
 import { GenerateModule } from './v2/generate/generate.module';
-import { BulkModule } from './v2/bulk/bulk.module';
-import { PostgresModule } from 'postgres/postgres.module';
-import { SetsModule } from 'sets/sets.module';
-import { MatchingEngineService } from './v2/matching-engine/matching-engine.service';
 import { MatchingEngineModule } from './v2/matching-engine/matching-engine.module';
+import { MatchingEngineService } from './v2/matching-engine/matching-engine.service';
+import { OrdersModule as V2OrdersModule } from './v2/orders/orders.module';
+import { UsersModule as V2UsersModule } from './v2/users/users.module';
 
-import { BetaModule } from './v2/beta/beta.module';
 import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
 import { EnvironmentVariables } from 'types/environment-variables.interface';
+import { BetaModule } from './v2/beta/beta.module';
 
 @Module({
   imports: [
@@ -62,7 +59,6 @@ import { EnvironmentVariables } from 'types/environment-variables.interface';
         };
       }
     }),
-    PostgresModule.forRoot(),
     CollectionsModule,
     FeedModule,
     TwitterModule,
@@ -95,7 +91,6 @@ import { EnvironmentVariables } from 'types/environment-variables.interface';
       }
     }),
     ApiUserModule,
-    SetsModule,
     SalesModule,
     RewardsModule,
     RafflesModule,
