@@ -161,7 +161,7 @@ export const typeToActivity = (item: any, id: string): NftActivity | null => {
   let activity: NftActivity | null = null;
 
   // this is reqd because some old data in firebase has wrong internal url for asset activity type
-  const assetInternalUrlBase = 'https://flow.so';
+  const assetInternalUrlBase = 'https://pixelpack.io';
 
   switch (item.type) {
     case EventType.NftSale: {

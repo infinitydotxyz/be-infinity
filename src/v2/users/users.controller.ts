@@ -1,6 +1,6 @@
 import { ApiRole, ChainId } from '@infinityxyz/lib/types/core';
-import { ErrorResponseDto, Side, TakerOrdersQuery } from '@infinityxyz/lib/types/dto';
-import { BadRequestException, Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { ErrorResponseDto, MakerOrdersQuery, Side, TakerOrdersQuery } from '@infinityxyz/lib/types/dto';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { Auth } from 'auth/api-auth.decorator';
@@ -28,17 +28,55 @@ export class UsersController {
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   public async getUserOrders(
     @ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId,
-    @Query() query: TakerOrdersQuery
+    @Query() query: MakerOrdersQuery | TakerOrdersQuery
   ) {
+    let orders;
     if (query.side === Side.Taker) {
-      if (!('status' in query)) {
-        throw new BadRequestException('Status is required for taker orders');
+      // get offers-received
+      const offersReceived = await this._ordersService.getUserTopOffers(
+        query.chainId as string,
+        user.userAddress,
+        query.collection,
+        query.cursor
+      );
+
+      if (!offersReceived) {
+        return {
+          data: [],
+          cursor: undefined,
+          hasNextPage: false
+        };
+      }
+
+      return {
+        data: offersReceived.topBids,
+        cursor: offersReceived.continuation,
+        totalAmount: offersReceived.totalAmount,
+        totalTokensWithBids: offersReceived.totalTokensWithBids,
+        hasNextPage: offersReceived.continuation ? true : false
+      };
+    } else {
+      if (query.isIntent) {
+        // fetch from firestore
+        return await this._ordersService.getDisplayOrders(query.chainId ?? ChainId.Mainnet, query, {
+          user: user.userAddress
+        });
+      } else {
+        orders = await this._ordersService.getAggregatedOrders(
+          query.chainId as string,
+          query.collection as string,
+          '',
+          query.cursor,
+          user.userAddress,
+          String(query.isSellOrder) === 'true' ? 'sell' : 'buy'
+        );
       }
     }
-    const orders = await this._ordersService.getDisplayOrders(query.chainId ?? ChainId.Mainnet, query, {
-      user: user.userAddress
-    });
-    return orders;
+    return {
+      data: orders?.orders,
+      cursor: orders?.continuation,
+      hasNextPage: orders?.continuation ? true : false
+    };
   }
 
   @Get(':userId/beta/auth')

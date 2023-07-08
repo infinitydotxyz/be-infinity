@@ -24,11 +24,6 @@ export interface EnvironmentVariables {
   firebaseServiceAccount: object;
   FB_STORAGE_BUCKET: string;
   REDIS_URL?: string;
-  PG_HOST: string;
-  PG_PORT: string;
-  PG_USER: string;
-  PG_PASS: string;
-  PG_DB_NAME: string;
   snapshotBucket: string;
 
   FRONTEND_HOST: string;
