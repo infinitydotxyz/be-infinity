@@ -11,6 +11,7 @@ import got, { Got, Response } from 'got/dist/source';
 import { EnvironmentVariables } from 'types/environment-variables.interface';
 import { gotErrorHandler } from '../utils/got';
 import {
+  ReservoirCollectionsV6,
   ReservoirOrderDepth,
   ReservoirOrders,
   ReservoirSales,
@@ -283,11 +284,12 @@ export class ReservoirService {
     collectionAddress: string
   ): Promise<ReservoirCollectionsV5 | undefined> {
     try {
-      const res: Response<ReservoirCollectionsV5> = await this.errorHandler(() => {
+      const res: Response<ReservoirCollectionsV6> = await this.errorHandler(() => {
         const searchParams: any = {
-          id: collectionAddress
+          id: collectionAddress,
+          includeSalesCount: true
         };
-        return this.client.get(`collections/v5`, {
+        return this.client.get(`collections/v6`, {
           searchParams,
           responseType: 'json'
         });

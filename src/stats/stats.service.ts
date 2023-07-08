@@ -352,7 +352,7 @@ export class StatsService {
     const trendingStats = trendingStatsSnap.data() ?? {};
     const updatedAt = primary?.updatedAt ?? 0;
 
-    const numSales = primary?.numSales ?? NaN;
+    let numSales = primary?.numSales ?? NaN;
     let numNfts = primary?.numNfts ?? NaN;
     let numOwners = primary?.numOwners ?? NaN;
     let floorPrice = trendingStats?.floorPrice ?? primary?.floorPrice ?? NaN;
@@ -392,7 +392,7 @@ export class StatsService {
           if (collection?.ownerCount) {
             numOwners = parseInt(String(collection.ownerCount));
           }
-          if (collection?.floorAsk) {
+          if (collection?.floorAsk.price?.amount?.native) {
             floorPrice = collection.floorAsk.price?.amount?.native;
           }
           if (collection?.volume) {
@@ -401,13 +401,17 @@ export class StatsService {
                 ? parseFloat(collection.volume.allTime)
                 : collection?.volume?.allTime ?? NaN;
           }
+          if (collection?.salesCount?.allTime) {
+            numSales = parseInt(String(collection.salesCount?.allTime));
+          }
 
           // save
           const dataToSave: Partial<CollectionStats> = {
             numNfts,
             numOwners,
             floorPrice,
-            volume
+            volume,
+            numSales
           };
           allTimeCollStatsDocRef.set(dataToSave, { merge: true }).catch((err) => {
             console.error('Error saving reservoir stats', err);
