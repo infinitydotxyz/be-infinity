@@ -132,7 +132,7 @@ export class TwitterService {
       const account = this.transformAccount(accountUser);
       return { account, tweets: [] };
     } catch (err: any) {
-      console.error(err);
+      // console.error(err);
     }
 
     throw new Error('Failed to get account and mentions');
