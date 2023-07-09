@@ -195,9 +195,20 @@ export const fetchSupportedColls = async (chainId: string) => {
     // create file if it doesn't exist
     exec(`touch ${filePath}`);
   }
+
+  const data = [];
   for (const coll of supportedColls) {
-    appendFileSync(filePath, `${coll.name}: https://pixelpack.io/collection/${coll.slug}\n`);
+    // appendFileSync(filePath, `${coll.name}: https://pixelpack.io/collection/${coll.slug}\n`);
+    const collData = {
+      address: coll.address,
+      chainId: coll.chainId,
+      partial: false,
+      reset: true,
+      mintData: false
+    };
+    data.push(collData);
   }
+  appendFileSync(filePath, JSON.stringify(data, null, 2));
   console.log('Done!');
 };
 
