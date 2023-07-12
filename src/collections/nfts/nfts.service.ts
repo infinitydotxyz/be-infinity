@@ -26,6 +26,7 @@ import { firestore } from 'firebase-admin';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
 import { ReservoirService } from 'reservoir/reservoir.service';
+import { ReservoirTokenV6 } from 'reservoir/types';
 import { getNftActivity, getNftSocialActivity } from 'utils/activity';
 import { OrdersService } from 'v2/orders/orders.service';
 
@@ -40,28 +41,10 @@ export class NftsService {
     protected ordersService: OrdersService
   ) {}
 
-  async getNft(nftQuery: NftQueryDto): Promise<NftDto | undefined> {
-    const [nft] = await this.getNfts([
-      { address: nftQuery.address, chainId: nftQuery.chainId, tokenId: nftQuery.tokenId }
-    ]);
-
-    if (nft) {
-      try {
-        // to handle stale opensea ownership data
-        const owner = await this.ethereumService.getErc721Owner({
-          address: nftQuery.address,
-          tokenId: nftQuery.tokenId,
-          chainId: nftQuery.chainId
-        });
-        if (owner && nft.owner !== owner) {
-          nft.owner = owner;
-        }
-      } catch (err) {
-        console.error(`failed to get owner for NFT: ${nftQuery.chainId}:${nftQuery.address}:${nftQuery.tokenId}`);
-      }
-    }
-
-    return nft;
+  async getNft(nftQuery: NftQueryDto): Promise<ReservoirTokenV6 | undefined> {
+    const data = await this.reservoirService.getSingleTokenInfo(nftQuery.chainId, nftQuery.address, nftQuery.tokenId);
+    const first = data?.tokens?.[0];
+    return first;
   }
 
   isSupported(nfts: NftDto[]) {
@@ -113,26 +96,6 @@ export class NftsService {
         ...nft
       };
     });
-
-    // const nftsToBackfill = [];
-
-    // for (const nft of nftsMergedWithSnapshot) {
-    //   if (!nft || !(nft.image?.url || nft.image?.originalUrl)) {
-    //     const address = nft.address || nft.collectionAddress;
-    //     if (nft.tokenId && address && nft.chainId) {
-    //       nftsToBackfill.push({
-    //         chainId: nft.chainId,
-    //         address,
-    //         tokenId: nft.tokenId
-    //       });
-    //     }
-    //   }
-    // }
-
-    // async backfill
-    // this.backfillService.backfillNfts(nftsToBackfill).catch((err) => {
-    //   console.error(err);
-    // });
 
     return nftsMergedWithSnapshot;
   }
@@ -366,7 +329,7 @@ export class NftsService {
       tokenId,
       undefined,
       undefined,
-      100
+      10
     );
     for (const sale of salesResult?.sales ?? []) {
       const priceEth = sale.price.amount.native;
@@ -394,9 +357,9 @@ export class NftsService {
       'sell',
       false,
       'updatedAt',
-      100
+      10
     );
-    
+
     const bids = await this.reservoirService.getOrders(
       chainId,
       collectionAddress,
@@ -406,7 +369,7 @@ export class NftsService {
       'buy',
       false,
       'updatedAt',
-      100
+      10
     );
 
     for (const listing of listings?.orders ?? []) {

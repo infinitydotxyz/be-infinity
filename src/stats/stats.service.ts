@@ -1,16 +1,13 @@
 import {
-  BaseCollection,
   ChainId,
   Collection,
   CollectionHistoricalSale,
   CollectionOrder,
-  CollectionPeriodStatsContent,
   CollectionStats,
   PreAggregatedSocialsStats,
   StatsPeriod,
   StatType
 } from '@infinityxyz/lib/types/core';
-import { CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
 import { ReservoirCollectionV5, ReservoirCollsSortBy } from '@infinityxyz/lib/types/services/reservoir';
 import { InfinityTweet, InfinityTwitterAccount } from '@infinityxyz/lib/types/services/twitter';
 import { firestoreConstants, getCollectionDocId, sleep } from '@infinityxyz/lib/utils';
@@ -23,6 +20,8 @@ import { ZoraService } from 'zora/zora.service';
 import { DiscordService } from '../discord/discord.service';
 import { FirebaseService } from '../firebase/firebase.service';
 import { TwitterService } from '../twitter/twitter.service';
+import { ReservoirCollectionV6 } from 'reservoir/types';
+import { CollectionPeriodStatsContent } from 'common/types';
 
 @Injectable()
 export class StatsService {
@@ -62,7 +61,7 @@ export class StatsService {
       const byParamDoc = firestoreConstants.TRENDING_BY_VOLUME_DOC;
       const byParamDocRef = trendingCollectionsRef.doc(byParamDoc);
 
-      const topColls1d = await this.fetchTop100Colls(ChainId.Mainnet, ReservoirCollsSortBy.ONE_DAY_VOLUME);
+      const topColls1d = await this.fetchTop100Colls(ChainId.Mainnet, ReservoirCollsSortBy.ONE_DAY_VOLUME); // adi-todo: support other chains
       const topColls7d = await this.fetchTop100Colls(ChainId.Mainnet, ReservoirCollsSortBy.SEVEN_DAY_VOLUME);
       const topColls30d = await this.fetchTop100Colls(ChainId.Mainnet, ReservoirCollsSortBy.THIRTY_DAY_VOLUME);
       const topCollsAllTime = await this.fetchTop100Colls(ChainId.Mainnet, ReservoirCollsSortBy.ALL_TIME_VOLUME);
@@ -84,7 +83,7 @@ export class StatsService {
           }
 
           const collectionDocId = getCollectionDocId({
-            chainId: ChainId.Mainnet,
+            chainId: ChainId.Mainnet, // adi-todo: support other chains
             collectionAddress: coll.primaryContract
           });
           const byPeriodCollectionRef = byParamDocRef.collection(key);
@@ -114,14 +113,18 @@ export class StatsService {
               : coll.volumeChange?.['30day'];
 
           const dataToStore: CollectionPeriodStatsContent = {
-            chainId: ChainId.Mainnet,
+            chainId: ChainId.Mainnet, // adi-todo: support other chains
             contractAddress: coll.primaryContract,
+            slug: coll.slug,
             period: key,
+            name: coll.name,
+            image: coll.image,
             salesVolume: Number(salesVolume),
             salesVolumeChange: Number(volumeChange),
             floorPrice: coll.floorAsk?.price?.amount?.native,
             floorPriceChange: Number(floorSaleChange),
             tokenCount: Number(coll.tokenCount),
+            hasBlueCheck: coll.openseaVerificationStatus == 'verified',
             updatedAt: Date.now()
           };
 
@@ -168,8 +171,8 @@ export class StatsService {
     return false;
   }
 
-  async fetchTop100Colls(chainId: ChainId, period: ReservoirCollsSortBy): Promise<ReservoirCollectionV5[]> {
-    const allResults: ReservoirCollectionV5[] = [];
+  async fetchTop100Colls(chainId: ChainId, period: ReservoirCollsSortBy): Promise<ReservoirCollectionV6[]> {
+    const allResults: ReservoirCollectionV6[] = [];
     let continuation = '';
     for (let i = 0; i < 5; i++) {
       console.log('Sleeping for a few seconds to avoid 429s...');
@@ -311,131 +314,14 @@ export class StatsService {
     return data;
   }
 
-  async getCollFloorAndCreator(collection: ParsedCollectionId): Promise<{ floorPrice: number; creator: string }> {
-    const period = 'all';
-    const statsQuery = collection.ref.collection(this.statsGroup).doc(period);
-
-    const trendingStatsRef = collection.ref.firestore.doc(
-      `/trendingCollections/bySalesVolume/daily/${collection.ref.id}`
-    );
-
-    const collRef = collection.ref.firestore.doc(`/collections/${collection.ref.id}`);
-
-    const [primarySnap, trendingStatsSnap, collSnap] = await this.firebaseService.firestore.getAll(
-      statsQuery,
-      trendingStatsRef,
-      collRef
-    );
-    const primary = (primarySnap.data() ?? {}) as CollectionStats;
-    const trendingStats = trendingStatsSnap.data() ?? {};
-    const collData = (collSnap.data() ?? {}) as BaseCollection;
-
-    const floorPrice = trendingStats?.floorPrice ?? primary?.floorPrice ?? NaN;
-    const creator = collData?.deployer ?? '';
-
+  async getCollFloorAndTokenCount(collection: ParsedCollectionId): Promise<{ floorPrice: number; tokenCount: number }> {
+    const data = await this.reservoirService.getSingleCollectionInfo(collection.chainId, collection.address);
+    const first = data?.collections?.[0];
+    const floorPrice = first?.floorAsk?.price?.amount?.native ?? 0;
     return {
       floorPrice,
-      creator
+      tokenCount: Number(first?.tokenCount ?? 0)
     };
-  }
-
-  async getCollAllStats(collection: ParsedCollectionId): Promise<Partial<CollectionStatsDto>> {
-    const period = 'all';
-    const statsQuery = collection.ref.collection(this.statsGroup).doc(period);
-
-    const trendingStatsRef = collection.ref.firestore.doc(
-      `/trendingCollections/bySalesVolume/daily/${collection.ref.id}`
-    );
-
-    const [primarySnap, trendingStatsSnap] = await this.firebaseService.firestore.getAll(statsQuery, trendingStatsRef);
-    const primary = (primarySnap.data() ?? {}) as CollectionStats;
-    const trendingStats = trendingStatsSnap.data() ?? {};
-    const updatedAt = primary?.updatedAt ?? 0;
-
-    let numSales = primary?.numSales ?? NaN;
-    let numNfts = primary?.numNfts ?? NaN;
-    let numOwners = primary?.numOwners ?? NaN;
-    let floorPrice = trendingStats?.floorPrice ?? primary?.floorPrice ?? NaN;
-    let volume = primary?.volume ?? NaN;
-
-    const discordFollowers = primary?.discordFollowers ?? NaN;
-    const twitterFollowers = primary?.twitterFollowers ?? NaN;
-    const prevDiscordFollowers = primary?.prevDiscordFollowers ?? NaN;
-
-    if (isNaN(twitterFollowers) || isNaN(discordFollowers)) {
-      this.updateSocialsStats(collection.ref).catch((err) => {
-        console.error('Failed updating socials stats', err);
-      });
-    }
-
-    const collectionDocId = getCollectionDocId({
-      chainId: collection.chainId,
-      collectionAddress: collection.address
-    });
-    const allTimeCollStatsDocRef = this.firebaseService.firestore
-      .collection(firestoreConstants.COLLECTIONS_COLL)
-      .doc(collectionDocId)
-      .collection(firestoreConstants.COLLECTION_STATS_COLL)
-      .doc('all');
-
-    const isStale = updatedAt < Date.now() - 1000 * 60 * 5;
-    if (isStale) {
-      // fetch from reservoir
-      try {
-        console.log('Fetching stats from reservoir for collection', collection.chainId, collection.address);
-        const data = await this.reservoirService.getSingleCollectionInfo(collection.chainId, collection.address);
-        if (data && data.collections && data.collections[0]) {
-          const collection = data.collections[0];
-          if (collection?.tokenCount) {
-            numNfts = parseInt(String(collection.tokenCount));
-          }
-          if (collection?.ownerCount) {
-            numOwners = parseInt(String(collection.ownerCount));
-          }
-          if (collection?.floorAsk.price?.amount?.native) {
-            floorPrice = collection.floorAsk.price?.amount?.native;
-          }
-          if (collection?.volume) {
-            volume =
-              typeof collection?.volume?.allTime === 'string'
-                ? parseFloat(collection.volume.allTime)
-                : collection?.volume?.allTime ?? NaN;
-          }
-          if (collection?.salesCount?.allTime) {
-            numSales = parseInt(String(collection.salesCount?.allTime));
-          }
-
-          // save
-          const dataToSave: Partial<CollectionStats> = {
-            numNfts,
-            numOwners,
-            floorPrice,
-            volume,
-            numSales
-          };
-          allTimeCollStatsDocRef.set(dataToSave, { merge: true }).catch((err) => {
-            console.error('Error saving reservoir stats', err);
-          });
-        }
-      } catch (err) {
-        console.error('Error getting floor price from reservoir', err);
-      }
-    }
-
-    const stats: Partial<CollectionStatsDto> = {
-      numSales,
-      numNfts,
-      numOwners,
-      floorPrice,
-      volume,
-      chainId: collection.chainId,
-      collectionAddress: collection.address,
-      discordFollowers,
-      twitterFollowers,
-      prevDiscordFollowers
-    };
-
-    return stats;
   }
 
   async refreshSocialsStats(collectionRef: FirebaseFirestore.DocumentReference) {

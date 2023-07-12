@@ -3,7 +3,6 @@ import {
   NftActivityArrayDto,
   NftActivityFiltersDto,
   NftArrayDto,
-  NftDto,
   NftsQueryDto
 } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { BadRequestException, Controller, Get, NotFoundException, Query, UseInterceptors } from '@nestjs/common';
@@ -61,7 +60,7 @@ export class NftsController {
   })
   @ApiParamCollectionId('id')
   @ApiParamTokenId('tokenId')
-  @ApiOkResponse({ description: ResponseDescription.Success, type: NftDto })
+  @ApiOkResponse({ description: ResponseDescription.Success})
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })

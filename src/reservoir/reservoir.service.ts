@@ -1,5 +1,4 @@
 import {
-  ReservoirCollectionsV5,
   ReservoirCollsSortBy,
   ReservoirDetailedTokensResponse,
   ReservoirTopCollectionOwnersResponse
@@ -11,6 +10,7 @@ import got, { Got, Response } from 'got/dist/source';
 import { EnvironmentVariables } from 'types/environment-variables.interface';
 import { gotErrorHandler } from '../utils/got';
 import {
+  ReservoirCollectionSearch,
   ReservoirCollectionsV6,
   ReservoirOrderDepth,
   ReservoirOrders,
@@ -45,6 +45,39 @@ export class ReservoirService {
       cache: false,
       timeout: 20_000
     });
+  }
+
+  public async searchCollections(
+    chainId: string,
+    name?: string,
+    collectionAddress?: string
+  ): Promise<ReservoirCollectionSearch | undefined> {
+    try {
+      const res: Response<ReservoirCollectionSearch> = await this.errorHandler(async () => {
+        const searchParams: any = {
+          limit: 10
+        };
+
+        if (name) {
+          searchParams.name = name;
+        } else if (collectionAddress) {
+          // fetch name first
+          const collInfo = await this.getSingleCollectionInfo(chainId, collectionAddress);
+          if (collInfo) {
+            searchParams.name = collInfo.collections[0].name;
+          }
+        }
+
+        return this.client.get(`search/collections/v2`, {
+          searchParams,
+          responseType: 'json'
+        });
+      });
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return res.body;
+    } catch (e) {
+      console.error('failed to get coll search from reservoir', chainId, name, collectionAddress, e);
+    }
   }
 
   public async getSales(
@@ -256,9 +289,9 @@ export class ReservoirService {
     sortBy: ReservoirCollsSortBy,
     limit?: number,
     continuation?: string
-  ): Promise<ReservoirCollectionsV5 | undefined> {
+  ): Promise<ReservoirCollectionsV6 | undefined> {
     try {
-      const res: Response<ReservoirCollectionsV5> = await this.errorHandler(() => {
+      const res: Response<ReservoirCollectionsV6> = await this.errorHandler(() => {
         const searchParams: any = {
           includeTopBid: true,
           sortBy,
@@ -267,7 +300,7 @@ export class ReservoirService {
         if (continuation) {
           searchParams.continuation = continuation;
         }
-        return this.client.get(`collections/v5`, {
+        return this.client.get(`collections/v6`, {
           searchParams,
           responseType: 'json'
         });
@@ -282,7 +315,7 @@ export class ReservoirService {
   public async getSingleCollectionInfo(
     chainId: string,
     collectionAddress: string
-  ): Promise<ReservoirCollectionsV5 | undefined> {
+  ): Promise<ReservoirCollectionsV6 | undefined> {
     try {
       const res: Response<ReservoirCollectionsV6> = await this.errorHandler(() => {
         const searchParams: any = {
@@ -310,7 +343,8 @@ export class ReservoirService {
       const res: Response<ReservoirTokensResponseV6> = await this.errorHandler(() => {
         const searchParams: any = {
           tokenSetId: `token:${collectionAddress}:${tokenId}`,
-          includeTopBid: true
+          includeTopBid: true,
+          includeAttributes: true
         };
         return this.client.get(`tokens/v6`, {
           searchParams,
