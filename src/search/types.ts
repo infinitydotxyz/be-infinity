@@ -1,5 +1,3 @@
-import { NftDisplayData } from "@infinityxyz/lib/types/core";
-
 export interface CollectionSearchResultData {
   chainId: string;
   address: string;
@@ -13,7 +11,17 @@ export interface CollectionSearchResultData {
 }
 
 export interface SearchResponse {
-  data: CollectionSearchResultData[] | NftDisplayData[];
+  data: CollectionSearchResultData[] | NftSearchResultData[];
   cursor: string;
   hasNextPage: boolean;
+}
+
+export interface NftSearchResultData {
+  chainId: string;
+  collectionAddress: string;
+  tokenId: string;
+  name: string;
+  numTraitTypes: number;
+  image: string;
+  tokenStandard: string;
 }

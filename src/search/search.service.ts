@@ -1,21 +1,13 @@
-import {
-  BaseCollection,
-  ChainId,
-  CollectionDisplayData,
-  NftDisplayData,
-  SearchType,
-  SubQuery,
-  TokenStandard
-} from '@infinityxyz/lib/types/core';
-import { NftDto, SubQueryDto } from '@infinityxyz/lib/types/dto';
+import { BaseCollection, ChainId, SearchType, SubQuery } from '@infinityxyz/lib/types/core';
+import { SubQueryDto } from '@infinityxyz/lib/types/dto';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
 import { ReservoirService } from 'reservoir/reservoir.service';
-import { ReservoirCollectionSearchResult } from 'reservoir/types';
+import { ReservoirCollectionSearchResult, ReservoirTokenV6 } from 'reservoir/types';
 import { DeepPartial } from 'types/utils';
-import { CollectionSearchResultData, SearchResponse } from './types';
+import { CollectionSearchResultData, NftSearchResultData, SearchResponse } from './types';
 
 type FirestoreCursor = (string | number)[] | string[] | number[] | string | number;
 interface SearchCursor {
@@ -48,7 +40,7 @@ export class SearchService {
     const cursor = this.cursorService.decodeCursorToObject<SearchCursor>(query.cursor);
 
     let res: {
-      data: CollectionSearchResultData[] | NftDisplayData[];
+      data: CollectionSearchResultData[] | NftSearchResultData[];
       cursor: DeepPartial<SearchCursor>;
       hasNextPage: boolean;
     } = {
@@ -74,30 +66,33 @@ export class SearchService {
     query: SubQuery<SearchType.Collection, any, any>,
     cursor: SearchCursor
   ): Promise<{
-    data: CollectionSearchResultData[] | NftDisplayData[];
+    data: CollectionSearchResultData[] | NftSearchResultData[];
     cursor: DeepPartial<SearchCursor>;
     hasNextPage: boolean;
   }> {
     let res: {
-      data: CollectionSearchResultData[] | NftDisplayData[];
+      data: CollectionSearchResultData[] | NftSearchResultData[];
       cursor: DeepPartial<SearchCursor>;
       hasNextPage: boolean;
     };
-    const searchTerm = query.query;
-    if (searchTerm.startsWith('0x')) {
-      res = await this.searchCollectionsByAddress(query as SubQueryDto<SearchType.Collection, 'address', any>, cursor);
-    } else {
-      res = await this.searchCollectionsBySlug(query as SubQueryDto<SearchType.Collection, 'slug', any>, cursor);
-    }
 
     if ('subType' in query && query.subType) {
-      const collection = (res.data?.[0] ?? {}) as CollectionDisplayData;
       switch (query.subType) {
         case 'nft':
-          res = await this.searchCollectionNfts(query, collection, cursor);
+          res = await this.searchCollectionNfts(query, cursor);
           break;
         default:
           throw new Error('Not yet implemented');
+      }
+    } else {
+      const searchTerm = query.query;
+      if (searchTerm.startsWith('0x')) {
+        res = await this.searchCollectionsByAddress(
+          query as SubQueryDto<SearchType.Collection, 'address', any>,
+          cursor
+        );
+      } else {
+        res = await this.searchCollectionsBySlug(query as SubQueryDto<SearchType.Collection, 'slug', any>, cursor);
       }
     }
 
@@ -105,17 +100,16 @@ export class SearchService {
   }
 
   async searchCollectionNfts(
-    query: SubQuery<SearchType.Collection, 'slug', 'nft'>,
-    collection: CollectionDisplayData,
+    query: SubQuery<SearchType.Collection, 'address', 'nft'>,
     cursor: SearchCursor
   ): Promise<{
-    data: NftDisplayData[];
+    data: NftSearchResultData[];
     cursor: DeepPartial<SearchCursor>;
     hasNextPage: boolean;
   }> {
     switch (query.subTypeSearchBy) {
       case 'tokenId': {
-        return await this.searchCollectionNftsByTokenId(query, collection, cursor);
+        return await this.searchCollectionNftsByTokenId(query, cursor);
       }
       default:
         throw new Error('Not yet implemented');
@@ -123,36 +117,37 @@ export class SearchService {
   }
 
   async searchCollectionNftsByTokenId(
-    query: SubQuery<SearchType.Collection, 'slug', 'nft'>,
-    collection: CollectionDisplayData,
+    query: SubQuery<SearchType.Collection, 'address', 'nft'>,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     cursor: SearchCursor
   ) {
-    const collectionRef = this.collectionsRef.doc(`${collection.chainId}:${collection.address}`);
-    const nftsRef = collectionRef.collection(
-      firestoreConstants.COLLECTION_NFTS_COLL
-    ) as FirebaseFirestore.CollectionReference<NftDto>;
+    const result = await this.reservoirService.getSingleTokenInfo(query.chainId, query.query, query.subTypeQuery);
+    const first = result?.tokens[0];
 
-    const nftsQuery = nftsRef.where('tokenId', '>=', query.subTypeQuery).orderBy('tokenId');
-
-    const results = await this.getAndMerge(
-      [
-        {
-          query: nftsQuery,
-          cursor: cursor[SearchType.Collection]?.subType?.['nft']?.['tokenId'] ?? ''
+    if (!first) {
+      return {
+        data: [],
+        hasNextPage: false,
+        cursor: {
+          [SearchType.Collection]: {
+            subType: {
+              ['nft']: {
+                ['tokenId']: ''
+              }
+            }
+          }
         }
-      ],
-      query.limit,
-      (nft) => nft?.tokenId ?? ''
-    );
+      };
+    }
 
     return {
-      data: results.data.map((item) => this.transformNft(item, collection)),
-      hasNextPage: results.hasNextPage,
+      data: [this.transformNft(query.chainId, first)],
+      hasNextPage: false,
       cursor: {
         [SearchType.Collection]: {
           subType: {
             ['nft']: {
-              ['tokenId']: results.cursors[0] ?? ''
+              ['tokenId']: ''
             }
           }
         }
@@ -216,65 +211,6 @@ export class SearchService {
     return await this.searchCollectionsInternal(query.chainId, undefined, query.query);
   }
 
-  protected async getAndMerge<T>(
-    queries: { query: FirebaseFirestore.Query<T>; cursor: FirestoreCursor }[],
-    limit: number,
-    getCursor: (item: Partial<T>) => FirestoreCursor
-  ): Promise<{ data: Partial<T>[]; hasNextPage: boolean; cursors: FirestoreCursor[] }> {
-    const queryResults = await Promise.all(
-      queries.map(async (item, queryIndex) => {
-        let itemQuery: FirebaseFirestore.Query<T> = item.query;
-        if (
-          (Array.isArray(item.cursor) && item.cursor.length > 0) ||
-          (!Array.isArray(item.cursor) && item.cursor != null && item.cursor !== '')
-        ) {
-          itemQuery = itemQuery.startAfter(item.cursor);
-        }
-        const snapshot = await itemQuery.limit(limit + 1).get();
-
-        const snapshotDocs = snapshot.docs.map((item) => {
-          const data = item.data() ?? ({} as Partial<T>);
-          const itemCursor = getCursor(data);
-          return {
-            data,
-            cursor: itemCursor,
-            ref: item.ref,
-            queryIndex
-          };
-        });
-        return snapshotDocs;
-      })
-    );
-
-    const flattenedResults = queryResults.flat();
-
-    const resultsInLimit = flattenedResults.slice(0, limit);
-    const hasNextPage = flattenedResults.length > limit;
-    const cursors = flattenedResults
-      .reduce((acc: FirestoreCursor[], item, index) => {
-        const existingCursor = acc[item.queryIndex];
-        const isWithinLimit = index < limit;
-        if (isWithinLimit || !existingCursor) {
-          acc[item.queryIndex] = item.cursor;
-        }
-
-        return acc;
-      }, [] as FirestoreCursor[])
-      .map((cursor, queryIndex) => {
-        if (!cursor) {
-          const initialCursor = queries[queryIndex]?.cursor;
-          return initialCursor;
-        }
-        return cursor;
-      });
-
-    return {
-      data: resultsInLimit.map((item) => item.data),
-      hasNextPage,
-      cursors: cursors
-    };
-  }
-
   protected transformCollection(
     chainId: string,
     collection: ReservoirCollectionSearchResult
@@ -292,14 +228,16 @@ export class SearchService {
     };
   }
 
-  protected transformNft(nft: Partial<NftDto>, collection: CollectionDisplayData): NftDisplayData {
+  protected transformNft(chainId: string, token: ReservoirTokenV6): NftSearchResultData {
+    const nft = token?.token;
     return {
-      collectionDisplayData: collection,
-      tokenId: nft.tokenId ?? '',
-      name: nft.metadata?.name ?? nft.tokenId ?? '',
-      numTraitTypes: nft.numTraitTypes ?? 0,
-      image: (nft.alchemyCachedImage || nft.image?.url || nft.image?.originalUrl) ?? '',
-      tokenStandard: nft.tokenStandard ?? ('' as TokenStandard)
+      chainId,
+      collectionAddress: nft?.contract ?? nft?.collection?.id ?? '',
+      tokenId: nft?.tokenId ?? '',
+      name: nft?.name ?? nft.tokenId ?? '',
+      numTraitTypes: nft?.attributes?.length ?? 0,
+      image: nft.image ?? '',
+      tokenStandard: nft.kind ?? ''
     };
   }
 }
