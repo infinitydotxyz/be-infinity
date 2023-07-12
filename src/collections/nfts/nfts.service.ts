@@ -329,7 +329,7 @@ export class NftsService {
       tokenId,
       undefined,
       undefined,
-      100
+      10
     );
     for (const sale of salesResult?.sales ?? []) {
       const priceEth = sale.price.amount.native;
@@ -357,7 +357,7 @@ export class NftsService {
       'sell',
       false,
       'updatedAt',
-      100
+      10
     );
 
     const bids = await this.reservoirService.getOrders(
@@ -369,7 +369,7 @@ export class NftsService {
       'buy',
       false,
       'updatedAt',
-      100
+      10
     );
 
     for (const listing of listings?.orders ?? []) {
