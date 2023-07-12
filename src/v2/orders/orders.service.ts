@@ -1,6 +1,5 @@
 import {
   ChainId,
-  Erc721Token,
   FirestoreDisplayOrder,
   FirestoreDisplayOrderWithoutError,
   Order,
@@ -107,7 +106,7 @@ export class OrdersService extends BaseOrdersService {
       };
     }
 
-    let augmentedOrders = orders.orders.map((order) => {
+    const augmentedOrders = orders.orders.map((order) => {
       const lastSalePriceEth = 0;
       const mintPriceEth = 0;
       return {
@@ -118,33 +117,33 @@ export class OrdersService extends BaseOrdersService {
       };
     });
 
-    if (!collBidsOnly) {
-      // fetch last sale price from firestore
-      const collsRef = this._firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL);
-      const ordersWithTokenIds = orders.orders.filter((order) => order.criteria?.data?.token?.tokenId);
-      if (ordersWithTokenIds.length > 0) {
-        const nftRefs = ordersWithTokenIds.map((order) =>
-          collsRef
-            .doc(getCollectionDocId({ collectionAddress: order.contract, chainId }))
-            .collection('nfts')
-            .doc(order.criteria.data.token.tokenId)
-        );
-        const nftsSnap = await this._firebaseService.firestore.getAll(...nftRefs);
-        const nfts = nftsSnap.map((snap) => snap.data() as Erc721Token);
+    // if (!collBidsOnly) {
+    //   // fetch last sale price from firestore
+    //   const collsRef = this._firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL);
+    //   const ordersWithTokenIds = orders.orders.filter((order) => order.criteria?.data?.token?.tokenId);
+    //   if (ordersWithTokenIds.length > 0) {
+    //     const nftRefs = ordersWithTokenIds.map((order) =>
+    //       collsRef
+    //         .doc(getCollectionDocId({ collectionAddress: order.contract, chainId }))
+    //         .collection('nfts')
+    //         .doc(order.criteria.data.token.tokenId)
+    //     );
+    //     const nftsSnap = await this._firebaseService.firestore.getAll(...nftRefs);
+    //     const nfts = nftsSnap.map((snap) => snap.data() as Erc721Token);
 
-        augmentedOrders = orders.orders.map((order) => {
-          const nft = nfts.find((nft) => nft?.tokenId === order.criteria?.data?.token?.tokenId);
-          const lastSalePriceEth = nft?.lastSalePriceEth ?? 0;
-          const mintPriceEth = nft?.mintPrice ?? 0;
-          return {
-            ...order,
-            chainId,
-            lastSalePriceEth,
-            mintPriceEth
-          };
-        });
-      }
-    }
+    //     augmentedOrders = orders.orders.map((order) => {
+    //       const nft = nfts.find((nft) => nft?.tokenId === order.criteria?.data?.token?.tokenId);
+    //       const lastSalePriceEth = nft?.lastSalePriceEth ?? 0;
+    //       const mintPriceEth = nft?.mintPrice ?? 0;
+    //       return {
+    //         ...order,
+    //         chainId,
+    //         lastSalePriceEth,
+    //         mintPriceEth
+    //       };
+    //     });
+    //   }
+    // }
 
     return {
       continuation: orders.continuation,

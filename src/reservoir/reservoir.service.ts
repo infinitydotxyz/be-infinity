@@ -11,6 +11,7 @@ import got, { Got, Response } from 'got/dist/source';
 import { EnvironmentVariables } from 'types/environment-variables.interface';
 import { gotErrorHandler } from '../utils/got';
 import {
+  ReservoirCollectionSearch,
   ReservoirCollectionsV6,
   ReservoirOrderDepth,
   ReservoirOrders,
@@ -45,6 +46,39 @@ export class ReservoirService {
       cache: false,
       timeout: 20_000
     });
+  }
+
+  public async searchCollections(
+    chainId: string,
+    name?: string,
+    collectionAddress?: string
+  ): Promise<ReservoirCollectionSearch | undefined> {
+    try {
+      const res: Response<ReservoirCollectionSearch> = await this.errorHandler(async () => {
+        const searchParams: any = {
+          limit: 10
+        };
+
+        if (name) {
+          searchParams.name = name;
+        } else if (collectionAddress) {
+          // fetch name first
+          const collInfo = await this.getSingleCollectionInfo(chainId, collectionAddress);
+          if (collInfo) {
+            searchParams.name = collInfo.collections[0].name;
+          }
+        }
+
+        return this.client.get(`search/collections/v2`, {
+          searchParams,
+          responseType: 'json'
+        });
+      });
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return res.body;
+    } catch (e) {
+      console.error('failed to get coll search from reservoir', chainId, name, collectionAddress, e);
+    }
   }
 
   public async getSales(

@@ -3,17 +3,19 @@ import {
   ChainId,
   CollectionDisplayData,
   NftDisplayData,
-  SearchBy,
   SearchType,
   SubQuery,
   TokenStandard
 } from '@infinityxyz/lib/types/core';
-import { NftDto, SearchResponseDto, SubQueryDto } from '@infinityxyz/lib/types/dto';
-import { firestoreConstants, trimLowerCase } from '@infinityxyz/lib/utils';
+import { NftDto, SubQueryDto } from '@infinityxyz/lib/types/dto';
+import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
+import { ReservoirService } from 'reservoir/reservoir.service';
+import { ReservoirCollectionSearchResult } from 'reservoir/types';
 import { DeepPartial } from 'types/utils';
+import { CollectionSearchResultData, SearchResponse } from './types';
 
 type FirestoreCursor = (string | number)[] | string[] | number[] | string | number;
 interface SearchCursor {
@@ -36,13 +38,17 @@ export class SearchService {
     ) as FirebaseFirestore.CollectionReference<BaseCollection>;
   }
 
-  constructor(protected firebaseService: FirebaseService, protected cursorService: CursorService) {}
+  constructor(
+    protected firebaseService: FirebaseService,
+    protected cursorService: CursorService,
+    protected reservoirService: ReservoirService
+  ) {}
 
-  async search(query: SubQuery<any, any, any>): Promise<SearchResponseDto> {
+  async search(query: SubQuery<any, any, any>): Promise<SearchResponse> {
     const cursor = this.cursorService.decodeCursorToObject<SearchCursor>(query.cursor);
 
     let res: {
-      data: CollectionDisplayData[] | NftDisplayData[];
+      data: CollectionSearchResultData[] | NftDisplayData[];
       cursor: DeepPartial<SearchCursor>;
       hasNextPage: boolean;
     } = {
@@ -68,27 +74,20 @@ export class SearchService {
     query: SubQuery<SearchType.Collection, any, any>,
     cursor: SearchCursor
   ): Promise<{
-    data: CollectionDisplayData[] | NftDisplayData[];
+    data: CollectionSearchResultData[] | NftDisplayData[];
     cursor: DeepPartial<SearchCursor>;
     hasNextPage: boolean;
   }> {
     let res: {
-      data: CollectionDisplayData[] | NftDisplayData[];
+      data: CollectionSearchResultData[] | NftDisplayData[];
       cursor: DeepPartial<SearchCursor>;
       hasNextPage: boolean;
     };
-    switch (query.searchBy as SearchBy<SearchType.Collection>) {
-      case 'slug':
-        res = await this.searchCollectionsBySlug(query as SubQueryDto<SearchType.Collection, 'slug', any>, cursor);
-        break;
-      case 'address':
-        res = await this.searchCollectionsByAddress(
-          query as SubQueryDto<SearchType.Collection, 'address', any>,
-          cursor
-        );
-        break;
-      default:
-        throw new Error('Not yet implemented');
+    const searchTerm = query.query;
+    if (searchTerm.startsWith('0x')) {
+      res = await this.searchCollectionsByAddress(query as SubQueryDto<SearchType.Collection, 'address', any>, cursor);
+    } else {
+      res = await this.searchCollectionsBySlug(query as SubQueryDto<SearchType.Collection, 'slug', any>, cursor);
     }
 
     if ('subType' in query && query.subType) {
@@ -161,82 +160,60 @@ export class SearchService {
     };
   }
 
-  async searchCollectionsBySlug(
-    query: SubQuery<SearchType.Collection, 'slug', any>,
-    cursor: SearchCursor
-  ): Promise<{
-    data: CollectionDisplayData[];
-    cursor: DeepPartial<SearchCursor>;
-    hasNextPage: boolean;
-  }> {
-    const q = this.collectionsRef
-      .where('chainId', '==', query.chainId)
-      .where('searchTags', 'array-contains', trimLowerCase(query.query));
-
-    const supportedCollsQuery = q.where('isSupported', '==', true).orderBy('slug');
-    const queries = [
-      {
-        key: 'verified',
-        query: supportedCollsQuery,
-        cursor: cursor?.[SearchType.Collection]?.verified ?? ''
-      }
-    ];
-
-    const getCursor = (item: Partial<BaseCollection>): FirestoreCursor => item.address ?? '';
-    const results = await this.getAndMerge(queries, query.limit, getCursor);
+  private async searchCollectionsInternal(chainId: string, name?: string, collectionAddress?: string) {
+    let results;
+    if (name) {
+      results = await this.reservoirService.searchCollections(chainId, name);
+    } else if (collectionAddress) {
+      results = await this.reservoirService.searchCollections(chainId, undefined, collectionAddress);
+    }
+    if (!results) {
+      return {
+        data: [],
+        hasNextPage: false,
+        cursor: {
+          [SearchType.Collection]: {
+            verified: '',
+            unverified: ''
+          }
+        }
+      };
+    }
 
     return {
-      data: results.data.map(this.transformCollection.bind(this)),
-      hasNextPage: results.hasNextPage,
+      data: results.collections.map((item) => this.transformCollection(chainId, item)),
+      hasNextPage: false,
       cursor: {
         [SearchType.Collection]: {
-          verified: results.cursors[0] ?? '',
-          unverified: results.cursors[1] ?? ''
+          verified: '',
+          unverified: ''
         }
       }
     };
   }
 
-  async searchCollectionsByAddress(
-    query: SubQuery<SearchType.Collection, 'address', any>,
+  async searchCollectionsBySlug(
+    query: SubQuery<SearchType.Collection, 'slug', any>,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     cursor: SearchCursor
   ): Promise<{
-    data: CollectionDisplayData[];
+    data: CollectionSearchResultData[];
     cursor: DeepPartial<SearchCursor>;
     hasNextPage: boolean;
   }> {
-    const q = this.collectionsRef
-      .where('chainId', '==', query.chainId)
-      .where('address', '>=', trimLowerCase(query.query));
+    return await this.searchCollectionsInternal(query.chainId, query.query, undefined);
+  }
 
-    const verifiedQuery = q.where('hasBlueCheck', '==', true).orderBy('address');
-    const unverifiedQuery = q.where('hasBlueCheck', '==', false).orderBy('address');
-    const queries = [
-      {
-        key: 'verified',
-        query: verifiedQuery,
-        cursor: cursor?.[SearchType.Collection]?.verified ?? ''
-      },
-      {
-        key: 'unverified',
-        query: unverifiedQuery,
-        cursor: cursor?.[SearchType.Collection]?.unverified ?? ''
-      }
-    ];
-
-    const getCursor = (item: Partial<BaseCollection>): FirestoreCursor => item.address ?? '';
-    const results = await this.getAndMerge(queries, query.limit, getCursor);
-
-    return {
-      data: results.data.map(this.transformCollection.bind(this)),
-      hasNextPage: results.hasNextPage,
-      cursor: {
-        [SearchType.Collection]: {
-          verified: results?.cursors?.[0] || '',
-          unverified: results?.cursors?.[1] || ''
-        }
-      }
-    };
+  async searchCollectionsByAddress(
+    query: SubQuery<SearchType.Collection, 'address', any>,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    cursor: SearchCursor
+  ): Promise<{
+    data: CollectionSearchResultData[];
+    cursor: DeepPartial<SearchCursor>;
+    hasNextPage: boolean;
+  }> {
+    return await this.searchCollectionsInternal(query.chainId, undefined, query.query);
   }
 
   protected async getAndMerge<T>(
@@ -298,15 +275,20 @@ export class SearchService {
     };
   }
 
-  protected transformCollection(collection: Partial<BaseCollection>): CollectionDisplayData {
+  protected transformCollection(
+    chainId: string,
+    collection: ReservoirCollectionSearchResult
+  ): CollectionSearchResultData {
     return {
-      chainId: (collection.chainId ?? '') as ChainId,
-      address: collection.address ?? '',
-      hasBlueCheck: collection.hasBlueCheck ?? false,
+      chainId: chainId as ChainId,
+      address: collection.contract ?? '',
+      hasBlueCheck: collection.openseaVerificationStatus === 'verified',
       slug: collection.slug ?? '',
-      name: collection?.metadata?.name ?? '',
-      profileImage: collection?.metadata?.profileImage ?? '',
-      bannerImage: collection?.metadata?.bannerImage ?? ''
+      name: collection.name ?? '',
+      profileImage: collection.image ?? '',
+      bannerImage: '',
+      allTimeVolume: collection.allTimeVolume ?? 0,
+      floorPrice: collection.floorAskPrice?.amount?.native ?? 0
     };
   }
 

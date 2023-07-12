@@ -1,5 +1,33 @@
 import { ReservoirCollectionAttribute, ReservoirCollectionPeriodStat } from "@infinityxyz/lib/types/services/reservoir";
 
+export interface ReservoirCollectionSearch {
+  collections: ReservoirCollectionSearchResult[];
+}
+
+export interface ReservoirCollectionSearchResult {
+  collectionId: string;
+  name: string;
+  slug: string;
+  contract: string;
+  image: string;
+  allTimeVolume: number;
+  openseaVerificationStatus: string; // 'verified', 'approved' or no?
+  floorAskPrice: {
+    currency: {
+      contract: string;
+      name: string;
+      symbol: string;
+      decimals: number;
+    };
+    amount: {
+      raw: string;
+      decimal: number;
+      usd: number;
+      native: number;
+    };
+  }
+}
+
 export interface ReservoirSales {
   sales: ReservoirSale[];
   continuation: string;
