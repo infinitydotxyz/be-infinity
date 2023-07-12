@@ -4,7 +4,7 @@ import {
   CollectionMetadata,
   CollectionPeriodStatsContent,
   CollectionSaleAndOrder,
-  CreationFlow,
+  CollectionStats,
   CurrentCurationSnippetDoc,
   SupportedCollection,
   TopOwner
@@ -13,15 +13,16 @@ import { TopOwnerDto, TopOwnersQueryDto } from '@infinityxyz/lib/types/dto/colle
 import { ExternalNftCollectionDto, NftCollectionDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
+import { reservoirCollToERC721CollectionAndStats } from 'common/utils';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
 import { ReservoirService } from 'reservoir/reservoir.service';
+import { ReservoirOrderDepth } from 'reservoir/types';
 import { StatsService } from 'stats/stats.service';
 import { MatchingEngineService } from 'v2/matching-engine/matching-engine.service';
 import { ZoraService } from 'zora/zora.service';
 import { ONE_DAY } from '../constants';
 import { ParsedCollectionId } from './collection-id.pipe';
-import { ReservoirOrderDepth } from 'reservoir/types';
 
 interface CollectionQueryOptions {
   /**
@@ -343,22 +344,12 @@ export default class CollectionsService {
    */
   async getCollectionByAddress(
     collection: { address: string; chainId: string },
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     options?: CollectionQueryOptions
-  ): Promise<Collection | undefined> {
-    const queryOptions = options ?? this.defaultCollectionQueryOptions;
-    const docId = getCollectionDocId({ collectionAddress: collection.address, chainId: collection.chainId });
-
-    const collectionSnapshot = await this.firebaseService.firestore
-      .collection(firestoreConstants.COLLECTIONS_COLL)
-      .doc(docId)
-      .get();
-
-    const result = collectionSnapshot.data();
-
-    if (queryOptions.limitToCompleteCollections && result?.state?.create?.step !== CreationFlow.Complete) {
-      return undefined;
-    }
-    return result as Collection;
+  ): Promise<Collection & Partial<CollectionStats> | undefined> {
+    const data = await this.reservoirService.getSingleCollectionInfo(collection.chainId, collection.address);
+    const first = data?.collections?.[0];
+    return first ? reservoirCollToERC721CollectionAndStats(collection.chainId, first) : undefined;
   }
 
   async getCollectionsByAddress(collections: { address: string; chainId: ChainId }[]) {

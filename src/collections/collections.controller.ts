@@ -5,9 +5,9 @@ import {
   CollectionOrder,
   CollectionPeriodStatsContent,
   CollectionSaleAndOrder,
+  CollectionStats,
   SupportedCollection
 } from '@infinityxyz/lib/types/core';
-import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
 import {
   BadRequestException,
   Controller,
@@ -30,7 +30,6 @@ type CollectStatsQuery = {
 };
 
 import {
-  CollectionDto,
   CollectionTrendingStatsQueryDto,
   TopOwnersArrayResponseDto,
   TopOwnersQueryDto
@@ -209,14 +208,14 @@ export class CollectionsController {
     description: 'Get a single collection by address and chain id or by slug'
   })
   @ApiParamCollectionId()
-  @ApiOkResponse({ description: ResponseDescription.Success, type: CollectionDto })
+  @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 1 }))
   async getOne(
     @ParamCollectionId('id', ParseCollectionIdPipe) parsedCollection: ParsedCollectionId
-  ): Promise<Collection> {
+  ): Promise<Collection & Partial<CollectionStats>> {
     const collection = await this.collectionsService.getCollectionByAddress(parsedCollection);
 
     if (!collection) {
@@ -329,25 +328,7 @@ export class CollectionsController {
     return await this.collectionsService.getOrderDepth(collection);
   }
 
-  @Get('/:id/stats')
-  @ApiOperation({
-    tags: [ApiTag.Collection, ApiTag.Stats],
-    description: 'Get historical stats for a single collection'
-  })
-  @ApiParamCollectionId()
-  @ApiOkResponse({ description: ResponseDescription.Success, type: CollectionStatsArrayResponseDto })
-  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
-  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 1 * 60 }))
-  async getCollectionHistoricalStats(
-    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
-  ): Promise<Partial<CollectionStatsDto>> {
-    const response = await this.statsService.getCollAllStats(collection);
-    return response;
-  }
-
-  @Get('/:id/floorandcreator')
+  @Get('/:id/floorandtokencount')
   @ApiOperation({
     tags: [ApiTag.Collection, ApiTag.Stats],
     description: 'Get historical stats for a single collection'
@@ -357,11 +338,11 @@ export class CollectionsController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 10 }))
-  async getCollectionFloorAndCreator(
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 5 }))
+  async getCollectionFloorAndTokenCount(
     @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
-  ): Promise<{ floorPrice: number; creator: string }> {
-    const response = await this.statsService.getCollFloorAndCreator(collection);
+  ): Promise<{ floorPrice: number; tokenCount: number }> {
+    const response = await this.statsService.getCollFloorAndTokenCount(collection);
     return response;
   }
 

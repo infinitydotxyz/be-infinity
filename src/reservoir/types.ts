@@ -1,4 +1,4 @@
-import { ReservoirCollectionAttribute, ReservoirCollectionPeriodStat } from "@infinityxyz/lib/types/services/reservoir";
+import { ReservoirCollectionAttribute, ReservoirCollectionPeriodStat } from '@infinityxyz/lib/types/services/reservoir';
 
 export interface ReservoirCollectionSearch {
   collections: ReservoirCollectionSearchResult[];
@@ -25,7 +25,7 @@ export interface ReservoirCollectionSearchResult {
       usd: number;
       native: number;
     };
-  }
+  };
 }
 
 export interface ReservoirSales {
@@ -271,6 +271,17 @@ export interface ReservoirTokenV6 {
     image: string;
     kind: string;
     owner: string;
+    rarity: number;
+    rarityRank: number;
+    attributes: {
+      key: string;
+      value: string;
+      kind: string;
+      tokenCount: number;
+      onSaleCount: number;
+      floorAskPrice: number;
+      topBidValue: number;
+    }[];
     collection: {
       id: string;
       name: string;

@@ -316,7 +316,7 @@ export class ReservoirService {
   public async getSingleCollectionInfo(
     chainId: string,
     collectionAddress: string
-  ): Promise<ReservoirCollectionsV5 | undefined> {
+  ): Promise<ReservoirCollectionsV6 | undefined> {
     try {
       const res: Response<ReservoirCollectionsV6> = await this.errorHandler(() => {
         const searchParams: any = {
@@ -344,7 +344,8 @@ export class ReservoirService {
       const res: Response<ReservoirTokensResponseV6> = await this.errorHandler(() => {
         const searchParams: any = {
           tokenSetId: `token:${collectionAddress}:${tokenId}`,
-          includeTopBid: true
+          includeTopBid: true,
+          includeAttributes: true
         };
         return this.client.get(`tokens/v6`, {
           searchParams,
