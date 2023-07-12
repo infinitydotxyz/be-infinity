@@ -1,5 +1,4 @@
 import {
-  ReservoirCollectionsV5,
   ReservoirCollsSortBy,
   ReservoirDetailedTokensResponse,
   ReservoirTopCollectionOwnersResponse
@@ -290,9 +289,9 @@ export class ReservoirService {
     sortBy: ReservoirCollsSortBy,
     limit?: number,
     continuation?: string
-  ): Promise<ReservoirCollectionsV5 | undefined> {
+  ): Promise<ReservoirCollectionsV6 | undefined> {
     try {
-      const res: Response<ReservoirCollectionsV5> = await this.errorHandler(() => {
+      const res: Response<ReservoirCollectionsV6> = await this.errorHandler(() => {
         const searchParams: any = {
           includeTopBid: true,
           sortBy,
@@ -301,7 +300,7 @@ export class ReservoirService {
         if (continuation) {
           searchParams.continuation = continuation;
         }
-        return this.client.get(`collections/v5`, {
+        return this.client.get(`collections/v6`, {
           searchParams,
           responseType: 'json'
         });

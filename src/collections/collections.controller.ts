@@ -3,7 +3,6 @@ import {
   Collection,
   CollectionHistoricalSale,
   CollectionOrder,
-  CollectionPeriodStatsContent,
   CollectionSaleAndOrder,
   CollectionStats,
   SupportedCollection
@@ -45,6 +44,7 @@ import { PaginatedQuery } from 'common/dto/paginated-query.dto';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { CacheControlInterceptor } from 'common/interceptors/cache-control.interceptor';
 import { ResponseDescription } from 'common/response-description';
+import { CollectionPeriodStatsContent } from 'common/types';
 import { FirebaseService } from 'firebase/firebase.service';
 import { mnemonicByParam } from 'mnemonic/mnemonic.service';
 import { ReservoirOrderDepth } from 'reservoir/types';
@@ -52,7 +52,6 @@ import { StatsService } from 'stats/stats.service';
 import { TwitterService } from 'twitter/twitter.service';
 import { ParseCollectionIdPipe, ParsedCollectionId } from './collection-id.pipe';
 import CollectionsService from './collections.service';
-import { CollectionStatsArrayDto } from './dto/collection-stats-array.dto';
 import { NftsService } from './nfts/nfts.service';
 
 const EXCLUDED_COLLECTIONS = [
@@ -106,12 +105,12 @@ export class CollectionsController {
     tags: [ApiTag.Collection, ApiTag.Stats],
     description: 'Get stats for top collections.'
   })
-  @ApiOkResponse({ description: ResponseDescription.Success, type: CollectionStatsArrayDto })
+  @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 10 })) // 10 mins
-  async getCollectionStats(@Query() query: CollectionTrendingStatsQueryDto): Promise<CollectionStatsArrayDto> {
+  async getCollectionStats(@Query() query: CollectionTrendingStatsQueryDto): Promise<{data: Partial<Collection>[]}> {
     const chainId = query.chainId ?? ChainId.Mainnet;
     const queryPeriod = query.period;
     const limit = query.limit ?? 50;
@@ -143,37 +142,41 @@ export class CollectionsController {
       throw new BadRequestException('Invalid chainId', chainId);
     }
 
-    const { getCollection } = await this.collectionsService.getCollectionsByAddress(
-      collections.map((coll) => ({
-        address: coll?.contractAddress ?? '',
-        chainId: (coll.chainId ?? ChainId.Mainnet) as ChainId
-      }))
-    );
-
-    const results: Collection[] = [];
+    const results: Partial<Collection>[] = [];
     for (const coll of collections) {
-      const statsData = coll;
-
-      const collectionData = getCollection({
-        address: statsData.contractAddress ?? '',
-        chainId: statsData.chainId ?? ChainId.Mainnet
-      }) as Collection;
+      const collection: Partial<Collection> = {
+        chainId: coll.chainId ?? ChainId.Mainnet,
+        address: coll.contractAddress ?? '',
+        hasBlueCheck: coll.hasBlueCheck ?? false,
+        slug: coll.slug ?? '',
+        numNfts: coll.tokenCount ?? 0,
+        metadata: {
+          profileImage: coll.image ?? '',
+          name: coll.name ?? '',
+          description: '',
+          symbol: '',
+          bannerImage: '',
+          links: {
+            timestamp: 0
+          }
+        }
+      }
 
       //  ignore colls where there is no name or profile image or if it is not supported
-      if (collectionData?.metadata?.name && collectionData.metadata?.profileImage && collectionData?.isSupported) {
+      if (coll?.name && coll?.image) {
         // ignore excluded collections
-        if (!EXCLUDED_COLLECTIONS.includes(collectionData?.address)) {
-          collectionData.stats = {
+        if (!EXCLUDED_COLLECTIONS.includes(coll?.contractAddress ?? '')) {
+          collection.stats = {
             [queryPeriod]: {
-              tokenCount: statsData.tokenCount,
-              salesVolume: statsData.salesVolume,
-              salesVolumeChange: statsData.salesVolumeChange,
-              floorPrice: statsData.floorPrice,
-              floorPriceChange: statsData.floorPriceChange,
+              tokenCount: coll.tokenCount,
+              salesVolume: coll.salesVolume,
+              salesVolumeChange: coll.salesVolumeChange,
+              floorPrice: coll.floorPrice,
+              floorPriceChange: coll.floorPriceChange,
               period: queryPeriod
             }
           };
-          results.push(collectionData);
+          results.push(collection);
 
           if (results.length >= limit) {
             break;

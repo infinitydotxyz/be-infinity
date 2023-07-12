@@ -3,7 +3,6 @@ import {
   Collection,
   CollectionHistoricalSale,
   CollectionOrder,
-  CollectionPeriodStatsContent,
   CollectionStats,
   PreAggregatedSocialsStats,
   StatsPeriod,
@@ -21,6 +20,8 @@ import { ZoraService } from 'zora/zora.service';
 import { DiscordService } from '../discord/discord.service';
 import { FirebaseService } from '../firebase/firebase.service';
 import { TwitterService } from '../twitter/twitter.service';
+import { ReservoirCollectionV6 } from 'reservoir/types';
+import { CollectionPeriodStatsContent } from 'common/types';
 
 @Injectable()
 export class StatsService {
@@ -60,7 +61,7 @@ export class StatsService {
       const byParamDoc = firestoreConstants.TRENDING_BY_VOLUME_DOC;
       const byParamDocRef = trendingCollectionsRef.doc(byParamDoc);
 
-      const topColls1d = await this.fetchTop100Colls(ChainId.Mainnet, ReservoirCollsSortBy.ONE_DAY_VOLUME);
+      const topColls1d = await this.fetchTop100Colls(ChainId.Mainnet, ReservoirCollsSortBy.ONE_DAY_VOLUME); // adi-todo: support other chains
       const topColls7d = await this.fetchTop100Colls(ChainId.Mainnet, ReservoirCollsSortBy.SEVEN_DAY_VOLUME);
       const topColls30d = await this.fetchTop100Colls(ChainId.Mainnet, ReservoirCollsSortBy.THIRTY_DAY_VOLUME);
       const topCollsAllTime = await this.fetchTop100Colls(ChainId.Mainnet, ReservoirCollsSortBy.ALL_TIME_VOLUME);
@@ -82,7 +83,7 @@ export class StatsService {
           }
 
           const collectionDocId = getCollectionDocId({
-            chainId: ChainId.Mainnet,
+            chainId: ChainId.Mainnet, // adi-todo: support other chains
             collectionAddress: coll.primaryContract
           });
           const byPeriodCollectionRef = byParamDocRef.collection(key);
@@ -112,14 +113,18 @@ export class StatsService {
               : coll.volumeChange?.['30day'];
 
           const dataToStore: CollectionPeriodStatsContent = {
-            chainId: ChainId.Mainnet,
+            chainId: ChainId.Mainnet, // adi-todo: support other chains
             contractAddress: coll.primaryContract,
+            slug: coll.slug,
             period: key,
+            name: coll.name,
+            image: coll.image,
             salesVolume: Number(salesVolume),
             salesVolumeChange: Number(volumeChange),
             floorPrice: coll.floorAsk?.price?.amount?.native,
             floorPriceChange: Number(floorSaleChange),
             tokenCount: Number(coll.tokenCount),
+            hasBlueCheck: coll.openseaVerificationStatus == 'verified',
             updatedAt: Date.now()
           };
 
@@ -166,8 +171,8 @@ export class StatsService {
     return false;
   }
 
-  async fetchTop100Colls(chainId: ChainId, period: ReservoirCollsSortBy): Promise<ReservoirCollectionV5[]> {
-    const allResults: ReservoirCollectionV5[] = [];
+  async fetchTop100Colls(chainId: ChainId, period: ReservoirCollsSortBy): Promise<ReservoirCollectionV6[]> {
+    const allResults: ReservoirCollectionV6[] = [];
     let continuation = '';
     for (let i = 0; i < 5; i++) {
       console.log('Sleeping for a few seconds to avoid 429s...');
