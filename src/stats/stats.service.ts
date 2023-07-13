@@ -1,7 +1,6 @@
 import {
   ChainId,
   Collection,
-  CollectionHistoricalSale,
   CollectionOrder,
   CollectionStats,
   PreAggregatedSocialsStats,
@@ -22,6 +21,7 @@ import { FirebaseService } from '../firebase/firebase.service';
 import { TwitterService } from '../twitter/twitter.service';
 import { ReservoirCollectionV6 } from 'reservoir/types';
 import { CollectionPeriodStatsContent } from 'common/types';
+import { CollectionHistoricalSale } from './types';
 
 @Injectable()
 export class StatsService {
@@ -208,6 +208,7 @@ export class StatsService {
       }
 
       const dataPoint: Partial<CollectionHistoricalSale> = {
+        id,
         tokenId,
         salePriceEth,
         timestamp,
