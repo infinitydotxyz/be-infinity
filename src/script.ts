@@ -7,7 +7,8 @@ import { ethers } from 'ethers';
 import { FirebaseService } from 'firebase/firebase.service';
 import { buildBlurBuyersFromCsv } from 'scripts/blurBuyers';
 import { calcDailyBuyRewards, calcTotalBuyRewards } from 'scripts/calcDailyBuyRewards';
-import { calcInitialDistribution } from 'scripts/calcInitialDistribution';
+import { analyzeInitialDistribution, calcInitialDistribution } from 'scripts/calcInitialDistribution';
+import { calcINFTDistribution } from 'scripts/calcINFTDistribution';
 import {
   pushMetadataToSupportedColls,
   pushSupportedCollFlagToMainColls,
@@ -121,7 +122,11 @@ export const run = async () => {
   // }
   // console.log(timestamps);
 
-  // await calcTotalBuyRewards();
+  await calcTotalBuyRewards();
+
+  // await calcINFTDistribution();
+
+  await analyzeInitialDistribution();
 
   // const timestamps = [1686182400000];
   // for (const timestamp of timestamps) {
