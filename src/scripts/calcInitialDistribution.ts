@@ -3,6 +3,7 @@ import { ethers } from 'ethers';
 import { FirebaseService } from 'firebase/firebase.service';
 import { getService } from 'script';
 import { calcTotalBuyRewards } from './calcDailyBuyRewards';
+import { nFormatter } from 'utils';
 
 export const calcInitialDistribution = async () => {
   const configService = getService(ConfigService);
@@ -131,6 +132,8 @@ export const analyzeInitialDistribution = async () => {
   const limit = 100;
 
   let totalUsers = 0;
+  let totalINFTUsers = 0;
+  let totalTransactedByINFTUsers = 0;
   let aggregateRewardAmount = 0;
   let aggregateBuyRewardAmount = 0;
   let aggregateAirdropRewardAmount = 0;
@@ -166,6 +169,24 @@ export const analyzeInitialDistribution = async () => {
       aggregateAirdropRewardAmount += airdropRewardAmount;
       aggregateReferralRewardAmount += referralRewardAmount;
       aggregateAirdropRewardAmountFromINFT += airdropRewardAmountFromINFT;
+
+      if (airdropRewardAmountFromINFT > 0) {
+        totalINFTUsers++;
+        // get the amount spent by this user on Infinity v1
+        const infinityV1Airdrop = await firebaseService.firestore.collection('airdropStats').doc(address).get();
+        const earnedTokens = infinityV1Airdrop.get('earnedTokens');
+        const finalEarnedTokens = infinityV1Airdrop.get('finalEarnedTokens');
+        const transacted = infinityV1Airdrop.get('transacted') ?? 0;
+        totalTransactedByINFTUsers += transacted;
+        console.log(
+          'INFT',
+          address,
+          transacted,
+          nFormatter(earnedTokens),
+          nFormatter(finalEarnedTokens),
+          nFormatter(airdropRewardAmountFromINFT)
+        );
+      }
     }
 
     if (rewardsColl.size < limit) {
@@ -175,11 +196,18 @@ export const analyzeInitialDistribution = async () => {
 
   // log amounts
   console.log('Total users', totalUsers);
-  console.log('Total reward amount', aggregateRewardAmount / 1_000_000);
-  console.log('Total buy reward amount', aggregateBuyRewardAmount / 1_000_000);
-  console.log('Total airdrop reward amount', aggregateAirdropRewardAmount / 1_000_000);
-  console.log('Total referral reward amount', aggregateReferralRewardAmount / 1_000_000);
-  console.log('Total airdrop reward amount from INFT', aggregateAirdropRewardAmountFromINFT / 1_000_000);
+  console.log('Total INFT users', totalINFTUsers);
+  console.log(
+    'Total transacted by INFT users',
+    nFormatter(totalTransactedByINFTUsers),
+    'fees paid',
+    nFormatter(totalTransactedByINFTUsers * 0.015)
+  );
+  console.log('Total reward amount', nFormatter(aggregateRewardAmount));
+  console.log('Total buy reward amount', nFormatter(aggregateBuyRewardAmount));
+  console.log('Total airdrop reward amount', nFormatter(aggregateAirdropRewardAmount));
+  console.log('Total referral reward amount', nFormatter(aggregateReferralRewardAmount));
+  console.log('Total airdrop reward amount from INFT', nFormatter(aggregateAirdropRewardAmountFromINFT * 5));
 
   console.log('Done!');
 };

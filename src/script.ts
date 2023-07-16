@@ -126,7 +126,7 @@ export const run = async () => {
 
   // await calcINFTDistribution();
 
-  await analyzeInitialDistribution();
+  // await analyzeInitialDistribution();
 
   // const timestamps = [1686182400000];
   // for (const timestamp of timestamps) {
