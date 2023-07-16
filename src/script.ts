@@ -122,7 +122,7 @@ export const run = async () => {
   // }
   // console.log(timestamps);
 
-  await calcTotalBuyRewards();
+  // await calcTotalBuyRewards();
 
   // await calcINFTDistribution();
 

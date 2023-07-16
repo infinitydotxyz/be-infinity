@@ -160,7 +160,7 @@ export const analyzeInitialDistribution = async () => {
       const buyRewardAmount = rewardDoc.get('buyRewardAmount');
       const airdropRewardAmount = rewardDoc.get('airdropRewardAmount');
       const referralRewardAmount = rewardDoc.get('referralRewardAmount');
-      const airdropRewardAmountFromINFT = rewardDoc.get('airdropRewardAmountFromINFT') ?? 0;
+      const airdropRewardAmountFromINFT = rewardDoc.get('airdropRewardAmountFromINFT');
       aggregateRewardAmount += totalRewardAmount;
       aggregateBuyRewardAmount += buyRewardAmount;
       aggregateAirdropRewardAmount += airdropRewardAmount;
