@@ -260,7 +260,7 @@ export class BetaService {
               auth: {
                 step: Twitter.Follow,
                 data: {
-                  url: 'https://twitter.com/pixelpackio'
+                  url: 'https://twitter.com/pixlso'
                 }
               }
             };
@@ -330,7 +330,7 @@ export class BetaService {
           auth: {
             step: Discord.Join,
             data: {
-              url: 'https://discord.gg/pixelpackio'
+              url: 'https://discord.gg/pixlso'
             }
           }
         };

@@ -198,7 +198,7 @@ export const fetchSupportedColls = async (chainId: string) => {
 
   const data = [];
   for (const coll of supportedColls) {
-    // appendFileSync(filePath, `${coll.name}: https://pixelpack.io/collection/${coll.slug}\n`);
+    // appendFileSync(filePath, `${coll.name}: https://pixl.so/collection/${coll.slug}\n`);
     const collData = {
       address: coll.address,
       chainId: coll.chainId,
