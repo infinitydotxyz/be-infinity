@@ -180,7 +180,7 @@ export class AuthGuard implements CanActivate {
     const getData = (nonce: string) => {
       return {
         message: `Welcome to Pixelpack. Click "Sign" to sign in. This is a one-time action. No password needed. This request will not trigger a blockchain transaction or cost any gas fees.`,
-        terms: 'I accept the Pixelpack Terms of Service: https://pixelpack.io/terms',
+        terms: 'I accept the Pixelpack Terms of Service: https://pixl.so/terms',
         nonce
       };
     };

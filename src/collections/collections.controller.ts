@@ -1,7 +1,6 @@
 import {
   ChainId,
   Collection,
-  CollectionHistoricalSale,
   CollectionOrder,
   CollectionSaleAndOrder,
   CollectionStats,
@@ -53,6 +52,7 @@ import { TwitterService } from 'twitter/twitter.service';
 import { ParseCollectionIdPipe, ParsedCollectionId } from './collection-id.pipe';
 import CollectionsService from './collections.service';
 import { NftsService } from './nfts/nfts.service';
+import { CollectionHistoricalSale } from 'stats/types';
 
 const EXCLUDED_COLLECTIONS = [
   '0x81ae0be3a8044772d04f32398bac1e1b4b215aa8', // Dreadfulz
@@ -110,7 +110,7 @@ export class CollectionsController {
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 10 })) // 10 mins
-  async getCollectionStats(@Query() query: CollectionTrendingStatsQueryDto): Promise<{data: Partial<Collection>[]}> {
+  async getCollectionStats(@Query() query: CollectionTrendingStatsQueryDto): Promise<{ data: Partial<Collection>[] }> {
     const chainId = query.chainId ?? ChainId.Mainnet;
     const queryPeriod = query.period;
     const limit = query.limit ?? 50;
@@ -160,7 +160,7 @@ export class CollectionsController {
             timestamp: 0
           }
         }
-      }
+      };
 
       //  ignore colls where there is no name or profile image or if it is not supported
       if (coll?.name && coll?.image) {

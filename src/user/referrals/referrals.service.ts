@@ -22,7 +22,7 @@ export class ReferralsService {
     const referralCode = snap.docs[0]?.data()?.referralCode ?? '';
 
     const totals = {
-      referralLink: `https://pixelpack.io/?ref=${referralCode}`,
+      referralLink: `https://pixl.so/?ref=${referralCode}`,
       referrer: {
         address: referrer.userAddress,
         displayName: '',
