@@ -179,10 +179,11 @@ export class ReservoirService {
       if (!user && side === 'sell') {
         const set = new Set<string>();
         response.orders = response.orders.filter((order) => {
-          if (set.has(order.tokenSetId)) {
+          const tokenId = order.criteria?.data?.token?.tokenId;
+          if (set.has(tokenId)) {
             return false;
           }
-          set.add(order.tokenSetId);
+          set.add(tokenId);
           return true;
         });
       }
@@ -342,7 +343,7 @@ export class ReservoirService {
     try {
       const res: Response<ReservoirTokensResponseV6> = await this.errorHandler(() => {
         const searchParams: any = {
-          tokenSetId: `token:${collectionAddress}:${tokenId}`,
+          tokens: `${collectionAddress}:${tokenId}`,
           includeTopBid: true,
           includeAttributes: true
         };
