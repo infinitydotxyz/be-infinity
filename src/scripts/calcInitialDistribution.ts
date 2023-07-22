@@ -168,24 +168,27 @@ export const analyzeInitialDistribution = async () => {
       aggregateBuyRewardAmount += buyRewardAmount;
       aggregateAirdropRewardAmount += airdropRewardAmount;
       aggregateReferralRewardAmount += referralRewardAmount;
-      aggregateAirdropRewardAmountFromINFT += airdropRewardAmountFromINFT;
 
       if (airdropRewardAmountFromINFT > 0) {
         totalINFTUsers++;
+        aggregateAirdropRewardAmountFromINFT += totalRewardAmount;
         // get the amount spent by this user on Infinity v1
         const infinityV1Airdrop = await firebaseService.firestore.collection('airdropStats').doc(address).get();
         const earnedTokens = infinityV1Airdrop.get('earnedTokens');
         const finalEarnedTokens = infinityV1Airdrop.get('finalEarnedTokens');
         const transacted = infinityV1Airdrop.get('transacted') ?? 0;
         totalTransactedByINFTUsers += transacted;
-        console.log(
-          'INFT',
-          address,
-          transacted,
-          nFormatter(earnedTokens),
-          nFormatter(finalEarnedTokens),
-          nFormatter(airdropRewardAmountFromINFT)
-        );
+        if (!earnedTokens || !finalEarnedTokens) {
+          console.log(
+            'INFT',
+            address,
+            transacted,
+            nFormatter(earnedTokens),
+            nFormatter(finalEarnedTokens),
+            nFormatter(airdropRewardAmountFromINFT),
+            nFormatter(totalRewardAmount)
+          );
+        }
       }
     }
 
