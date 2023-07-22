@@ -13,7 +13,7 @@ import { StatsService } from 'stats/stats.service';
 
 function setup(app: INestApplication) {
   app.enableCors({
-    origin: 'https://pixelpack.io',
+    origin: 'https://pixl.so',
     optionsSuccessStatus: 200
   });
   app.use(helmet());
@@ -40,7 +40,7 @@ function setup(app: INestApplication) {
 
 function setupSwagger(app: INestApplication, path: string) {
   const config = new DocumentBuilder()
-    .setTitle('Pixelpack API')
+    .setTitle('Pixl API')
     .setDescription('Developer API')
     .setContact('infinity', INFINITY_URL, INFINITY_EMAIL)
     .setVersion('1.0.0')
