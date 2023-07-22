@@ -207,7 +207,7 @@ export const analyzeInitialDistribution = async () => {
   console.log('Total buy reward amount', nFormatter(aggregateBuyRewardAmount));
   console.log('Total airdrop reward amount', nFormatter(aggregateAirdropRewardAmount));
   console.log('Total referral reward amount', nFormatter(aggregateReferralRewardAmount));
-  console.log('Total airdrop reward amount from INFT', nFormatter(aggregateAirdropRewardAmountFromINFT * 5));
+  console.log('Total airdrop reward amount from INFT', nFormatter(aggregateAirdropRewardAmountFromINFT));
 
   console.log('Done!');
 };

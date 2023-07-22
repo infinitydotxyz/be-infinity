@@ -45,7 +45,7 @@ export const calcINFTDistribution = async () => {
         console.log('Writing to firestore', address);
         await firebaseService.firestore.collection('flowSeasonOneRewards').doc(address).set(
           {
-            airdropRewardAmountFromINFT: inftBalanceEth
+            airdropRewardAmountFromINFT: inftBalanceEth * 5
           },
           { merge: true }
         );
