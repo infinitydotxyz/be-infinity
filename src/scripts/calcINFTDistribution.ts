@@ -25,12 +25,12 @@ export const calcINFTDistribution = async () => {
       .where('inftBalance', '!=', '0')
       .limit(limit)
       .orderBy('inftBalance', 'asc')
-      .startAfter(startAfter)
+      .startAt(startAfter)
       .get();
 
     console.log('Num airdrop docs', xflAirdropColl.size);
     const lastDoc = xflAirdropColl.docs[xflAirdropColl.size - 1];
-    startAfter = lastDoc.get('xflAirdrop') ?? '';
+    startAfter = lastDoc.get('inftBalance') ?? '';
 
     for (const airdropDoc of xflAirdropColl.docs) {
       const address = airdropDoc.id;
