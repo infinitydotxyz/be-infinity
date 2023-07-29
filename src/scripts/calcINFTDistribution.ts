@@ -15,22 +15,22 @@ export const calcINFTDistribution = async () => {
   }
 
   let breakLoop = false;
-  let startAfter = '';
+  let startAt = '';
   const limit = 100;
 
   while (!breakLoop) {
-    console.log('Starting after', startAfter);
+    console.log('Starting at', startAt);
     const xflAirdropColl = await firebaseService.firestore
       .collection('xflAirdrop')
       .where('inftBalance', '!=', '0')
       .limit(limit)
       .orderBy('inftBalance', 'asc')
-      .startAfter(startAfter)
+      .startAt(startAt)
       .get();
 
     console.log('Num airdrop docs', xflAirdropColl.size);
     const lastDoc = xflAirdropColl.docs[xflAirdropColl.size - 1];
-    startAfter = lastDoc.get('xflAirdrop') ?? '';
+    startAt = lastDoc.get('inftBalance') ?? '';
 
     for (const airdropDoc of xflAirdropColl.docs) {
       const address = airdropDoc.id;
@@ -45,7 +45,7 @@ export const calcINFTDistribution = async () => {
         console.log('Writing to firestore', address);
         await firebaseService.firestore.collection('flowSeasonOneRewards').doc(address).set(
           {
-            airdropRewardAmountFromINFT: inftBalanceEth
+            airdropRewardAmountFromINFT: inftBalanceEth * 5
           },
           { merge: true }
         );

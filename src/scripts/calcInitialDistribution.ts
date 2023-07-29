@@ -26,13 +26,13 @@ export const calcInitialDistribution = async () => {
   let totalUsersWithReferralReward = 0;
   let totalUsersWithReward = 0;
   let breakLoop = false;
-  let startAfter = '';
-  const limit = 100;
+  let startAt = '';
+  const limit = 300;
 
   while (!breakLoop) {
     console.log(
-      'Starting after',
-      startAfter,
+      'Starting at',
+      startAt,
       totalUsers,
       totalUsersWithAirdropReward,
       totalUsersWithReferralReward,
@@ -41,13 +41,14 @@ export const calcInitialDistribution = async () => {
     const xflAirdropColl = await firebaseService.firestore
       .collection('xflAirdrop')
       .limit(limit)
+      .where('xflAirdrop', '!=', '0')
       .orderBy('xflAirdrop', 'asc')
-      .startAfter(startAfter)
+      .startAt(startAt)
       .get();
 
     console.log('Num airdrop docs', xflAirdropColl.size);
     const lastDoc = xflAirdropColl.docs[xflAirdropColl.size - 1];
-    startAfter = lastDoc.get('xflAirdrop') ?? '';
+    startAt = lastDoc.get('xflAirdrop') ?? '';
 
     for (const airdropDoc of xflAirdropColl.docs) {
       totalUsers++;
@@ -128,7 +129,7 @@ export const analyzeInitialDistribution = async () => {
   }
 
   let breakLoop = false;
-  let startAfter = -1;
+  let startAfter = '';
   const limit = 100;
 
   let totalUsers = 0;
@@ -146,12 +147,12 @@ export const analyzeInitialDistribution = async () => {
     const rewardsColl = await firebaseService.firestore
       .collection('flowSeasonOneRewards')
       .limit(limit)
-      .orderBy('totalRewardAmount', 'asc')
+      .orderBy('address', 'asc')
       .startAfter(startAfter)
       .get();
 
     const lastDoc = rewardsColl.docs[rewardsColl.size - 1];
-    startAfter = lastDoc.get('totalRewardAmount') ?? 0;
+    startAfter = lastDoc.get('address') ?? 0;
 
     for (const rewardDoc of rewardsColl.docs) {
       const address = rewardDoc.id;
@@ -168,24 +169,27 @@ export const analyzeInitialDistribution = async () => {
       aggregateBuyRewardAmount += buyRewardAmount;
       aggregateAirdropRewardAmount += airdropRewardAmount;
       aggregateReferralRewardAmount += referralRewardAmount;
-      aggregateAirdropRewardAmountFromINFT += airdropRewardAmountFromINFT;
 
       if (airdropRewardAmountFromINFT > 0) {
         totalINFTUsers++;
+        aggregateAirdropRewardAmountFromINFT += totalRewardAmount;
         // get the amount spent by this user on Infinity v1
         const infinityV1Airdrop = await firebaseService.firestore.collection('airdropStats').doc(address).get();
         const earnedTokens = infinityV1Airdrop.get('earnedTokens');
         const finalEarnedTokens = infinityV1Airdrop.get('finalEarnedTokens');
         const transacted = infinityV1Airdrop.get('transacted') ?? 0;
         totalTransactedByINFTUsers += transacted;
-        console.log(
-          'INFT',
-          address,
-          transacted,
-          nFormatter(earnedTokens),
-          nFormatter(finalEarnedTokens),
-          nFormatter(airdropRewardAmountFromINFT)
-        );
+        if (!earnedTokens || !finalEarnedTokens) {
+          console.log(
+            'INFT',
+            address,
+            transacted,
+            nFormatter(earnedTokens),
+            nFormatter(finalEarnedTokens),
+            nFormatter(airdropRewardAmountFromINFT),
+            nFormatter(totalRewardAmount)
+          );
+        }
       }
     }
 
@@ -207,7 +211,7 @@ export const analyzeInitialDistribution = async () => {
   console.log('Total buy reward amount', nFormatter(aggregateBuyRewardAmount));
   console.log('Total airdrop reward amount', nFormatter(aggregateAirdropRewardAmount));
   console.log('Total referral reward amount', nFormatter(aggregateReferralRewardAmount));
-  console.log('Total airdrop reward amount from INFT', nFormatter(aggregateAirdropRewardAmountFromINFT * 5));
+  console.log('Total airdrop reward amount from INFT', nFormatter(aggregateAirdropRewardAmountFromINFT));
 
   console.log('Done!');
 };
