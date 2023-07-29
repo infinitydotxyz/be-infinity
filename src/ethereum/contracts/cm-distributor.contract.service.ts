@@ -14,13 +14,6 @@ export class CmDistributorContractService {
     return BigNumber.from(amountClaimed).toString();
   }
 
-  // async getCumulativeINFTClaimed(chainId: ChainId, address: string) {
-  //   const contract = this.contractService.getCmDistributor(chainId);
-  //   const amountClaimed = (await contract.cumulativeINFTClaimed(address)) as BigNumberish;
-
-  //   return BigNumber.from(amountClaimed).toString();
-  // }
-
   async getCumulativeFLURClaimed(chainId: ChainId, address: string) {
     const contract = this.contractService.getCmDistributor(chainId);
     const flurTokenAddress = this.contractService.getFlurTokenContract(chainId).address;
@@ -28,10 +21,10 @@ export class CmDistributorContractService {
     return BigNumber.from(amountClaimed).toString();
   }
 
-  async getCumulativeFLOWClaimed(chainId: ChainId, address: string) {
+  async getCumulativeXFLClaimed(chainId: ChainId, address: string) {
     const contract = this.contractService.getCmDistributor(chainId);
-    const flowTokenAddress = this.contractService.getTokenContract(chainId).address;
-    const amountClaimed = (await contract.cumulativeErc20Claimed(address, flowTokenAddress)) as BigNumberish;
+    const tokenAddress = this.contractService.getTokenContract(chainId).address;
+    const amountClaimed = (await contract.cumulativeErc20Claimed(address, tokenAddress)) as BigNumberish;
 
     return BigNumber.from(amountClaimed).toString();
   }

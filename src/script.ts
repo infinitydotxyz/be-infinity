@@ -133,7 +133,7 @@ export const run = async () => {
   //   await calcDailyBuyRewards(timestamp);
   // }
 
-  // await calcInitialDistribution();
+  await calcInitialDistribution();
 };
 
 void run();

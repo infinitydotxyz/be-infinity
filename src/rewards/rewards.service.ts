@@ -1,9 +1,8 @@
-import { ChainId } from '@infinityxyz/lib/types/core';
+import { ChainId, DistributionType } from '@infinityxyz/lib/types/core';
 import { TokenomicsConfigDto, TokenomicsPhaseDto, UserRewardsDto } from '@infinityxyz/lib/types/dto/rewards';
-import { ETHEREUM_FLOW_TOKEN_ADDRESS, firestoreConstants } from '@infinityxyz/lib/utils';
+import { ETHEREUM_FLOW_TOKEN_ADDRESS, firestoreConstants, formatEth } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { CurationService } from 'collections/curation/curation.service';
-import { ethers } from 'ethers';
 import { FirebaseService } from 'firebase/firebase.service';
 import { MerkleTreeService } from 'merkle-tree/merkle-tree.service';
 import { DailyBuyTotals, GlobalRewards, OverallBuyTotals } from 'types';
@@ -81,13 +80,14 @@ export class RewardsService {
 
   async getUserRewards(chainId: ChainId, parsedUser: ParsedUserId): Promise<UserRewardsDto> {
     const userAddress = parsedUser.userAddress;
-    const totalUserSeasonOneRewards = (await this.firebaseService.firestore
-      .collection('flowSeasonOneRewards')
-      .doc(userAddress)
-      .get()).data() as UserXFLRewards;
+    const totalUserSeasonOneRewards = (
+      await this.firebaseService.firestore.collection('flowSeasonOneRewards').doc(userAddress).get()
+    ).data() as UserXFLRewards;
 
-    const totalEarnedEth = totalUserSeasonOneRewards?.totalRewardAmount ?? 0;
-    const totalEarnedWei = ethers.utils.parseEther(totalEarnedEth.toString()).toString();
+    const isINFT = (totalUserSeasonOneRewards?.airdropRewardAmountINFT ?? 0) === 0 ? false : true;
+
+    const [XFLConfig] = await Promise.all([this.merkleTreeService.getMerkleRootConfig(chainId, DistributionType.XFL)]);
+    const [xflLeaf] = await Promise.all([this.merkleTreeService.getLeaf(XFLConfig, parsedUser.userAddress)]);
 
     const rewards: UserRewardsDto = {
       chainId,
@@ -95,14 +95,14 @@ export class RewardsService {
         totalRewards: {
           claim: {
             contractAddress: ETHEREUM_FLOW_TOKEN_ADDRESS,
-            claimedWei: '',
-            claimedEth: 0,
-            claimableWei: '',
-            claimableEth: 0,
+            claimedWei: xflLeaf.cumulativeClaimed,
+            claimedEth: formatEth(xflLeaf.cumulativeClaimed),
+            claimableWei: isINFT ? xflLeaf.claimable : '0',
+            claimableEth: isINFT ? formatEth(xflLeaf.claimable) : 0,
             account: parsedUser.userAddress,
-            cumulativeAmount: totalEarnedWei,
-            merkleRoot: '',
-            merkleProof: []
+            cumulativeAmount: xflLeaf.cumulativeAmount,
+            merkleRoot: isINFT ? xflLeaf.expectedMerkleRoot : '',
+            merkleProof: isINFT ? xflLeaf.proof : []
           }
         }
       }

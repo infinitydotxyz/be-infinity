@@ -26,13 +26,13 @@ export const calcInitialDistribution = async () => {
   let totalUsersWithReferralReward = 0;
   let totalUsersWithReward = 0;
   let breakLoop = false;
-  let startAfter = '';
-  const limit = 100;
+  let startAt = '';
+  const limit = 300;
 
   while (!breakLoop) {
     console.log(
-      'Starting after',
-      startAfter,
+      'Starting at',
+      startAt,
       totalUsers,
       totalUsersWithAirdropReward,
       totalUsersWithReferralReward,
@@ -41,13 +41,14 @@ export const calcInitialDistribution = async () => {
     const xflAirdropColl = await firebaseService.firestore
       .collection('xflAirdrop')
       .limit(limit)
+      .where('xflAirdrop', '!=', '0')
       .orderBy('xflAirdrop', 'asc')
-      .startAfter(startAfter)
+      .startAt(startAt)
       .get();
 
     console.log('Num airdrop docs', xflAirdropColl.size);
     const lastDoc = xflAirdropColl.docs[xflAirdropColl.size - 1];
-    startAfter = lastDoc.get('xflAirdrop') ?? '';
+    startAt = lastDoc.get('xflAirdrop') ?? '';
 
     for (const airdropDoc of xflAirdropColl.docs) {
       totalUsers++;
@@ -128,7 +129,7 @@ export const analyzeInitialDistribution = async () => {
   }
 
   let breakLoop = false;
-  let startAfter = -1;
+  let startAfter = '';
   const limit = 100;
 
   let totalUsers = 0;
@@ -146,12 +147,12 @@ export const analyzeInitialDistribution = async () => {
     const rewardsColl = await firebaseService.firestore
       .collection('flowSeasonOneRewards')
       .limit(limit)
-      .orderBy('totalRewardAmount', 'asc')
+      .orderBy('address', 'asc')
       .startAfter(startAfter)
       .get();
 
     const lastDoc = rewardsColl.docs[rewardsColl.size - 1];
-    startAfter = lastDoc.get('totalRewardAmount') ?? 0;
+    startAfter = lastDoc.get('address') ?? 0;
 
     for (const rewardDoc of rewardsColl.docs) {
       const address = rewardDoc.id;

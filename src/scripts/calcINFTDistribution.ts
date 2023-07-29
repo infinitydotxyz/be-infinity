@@ -15,22 +15,22 @@ export const calcINFTDistribution = async () => {
   }
 
   let breakLoop = false;
-  let startAfter = '';
+  let startAt = '';
   const limit = 100;
 
   while (!breakLoop) {
-    console.log('Starting after', startAfter);
+    console.log('Starting at', startAt);
     const xflAirdropColl = await firebaseService.firestore
       .collection('xflAirdrop')
       .where('inftBalance', '!=', '0')
       .limit(limit)
       .orderBy('inftBalance', 'asc')
-      .startAt(startAfter)
+      .startAt(startAt)
       .get();
 
     console.log('Num airdrop docs', xflAirdropColl.size);
     const lastDoc = xflAirdropColl.docs[xflAirdropColl.size - 1];
-    startAfter = lastDoc.get('inftBalance') ?? '';
+    startAt = lastDoc.get('inftBalance') ?? '';
 
     for (const airdropDoc of xflAirdropColl.docs) {
       const address = airdropDoc.id;
