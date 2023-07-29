@@ -84,7 +84,7 @@ export class RewardsService {
       await this.firebaseService.firestore.collection('flowSeasonOneRewards').doc(userAddress).get()
     ).data() as UserXFLRewards;
 
-    const isINFT = (totalUserSeasonOneRewards?.airdropRewardAmountINFT ?? 0) === 0 ? false : true;
+    const isINFT = (totalUserSeasonOneRewards?.airdropRewardAmountFromINFT ?? 0) === 0 ? false : true;
 
     const [XFLConfig] = await Promise.all([this.merkleTreeService.getMerkleRootConfig(chainId, DistributionType.XFL)]);
     const [xflLeaf] = await Promise.all([this.merkleTreeService.getLeaf(XFLConfig, parsedUser.userAddress)]);
