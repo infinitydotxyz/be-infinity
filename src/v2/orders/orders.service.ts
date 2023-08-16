@@ -1,22 +1,33 @@
 import {
   ChainId,
+  FirestoreDisplayOrder,
   FirestoreDisplayOrderWithoutError,
-  OrderDirection,
   Order,
-  FirestoreDisplayOrder
+  OrderDirection
 } from '@infinityxyz/lib/types/core';
-import { PROTOCOL_FEE_BPS, firestoreConstants, formatEth, getOBOrderPrice } from '@infinityxyz/lib/utils';
+import { OrderBy, OrderQueries, Side } from '@infinityxyz/lib/types/dto';
+import {
+  PROTOCOL_FEE_BPS,
+  firestoreConstants,
+  formatEth,
+  getCollectionDocId,
+  getOBOrderPrice,
+  trimLowerCase
+} from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { ContractService } from 'ethereum/contract.service';
 import { EthereumService } from 'ethereum/ethereum.service';
-import { FirebaseService } from 'firebase/firebase.service';
-import { CursorService } from 'pagination/cursor.service';
-import { bn } from 'utils';
-import { BaseOrdersService } from './base-orders.service';
-import { OrderBy, OrderQueries, Side } from '@infinityxyz/lib/types/dto';
-import { MatchingEngineService } from 'v2/matching-engine/matching-engine.service';
 import { BigNumber } from 'ethers';
 import { parseUnits } from 'ethers/lib/utils';
+import { FirebaseService } from 'firebase/firebase.service';
+import { CursorService } from 'pagination/cursor.service';
+import { ReservoirService } from 'reservoir/reservoir.service';
+import { ReservoirTokenV6, ReservoirUserTopOffers } from 'reservoir/types';
+import { bn } from 'utils';
+import { MatchingEngineService } from 'v2/matching-engine/matching-engine.service';
+import { DEFAULT_MIN_XFL_BALANCE_FOR_ZERO_FEE } from '../../constants';
+import { BaseOrdersService } from './base-orders.service';
+import { AggregatedOrder } from './types';
 
 @Injectable()
 export class OrdersService extends BaseOrdersService {
@@ -24,10 +35,137 @@ export class OrdersService extends BaseOrdersService {
     firebaseService: FirebaseService,
     contractService: ContractService,
     ethereumService: EthereumService,
+    protected reservoirService: ReservoirService,
     protected cursorService: CursorService,
     protected matchingEngineService: MatchingEngineService
   ) {
     super(firebaseService, contractService, ethereumService);
+  }
+
+  public async getMinXflStakeForZeroFees(chainId: string, collection: string, user: string): Promise<number> {
+    const defaultFeeDoc = await this._firebaseService.firestore.collection('platformFees').doc('default').get();
+    let fees = defaultFeeDoc.data()?.minXflStakeForZeroFees ?? DEFAULT_MIN_XFL_BALANCE_FOR_ZERO_FEE;
+
+    // check if fees are waived for this user
+    if (user) {
+      const userDoc = await this._firebaseService.firestore.collection('platformFees').doc(trimLowerCase(user)).get();
+      if (userDoc.exists) {
+        fees = userDoc.data()?.minXflStakeForZeroFees ?? fees;
+      }
+    }
+
+    // check if fees are waived for this collection
+    if (chainId && collection) {
+      const collDocId = getCollectionDocId({ chainId, collectionAddress: collection });
+      const platformFeesDoc = await this._firebaseService.firestore.collection('platformFees').doc(collDocId).get();
+      if (platformFeesDoc.exists) {
+        fees = platformFeesDoc.data()?.minXflStakeForZeroFees ?? fees;
+      }
+    }
+
+    return fees;
+  }
+
+  public async getBestAskBidForToken(
+    chainId: string,
+    collection: string,
+    tokenId: string
+  ): Promise<ReservoirTokenV6 | undefined> {
+    const data = await this.reservoirService.getSingleTokenInfo(chainId, collection, tokenId);
+    if (!data) {
+      return undefined;
+    }
+    const token = data.tokens[0];
+    const tokenWithChainId = { ...token, chainId };
+    return tokenWithChainId;
+  }
+
+  public async getAggregatedOrders(
+    chainId: string,
+    collection: string,
+    tokenId?: string,
+    continuation?: string,
+    user?: string,
+    side?: string,
+    collBidsOnly?: boolean
+  ): Promise<{ continuation: string | undefined; orders: AggregatedOrder[] | undefined }> {
+    const orders = await this.reservoirService.getOrders(
+      chainId,
+      collection,
+      tokenId,
+      continuation,
+      user,
+      side,
+      collBidsOnly,
+      'price'
+    );
+    if (!orders) {
+      return {
+        continuation: undefined,
+        orders: undefined
+      };
+    }
+
+    const augmentedOrders = orders.orders.map((order) => {
+      const lastSalePriceEth = 0;
+      const mintPriceEth = 0;
+      return {
+        ...order,
+        chainId,
+        lastSalePriceEth,
+        mintPriceEth
+      };
+    });
+
+    // if (!collBidsOnly) {
+    //   // fetch last sale price from firestore
+    //   const collsRef = this._firebaseService.firestore.collection(firestoreConstants.COLLECTIONS_COLL);
+    //   const ordersWithTokenIds = orders.orders.filter((order) => order.criteria?.data?.token?.tokenId);
+    //   if (ordersWithTokenIds.length > 0) {
+    //     const nftRefs = ordersWithTokenIds.map((order) =>
+    //       collsRef
+    //         .doc(getCollectionDocId({ collectionAddress: order.contract, chainId }))
+    //         .collection('nfts')
+    //         .doc(order.criteria.data.token.tokenId)
+    //     );
+    //     const nftsSnap = await this._firebaseService.firestore.getAll(...nftRefs);
+    //     const nfts = nftsSnap.map((snap) => snap.data() as Erc721Token);
+
+    //     augmentedOrders = orders.orders.map((order) => {
+    //       const nft = nfts.find((nft) => nft?.tokenId === order.criteria?.data?.token?.tokenId);
+    //       const lastSalePriceEth = nft?.lastSalePriceEth ?? 0;
+    //       const mintPriceEth = nft?.mintPrice ?? 0;
+    //       return {
+    //         ...order,
+    //         chainId,
+    //         lastSalePriceEth,
+    //         mintPriceEth
+    //       };
+    //     });
+    //   }
+    // }
+
+    return {
+      continuation: orders.continuation,
+      orders: augmentedOrders
+    };
+  }
+
+  public async getUserTopOffers(
+    chainId: string,
+    user: string,
+    collection?: string,
+    continuation?: string
+  ): Promise<ReservoirUserTopOffers | undefined> {
+    const offers = await this.reservoirService.getUserTopOffers(chainId, user, collection, continuation);
+    if (!offers) {
+      return undefined;
+    }
+
+    const offersWithChainId = offers.topBids.map((offer) => ({ ...offer, chainId }));
+    offers.topBids = offersWithChainId;
+
+    return offers;
   }
 
   public getGasCostWei(
@@ -42,10 +180,10 @@ export class OrdersService extends BaseOrdersService {
     },
     gasUsage?: string
   ) {
-    if (isNative) {
-      return '0';
-    }
-    const gasToFulfillOnExternal = gasUsage ?? '300000';
+    // if (isNative) {
+    //   return '0';
+    // }
+    const gasToFulfillOnExternal = gasUsage ?? '400000';
     const buffer = 100_000;
     const totalGas = BigNumber.from(gasToFulfillOnExternal).add(buffer);
     const priorityFee = parseUnits('3', 'gwei');
@@ -118,8 +256,8 @@ export class OrdersService extends BaseOrdersService {
       let endPriceWei = bn(item.order.endPrice);
 
       // joe-todo: update gas estimates once we have a better idea of how much gas is used
-      const isNative = item.metadata.source === 'flow';
-      const gasCostWei = this.getGasCostWei(isNative, gasPrice, item.order.gasUsageString);
+      // const isNative = item.metadata.source === 'flow';
+      // const gasCostWei = this.getGasCostWei(isNative, gasPrice, item.order.gasUsageString);
 
       if (item.metadata.source !== 'flow') {
         const startPriceFees = startPriceWei.mul(PROTOCOL_FEE_BPS).div(10_000);
@@ -127,8 +265,8 @@ export class OrdersService extends BaseOrdersService {
         startPriceWei = startPriceWei.add(startPriceFees);
         endPriceWei = endPriceWei.add(endPriceFees);
       }
-      startPriceWei = startPriceWei.add(gasCostWei);
-      endPriceWei = endPriceWei.add(gasCostWei);
+      // startPriceWei = startPriceWei.add(gasCostWei);
+      // endPriceWei = endPriceWei.add(gasCostWei);
 
       const startPriceEth = formatEth(startPriceWei.toString(), 6);
       const endPriceEth = formatEth(endPriceWei.toString(), 6);
@@ -209,7 +347,7 @@ export class OrdersService extends BaseOrdersService {
     }
 
     const orderDirection = query.orderDirection ? query.orderDirection : DEFAULT_ORDER_DIRECTION;
-    const limit = query.limit ?? 50;
+    const limit = Number(query.limit) ?? 50;
     const cursor = this.cursorService.decodeCursorToObject<Cursor>(query.cursor);
 
     let firestoreQuery: FirebaseFirestore.Query<FirestoreDisplayOrderWithoutError> = ref.where(
@@ -219,7 +357,7 @@ export class OrdersService extends BaseOrdersService {
     );
 
     if (filterBySellOrder) {
-      firestoreQuery = firestoreQuery.where('order.isSellOrder', '==', query.isSellOrder);
+      firestoreQuery = firestoreQuery.where('order.isSellOrder', '==', String(query.isSellOrder) === 'true');
     }
 
     if (filterByStatus) {
@@ -275,7 +413,6 @@ export class OrdersService extends BaseOrdersService {
     ]);
 
     const orders = snap.docs.map((item) => item.data());
-
     const hasNextPage = orders.length > limit;
 
     if (hasNextPage) {

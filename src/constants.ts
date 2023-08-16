@@ -78,11 +78,6 @@ export const validateAndTransformEnvVariables = (env: Record<string, string>) =>
     INFINITY_NODE_ENV,
     firebaseServiceAccount,
     FB_STORAGE_BUCKET,
-    PG_DB_NAME: env.PG_DB_NAME,
-    PG_USER: env.PG_USER,
-    PG_PASS: env.PG_PASS,
-    PG_HOST: env.PG_HOST,
-    PG_PORT: env.PG_PORT,
     TWITTER_CLIENT_ID: env.TWITTER_CLIENT_ID,
     TWITTER_CLIENT_SECRET: env.TWITTER_CLIENT_SECRET,
     TWITTER_BETA_AUTH_ACCOUNT_ID: env.TWITTER_BETA_AUTH_ACCOUNT_ID,
@@ -125,10 +120,12 @@ export const DEFAULT_MIN_ETH = 0.0000001;
 export const DEFAULT_MAX_ETH = 1000000; // For listings
 export const DEFAULT_PRICE_SORT_DIRECTION = OrderDirection.Descending;
 
-export const INFINITY_EMAIL = 'hi@flow.so';
+export const INFINITY_EMAIL = 'hi@pixl.so';
 // export const FB_STORAGE_BUCKET = 'nftc-dev.appspot.com';
 export const ORIGIN = /http:\/\/localhost:\d+/;
-export const INFINITY_URL = 'https://flow.so/';
+export const INFINITY_URL = 'https://pixl.so/';
+
+export const DEFAULT_MIN_XFL_BALANCE_FOR_ZERO_FEE = 100_000;
 
 export const ONE_MIN = 1000 * 60;
 export const TEN_MINS = ONE_MIN * 10;

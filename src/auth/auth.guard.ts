@@ -167,7 +167,7 @@ export class AuthGuard implements CanActivate {
 
   static getLoginMessage(nonce: string): Omit<EIP712Data, 'domain'> & { domain: { name: string; version: string } } {
     const domain = {
-      name: 'Flow',
+      name: 'Pixl',
       version: '1'
     };
     const types = {
@@ -179,8 +179,8 @@ export class AuthGuard implements CanActivate {
     };
     const getData = (nonce: string) => {
       return {
-        message: `Welcome to Flow. Click "Sign" to sign in. This is a one-time action. No password needed. This request will not trigger a blockchain transaction or cost any gas fees.`,
-        terms: 'I accept the Flow Terms of Service: https://flow.so/terms',
+        message: `Welcome to Pixl. Click "Sign" to sign in. This is a one-time action. No password needed. This request will not trigger a blockchain transaction or cost any gas fees.`,
+        terms: 'I accept the Pixl Terms of Service: https://pixl.so/terms',
         nonce
       };
     };

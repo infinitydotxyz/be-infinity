@@ -1,7 +1,7 @@
 import { ChainOBOrder } from '@infinityxyz/lib/types/core';
 import { ErrorResponseDto, OrdersV2Dto } from '@infinityxyz/lib/types/dto';
-import { BadRequestException, Body, Controller, Post } from '@nestjs/common';
-import { ApiOperation, ApiOkResponse, ApiBadRequestResponse, ApiInternalServerErrorResponse } from '@nestjs/swagger';
+import { BadRequestException, Body, Controller, Get, Post, Query, UseInterceptors } from '@nestjs/common';
+import { ApiBadRequestResponse, ApiInternalServerErrorResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { instanceToPlain } from 'class-transformer';
 import { ApiTag } from 'common/api-tags';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
@@ -12,10 +12,98 @@ import { ResponseDescription } from 'common/response-description';
 import { ChainOBOrderHelper } from './chain-ob-order-helper';
 import { OrdersService } from './orders.service';
 import { ProtocolOrdersService } from './protocol-orders/protocol-orders.service';
+import { CacheControlInterceptor } from 'common/interceptors/cache-control.interceptor';
 
 @Controller('v2/orders')
 export class OrdersController {
   constructor(protected _ordersService: OrdersService, protected _protocolOrdersService: ProtocolOrdersService) {}
+
+  @Get('minxflstakeforzerofees')
+  @ApiOperation({
+    description: 'Get min xfl stake for zero fees',
+    tags: [ApiTag.Orders]
+  })
+  @ApiOkResponse({ description: ResponseDescription.Success })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 2 * 60 }))
+  public async getMinXflStakeForZeroFees(@Query() query: { collection: string; chainId: string; user: string }) {
+    return await this._ordersService.getMinXflStakeForZeroFees(query.chainId, query.collection, query.user);
+  }
+
+  @Get('token/bestbidask')
+  @ApiOperation({
+    description: 'Get bid and ask for a token',
+    tags: [ApiTag.Orders]
+  })
+  @ApiOkResponse({ description: ResponseDescription.Success })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 20 }))
+  public async getBestAskBidForToken(
+    @Query()
+    query: {
+      collection: string;
+      chainId: string;
+      tokenId: string;
+    }
+  ) {
+    try {
+      return await this._ordersService.getBestAskBidForToken(query.chainId, query.collection, query.tokenId);
+    } catch (err) {
+      if (err instanceof InvalidCollectionError) {
+        throw new BadRequestException(err.message);
+      } else if (err instanceof InvalidTokenError) {
+        throw new BadRequestException(err.message);
+      }
+      throw err;
+    }
+  }
+
+  @Get()
+  @ApiOperation({
+    description: 'Get orders from all marketplaces',
+    tags: [ApiTag.Orders]
+  })
+  @ApiOkResponse({ description: ResponseDescription.Success })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 20 }))
+  public async getAggregatedOrders(
+    @Query()
+    query: {
+      collection: string;
+      chainId: string;
+      tokenId?: string;
+      continuation?: string;
+      side?: string;
+      collBidsOnly?: boolean;
+    }
+  ) {
+    try {
+      const orders = await this._ordersService.getAggregatedOrders(
+        query.chainId,
+        query.collection,
+        query.tokenId,
+        query.continuation,
+        undefined,
+        query.side,
+        query.collBidsOnly
+      );
+      return {
+        data: orders?.orders,
+        cursor: orders?.continuation,
+        hasNextPage: orders?.continuation ? true : false
+      };
+    } catch (err) {
+      if (err instanceof InvalidCollectionError) {
+        throw new BadRequestException(err.message);
+      } else if (err instanceof InvalidTokenError) {
+        throw new BadRequestException(err.message);
+      }
+      throw err;
+    }
+  }
 
   @Post()
   @ApiOperation({

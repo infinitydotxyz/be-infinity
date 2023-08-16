@@ -20,11 +20,13 @@ import { Injectable } from '@nestjs/common';
 import { BackfillService } from 'backfill/backfill.service';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
 import { EthereumService } from 'ethereum/ethereum.service';
+import { BigNumber } from 'ethers';
 import { formatEther, parseEther } from 'ethers/lib/utils';
 import { firestore } from 'firebase-admin';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
-import { PostgresService } from 'postgres/postgres.service';
+import { ReservoirService } from 'reservoir/reservoir.service';
+import { ReservoirTokenV6 } from 'reservoir/types';
 import { getNftActivity, getNftSocialActivity } from 'utils/activity';
 import { OrdersService } from 'v2/orders/orders.service';
 
@@ -34,54 +36,15 @@ export class NftsService {
     private firebaseService: FirebaseService,
     private paginationService: CursorService,
     private ethereumService: EthereumService,
+    private reservoirService: ReservoirService,
     private backfillService: BackfillService,
-    private postgresService: PostgresService,
     protected ordersService: OrdersService
   ) {}
 
-  async getNft(nftQuery: NftQueryDto): Promise<NftDto | undefined> {
-    const [nft] = await this.getNfts([
-      { address: nftQuery.address, chainId: nftQuery.chainId, tokenId: nftQuery.tokenId }
-    ]);
-
-    if (nft) {
-      try {
-        // to handle stale opensea ownership data
-        const owner = await this.ethereumService.getErc721Owner({
-          address: nftQuery.address,
-          tokenId: nftQuery.tokenId,
-          chainId: nftQuery.chainId
-        });
-        if (owner && nft.owner !== owner) {
-          nft.owner = owner;
-          this.updateOwnershipInFirestore(nft);
-        }
-      } catch (err) {
-        console.error(`failed to get owner for NFT: ${nftQuery.chainId}:${nftQuery.address}:${nftQuery.tokenId}`);
-      }
-    }
-
-    return nft;
-  }
-
-  private updateOwnershipInFirestore(nft: NftDto): void {
-    const chainId = nft.chainId;
-    const collectionAddress = nft.collectionAddress ?? '';
-    const tokenId = nft.tokenId;
-    const collectionDocId = getCollectionDocId({ chainId, collectionAddress });
-    this.firebaseService.firestore
-      .collection(firestoreConstants.COLLECTIONS_COLL)
-      .doc(collectionDocId)
-      .collection(firestoreConstants.COLLECTION_NFTS_COLL)
-      .doc(tokenId)
-      .set({ owner: nft.owner }, { merge: true })
-      .then(() => {
-        console.log(`Updated ownership of ${chainId}:${collectionAddress}:${tokenId} to ${nft.owner}`);
-      })
-      .catch((err) => {
-        console.error(`Failed to update ownership of ${chainId}:${collectionAddress}:${tokenId} to ${nft.owner}`);
-        console.error(err);
-      });
+  async getNft(nftQuery: NftQueryDto): Promise<ReservoirTokenV6 | undefined> {
+    const data = await this.reservoirService.getSingleTokenInfo(nftQuery.chainId, nftQuery.address, nftQuery.tokenId);
+    const first = data?.tokens?.[0];
+    return first;
   }
 
   isSupported(nfts: NftDto[]) {
@@ -134,26 +97,6 @@ export class NftsService {
       };
     });
 
-    const nftsToBackfill = [];
-
-    for (const nft of nftsMergedWithSnapshot) {
-      if (!nft || !(nft.image?.url || nft.image?.originalUrl)) {
-        const address = nft.address || nft.collectionAddress;
-        if (nft.tokenId && address && nft.chainId) {
-          nftsToBackfill.push({
-            chainId: nft.chainId,
-            address,
-            tokenId: nft.tokenId
-          });
-        }
-      }
-    }
-
-    // async backfill
-    // this.backfillService.backfillNfts(nftsToBackfill).catch((err) => {
-    //   console.error(err);
-    // });
-
     return nftsMergedWithSnapshot;
   }
 
@@ -173,6 +116,10 @@ export class NftsService {
     const hasPriceFilter = query.minPrice !== undefined || query.maxPrice !== undefined;
     if (query.orderType || hasPriceFilter) {
       nftsQuery = nftsQuery.where(`ordersSnippet.${orderType}.hasOrder`, '==', true);
+    }
+
+    if (query.source) {
+      nftsQuery = nftsQuery.where(`ordersSnippet.${orderType}.orderItem.source`, '==', query.source);
     }
 
     if (query.traitTypes) {
@@ -286,29 +233,22 @@ export class NftsService {
 
       for (const side of ['listing' as const, 'offer' as const]) {
         const orderItem = item.ordersSnippet?.[side]?.orderItem;
-        if (orderItem) {
+        if (orderItem && orderItem.startPriceEth) {
           const startPrice = orderItem.startPriceEth;
-          const endPrice = orderItem.endPriceEth;
           const gasUsage = orderItem.gasUsage;
           const source = orderItem.source;
           const isNative = source === 'flow';
 
           const gasCostWei = this.ordersService.getGasCostWei(isNative, gasPrice, gasUsage);
-
-          let startPriceWei = parseEther(startPrice.toString());
-          let endPriceWei = parseEther(endPrice.toString());
+          let feeCostWei = BigNumber.from(0);
 
           if (orderItem.source !== 'flow') {
-            const startPriceFees = startPriceWei.mul(PROTOCOL_FEE_BPS).div(10_000);
-            const endPriceFees = endPriceWei.mul(PROTOCOL_FEE_BPS).div(10_000);
-            startPriceWei = startPriceWei.add(startPriceFees);
-            endPriceWei = endPriceWei.add(endPriceFees);
+            const startPriceWei = parseEther(startPrice.toString());
+            feeCostWei = startPriceWei.mul(PROTOCOL_FEE_BPS).div(10_000);
           }
-          startPriceWei = startPriceWei.add(gasCostWei);
-          endPriceWei = endPriceWei.add(gasCostWei);
 
-          orderItem.startPriceEth = parseFloat(formatEther(startPriceWei));
-          orderItem.endPriceEth = parseFloat(formatEther(endPriceWei));
+          orderItem.gasCostEth = parseFloat(formatEther(gasCostWei));
+          orderItem.feeCostEth = parseFloat(formatEther(feeCostWei));
         }
       }
 
@@ -379,17 +319,21 @@ export class NftsService {
   }
 
   async getSalesAndOrders(collection: ParsedCollectionId, tokenId: string): Promise<NftSaleAndOrder[]> {
-    const pool = this.postgresService.pool;
     const data: NftSaleAndOrder[] = [];
+    const chainId = collection.chainId;
+    const collectionAddress = collection.address;
 
-    const salesQuery = `SELECT sale_price_eth, sale_timestamp\
-       FROM eth_nft_sales \
-       WHERE collection_address = '${collection.address}' AND token_id = '${tokenId}' \
-       ORDER BY sale_timestamp DESC LIMIT 100`;
-    const salesResult = await pool.query(salesQuery);
-    for (const row of salesResult.rows) {
-      const priceEth = parseFloat(row.sale_price_eth);
-      const timestamp = Number(row.sale_timestamp);
+    const salesResult = await this.reservoirService.getSales(
+      chainId,
+      collectionAddress,
+      tokenId,
+      undefined,
+      undefined,
+      10
+    );
+    for (const sale of salesResult?.sales ?? []) {
+      const priceEth = sale.price.amount.native;
+      const timestamp = sale.timestamp * 1000;
 
       if (!priceEth || !timestamp) {
         continue;
@@ -404,15 +348,52 @@ export class NftsService {
       data.push(dataPoint);
     }
 
-    const ordersQuery = `SELECT price_eth, is_sell_order, start_time_millis\
-       FROM eth_nft_orders \
-       WHERE collection_address = '${collection.address}' AND token_id = '${tokenId}' \
-       ORDER BY start_time_millis DESC LIMIT 500`;
-    const ordersResult = await pool.query(ordersQuery);
-    for (const row of ordersResult.rows) {
-      const priceEth = parseFloat(row.price_eth);
-      const timestamp = Number(row.start_time_millis);
-      const isSellOrder = row.is_sell_order;
+    const listings = await this.reservoirService.getOrders(
+      chainId,
+      collectionAddress,
+      tokenId,
+      undefined,
+      undefined,
+      'sell',
+      false,
+      'updatedAt',
+      10
+    );
+
+    const bids = await this.reservoirService.getOrders(
+      chainId,
+      collectionAddress,
+      tokenId,
+      undefined,
+      undefined,
+      'buy',
+      false,
+      'updatedAt',
+      10
+    );
+
+    for (const listing of listings?.orders ?? []) {
+      const priceEth = listing.price.amount.native;
+      const timestamp = new Date(listing.updatedAt).getTime();
+      const isSellOrder = true;
+
+      if (!priceEth || !timestamp) {
+        continue;
+      }
+
+      const dataPoint: NftSaleAndOrder = {
+        dataType: isSellOrder ? 'Listing' : 'Offer',
+        priceEth,
+        timestamp
+      };
+
+      data.push(dataPoint);
+    }
+
+    for (const bid of bids?.orders ?? []) {
+      const priceEth = bid.price.amount.native;
+      const timestamp = new Date(bid.updatedAt).getTime();
+      const isSellOrder = false;
 
       if (!priceEth || !timestamp) {
         continue;

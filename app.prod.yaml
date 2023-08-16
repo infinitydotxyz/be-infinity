@@ -18,6 +18,4 @@ env_variables:
   IS_DEPLOYED: 1
   INFINITY_NODE_ENV: prod
 vpc_access_connector:
-  name: projects/seductive-394121/global/networks/default
-beta_settings:
-  cloud_sql_instances: nftc-infinity:us-east1:eth-nft-sales-listings-offers
+  name: projects/nftc-infinity/locations/us-east1/connectors/be-redis-vpc-connector

@@ -4,24 +4,25 @@ import {
   CollectionMetadata,
   CollectionPeriodStatsContent,
   CollectionSaleAndOrder,
-  CreationFlow,
+  CollectionStats,
   CurrentCurationSnippetDoc,
+  SupportedCollection,
   TopOwner
 } from '@infinityxyz/lib/types/core';
 import { TopOwnerDto, TopOwnersQueryDto } from '@infinityxyz/lib/types/dto/collections';
 import { ExternalNftCollectionDto, NftCollectionDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { firestoreConstants, getCollectionDocId } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
+import { reservoirCollToERC721CollectionAndStats } from 'common/utils';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
-import { PostgresService } from 'postgres/postgres.service';
 import { ReservoirService } from 'reservoir/reservoir.service';
+import { ReservoirOrderDepth } from 'reservoir/types';
 import { StatsService } from 'stats/stats.service';
+import { MatchingEngineService } from 'v2/matching-engine/matching-engine.service';
 import { ZoraService } from 'zora/zora.service';
 import { ONE_DAY } from '../constants';
 import { ParsedCollectionId } from './collection-id.pipe';
-import pgPromise from 'pg-promise';
-import { MatchingEngineService } from 'v2/matching-engine/matching-engine.service';
 
 interface CollectionQueryOptions {
   /**
@@ -40,7 +41,6 @@ export default class CollectionsService {
     private reservoirService: ReservoirService,
     private paginationService: CursorService,
     private statsService: StatsService,
-    private postgresService: PostgresService,
     protected matchingEngineService: MatchingEngineService
   ) {}
 
@@ -88,41 +88,63 @@ export default class CollectionsService {
     return colls;
   }
 
+  async fetchSupportedColls(chainId: string): Promise<SupportedCollection[]> {
+    const supportedCollsRef = this.firebaseService.firestore
+      .collection(firestoreConstants.SUPPORTED_COLLECTIONS_COLL)
+      .where('chainId', '==', chainId)
+      .where('isSupported', '==', true)
+      .limit(100); // future-todo: pagination
+    const querySnapshot = await supportedCollsRef.get();
+    const supportedColls = querySnapshot.docs.map((doc) => doc.data() as SupportedCollection);
+    return supportedColls;
+  }
+
+  async getOrderDepth(
+    collection: ParsedCollectionId
+  ): Promise<{ buy: ReservoirOrderDepth | undefined; sell: ReservoirOrderDepth | undefined }> {
+    const chainId = collection.chainId;
+    const collectionAddress = collection.address;
+    const buyOrderDepth = await this.reservoirService.getOrderDepth(chainId, collectionAddress, 'buy');
+    const sellOrderDepth = await this.reservoirService.getOrderDepth(chainId, collectionAddress, 'sell');
+    return {
+      buy: buyOrderDepth,
+      sell: sellOrderDepth
+    };
+  }
+
   async getRecentSalesAndOrders(collection: ParsedCollectionId): Promise<CollectionSaleAndOrder[]> {
-    const pgp = pgPromise({
-      capSQL: true
-    });
-    const pgpDB = this.postgresService.pgpDB;
-
     const data: CollectionSaleAndOrder[] = [];
+    const chainId = collection.chainId;
+    const collectionAddress = collection.address;
 
-    const salesQuery = `SELECT txhash, log_index, token_id, token_image, sale_price_eth, sale_timestamp\
-       FROM eth_nft_sales \
-       WHERE collection_address = '${collection.address}' \
-       ORDER BY sale_timestamp DESC LIMIT 20`;
+    const sales = await this.reservoirService.getSales(chainId, collectionAddress);
+    const listings = await this.reservoirService.getOrders(
+      chainId,
+      collectionAddress,
+      undefined,
+      undefined,
+      undefined,
+      'sell',
+      false,
+      'updatedAt'
+    );
+    const bids = await this.reservoirService.getOrders(
+      chainId,
+      collectionAddress,
+      undefined,
+      undefined,
+      undefined,
+      'buy',
+      false,
+      'updatedAt'
+    );
 
-    const listingsQuery = `SELECT id, token_id, token_image, price_eth, start_time_millis\
-       FROM eth_nft_orders \
-       WHERE collection_address = '${collection.address}' AND status = 'active' AND is_sell_order = true \
-       ORDER BY start_time_millis DESC LIMIT 20`;
-
-    const offersQuery = `SELECT id, token_id, token_image, price_eth, start_time_millis\
-       FROM eth_nft_orders \
-       WHERE collection_address = '${collection.address}' AND status = 'active' AND is_sell_order = false \
-       ORDER BY start_time_millis DESC LIMIT 20`;
-
-    const queries = [salesQuery, listingsQuery, offersQuery];
-    const query = pgp.helpers.concat(queries);
-    const [sales, listings, offers] = await pgpDB.multi(query);
-
-    for (const sale of sales) {
-      const tokenId = sale.token_id;
-      const priceEth = parseFloat(sale.sale_price_eth);
-      const timestamp = Number(sale.sale_timestamp);
-      const tokenImage = sale.token_image;
-      const log_index = Number(sale.log_index);
-      const txHash = sale.txhash;
-      const id = `${txHash}-${log_index}`;
+    for (const sale of sales?.sales || []) {
+      const tokenId = sale.token.tokenId;
+      const priceEth = sale.price.amount.native;
+      const timestamp = sale.timestamp * 1000;
+      const tokenImage = sale.token.image;
+      const id = sale.id;
 
       if (!priceEth || !timestamp || !tokenId || !tokenImage) {
         continue;
@@ -141,15 +163,14 @@ export default class CollectionsService {
       data.push(dataPoint);
     }
 
-    const orders: CollectionSaleAndOrder[] = [];
-    for (const listing of listings) {
-      const priceEth = parseFloat(listing.price_eth);
-      const timestamp = Number(listing.start_time_millis);
+    for (const listing of listings?.orders || []) {
+      const priceEth = listing.price.amount.native;
+      const timestamp = new Date(listing.updatedAt).getTime();
       const id = listing.id;
-      const tokenId = listing.token_id;
-      const tokenImage = listing.token_image;
+      const tokenId = listing.criteria?.data?.token?.tokenId;
+      const tokenImage = listing.criteria?.data?.token?.image;
 
-      if (!priceEth || !timestamp) {
+      if (!priceEth || !timestamp || !tokenId || !tokenImage) {
         continue;
       }
 
@@ -163,17 +184,23 @@ export default class CollectionsService {
         executionStatus: null
       };
 
-      orders.push(dataPoint);
+      data.push(dataPoint);
     }
 
-    for (const offer of offers) {
-      const priceEth = parseFloat(offer.price_eth);
-      const timestamp = Number(offer.start_time_millis);
-      const id = offer.id;
-      const tokenId = offer.token_id;
-      const tokenImage = offer.token_image;
+    for (const bid of bids?.orders || []) {
+      const priceEth = bid.price.amount.native;
+      const timestamp = new Date(bid.updatedAt).getTime();
+      const id = bid.id;
+      const isCollBid = bid.criteria?.kind === 'collection';
+      const isAttrBid = bid.criteria?.kind === 'attribute';
+      const tokenTitle = isCollBid ? 'Collection Bid' : isAttrBid ? 'Trait Bid' : bid.criteria?.data?.token?.tokenId;
+      const image = isCollBid
+        ? bid.criteria?.data?.collection?.image
+        : isAttrBid
+        ? ''
+        : bid.criteria?.data?.token?.image;
 
-      if (!priceEth || !timestamp) {
+      if (!priceEth || !timestamp || !tokenTitle) {
         continue;
       }
 
@@ -182,27 +209,12 @@ export default class CollectionsService {
         priceEth,
         timestamp,
         id,
-        tokenId,
-        tokenImage,
+        tokenId: tokenTitle,
+        tokenImage: image,
         executionStatus: null
       };
 
-      orders.push(dataPoint);
-    }
-
-    try {
-      const orderExecInfo = await this.matchingEngineService.getExecutionStatuses(
-        collection.chainId,
-        orders.map((item) => item.id)
-      );
-      orderExecInfo.forEach((item, index) => {
-        data.push({ ...orders[index], executionStatus: item });
-      });
-    } catch (err) {
-      console.error(err);
-      orders.forEach((order) => {
-        data.push({ ...order, executionStatus: null });
-      });
+      data.push(dataPoint);
     }
 
     return data;
@@ -332,30 +344,12 @@ export default class CollectionsService {
    */
   async getCollectionByAddress(
     collection: { address: string; chainId: string },
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     options?: CollectionQueryOptions
-  ): Promise<Collection | undefined> {
-    const queryOptions = options ?? this.defaultCollectionQueryOptions;
-    const docId = getCollectionDocId({ collectionAddress: collection.address, chainId: collection.chainId });
-
-    const collectionSnapshot = await this.firebaseService.firestore
-      .collection(firestoreConstants.COLLECTIONS_COLL)
-      .doc(docId)
-      .get();
-
-    const result = collectionSnapshot.data();
-
-    if (queryOptions.limitToCompleteCollections && result?.state?.create?.step !== CreationFlow.Complete) {
-      return undefined;
-    }
-    return result as Collection;
-  }
-
-  async getFloorPrice(collection: { address: string; chainId: ChainId }): Promise<number | null> {
-    const floorPrice = await this.statsService.getCollectionFloorPrice(collection);
-    if (typeof floorPrice === 'number') {
-      return floorPrice;
-    }
-    return null;
+  ): Promise<Collection & Partial<CollectionStats> | undefined> {
+    const data = await this.reservoirService.getSingleCollectionInfo(collection.chainId, collection.address);
+    const first = data?.collections?.[0];
+    return first ? reservoirCollToERC721CollectionAndStats(collection.chainId, first) : undefined;
   }
 
   async getCollectionsByAddress(collections: { address: string; chainId: ChainId }[]) {

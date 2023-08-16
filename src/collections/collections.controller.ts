@@ -1,19 +1,17 @@
 import {
   ChainId,
   Collection,
-  CollectionHistoricalSale,
   CollectionOrder,
-  CollectionPeriodStatsContent,
-  CollectionSaleAndOrder
+  CollectionSaleAndOrder,
+  CollectionStats,
+  SupportedCollection
 } from '@infinityxyz/lib/types/core';
-import { CollectionStatsArrayResponseDto, CollectionStatsDto } from '@infinityxyz/lib/types/dto/stats';
 import {
   BadRequestException,
   Controller,
   Get,
   InternalServerErrorException,
   NotFoundException,
-  Put,
   Query,
   UseInterceptors
 } from '@nestjs/common';
@@ -30,7 +28,6 @@ type CollectStatsQuery = {
 };
 
 import {
-  CollectionDto,
   CollectionTrendingStatsQueryDto,
   TopOwnersArrayResponseDto,
   TopOwnersQueryDto
@@ -38,6 +35,7 @@ import {
 import { NftActivityArrayDto, NftActivityFiltersDto } from '@infinityxyz/lib/types/dto/collections/nfts';
 import { TweetArrayDto } from '@infinityxyz/lib/types/dto/twitter';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
+import { Throttle } from '@nestjs/throttler';
 import { ApiTag } from 'common/api-tags';
 import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param-collection-id.decorator';
 import { ErrorResponseDto } from 'common/dto/error-response.dto';
@@ -45,15 +43,16 @@ import { PaginatedQuery } from 'common/dto/paginated-query.dto';
 import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { CacheControlInterceptor } from 'common/interceptors/cache-control.interceptor';
 import { ResponseDescription } from 'common/response-description';
+import { CollectionPeriodStatsContent } from 'common/types';
 import { FirebaseService } from 'firebase/firebase.service';
 import { mnemonicByParam } from 'mnemonic/mnemonic.service';
+import { ReservoirOrderDepth } from 'reservoir/types';
 import { StatsService } from 'stats/stats.service';
 import { TwitterService } from 'twitter/twitter.service';
 import { ParseCollectionIdPipe, ParsedCollectionId } from './collection-id.pipe';
 import CollectionsService from './collections.service';
-import { CollectionStatsArrayDto } from './dto/collection-stats-array.dto';
 import { NftsService } from './nfts/nfts.service';
-import { Throttle } from '@nestjs/throttler';
+import { CollectionHistoricalSale } from 'stats/types';
 
 const EXCLUDED_COLLECTIONS = [
   '0x81ae0be3a8044772d04f32398bac1e1b4b215aa8', // Dreadfulz
@@ -101,30 +100,17 @@ export class CollectionsController {
     return query;
   }
 
-  @Put('update-trending-colls')
-  @ApiOperation({
-    tags: [ApiTag.Collection, ApiTag.Stats],
-    description: 'Update top collections in firebase. Called by an external job'
-  })
-  @ApiOkResponse({ description: ResponseDescription.Success })
-  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
-  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  async storeTrendingCollections() {
-    await this.statsService.fetchAndStoreTopCollectionsFromReservoir();
-  }
-
   @Get('stats')
   @ApiOperation({
     tags: [ApiTag.Collection, ApiTag.Stats],
     description: 'Get stats for top collections.'
   })
-  @ApiOkResponse({ description: ResponseDescription.Success, type: CollectionStatsArrayDto })
+  @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 10 })) // 10 mins
-  async getCollectionStats(@Query() query: CollectionTrendingStatsQueryDto): Promise<CollectionStatsArrayDto> {
+  async getCollectionStats(@Query() query: CollectionTrendingStatsQueryDto): Promise<{ data: Partial<Collection>[] }> {
     const chainId = query.chainId ?? ChainId.Mainnet;
     const queryPeriod = query.period;
     const limit = query.limit ?? 50;
@@ -156,37 +142,41 @@ export class CollectionsController {
       throw new BadRequestException('Invalid chainId', chainId);
     }
 
-    const { getCollection } = await this.collectionsService.getCollectionsByAddress(
-      collections.map((coll) => ({
-        address: coll?.contractAddress ?? '',
-        chainId: (coll.chainId ?? ChainId.Mainnet) as ChainId
-      }))
-    );
-
-    const results: Collection[] = [];
+    const results: Partial<Collection>[] = [];
     for (const coll of collections) {
-      const statsData = coll;
-
-      const collectionData = getCollection({
-        address: statsData.contractAddress ?? '',
-        chainId: statsData.chainId ?? ChainId.Mainnet
-      }) as Collection;
+      const collection: Partial<Collection> = {
+        chainId: coll.chainId ?? ChainId.Mainnet,
+        address: coll.contractAddress ?? '',
+        hasBlueCheck: coll.hasBlueCheck ?? false,
+        slug: coll.slug ?? '',
+        numNfts: coll.tokenCount ?? 0,
+        metadata: {
+          profileImage: coll.image ?? '',
+          name: coll.name ?? '',
+          description: '',
+          symbol: '',
+          bannerImage: '',
+          links: {
+            timestamp: 0
+          }
+        }
+      };
 
       //  ignore colls where there is no name or profile image or if it is not supported
-      if (collectionData?.metadata?.name && collectionData.metadata?.profileImage && collectionData?.isSupported) {
+      if (coll?.name && coll?.image) {
         // ignore excluded collections
-        if (!EXCLUDED_COLLECTIONS.includes(collectionData?.address)) {
-          collectionData.stats = {
+        if (!EXCLUDED_COLLECTIONS.includes(coll?.contractAddress ?? '')) {
+          collection.stats = {
             [queryPeriod]: {
-              tokenCount: statsData.tokenCount,
-              salesVolume: statsData.salesVolume,
-              salesVolumeChange: statsData.salesVolumeChange,
-              floorPrice: statsData.floorPrice,
-              floorPriceChange: statsData.floorPriceChange,
+              tokenCount: coll.tokenCount,
+              salesVolume: coll.salesVolume,
+              salesVolumeChange: coll.salesVolumeChange,
+              floorPrice: coll.floorPrice,
+              floorPriceChange: coll.floorPriceChange,
               period: queryPeriod
             }
           };
-          results.push(collectionData);
+          results.push(collection);
 
           if (results.length >= limit) {
             break;
@@ -200,20 +190,35 @@ export class CollectionsController {
     };
   }
 
+  @Get('/supported')
+  @ApiOperation({
+    tags: [ApiTag.Collection],
+    description: 'Get supported collections by chain id'
+  })
+  @ApiParamCollectionId()
+  @ApiOkResponse({ description: ResponseDescription.Success })
+  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
+  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 1 }))
+  async getSupportedColls(@Query() query: { chainId: string }): Promise<SupportedCollection[]> {
+    return this.collectionsService.fetchSupportedColls(query.chainId);
+  }
+
   @Get('/:id')
   @ApiOperation({
     tags: [ApiTag.Collection],
     description: 'Get a single collection by address and chain id or by slug'
   })
   @ApiParamCollectionId()
-  @ApiOkResponse({ description: ResponseDescription.Success, type: CollectionDto })
+  @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 1 }))
   async getOne(
     @ParamCollectionId('id', ParseCollectionIdPipe) parsedCollection: ParsedCollectionId
-  ): Promise<Collection> {
+  ): Promise<Collection & Partial<CollectionStats>> {
     const collection = await this.collectionsService.getCollectionByAddress(parsedCollection);
 
     if (!collection) {
@@ -309,25 +314,24 @@ export class CollectionsController {
     return await this.collectionsService.getRecentSalesAndOrders(collection);
   }
 
-  @Get('/:id/stats')
+  @Get('/:id/orderdepth')
   @ApiOperation({
-    tags: [ApiTag.Collection, ApiTag.Stats],
-    description: 'Get historical stats for a single collection'
+    tags: [ApiTag.Collection, ApiTag.Orders],
+    description: 'Get order depth for a single collection'
   })
   @ApiParamCollectionId()
-  @ApiOkResponse({ description: ResponseDescription.Success, type: CollectionStatsArrayResponseDto })
+  @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 1 * 60 }))
-  async getCollectionHistoricalStats(
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 }))
+  async getOrderDepth(
     @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
-  ): Promise<Partial<CollectionStatsDto>> {
-    const response = await this.statsService.getCollAllStats(collection);
-    return response;
+  ): Promise<{ buy: ReservoirOrderDepth | undefined; sell: ReservoirOrderDepth | undefined }> {
+    return await this.collectionsService.getOrderDepth(collection);
   }
 
-  @Get('/:id/floorandcreator')
+  @Get('/:id/floorandtokencount')
   @ApiOperation({
     tags: [ApiTag.Collection, ApiTag.Stats],
     description: 'Get historical stats for a single collection'
@@ -337,11 +341,11 @@ export class CollectionsController {
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 10 }))
-  async getCollectionFloorAndCreator(
+  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 5 }))
+  async getCollectionFloorAndTokenCount(
     @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
-  ): Promise<{ floorPrice: number; creator: string }> {
-    const response = await this.statsService.getCollFloorAndCreator(collection);
+  ): Promise<{ floorPrice: number; tokenCount: number }> {
+    const response = await this.statsService.getCollFloorAndTokenCount(collection);
     return response;
   }
 

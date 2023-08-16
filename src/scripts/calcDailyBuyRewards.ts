@@ -117,3 +117,47 @@ export const calcDailyBuyRewards = async (timestamp: number) => {
       });
   }
 };
+
+export const calcTotalBuyRewards = async () => {
+  const exclWallets = ['0x2f9961596a2882ec3ed022c5599b38798fe6485e', '0xdbd8277e2e16aa40f0e5d3f21ffe600ad706d979'];
+
+  const configService = getService(ConfigService);
+  if (!configService) {
+    throw new Error('Config service not found');
+  }
+
+  const firebaseService = getService(FirebaseService);
+  if (!firebaseService) {
+    throw new Error('Firebase service not found');
+  }
+
+  console.log('Calculating total buy rewards so far');
+
+  const xflBuyRewardTotalDoc = await firebaseService.firestore.collection('xflBuyRewards').doc('totals').get();
+  const buyers = await xflBuyRewardTotalDoc.ref.collection('buyers').get();
+  console.log('Num buyers', buyers.size);
+
+  const map = new Map<string, number>();
+
+  let totalRewards = 0;
+  let totalRewardsForExclWallets = 0;
+  for (const buyerDoc of buyers.docs) {
+    const data = buyerDoc.data() as UserBuyReward;
+    const address = data.address;
+    const finalReward = data.finalReward;
+
+    console.log('Buyer', address, 'has final reward', finalReward);
+    map.set(address, finalReward);
+    if (exclWallets.includes(address)) {
+      totalRewardsForExclWallets += finalReward;
+    }
+
+    totalRewards += finalReward;
+  }
+  const totalMinusExcluded = totalRewards - totalRewardsForExclWallets;;
+  console.log('Total rewards', totalRewards / 1_000_000);
+  console.log('Total rewards for excluded wallets', totalRewardsForExclWallets / 1_000_000);
+  console.log('Total rewards minus excluded wallets', totalMinusExcluded / 1_000_000);
+
+  return map;
+};

@@ -8,15 +8,10 @@ import { INFINITY_EMAIL, INFINITY_URL, auth } from './constants';
 import { HttpExceptionFilter } from './http-exception.filter';
 // This is a hack to make Multer available in the Express namespace
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { trimLowerCase } from '@infinityxyz/lib/utils';
 import { API_KEY_HEADER, API_SECRET_HEADER } from 'auth/auth.constants';
-import { SupportedCollectionsProvider } from 'common/providers/supported-collections-provider';
-import { FirebaseService } from 'firebase/firebase.service';
-import SetsService from 'sets/sets.service';
-import { DailyBuyTotals, OverallBuyTotals, SaleData, UserBuyReward } from 'types';
-import { getZeroHourTimestamp } from 'utils';
+import { StatsService } from 'stats/stats.service';
 
-async function setup(app: INestApplication) {
+function setup(app: INestApplication) {
   app.enableCors({
     origin: '*', // ORIGIN, // todo: use '*' for testing
     optionsSuccessStatus: 200
@@ -31,12 +26,12 @@ async function setup(app: INestApplication) {
     })
   );
 
-  const firebaseService = app.get(FirebaseService);
-  const supportedCollections = new SupportedCollectionsProvider(firebaseService.firestore);
-  await supportedCollections.init();
-
-  const setsService = app.get(SetsService);
-  setsService.setSupportedCollections(supportedCollections);
+  // update trending collections on startup and every 30 minutes
+  const statsService = app.get(StatsService);
+  statsService.fetchAndStoreTopCollectionsFromReservoir().catch(console.error);
+  setInterval(async () => {
+    await statsService.fetchAndStoreTopCollectionsFromReservoir();
+  }, 30 * 60 * 1000);
 
   if (process.env.INFINITY_NODE_ENV === 'dev') {
     setupSwagger(app, 'docs');
@@ -45,7 +40,7 @@ async function setup(app: INestApplication) {
 
 function setupSwagger(app: INestApplication, path: string) {
   const config = new DocumentBuilder()
-    .setTitle('Flow API')
+    .setTitle('Pixl API')
     .setDescription('Developer API')
     .setContact('infinity', INFINITY_URL, INFINITY_EMAIL)
     .setVersion('1.0.0')
@@ -84,149 +79,9 @@ function setupSwagger(app: INestApplication, path: string) {
   SwaggerModule.setup(path, app, document);
 }
 
-function setupFirestoreQueryListeners(app: INestApplication) {
-  const firestore = app.get(FirebaseService).firestore;
-
-  // setup sales query listeners to show realtime trailing 24hr volume to end users
-  // sales are being duplicated due to a reservoir bug so first we write to a deduplicated collection
-  const zeroHourTimestampOfTheDay = getZeroHourTimestamp(Date.now());
-  const query = firestore
-    .collection('sales')
-    .where('source', '==', 'flow')
-    .where('timestamp', '>=', zeroHourTimestampOfTheDay);
-  query.onSnapshot(
-    (snap) => {
-      console.log(`Received flow sales 24hr snapshot of size ${snap.size}`);
-      snap.docChanges().forEach((change) => {
-        if (change.type === 'added') {
-          const data = change.doc.data() as SaleData;
-          handleDeDuplication(firestore, data);
-        }
-      });
-    },
-    (err) => {
-      console.log(`Encountered error while listening to flow sales 24hr snapshot: ${err}`);
-    }
-  );
-
-  const deDupQuery = firestore.collection('deDuplicatedSales').where('timestamp', '>=', zeroHourTimestampOfTheDay);
-  deDupQuery.onSnapshot(
-    (snap) => {
-      console.log(`Received de-duplicated flow sales 24hr snapshot of size ${snap.size}`);
-      snap.docChanges().forEach((change) => {
-        if (change.type === 'added') {
-          const data = change.doc.data() as SaleData;
-          handleFlow24HrDeDuplicatedSalesSnapshot(firestore, data);
-        }
-      });
-    },
-    (err) => {
-      console.log(`Encountered error while listening to de-duplicated flow sales 24hr snapshot: ${err}`);
-    }
-  );
-}
-
-function handleDeDuplication(firestore: FirebaseFirestore.Firestore, data: SaleData) {
-  const txHash = data.txHash;
-  // write to deDuplicatedSales collection
-  const deDuplicatedSalesDocRef = firestore.collection('deDuplicatedSales').doc(txHash);
-  deDuplicatedSalesDocRef.set({ ...data }, { merge: true }).catch((err) => {
-    console.log(`Encountered error while writing to deDuplicatedSales collection: ${err}`);
-  });
-}
-
-function handleFlow24HrDeDuplicatedSalesSnapshot(firestore: FirebaseFirestore.Firestore, data: SaleData) {
-  const txHash = data.txHash;
-  const buyer = trimLowerCase(data.buyer);
-  const price = data.price;
-  const quantity = data.quantity;
-  const timestamp = data.timestamp;
-  const zeroHourTimestampOfTheDay = getZeroHourTimestamp(timestamp);
-
-  const processedBuyRewardsCollectionRef = firestore
-    .collection('processedBuyRewardHashes')
-    .doc(zeroHourTimestampOfTheDay.toString())
-    .collection('hashes');
-  const dailyTotalBuyRewardDocRef = firestore.collection('xflBuyRewards').doc(zeroHourTimestampOfTheDay.toString());
-
-  firestore
-    .runTransaction(async (t) => {
-      // first check if this sale has already been processed
-      const processedSaleDocRef = processedBuyRewardsCollectionRef.doc(txHash);
-      // if this doc exists, sale has been processed, so return
-      if ((await t.get(processedSaleDocRef)).exists) {
-        return;
-      }
-
-      // read from rewards per day per buyer
-      const dailyBuyerRewardDocRef = dailyTotalBuyRewardDocRef.collection('buyers').doc(buyer);
-      const dailyBuyerRewardDocData = ((await t.get(dailyBuyerRewardDocRef)).data() as UserBuyReward) ?? {
-        volumeETH: 0,
-        numBuys: 0,
-        address: buyer
-      };
-      const volumeETH = dailyBuyerRewardDocData.volumeETH + price;
-      const numBuys = dailyBuyerRewardDocData.numBuys + quantity;
-
-      // read from rewards per day total
-      const dailyTotalBuyRewardDocData = ((await t.get(dailyTotalBuyRewardDocRef)).data() as DailyBuyTotals) ?? {
-        dailyTotalNumBuys: 0,
-        dailyTotalVolumeETH: 0
-      };
-      const dailyTotalVolumeETH = dailyTotalBuyRewardDocData.dailyTotalVolumeETH + price;
-      const dailyTotalNumBuys = dailyTotalBuyRewardDocData.dailyTotalNumBuys + quantity;
-
-      // read from overall rewards per buyer
-      const overallBuyerRewardDocRef = firestore
-        .collection('xflBuyRewards')
-        .doc('totals')
-        .collection('buyers')
-        .doc(buyer);
-      const overallBuyerRewardDocData = ((await t.get(overallBuyerRewardDocRef)).data() as UserBuyReward) ?? {
-        volumeETH: 0,
-        numBuys: 0,
-        address: buyer
-      };
-      const overallBuyerolumeETH = overallBuyerRewardDocData.volumeETH + price;
-      const overallBuyerNumBuys = overallBuyerRewardDocData.numBuys + quantity;
-
-      // read from rewards overall total
-      const overallBuyRewardDocRef = firestore.collection('xflBuyRewards').doc('totals');
-      const overallBuyRewardDocData = ((await t.get(overallBuyRewardDocRef)).data() as OverallBuyTotals) ?? {
-        totalVolumeETH: 0,
-        totalNumBuys: 0
-      };
-      const totalVolumeETH = overallBuyRewardDocData.totalVolumeETH + price;
-      const totalNumBuys = overallBuyRewardDocData.totalNumBuys + quantity;
-
-      // write to rewards per day per buyer
-      t.set(dailyBuyerRewardDocRef, { volumeETH, numBuys, address: buyer });
-
-      // write to total rewards per day
-      t.set(dailyTotalBuyRewardDocRef, { dailyTotalVolumeETH, dailyTotalNumBuys });
-
-      // write to overall rewards per buyer
-      t.set(overallBuyerRewardDocRef, {
-        volumeETH: overallBuyerolumeETH,
-        numBuys: overallBuyerNumBuys,
-        address: buyer
-      }, { merge: true });
-
-      // write to total overall rewards
-      t.set(overallBuyRewardDocRef, { totalVolumeETH, totalNumBuys });
-
-      // finally write the processed doc to processedBuyRewardHashes collection
-      t.set(processedSaleDocRef, { processed: true, uniqueIdHash: txHash });
-    })
-    .catch((err) => {
-      console.log(`Encountered error while updating daily buyer amounts for ${buyer}: ${err}`);
-    });
-}
-
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  await setup(app);
-  setupFirestoreQueryListeners(app);
+  setup(app);
   await app.listen(process.env.PORT || 9090);
 }
 

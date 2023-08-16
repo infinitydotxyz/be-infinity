@@ -1,11 +1,11 @@
 import {
-  DistributionType,
   ChainId,
+  DistributionType,
+  ETHDistribution,
   MerkleRootDoc,
   MerkleRootLeafDoc,
-  distributionSourcesByType,
-  ETHDistribution,
-  INFTDistribution
+  XFLDistribution,
+  distributionSourcesByType
 } from '@infinityxyz/lib/types/core';
 import { NULL_HASH } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
@@ -64,16 +64,15 @@ export class MerkleTreeService {
         airdropContractAddress: address,
         maxTimestamp: 0
       };
-      const defaultINFTConfig: INFTDistribution = {
-        type: DistributionType.INFT,
+      const defaultXFLConfig: XFLDistribution = {
+        type: DistributionType.XFL,
         chainId,
         tokenContractAddress: '',
-        airdropContractAddress: address,
-        phaseIds: []
+        airdropContractAddress: address
       };
 
       return {
-        config: type === DistributionType.ETH ? defaultEthConfig : defaultINFTConfig,
+        config: type === DistributionType.ETH ? defaultEthConfig : defaultXFLConfig,
         updatedAt: 0,
         nonce: -1,
         numEntries: 0,
@@ -129,8 +128,8 @@ export class MerkleTreeService {
             merkleRootDoc.config.chainId,
             userAddress
           );
-        } else if (merkleRootDoc.config.type === DistributionType.FLOW) {
-          cumulativeClaimed = await this.cmDistributor.getCumulativeFLOWClaimed(
+        } else if (merkleRootDoc.config.type === DistributionType.XFL) {
+          cumulativeClaimed = await this.cmDistributor.getCumulativeXFLClaimed(
             merkleRootDoc.config.chainId,
             userAddress
           );
