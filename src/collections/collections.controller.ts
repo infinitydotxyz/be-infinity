@@ -71,7 +71,7 @@ export class CollectionsController {
     private twitterService: TwitterService,
     private nftsService: NftsService,
     private firebaseService: FirebaseService
-  ) {}
+  ) { }
 
   @Get('update-social-stats')
   @ApiOperation({
@@ -118,29 +118,29 @@ export class CollectionsController {
 
     let collections: CollectionPeriodStatsContent[] = [];
 
-    if (chainId === ChainId.Goerli) {
-      collections = await this.collectionsService.defaultGoerliColls();
-    } else if (chainId === ChainId.Mainnet) {
-      const trendingCollectionsRef = this.firebaseService.firestore.collection(
-        firestoreConstants.TRENDING_COLLECTIONS_COLL
-      );
-      let byParamDoc = '';
-      let orderBy = '';
-      if (queryBy === 'by_sales_volume') {
-        byParamDoc = firestoreConstants.TRENDING_BY_VOLUME_DOC;
-        orderBy = 'salesVolume';
-      } else if (queryBy === 'by_avg_price') {
-        byParamDoc = firestoreConstants.TRENDING_BY_AVG_PRICE_DOC;
-        orderBy = 'avgPrice';
-      }
-      const byParamCollectionRef = trendingCollectionsRef.doc(byParamDoc);
-      const byPeriodCollectionRef = byParamCollectionRef.collection(queryPeriod);
-
-      const result = await byPeriodCollectionRef.orderBy(orderBy, 'desc').get(); // default descending
-      collections = result?.docs.map((doc) => doc.data() as CollectionPeriodStatsContent) ?? [];
-    } else {
-      throw new BadRequestException('Invalid chainId', chainId);
+    // if (chainId === ChainId.Goerli) {
+    //   collections = await this.collectionsService.defaultGoerliColls();
+    // } else if (chainId === ChainId.Mainnet) {
+    const trendingCollectionsRef = this.firebaseService.firestore.collection(
+      firestoreConstants.TRENDING_COLLECTIONS_COLL
+    );
+    let byParamDoc = '';
+    let orderBy = '';
+    if (queryBy === 'by_sales_volume') {
+      byParamDoc = `${chainId}:${firestoreConstants.TRENDING_BY_VOLUME_DOC}`;
+      orderBy = 'salesVolume';
+    } else if (queryBy === 'by_avg_price') {
+      byParamDoc = `${firestoreConstants.TRENDING_BY_AVG_PRICE_DOC}`;
+      orderBy = 'avgPrice';
     }
+    const byParamCollectionRef = trendingCollectionsRef.doc(byParamDoc);
+    const byPeriodCollectionRef = byParamCollectionRef.collection(queryPeriod);
+
+    const result = await byPeriodCollectionRef.orderBy(orderBy, 'desc').get(); // default descending
+    collections = result?.docs.map((doc) => doc.data() as CollectionPeriodStatsContent) ?? [];
+    // } else {
+    //   throw new BadRequestException('Invalid chainId', chainId);
+    // }
 
     const results: Partial<Collection>[] = [];
     for (const coll of collections) {

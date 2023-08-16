@@ -19,6 +19,51 @@ import {
   ReservoirUserTopOffers
 } from './types';
 
+const BASE_URL = {
+  Ethereum: 'https://api.reservoir.tools/',
+  Goerli: 'https://api-goerli.reservoir.tools/',
+  Sepolia: 'https://api-sepolia.reservoir.tools',
+  Polygon: 'https://api-polygon.reservoir.tools/',
+  Mumbai: 'https://api-mumbai.reservoir.tools/',
+  BNB: 'https://api-bsc.reservoir.tools/',
+  Arbitrum: 'https://api-arbitrum.reservoir.tools/',
+  Optimism: 'https://api-optimism.reservoir.tools/',
+  ArbitrumNova: 'https://api-arbitrum-nova.reservoir.tools',
+  Base: 'https://api-base.reservoir.tools',
+  BaseGoerli: 'https://api-base-goerli.reservoir.tools',
+  Zora: 'https://api-zora.reservoir.tools',
+  ZoraGoerli: 'https://api-zora-testnet.reservoir.tools',
+  ScrollAlpha: 'https://api-scroll-alpha.reservoir.tools',
+  Linea: 'https://api-linea.reservoir.tools',
+}
+
+export const chainIdToNetwork: Record<number, keyof typeof BASE_URL> = {
+  1: 'Ethereum',
+  5: 'Goerli',
+  6: 'Sepolia',
+  137: 'Polygon',
+  80001: 'Mumbai',
+  56: 'BNB',
+  42161: 'Arbitrum',
+  42170: 'ArbitrumNova',
+  8453: "Base",
+  84531: 'BaseGoerli',
+  7777777: 'Zora',
+  999: 'ZoraGoerli',
+  534353: 'ScrollAlpha',
+  59144: 'Linea'
+};
+
+const getBaseUrl = (chainId: number | string) => {
+  chainId = typeof chainId === 'string' ? parseInt(chainId) : chainId;
+  const networkName = chainIdToNetwork[chainId];
+  if (!networkName) {
+    return null;
+  }
+  return BASE_URL[networkName] || null;
+}
+
+
 @Injectable()
 export class ReservoirService {
   private readonly client: Got;
@@ -53,6 +98,7 @@ export class ReservoirService {
     collectionAddress?: string
   ): Promise<ReservoirCollectionSearch | undefined> {
     try {
+
       const res: Response<ReservoirCollectionSearch> = await this.errorHandler(async () => {
         const searchParams: any = {
           limit: 10
@@ -68,8 +114,14 @@ export class ReservoirService {
           }
         }
 
+        const baseUrl = getBaseUrl(chainId);
+        if (!baseUrl) {
+          throw new Error(`Unsupported network ${chainId}`);
+        }
+
         return this.client.get(`search/collections/v2`, {
           searchParams,
+          prefixUrl: baseUrl,
           responseType: 'json'
         });
       });
@@ -107,9 +159,13 @@ export class ReservoirService {
         }
 
         const endpoint = 'sales/v5';
-
+        const baseUrl = getBaseUrl(chainId);
+        if (!baseUrl) {
+          throw new Error(`Unsupported network ${chainId}`);
+        }
         return this.client.get(endpoint, {
           searchParams,
+          prefixUrl: baseUrl,
           responseType: 'json'
         });
       });
@@ -166,8 +222,13 @@ export class ReservoirService {
           }
         }
 
+        const baseUrl = getBaseUrl(chainId);
+        if (!baseUrl) {
+          throw new Error(`Unsupported network ${chainId}`);
+        }
         return this.client.get(endpoint, {
           searchParams,
+          prefixUrl: baseUrl,
           responseType: 'json'
         });
       });
@@ -218,8 +279,13 @@ export class ReservoirService {
 
         const endpoint = `orders/users/${user}/top-bids/v4`;
 
+        const baseUrl = getBaseUrl(chainId);
+        if (!baseUrl) {
+          throw new Error(`Unsupported network ${chainId}`);
+        }
         return this.client.get(endpoint, {
           searchParams,
+          prefixUrl: baseUrl,
           responseType: 'json'
         });
       });
@@ -260,8 +326,13 @@ export class ReservoirService {
           searchParams.collection = collectionAddress;
         }
 
+        const baseUrl = getBaseUrl(chainId);
+        if (!baseUrl) {
+          throw new Error(`Unsupported network ${chainId}`);
+        }
         return this.client.get(`orders/depth/v1`, {
           searchParams,
+          prefixUrl: baseUrl,
           responseType: 'json'
         });
       });
@@ -278,7 +349,11 @@ export class ReservoirService {
         const body = {
           collection: collectionAddress
         };
-        return this.client.post(`collections/refresh/v1`, { json: body, responseType: 'json' });
+        const baseUrl = getBaseUrl(chainId);
+        if (!baseUrl) {
+          throw new Error(`Unsupported network ${chainId}`);
+        }
+        return this.client.post(`collections/refresh/v1`, { json: body, responseType: 'json', prefixUrl: baseUrl });
       });
     } catch (e) {
       console.error('Failed to enqueue collection for reindexing on reservoir', chainId, collectionAddress, e);
@@ -301,8 +376,13 @@ export class ReservoirService {
         if (continuation) {
           searchParams.continuation = continuation;
         }
+        const baseUrl = getBaseUrl(chainId);
+        if (!baseUrl) {
+          throw new Error(`Unsupported network ${chainId}`);
+        }
         return this.client.get(`collections/v6`, {
           searchParams,
+          prefixUrl: baseUrl,
           responseType: 'json'
         });
       });
@@ -323,8 +403,13 @@ export class ReservoirService {
           id: collectionAddress,
           includeSalesCount: true
         };
+        const baseUrl = getBaseUrl(chainId);
+        if (!baseUrl) {
+          throw new Error(`Unsupported network ${chainId}`);
+        }
         return this.client.get(`collections/v6`, {
           searchParams,
+          prefixUrl: baseUrl,
           responseType: 'json'
         });
       });
@@ -347,8 +432,13 @@ export class ReservoirService {
           includeTopBid: true,
           includeAttributes: true
         };
+        const baseUrl = getBaseUrl(chainId);
+        if (!baseUrl) {
+          throw new Error(`Unsupported network ${chainId}`);
+        }
         return this.client.get(`tokens/v6`, {
           searchParams,
+          prefixUrl: baseUrl,
           responseType: 'json'
         });
       });
@@ -374,8 +464,13 @@ export class ReservoirService {
         if (continuation) {
           searchParams.continuation = continuation;
         }
+        const baseUrl = getBaseUrl(chainId);
+        if (!baseUrl) {
+          throw new Error(`Unsupported network ${chainId}`);
+        }
         return this.client.get(`tokens/details/v4`, {
           searchParams,
+          prefixUrl: baseUrl,
           responseType: 'json'
         });
       });
@@ -394,8 +489,13 @@ export class ReservoirService {
           offset,
           limit
         };
+        const baseUrl = getBaseUrl(chainId);
+        if (!baseUrl) {
+          throw new Error(`Unsupported network ${chainId}`);
+        }
         return this.client.get(`owners/v1`, {
           searchParams,
+          prefixUrl: baseUrl,
           responseType: 'json'
         });
       });
@@ -409,7 +509,7 @@ export class ReservoirService {
   private async errorHandler<T>(request: () => Promise<Response<T>>, maxAttempts = 3): Promise<Response<T>> {
     let attempt = 0;
 
-    for (;;) {
+    for (; ;) {
       attempt += 1;
 
       try {
