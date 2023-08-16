@@ -7,7 +7,7 @@ import { ParsedUserId } from 'user/parser/parsed-user-id';
 
 @Injectable()
 export class ReferralsService {
-  constructor(protected firebaseService: FirebaseService) {}
+  constructor(protected firebaseService: FirebaseService) { }
 
   async getReferralRewards(referrer: ParsedUserId, chainId: ChainId): Promise<ReferralTotals> {
     const userAddress = referrer.userAddress;
@@ -15,7 +15,9 @@ export class ReferralsService {
     const doc = await ref.get();
     const numReferrals = doc.data()?.numberOfReferrals ?? 0;
 
-    const referralCodeRef = this.firebaseService.firestore.collection('flowBetaReferralCodes').where('owner.address', '==', userAddress);
+    const referralCodeRef = this.firebaseService.firestore
+      .collection('flowBetaReferralCodes')
+      .where('owner.address', '==', userAddress);
     const snap = await referralCodeRef.get();
     const referralCode = snap.docs[0]?.data()?.referralCode ?? '';
 
