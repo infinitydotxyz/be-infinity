@@ -6,15 +6,7 @@ import {
   CollectionStats,
   SupportedCollection
 } from '@infinityxyz/lib/types/core';
-import {
-  BadRequestException,
-  Controller,
-  Get,
-  InternalServerErrorException,
-  NotFoundException,
-  Query,
-  UseInterceptors
-} from '@nestjs/common';
+import { BadRequestException, Controller, Get, NotFoundException, Query, UseInterceptors } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiInternalServerErrorResponse,
@@ -23,24 +15,12 @@ import {
   ApiOperation
 } from '@nestjs/swagger';
 
-type CollectStatsQuery = {
-  list: string;
-};
-
-import {
-  CollectionTrendingStatsQueryDto,
-  TopOwnersArrayResponseDto,
-  TopOwnersQueryDto
-} from '@infinityxyz/lib/types/dto/collections';
-import { NftActivityArrayDto, NftActivityFiltersDto } from '@infinityxyz/lib/types/dto/collections/nfts';
-import { TweetArrayDto } from '@infinityxyz/lib/types/dto/twitter';
+import { CollectionTrendingStatsQueryDto } from '@infinityxyz/lib/types/dto/collections';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { Throttle } from '@nestjs/throttler';
 import { ApiTag } from 'common/api-tags';
 import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param-collection-id.decorator';
 import { ErrorResponseDto } from 'common/dto/error-response.dto';
-import { PaginatedQuery } from 'common/dto/paginated-query.dto';
-import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { CacheControlInterceptor } from 'common/interceptors/cache-control.interceptor';
 import { ResponseDescription } from 'common/response-description';
 import { CollectionPeriodStatsContent } from 'common/types';
@@ -48,11 +28,11 @@ import { FirebaseService } from 'firebase/firebase.service';
 import { mnemonicByParam } from 'mnemonic/mnemonic.service';
 import { ReservoirOrderDepth } from 'reservoir/types';
 import { StatsService } from 'stats/stats.service';
+import { CollectionHistoricalSale } from 'stats/types';
 import { TwitterService } from 'twitter/twitter.service';
 import { ParseCollectionIdPipe, ParsedCollectionId } from './collection-id.pipe';
 import CollectionsService from './collections.service';
 import { NftsService } from './nfts/nfts.service';
-import { CollectionHistoricalSale } from 'stats/types';
 
 const EXCLUDED_COLLECTIONS = [
   '0x81ae0be3a8044772d04f32398bac1e1b4b215aa8', // Dreadfulz
@@ -72,33 +52,6 @@ export class CollectionsController {
     private nftsService: NftsService,
     private firebaseService: FirebaseService
   ) {}
-
-  @Get('update-social-stats')
-  @ApiOperation({
-    description: 'A background task to collect Stats for a list of collection',
-    tags: [ApiTag.Collection]
-  })
-  @ApiOkResponse({ description: ResponseDescription.Success, type: String })
-  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  collectStats(@Query() query: CollectStatsQuery) {
-    const idsArr = query.list.split(',');
-
-    const trigger = async (address: string) => {
-      const collectionRef = (await this.firebaseService.getCollectionRef({
-        chainId: ChainId.Mainnet,
-        address
-      })) as FirebaseFirestore.DocumentReference<Collection>;
-      this.statsService.refreshSocialsStats(collectionRef).catch((err) => console.error(err));
-    };
-
-    for (const address of idsArr) {
-      if (address) {
-        trigger(address).catch((err) => console.error(err));
-      }
-    }
-    return query;
-  }
 
   @Get('stats')
   @ApiOperation({
@@ -228,35 +181,6 @@ export class CollectionsController {
     return collection;
   }
 
-  @Get('/:id/topOwners')
-  @ApiOperation({
-    tags: [ApiTag.Collection],
-    description: 'Get the top owners of nfts in the collection'
-  })
-  @ApiParamCollectionId()
-  @ApiOkResponse({ description: ResponseDescription.Success, type: TopOwnersArrayResponseDto })
-  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
-  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 10 }))
-  async getTopOwners(
-    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
-    @Query() query: TopOwnersQueryDto
-  ): Promise<TopOwnersArrayResponseDto> {
-    try {
-      const topOwners = await this.collectionsService.getTopOwners(collection, query);
-      if (!topOwners) {
-        throw new InternalServerErrorException('Failed to get top owners');
-      }
-      return topOwners;
-    } catch (err) {
-      if (err instanceof InvalidCollectionError) {
-        throw new NotFoundException();
-      }
-      throw err;
-    }
-  }
-
   @Get('/:id/sales')
   @ApiOperation({
     tags: [ApiTag.Collection, ApiTag.Sales],
@@ -347,47 +271,5 @@ export class CollectionsController {
   ): Promise<{ floorPrice: number; tokenCount: number }> {
     const response = await this.statsService.getCollFloorAndTokenCount(collection);
     return response;
-  }
-
-  @Get('/:id/mentions')
-  @ApiOperation({
-    tags: [ApiTag.Collection],
-    description: 'Get twitter mentions for a single collection ordered by author followers'
-  })
-  @ApiParamCollectionId()
-  @ApiOkResponse({ description: ResponseDescription.Success, type: TweetArrayDto })
-  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 10 }))
-  async getCollectionTwitterMentions(
-    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
-    @Query() query: PaginatedQuery
-  ): Promise<TweetArrayDto> {
-    const response = await this.twitterService.getCollectionTopMentions(collection.ref, query);
-
-    return response;
-  }
-
-  @Get(':id/activity')
-  @ApiOperation({
-    description: 'Get activity for a collection or for a specific nft',
-    tags: [ApiTag.Nft]
-  })
-  @ApiParamCollectionId('id')
-  @ApiOkResponse({ description: ResponseDescription.Success, type: NftActivityArrayDto })
-  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 10 }))
-  async getCollectionActivity(
-    @ParamCollectionId('id', ParseCollectionIdPipe) { address, chainId }: ParsedCollectionId,
-    @Query() filters: NftActivityFiltersDto
-  ) {
-    const { data, cursor, hasNextPage } = await this.nftsService.getNftActivity({ address, chainId }, filters);
-
-    return {
-      data,
-      cursor,
-      hasNextPage
-    };
   }
 }
