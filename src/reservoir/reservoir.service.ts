@@ -134,6 +134,9 @@ export class ReservoirService {
     limit?: number
   ): Promise<ReservoirOrders | undefined> {
     try {
+      const collAddressRange = collectionAddress?.split(':');
+      const isTokenRange = collAddressRange?.length === 3;
+
       const res: Response<ReservoirOrders> = await this.errorHandler(() => {
         const searchParams: any = {
           status: 'active',
@@ -142,8 +145,12 @@ export class ReservoirService {
           sortBy: sortBy ? sortBy : 'price'
         };
 
-        if (collectionAddress && !collBidsOnly && !tokenId) {
+        if (collectionAddress && !isTokenRange && !collBidsOnly && !tokenId) {
           searchParams.contracts = collectionAddress;
+        }
+
+        if (collectionAddress && isTokenRange && !collBidsOnly && !tokenId) {
+          searchParams.tokenSetId = 'range:' + collectionAddress;
         }
 
         if (user) {
@@ -315,14 +322,27 @@ export class ReservoirService {
 
   public async getSingleCollectionInfo(
     chainId: string,
-    collectionAddress: string
+    collectionAddress: string,
+    slug?: string
   ): Promise<ReservoirCollectionsV6 | undefined> {
     try {
       const res: Response<ReservoirCollectionsV6> = await this.errorHandler(() => {
-        const searchParams: any = {
-          id: collectionAddress,
+        let searchParams: any = {
           includeSalesCount: true
         };
+
+        if (slug) {
+          searchParams = {
+            slug,
+            ...searchParams
+          };
+        } else {
+          searchParams = {
+            id: collectionAddress,
+            ...searchParams
+          };
+        }
+
         return this.client.get(`collections/v6`, {
           searchParams,
           responseType: 'json'

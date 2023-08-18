@@ -8,6 +8,12 @@ export type ParsedCollectionId = {
   ref: FirebaseFirestore.DocumentReference<Partial<Collection>>;
 };
 
+export type ParsedCollection = {
+  address: string;
+  chainId: string;
+  slug: string;
+};
+
 @Injectable()
 export class ParseCollectionIdPipe implements PipeTransform<string, Promise<ParsedCollectionId>> {
   constructor(private firebaseService: FirebaseService) {}
