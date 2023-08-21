@@ -18,7 +18,6 @@ import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
 import { ReservoirService } from 'reservoir/reservoir.service';
 import { ReservoirOrderDepth } from 'reservoir/types';
-import { StatsService } from 'stats/stats.service';
 import { MatchingEngineService } from 'v2/matching-engine/matching-engine.service';
 import { ZoraService } from 'zora/zora.service';
 import { ONE_DAY } from '../constants';
@@ -40,7 +39,6 @@ export default class CollectionsService {
     private zoraService: ZoraService,
     private reservoirService: ReservoirService,
     private paginationService: CursorService,
-    private statsService: StatsService,
     protected matchingEngineService: MatchingEngineService
   ) {}
 
