@@ -35,6 +35,7 @@ import { InvalidUserError } from 'common/errors/invalid-user.error';
 import { BigNumber } from 'ethers/lib/ethers';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
+import { ReservoirService } from 'reservoir/reservoir.service';
 import { NftsService } from '../collections/nfts/nfts.service';
 import { AlchemyNftToInfinityNft } from '../common/transformers/alchemy-nft-to-infinity-nft.pipe';
 import { ParsedUserId } from './parser/parsed-user-id';
@@ -47,6 +48,7 @@ export class UserService {
     private alchemyService: AlchemyService,
     private paginationService: CursorService,
     private nftsService: NftsService,
+    private reservoirService: ReservoirService,
     private curationService: CurationService
   ) {
     this.alchemyNftToInfinityNft = new AlchemyNftToInfinityNft(this.nftsService);
@@ -254,27 +256,17 @@ export class UserService {
       pageKey: string,
       startAtToken?: string
     ): Promise<{ pageKey: string; nfts: NftDto[]; hasNextPage: boolean }> => {
-      const response = await this.alchemyService.getUserNfts(
-        user.userAddress,
-        chainId,
-        pageKey,
-        query.collections ?? [],
-        { limit: 50, orderBy: 'transferTime', hideSpam: query.hideSpam }
-      );
-      totalOwned = response?.totalCount ?? NaN;
-      const nextPageKey = response?.pageKey ?? '';
-      let nfts = response?.ownedNfts ?? [];
 
+      const response = await this.reservoirService.getUserNfts(chainId, user, pageKey, 50);
+      let nfts = await this.reservoirService.transform(chainId, response?.tokens || []);
+      const nextPageKey = response?.continuation ?? '';
       if (startAtToken) {
         const indexToStartAt = nfts.findIndex(
-          (item) => BigNumber.from(item.id.tokenId).toString() === cursor.startAtToken
+          (item) => BigNumber.from(item?.tokenId).toString() === cursor.startAtToken
         );
         nfts = nfts.slice(indexToStartAt);
       }
-
-      const nftsToTransform = nfts.map((item) => ({ alchemyNft: item, chainId }));
-      const results = await this.alchemyNftToInfinityNft.transform(nftsToTransform);
-      const validNfts = results.filter((item) => !!item) as unknown as NftDto[];
+      const validNfts = nfts.filter((item) => !!item) as unknown as NftDto[];
       const hasNextPage = !!nextPageKey && validNfts.length > 0;
 
       return { pageKey: nextPageKey, nfts: validNfts, hasNextPage };

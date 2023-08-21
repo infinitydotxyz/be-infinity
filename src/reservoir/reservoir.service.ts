@@ -1,13 +1,17 @@
+import { ChainId } from '@infinityxyz/lib/types/core';
+import { Erc721Token, OrdersSnippet, TokenStandard } from '@infinityxyz/lib/types/core/Token';
+import { NftDto } from '@infinityxyz/lib/types/dto/collections/nfts/nft.dto';
 import {
   ReservoirCollsSortBy,
   ReservoirDetailedTokensResponse,
   ReservoirTopCollectionOwnersResponse
 } from '@infinityxyz/lib/types/services/reservoir';
-import { sleep } from '@infinityxyz/lib/utils';
+import { getSearchFriendlyString, sleep } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import got, { Got, Response } from 'got/dist/source';
 import { EnvironmentVariables } from 'types/environment-variables.interface';
+import { ParsedUserId } from 'user/parser/parsed-user-id';
 import { gotErrorHandler } from '../utils/got';
 import {
   ReservoirCollectionSearch,
@@ -16,6 +20,7 @@ import {
   ReservoirOrders,
   ReservoirSales,
   ReservoirTokensResponseV6,
+  ReservoirUserTokensResponse,
   ReservoirUserTopOffers
 } from './types';
 
@@ -504,6 +509,73 @@ export class ReservoirService {
     } catch (e) {
       console.error('failed to get detailed tokens info from reservoir', chainId, collectionAddress, e);
     }
+  }
+
+  public async getUserNfts(chainId: string, user: ParsedUserId, continuation: string, limit: number) {
+    try {
+      const res: Response<ReservoirUserTokensResponse> = await this.errorHandler(() => {
+        const baseUrl = getBaseUrl(chainId);
+        if (!baseUrl) {
+          throw new Error(`Unsupported network ${chainId}`);
+        }
+
+        const searchParams: any = {
+          limit
+        };
+        if (continuation) {
+          searchParams.continuation = continuation;
+        }
+        return this.client.get(`users/${user.userAddress}/tokens/v7`, {
+          searchParams,
+          prefixUrl: baseUrl,
+          responseType: 'json'
+        })
+      });
+
+      return res.body;
+    } catch (err) {
+      console.error('failed to get user tokens from reservoir', chainId, user.userAddress, err);
+    }
+  }
+
+  async transform(chainId: string, nfts: ReservoirUserTokensResponse['tokens']): Promise<Array<NftDto | null>> {
+
+    return nfts.map(({ token, ownership }) => {
+      const metadata = {
+        name: token.name || "",
+        image: token.image || "",
+        attributes: [],
+      };
+      const nft: NftDto = {
+        isFlagged: false,
+        collectionAddress: token.contract,
+        collectionSlug: getSearchFriendlyString(token.collection.name),
+        collectionName: token.collection.name,
+        hasBlueCheck: false,
+        chainId: chainId as ChainId,
+        slug: getSearchFriendlyString(token.name || ''),
+        tokenId: token.tokenId,
+        minter: '',
+        mintedAt: NaN,
+        mintTxHash: '',
+        mintPrice: NaN,
+        metadata: metadata,
+        numTraitTypes: metadata.attributes.length ?? 0,
+        updatedAt: NaN,
+        tokenUri: token.media || '',
+        rarityRank: NaN,
+        rarityScore: NaN,
+        image: {
+          url: token.image || token.media || '',
+          originalUrl: token.media || token.image || '',
+          updatedAt: NaN,
+        },
+        state: undefined,
+        tokenStandard: token.kind as TokenStandard
+      };
+      return nft;
+    }
+    );
   }
 
   private async errorHandler<T>(request: () => Promise<Response<T>>, maxAttempts = 3): Promise<Response<T>> {
