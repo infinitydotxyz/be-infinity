@@ -6,6 +6,7 @@ import { FirebaseService } from 'firebase/firebase.service';
 import { customAlphabet } from 'nanoid';
 import { CollRef, DocRef } from 'types/firestore';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
+import { getUserByReferralCode, getUserReferrers, ReferralEvent, saveReferralEvent } from './referrals';
 
 interface ReferralCode {
   code: string;
@@ -17,8 +18,7 @@ interface ReferralCode {
 export class ReferralsService {
   constructor(protected firebaseService: FirebaseService, protected ethereumService: EthereumService) { }
   private generateReferralCode() {
-    // 308M ids for a 1% chance of collision
-    const id = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 12);
+    const id = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 10);
     return id();
   }
 
@@ -46,18 +46,30 @@ export class ReferralsService {
   }
 
   async saveReferral(user: ParsedUserId, referral: { code: string }): Promise<void> {
-    const currentBlock = await this.ethereumService.getCurrentBlock(ChainId.Mainnet);
-    const referralEvent = {
+    const chainId = ChainId.Mainnet;
+
+    const existingReferrers = await getUserReferrers(this.firebaseService.firestore, user.userAddress);
+    if (existingReferrers.primary) {
+      // user already has a referrer
+      return;
+    }
+
+    const currentBlock = await this.ethereumService.getCurrentBlock(chainId);
+    const { address: referrer } = await getUserByReferralCode(this.firebaseService.firestore, referral.code);
+    if (!referrer) {
+      throw new Error(`Invalid referral code ${referral.code}`);
+    }
+    const referralEvent: ReferralEvent = {
       kind: "REFERRAL",
       referree: user.userAddress,
       referrer: {
         code: referral.code,
+        address: referrer
       },
       blockNumber: currentBlock.number,
       timestamp: Date.now(),
       processed: false,
     };
-
-    await this.firebaseService.firestore.collection("pixl").doc("pixlRewards").collection("pixlRewardEvents").doc().set(referralEvent);
+    await saveReferralEvent(this.firebaseService.firestore, referralEvent);
   }
 }
