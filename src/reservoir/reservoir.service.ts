@@ -454,7 +454,7 @@ export class ReservoirService {
 
           case 504:
             await sleep(5000);
-            throw new Error('OpenSea down');
+            throw new Error('Reservoir down');
 
           default:
             await sleep(2000);

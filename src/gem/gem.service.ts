@@ -190,7 +190,7 @@ export class GemService {
 
           case 504:
             await sleep(5000);
-            throw new Error('OpenSea down');
+            throw new Error('Gem down');
 
           default:
             await sleep(2000);
