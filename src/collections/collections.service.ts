@@ -18,11 +18,10 @@ import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
 import { ReservoirService } from 'reservoir/reservoir.service';
 import { ReservoirOrderDepth } from 'reservoir/types';
-import { StatsService } from 'stats/stats.service';
 import { MatchingEngineService } from 'v2/matching-engine/matching-engine.service';
 import { ZoraService } from 'zora/zora.service';
 import { ONE_DAY } from '../constants';
-import { ParsedCollectionId } from './collection-id.pipe';
+import { ParsedCollection, ParsedCollectionId } from './collection-id.pipe';
 
 interface CollectionQueryOptions {
   /**
@@ -40,7 +39,6 @@ export default class CollectionsService {
     private zoraService: ZoraService,
     private reservoirService: ReservoirService,
     private paginationService: CursorService,
-    private statsService: StatsService,
     protected matchingEngineService: MatchingEngineService
   ) {}
 
@@ -100,7 +98,7 @@ export default class CollectionsService {
   }
 
   async getOrderDepth(
-    collection: ParsedCollectionId
+    collection: ParsedCollection
   ): Promise<{ buy: ReservoirOrderDepth | undefined; sell: ReservoirOrderDepth | undefined }> {
     const chainId = collection.chainId;
     const collectionAddress = collection.address;
@@ -112,7 +110,7 @@ export default class CollectionsService {
     };
   }
 
-  async getRecentSalesAndOrders(collection: ParsedCollectionId): Promise<CollectionSaleAndOrder[]> {
+  async getRecentSalesAndOrders(collection: ParsedCollection): Promise<CollectionSaleAndOrder[]> {
     const data: CollectionSaleAndOrder[] = [];
     const chainId = collection.chainId;
     const collectionAddress = collection.address;
@@ -342,12 +340,16 @@ export default class CollectionsService {
   /**
    * Queries for a collection via address
    */
-  async getCollectionByAddress(
-    collection: { address: string; chainId: string },
+  async getCollectionByAddressOrSlug(
+    collection: { address: string; chainId: string; slug: string },
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     options?: CollectionQueryOptions
-  ): Promise<Collection & Partial<CollectionStats> | undefined> {
-    const data = await this.reservoirService.getSingleCollectionInfo(collection.chainId, collection.address);
+  ): Promise<(Collection & Partial<CollectionStats>) | undefined> {
+    const data = await this.reservoirService.getSingleCollectionInfo(
+      collection.chainId,
+      collection.address,
+      collection.slug
+    );
     const first = data?.collections?.[0];
     return first ? reservoirCollToERC721CollectionAndStats(collection.chainId, first) : undefined;
   }
