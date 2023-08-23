@@ -51,8 +51,8 @@ export class ReferralsService {
   async saveReferral(user: ParsedUserId, referral: { code: string }): Promise<void> {
     const chainId = ChainId.Mainnet;
 
-    const existingReferrers = await getUserReferrers(this.firebaseService.firestore, user.userAddress);
-    if (existingReferrers.primary) {
+    const existingReferrers = await getUserReferrers(this.firebaseService.firestore, user.userAddress, 1);
+    if (existingReferrers.length > 0) {
       // user already has a referrer
       return;
     }

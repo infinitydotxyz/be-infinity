@@ -16,11 +16,21 @@ export interface ReferralEvent {
   processed: boolean;
 }
 
-export type RewardsEvent = ReferralEvent;
+export type AirdropTier = 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE' | 'NONE';
 
-export interface UserRewardEvent {
+export interface AirdropEvent {
+  kind: 'AIRDROP';
   user: string;
-  kind: 'referral' | 'airdrop' | 'listing' | 'buy';
+  tier: AirdropTier;
+  timestamp: number;
+  processed: boolean;
+}
+
+export type RewardsEvent = ReferralEvent | AirdropEvent;
+
+export interface UserReferralRewardEvent {
+  user: string;
+  kind: 'referral';
   blockNumber: number;
   balance: string;
   bonusMultiplier: number;
@@ -30,10 +40,20 @@ export interface UserRewardEvent {
   processed: boolean;
 }
 
+export interface UserAirdropRewardEvent {
+  user: string;
+  kind: 'airdrop';
+  tier: AirdropTier;
+  timestamp: number;
+  processed: boolean;
+}
+
+export type UserRewardEvent = UserReferralRewardEvent | UserAirdropRewardEvent;
+
 export type UserRewards = {
   referralPoints: number;
   listingPoints: number;
-  airdropPoints: number;
+  airdropTier: AirdropTier;
   buyPoints: number;
   totalPoints: number;
   updatedAt: number;
@@ -44,7 +64,8 @@ export interface Referral {
   user: string;
   referrer: string;
   referrerXFLBalance: string;
-  kind: 'primary' | 'secondary' | 'tertiary';
+  // the referral index (i.e. referral depth)
+  index: number;
   blockNumber: number;
   timestamp: number;
 }
@@ -101,33 +122,15 @@ export const saveUserRewardEvents = (
   }
 };
 
-export const getUserReferrers = async (firestore: FirebaseFirestore.Firestore, user: string) => {
+export const getUserReferrers = async (firestore: FirebaseFirestore.Firestore, user: string, limit: number) => {
   const userReferralsRef = firestore
     .collection('pixl')
     .doc('pixlReferrals')
     .collection('pixlUserReferrals') as FirebaseFirestore.CollectionReference<Referral>;
-  const referrersQuery = userReferralsRef.where('user', '==', user);
+  const referrersQuery = userReferralsRef.where('user', '==', user).orderBy('index', 'asc').limit(limit);
   const referrersSnap = await referrersQuery.get();
 
-  return referrersSnap.docs
-    .map((doc) => doc.data())
-    .reduce(
-      (acc: Record<Referral['kind'], string | null>, curr) => {
-        switch (curr.kind) {
-          case 'primary':
-            return { ...acc, primary: curr.referrer };
-          case 'secondary':
-            return { ...acc, secondary: curr.referrer };
-          case 'tertiary':
-            return { ...acc, tertiary: curr.referrer };
-        }
-      },
-      {
-        primary: null,
-        secondary: null,
-        tertiary: null
-      }
-    );
+  return referrersSnap.docs.map((doc) => doc.data()).sort((a, b) => a.index - b.index);
 };
 
 export const saveUserRewards = (
@@ -144,25 +147,32 @@ export const saveUserRewards = (
   batch.set(userRewardsRef, rewards, { merge: true });
 };
 
-export const getUserRewards = async (firestore: FirebaseFirestore.Firestore, user: string) => {
+export const getUserRewards = async (
+  firestore: FirebaseFirestore.Firestore,
+  user: string,
+  txn?: FirebaseFirestore.Transaction
+) => {
   const userRewardsRef = firestore
     .collection('pixl')
     .doc('pixlRewards')
     .collection('pixlUserRewards')
     .doc(user) as FirebaseFirestore.DocumentReference<UserRewards>;
 
-  const userRewardsSnap = await userRewardsRef.get();
+  const userRewardsSnap = txn ? await txn.get(userRewardsRef) : await userRewardsRef.get();
   const userRewards = userRewardsSnap.data();
   if (!userRewards) {
     return {
-      referralPoints: 0,
-      listingPoints: 0,
-      airdropTier: "NONE",
-      buyPoints: 0,
-      totalPoints: 0,
-      updatedAt: Date.now(),
-      user
+      data: {
+        referralPoints: 0,
+        listingPoints: 0,
+        airdropTier: 'NONE',
+        buyPoints: 0,
+        totalPoints: 0,
+        updatedAt: Date.now(),
+        user
+      },
+      ref: userRewardsRef
     };
   }
-  return userRewards;
+  return { ref: userRewardsRef, data: userRewards };
 };
