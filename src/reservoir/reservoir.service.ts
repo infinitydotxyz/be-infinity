@@ -106,7 +106,7 @@ export class ReservoirService {
           searchParams.continuation = continuation;
         }
 
-        const endpoint = 'sales/v5';
+        const endpoint = 'sales/v6';
 
         return this.client.get(endpoint, {
           searchParams,

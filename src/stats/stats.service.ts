@@ -316,7 +316,11 @@ export class StatsService {
   }
 
   async getCollFloorAndTokenCount(collection: ParsedCollection): Promise<{ floorPrice: number; tokenCount: number }> {
-    const data = await this.reservoirService.getSingleCollectionInfo(collection.chainId, collection.address, collection.slug);
+    const data = await this.reservoirService.getSingleCollectionInfo(
+      collection.chainId,
+      collection.address,
+      collection.slug
+    );
     const first = data?.collections?.[0];
     const floorPrice = first?.floorAsk?.price?.amount?.native ?? 0;
     return {

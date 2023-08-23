@@ -12,6 +12,8 @@ export type ParsedCollection = {
   address: string;
   chainId: string;
   slug: string;
+  startTokenId:string;
+  endTokenId:string;
 };
 
 @Injectable()
