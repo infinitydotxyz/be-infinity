@@ -157,7 +157,7 @@ export const getUserRewards = async (firestore: FirebaseFirestore.Firestore, use
     return {
       referralPoints: 0,
       listingPoints: 0,
-      airdropPoints: 0,
+      airdropTier: "NONE",
       buyPoints: 0,
       totalPoints: 0,
       updatedAt: Date.now(),
