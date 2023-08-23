@@ -7,7 +7,7 @@ import { ParsedUserId } from 'user/parser/parsed-user-id';
 
 @Injectable()
 export class ReferralsService {
-  constructor(protected firebaseService: FirebaseService) { }
+  constructor(protected firebaseService: FirebaseService) {}
 
   async getReferralRewards(referrer: ParsedUserId, chainId: ChainId): Promise<ReferralTotals> {
     const userAddress = referrer.userAddress;

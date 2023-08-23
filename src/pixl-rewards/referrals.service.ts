@@ -1,4 +1,3 @@
-
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { Injectable } from '@nestjs/common';
 import { EthereumService } from 'ethereum/ethereum.service';
@@ -16,15 +15,18 @@ interface ReferralCode {
 
 @Injectable()
 export class ReferralsService {
-  constructor(protected firebaseService: FirebaseService, protected ethereumService: EthereumService) { }
+  constructor(protected firebaseService: FirebaseService, protected ethereumService: EthereumService) {}
   private generateReferralCode() {
     const id = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 10);
     return id();
   }
 
   async getReferralCode(user: ParsedUserId): Promise<ReferralCode> {
-    const referralCodesRef = this.firebaseService.firestore.collection('pixl').doc('pixlReferrals').collection("pixlReferralCodes") as CollRef<ReferralCode>;
-    const referralCodeQuery = referralCodesRef.where("address", '==', user.userAddress);
+    const referralCodesRef = this.firebaseService.firestore
+      .collection('pixl')
+      .doc('pixlReferrals')
+      .collection('pixlReferralCodes') as CollRef<ReferralCode>;
+    const referralCodeQuery = referralCodesRef.where('address', '==', user.userAddress);
     const snap = await referralCodeQuery.get();
     const data = snap.docs?.[0]?.data();
 
@@ -33,6 +35,7 @@ export class ReferralsService {
     }
 
     return await this.firebaseService.firestore.runTransaction(async (txn) => {
+      await Promise.resolve();
       const referralCode: ReferralCode = {
         code: this.generateReferralCode(),
         address: user.userAddress,
@@ -60,7 +63,7 @@ export class ReferralsService {
       throw new Error(`Invalid referral code ${referral.code}`);
     }
     const referralEvent: ReferralEvent = {
-      kind: "REFERRAL",
+      kind: 'REFERRAL',
       referree: user.userAddress,
       referrer: {
         code: referral.code,
@@ -68,7 +71,7 @@ export class ReferralsService {
       },
       blockNumber: currentBlock.number,
       timestamp: Date.now(),
-      processed: false,
+      processed: false
     };
     await saveRewardsEvent(this.firebaseService.firestore, referralEvent);
   }

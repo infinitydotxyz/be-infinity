@@ -27,7 +27,7 @@ export class NftsController {
   })
   @ApiParamCollectionId('id')
   @ApiParamTokenId('tokenId')
-  @ApiOkResponse({ description: ResponseDescription.Success})
+  @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
@@ -45,7 +45,6 @@ export class NftsController {
 
     return nft;
   }
-
 
   @Get(':id/nfts/:tokenId/salesorders')
   @ApiOperation({

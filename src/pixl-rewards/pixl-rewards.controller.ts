@@ -13,18 +13,18 @@ import { ReferralsService } from './referrals.service';
 
 @Controller('pixl/rewards')
 export class PixlRewardsController {
-  constructor(protected referralService: ReferralsService, protected rewardsService: PixlRewardsService) { };
+  constructor(protected referralService: ReferralsService, protected rewardsService: PixlRewardsService) {}
 
-  @Get(":userId")
+  @Get(':userId')
   @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOperation({
-    description: 'Get a user\'s rewards',
+    description: "Get a user's rewards",
     tags: [ApiTag.User]
   })
   @HttpCode(HttpStatus.OK)
   @ApiParamUserId('userId')
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  async getRewards(@ParamUserId("userId", ParseUserIdPipe) user: ParsedUserId) {
+  async getRewards(@ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId) {
     const rewards = await this.rewardsService.getRewards(user);
     const referralCode = await this.referralService.getReferralCode(user);
 
@@ -33,7 +33,6 @@ export class PixlRewardsController {
       referralCode: referralCode.code
     };
   }
-
 
   @Put(':userId/referrals')
   @Auth(SiteRole.User, ApiRole.Guest, 'userId')
@@ -45,7 +44,7 @@ export class PixlRewardsController {
   @ApiParamUserId('userId')
   @ApiNoContentResponse({ description: ResponseDescription.Success })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  async saveReferral(@ParamUserId("userId", ParseUserIdPipe) user: ParsedUserId, @Body() referral: { code: string }) {
+  async saveReferral(@ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId, @Body() referral: { code: string }) {
     await this.referralService.saveReferral(user, referral);
   }
 }

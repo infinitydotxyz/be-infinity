@@ -28,7 +28,7 @@ export class AuthGuard implements CanActivate {
     private reflector: Reflector,
     private userParserService: UserParserService,
     private apiUserService: ApiUserService
-  ) { }
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const handler = context.getHandler();

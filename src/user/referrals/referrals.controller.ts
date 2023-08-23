@@ -13,7 +13,7 @@ import { ReferralsService } from './referrals.service';
 
 @Controller('user')
 export class ReferralsController {
-  constructor(protected referralsService: ReferralsService) { }
+  constructor(protected referralsService: ReferralsService) {}
 
   @Put(':userId/referrals')
   @Auth(SiteRole.User, ApiRole.Guest, 'userId')

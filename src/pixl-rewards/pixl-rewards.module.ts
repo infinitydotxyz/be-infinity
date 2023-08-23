@@ -9,4 +9,4 @@ import { ReferralsService } from './referrals.service';
   providers: [ReferralsService, PixlRewardsService],
   imports: [EthereumModule]
 })
-export class PixlRewardsModule { }
+export class PixlRewardsModule {}
