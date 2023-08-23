@@ -6,7 +6,7 @@ import {
   CollectionStats,
   SupportedCollection
 } from '@infinityxyz/lib/types/core';
-import { BadRequestException, Controller, Get, NotFoundException, Query, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Controller, Get, NotFoundException, Param, Query, UseInterceptors } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiInternalServerErrorResponse,
@@ -29,10 +29,8 @@ import { mnemonicByParam } from 'mnemonic/mnemonic.service';
 import { ReservoirOrderDepth } from 'reservoir/types';
 import { StatsService } from 'stats/stats.service';
 import { CollectionHistoricalSale } from 'stats/types';
-import { TwitterService } from 'twitter/twitter.service';
-import { ParseCollectionIdPipe, ParsedCollectionId } from './collection-id.pipe';
+import { ParsedCollection } from './collection-id.pipe';
 import CollectionsService from './collections.service';
-import { NftsService } from './nfts/nfts.service';
 
 const EXCLUDED_COLLECTIONS = [
   '0x81ae0be3a8044772d04f32398bac1e1b4b215aa8', // Dreadfulz
@@ -48,10 +46,27 @@ export class CollectionsController {
   constructor(
     private collectionsService: CollectionsService,
     private statsService: StatsService,
-    private twitterService: TwitterService,
-    private nftsService: NftsService,
     private firebaseService: FirebaseService
   ) {}
+
+  getParsedCollection(id: string): ParsedCollection {
+    const [chainIdOrSlug, address, startTokenId, endTokenId] = id.split(':').map((x) => x.toLowerCase());
+    let chainId = chainIdOrSlug;
+    let slug = chainIdOrSlug;
+    if (!address) {
+      chainId = '';
+    } else {
+      slug = '';
+    }
+    const parsedCollection = {
+      chainId,
+      address,
+      slug,
+      startTokenId,
+      endTokenId
+    };
+    return parsedCollection;
+  }
 
   @Get('stats')
   @ApiOperation({
@@ -169,10 +184,9 @@ export class CollectionsController {
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 1 }))
-  async getOne(
-    @ParamCollectionId('id', ParseCollectionIdPipe) parsedCollection: ParsedCollectionId
-  ): Promise<Collection & Partial<CollectionStats>> {
-    const collection = await this.collectionsService.getCollectionByAddress(parsedCollection);
+  async getOne(@Param('id') id: string): Promise<Collection & Partial<CollectionStats>> {
+    const parsedCollection = this.getParsedCollection(id);
+    const collection = await this.collectionsService.getCollectionByAddressOrSlug(parsedCollection);
 
     if (!collection) {
       throw new NotFoundException();
@@ -192,10 +206,12 @@ export class CollectionsController {
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 30 }))
-  async getCollectionHistoricalSales(
-    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
-  ): Promise<Partial<CollectionHistoricalSale>[]> {
-    return await this.statsService.getCollectionHistoricalSales(collection);
+  async getCollectionHistoricalSales(@Param('id') id: string): Promise<Partial<CollectionHistoricalSale>[]> {
+    const parsedCollection = this.getParsedCollection(id);
+    if (parsedCollection.startTokenId && parsedCollection.endTokenId) {
+      parsedCollection.address = `${parsedCollection.address}:${parsedCollection.startTokenId}:${parsedCollection.endTokenId}`;
+    }
+    return await this.statsService.getCollectionHistoricalSales(parsedCollection);
   }
 
   @Get('/:id/orders')
@@ -211,14 +227,18 @@ export class CollectionsController {
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 10 }))
   async getCollectionOrders(
-    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
+    @ParamCollectionId('id') id: string,
     @Query() query: { orderSide: 'buy' | 'sell' }
   ): Promise<CollectionOrder[]> {
+    const parsedCollection = this.getParsedCollection(id);
     let isSellOrder = true;
     if (query.orderSide === 'buy') {
       isSellOrder = false;
     }
-    return await this.statsService.getCollectionOrders(collection, isSellOrder);
+    if (parsedCollection.startTokenId && parsedCollection.endTokenId) {
+      parsedCollection.address = `${parsedCollection.address}:${parsedCollection.startTokenId}:${parsedCollection.endTokenId}`;
+    }
+    return await this.statsService.getCollectionOrders(parsedCollection, isSellOrder);
   }
 
   @Get('/:id/salesorders')
@@ -232,10 +252,12 @@ export class CollectionsController {
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 10 }))
-  async getCollectionRecentSalesAnOrders(
-    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
-  ): Promise<CollectionSaleAndOrder[]> {
-    return await this.collectionsService.getRecentSalesAndOrders(collection);
+  async getCollectionRecentSalesAnOrders(@Param('id') id: string): Promise<CollectionSaleAndOrder[]> {
+    const parsedCollection = this.getParsedCollection(id);
+    if (parsedCollection.startTokenId && parsedCollection.endTokenId) {
+      parsedCollection.address = `${parsedCollection.address}:${parsedCollection.startTokenId}:${parsedCollection.endTokenId}`;
+    }
+    return await this.collectionsService.getRecentSalesAndOrders(parsedCollection);
   }
 
   @Get('/:id/orderdepth')
@@ -250,9 +272,13 @@ export class CollectionsController {
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 }))
   async getOrderDepth(
-    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
+    @Param('id') id: string
   ): Promise<{ buy: ReservoirOrderDepth | undefined; sell: ReservoirOrderDepth | undefined }> {
-    return await this.collectionsService.getOrderDepth(collection);
+    const parsedCollection = this.getParsedCollection(id);
+    if (parsedCollection.startTokenId && parsedCollection.endTokenId) {
+      parsedCollection.address = `${parsedCollection.address}:${parsedCollection.startTokenId}:${parsedCollection.endTokenId}`;
+    }
+    return await this.collectionsService.getOrderDepth(parsedCollection);
   }
 
   @Get('/:id/floorandtokencount')
@@ -266,10 +292,9 @@ export class CollectionsController {
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 5 }))
-  async getCollectionFloorAndTokenCount(
-    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
-  ): Promise<{ floorPrice: number; tokenCount: number }> {
-    const response = await this.statsService.getCollFloorAndTokenCount(collection);
+  async getCollectionFloorAndTokenCount(@Param('id') id: string): Promise<{ floorPrice: number; tokenCount: number }> {
+    const parsedCollection = this.getParsedCollection(id);
+    const response = await this.statsService.getCollFloorAndTokenCount(parsedCollection);
     return response;
   }
 }

@@ -12,15 +12,15 @@ import { InfinityTweet, InfinityTwitterAccount } from '@infinityxyz/lib/types/se
 import { firestoreConstants, getCollectionDocId, sleep } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { AlchemyService } from 'alchemy/alchemy.service';
-import { ParsedCollectionId } from 'collections/collection-id.pipe';
+import { ParsedCollection } from 'collections/collection-id.pipe';
+import { CollectionPeriodStatsContent } from 'common/types';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
 import { ReservoirService } from 'reservoir/reservoir.service';
+import { ReservoirCollectionV6 } from 'reservoir/types';
 import { ZoraService } from 'zora/zora.service';
 import { DiscordService } from '../discord/discord.service';
 import { FirebaseService } from '../firebase/firebase.service';
 import { TwitterService } from '../twitter/twitter.service';
-import { ReservoirCollectionV6 } from 'reservoir/types';
-import { CollectionPeriodStatsContent } from 'common/types';
 import { CollectionHistoricalSale } from './types';
 
 @Injectable()
@@ -190,7 +190,7 @@ export class StatsService {
     return allResults;
   }
 
-  async getCollectionHistoricalSales(collection: ParsedCollectionId): Promise<Partial<CollectionHistoricalSale>[]> {
+  async getCollectionHistoricalSales(collection: ParsedCollection): Promise<Partial<CollectionHistoricalSale>[]> {
     const chainId = collection.chainId;
     const collectionAddress = collection.address;
     const result = await this.reservoirService.getSales(chainId, collectionAddress, undefined, undefined, 'time', 1000);
@@ -222,7 +222,7 @@ export class StatsService {
     return data;
   }
 
-  async getCollectionOrders(collection: ParsedCollectionId, isSellOrder: boolean): Promise<CollectionOrder[]> {
+  async getCollectionOrders(collection: ParsedCollection, isSellOrder: boolean): Promise<CollectionOrder[]> {
     const chainId = collection.chainId;
     const collectionAddress = collection.address;
 
@@ -315,8 +315,12 @@ export class StatsService {
     return data;
   }
 
-  async getCollFloorAndTokenCount(collection: ParsedCollectionId): Promise<{ floorPrice: number; tokenCount: number }> {
-    const data = await this.reservoirService.getSingleCollectionInfo(collection.chainId, collection.address);
+  async getCollFloorAndTokenCount(collection: ParsedCollection): Promise<{ floorPrice: number; tokenCount: number }> {
+    const data = await this.reservoirService.getSingleCollectionInfo(
+      collection.chainId,
+      collection.address,
+      collection.slug
+    );
     const first = data?.collections?.[0];
     const floorPrice = first?.floorAsk?.price?.amount?.native ?? 0;
     return {
