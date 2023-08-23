@@ -25,7 +25,13 @@ export class PixlRewardsController {
   @ApiParamUserId('userId')
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   async getRewards(@ParamUserId("userId", ParseUserIdPipe) user: ParsedUserId) {
-    return await this.rewardsService.getRewards(user);
+    const rewards = await this.rewardsService.getRewards(user);
+    const referralCode = await this.referralService.getReferralCode(user);
+
+    return {
+      ...rewards,
+      referralCode: referralCode.code
+    };
   }
 
 

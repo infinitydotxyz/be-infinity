@@ -6,7 +6,7 @@ import { FirebaseService } from 'firebase/firebase.service';
 import { customAlphabet } from 'nanoid';
 import { CollRef, DocRef } from 'types/firestore';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
-import { getUserByReferralCode, getUserReferrers, ReferralEvent, saveReferralEvent } from './referrals';
+import { getUserByReferralCode, getUserReferrers, ReferralEvent, saveRewardsEvent } from './referrals';
 
 interface ReferralCode {
   code: string;
@@ -70,6 +70,6 @@ export class ReferralsService {
       timestamp: Date.now(),
       processed: false,
     };
-    await saveReferralEvent(this.firebaseService.firestore, referralEvent);
+    await saveRewardsEvent(this.firebaseService.firestore, referralEvent);
   }
 }
