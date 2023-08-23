@@ -332,6 +332,12 @@ export class ReservoirService {
         };
 
         if (slug) {
+          if (slug === 'ens') {
+            // special case
+            searchParams = {
+              includeSalesCount: false
+            };
+          }
           searchParams = {
             slug,
             ...searchParams
