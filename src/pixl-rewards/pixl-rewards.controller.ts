@@ -13,7 +13,7 @@ import { ReferralsService } from './referrals.service';
 
 @Controller('pixl/rewards')
 export class PixlRewardsController {
-  constructor(protected referralService: ReferralsService, protected rewardsService: PixlRewardsService) {}
+  constructor(protected referralService: ReferralsService, protected rewardsService: PixlRewardsService) { }
 
   @Get(':userId')
   @Auth(SiteRole.User, ApiRole.Guest, 'userId')
@@ -29,7 +29,7 @@ export class PixlRewardsController {
     const referralCode = await this.referralService.getReferralCode(user);
 
     return {
-      ...rewards,
+      ...rewards.data,
       referralCode: referralCode.code
     };
   }
