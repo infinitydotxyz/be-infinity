@@ -25,6 +25,7 @@ export class PixlRewardsService {
       totalPoints: rewards.data.totalPoints,
       updatedAt: rewards.data.updatedAt,
       user: rewards.data.user,
+      airdropBoosted: rewards.data.airdropBoosted
     }
   }
 
