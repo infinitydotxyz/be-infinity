@@ -13,7 +13,7 @@ import { ReferralsService } from './referrals.service';
 
 @Controller('pixl/rewards')
 export class PixlRewardsController {
-  constructor(protected referralService: ReferralsService, protected rewardsService: PixlRewardsService) {}
+  constructor(protected referralService: ReferralsService, protected rewardsService: PixlRewardsService) { }
 
   @Get('user/:userId')
   @Auth(SiteRole.User, ApiRole.Guest, 'userId')
@@ -29,7 +29,7 @@ export class PixlRewardsController {
     const referralCode = await this.referralService.getReferralCode(user);
 
     return {
-      ...rewards.data,
+      ...rewards,
       referralCode: referralCode.code
     };
   }
@@ -47,6 +47,21 @@ export class PixlRewardsController {
   async saveReferral(@ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId, @Body() referral: { code: string }) {
     await this.referralService.saveReferral(user, referral);
   }
+
+  @Put('user/:userId/airdrop/boost')
+  @Auth(SiteRole.User, ApiRole.Guest, 'userId')
+  @ApiOperation({
+    description: 'Upgrade a user\'s airdrop',
+    tags: [ApiTag.User]
+  })
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiParamUserId('userId')
+  @ApiNoContentResponse({ description: ResponseDescription.Success })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  async upgradeAirdrop(@ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId) {
+    await this.rewardsService.boostAirdrop(user);
+  };
+
 
   @Get('leaderboard')
   @Auth(SiteRole.Guest, ApiRole.Guest)

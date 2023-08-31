@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
-import { getUserRewards, UserRewards } from './referrals';
+import { AirdropBoostEvent, getAirdropTier, getUserRewards, saveRewardsEvent, UserRewards } from './referrals';
 import { FieldPath } from 'firebase-admin/firestore';
 
 export interface LeaderboardQuery {
@@ -13,11 +13,19 @@ export interface LeaderboardQuery {
 
 @Injectable()
 export class PixlRewardsService {
-  constructor(protected firebaseService: FirebaseService, protected cursorService: CursorService) {}
+  constructor(protected firebaseService: FirebaseService, protected cursorService: CursorService) { }
 
   async getRewards(userId: ParsedUserId) {
     const rewards = await getUserRewards(this.firebaseService.firestore, userId.userAddress);
-    return rewards;
+    return {
+      referralPoints: rewards.data.referralPoints,
+      listingPoints: rewards.data.listingPoints,
+      airdropTier: getAirdropTier(rewards.data.airdropTier, rewards.data.airdropBoosted),
+      buyPoints: rewards.data.buyPoints,
+      totalPoints: rewards.data.totalPoints,
+      updatedAt: rewards.data.updatedAt,
+      user: rewards.data.user,
+    }
   }
 
   async getLeaderboard(options: LeaderboardQuery) {
@@ -75,5 +83,23 @@ export class PixlRewardsService {
       cursor: nextCursor,
       hasNextPage
     };
+  }
+
+  async boostAirdrop(user: ParsedUserId) {
+    const rewards = await getUserRewards(this.firebaseService.firestore, user.userAddress);
+
+    if (rewards.data.airdropBoosted) {
+      // already boosted, prevent unnecessary event from being created
+      return;
+    }
+
+    const airdropBoostEvent: AirdropBoostEvent = {
+      kind: "AIRDROP_BOOST",
+      user: user.userAddress,
+      timestamp: Date.now(),
+      processed: false,
+    }
+
+    await saveRewardsEvent(this.firebaseService.firestore, airdropBoostEvent);
   }
 }
