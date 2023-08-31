@@ -1,5 +1,5 @@
 import { ApiRole } from '@infinityxyz/lib/types/core';
-import { Body, Controller, Get, HttpCode, HttpStatus, Put } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Put, Query } from '@nestjs/common';
 import { ApiInternalServerErrorResponse, ApiNoContentResponse, ApiOperation } from '@nestjs/swagger';
 import { ApiParamUserId, Auth } from 'auth/api-auth.decorator';
 import { SiteRole } from 'auth/auth.constants';
@@ -8,7 +8,7 @@ import { ApiTag } from 'common/api-tags';
 import { ResponseDescription } from 'common/response-description';
 import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
-import { PixlRewardsService } from './pixl-rewards.service';
+import { LeaderboardQuery, PixlRewardsService } from './pixl-rewards.service';
 import { ReferralsService } from './referrals.service';
 
 @Controller('pixl/rewards')
@@ -46,5 +46,17 @@ export class PixlRewardsController {
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   async saveReferral(@ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId, @Body() referral: { code: string }) {
     await this.referralService.saveReferral(user, referral);
+  }
+
+  @Get('leaderboard')
+  @Auth(SiteRole.Guest, ApiRole.Guest)
+  @ApiOperation({
+    description: 'Get the leaderboard',
+    tags: []
+  })
+  @ApiNoContentResponse({ description: ResponseDescription.Success })
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  async getLeaderboard(@Query() query: LeaderboardQuery) {
+    return await this.rewardsService.getLeaderboard(query);
   }
 }
