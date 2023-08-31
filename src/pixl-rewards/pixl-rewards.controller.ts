@@ -13,9 +13,9 @@ import { ReferralsService } from './referrals.service';
 
 @Controller('pixl/rewards')
 export class PixlRewardsController {
-  constructor(protected referralService: ReferralsService, protected rewardsService: PixlRewardsService) { }
+  constructor(protected referralService: ReferralsService, protected rewardsService: PixlRewardsService) {}
 
-  @Get(':userId')
+  @Get('user/:userId')
   @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOperation({
     description: "Get a user's rewards",
@@ -34,7 +34,7 @@ export class PixlRewardsController {
     };
   }
 
-  @Put(':userId/referrals')
+  @Put('user/:userId/referrals')
   @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOperation({
     description: 'Save a referral for a user',
