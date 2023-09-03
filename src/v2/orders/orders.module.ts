@@ -13,7 +13,14 @@ import { ReservoirService } from 'reservoir/reservoir.service';
 @Module({
   controllers: [OrdersController],
   imports: [EthereumModule, PaginationModule, MatchingEngineModule],
-  providers: [NonceService, BaseOrdersService, OrdersService, ProtocolOrdersService, GenerateOrderService, ReservoirService],
+  providers: [
+    NonceService,
+    BaseOrdersService,
+    OrdersService,
+    ProtocolOrdersService,
+    GenerateOrderService,
+    ReservoirService
+  ],
   exports: [GenerateOrderService, ProtocolOrdersService, OrdersService]
 })
 export class OrdersModule {}

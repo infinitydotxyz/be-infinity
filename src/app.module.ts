@@ -39,6 +39,7 @@ import { UsersModule as V2UsersModule } from './v2/users/users.module';
 
 import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
 import { EnvironmentVariables } from 'types/environment-variables.interface';
+import { PixlRewardsModule } from './pixl-rewards/pixl-rewards.module';
 import { BetaModule } from './v2/beta/beta.module';
 
 @Module({
@@ -101,7 +102,8 @@ import { BetaModule } from './v2/beta/beta.module';
     GenerateModule,
     BulkModule,
     BetaModule,
-    MatchingEngineModule
+    MatchingEngineModule,
+    PixlRewardsModule
   ],
   providers: [
     {
