@@ -43,12 +43,15 @@ export const calcINFTDistribution = async () => {
       if (isINFT) {
         // write to firestore
         console.log('Writing to firestore', address);
-        await firebaseService.firestore.collection('flowSeasonOneRewards').doc(address).set(
-          {
-            airdropRewardAmountFromINFT: inftBalanceEth * 5
-          },
-          { merge: true }
-        );
+        await firebaseService.firestore
+          .collection('flowSeasonOneRewards')
+          .doc(address)
+          .set(
+            {
+              airdropRewardAmountFromINFT: inftBalanceEth * 5
+            },
+            { merge: true }
+          );
       }
     }
 
