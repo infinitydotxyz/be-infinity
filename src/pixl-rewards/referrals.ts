@@ -17,12 +17,11 @@ export interface ReferralEvent {
 }
 
 export interface AirdropBoostEvent {
-  kind: "AIRDROP_BOOST";
+  kind: 'AIRDROP_BOOST';
   user: string;
   timestamp: number;
   processed: boolean;
 }
-
 
 export type AirdropTier = 'PLATINUM' | 'GOLD' | 'SILVER' | 'BRONZE' | 'NONE';
 
@@ -56,7 +55,14 @@ export interface UserAirdropRewardEvent {
   processed: boolean;
 }
 
-export type UserRewardEvent = UserReferralRewardEvent | UserAirdropRewardEvent;
+export interface UserAirdropBoostEvent {
+  user: string;
+  kind: 'airdrop_boost';
+  timestamp: number;
+  processed: boolean;
+}
+
+export type UserRewardEvent = UserReferralRewardEvent | UserAirdropRewardEvent | UserAirdropBoostEvent;
 
 export type UserRewards = {
   referralPoints: number;
@@ -67,6 +73,7 @@ export type UserRewards = {
   updatedAt: number;
   user: string;
   airdropBoosted: boolean;
+  numReferrals: number;
 };
 
 export interface Referral {
@@ -160,7 +167,7 @@ export const getUserRewards = async (
   firestore: FirebaseFirestore.Firestore,
   user: string,
   txn?: FirebaseFirestore.Transaction
-): Promise<{ data: UserRewards, ref: FirebaseFirestore.DocumentReference<UserRewards> }> => {
+): Promise<{ data: UserRewards; ref: FirebaseFirestore.DocumentReference<UserRewards> }> => {
   const userRewardsRef = firestore
     .collection('pixl')
     .doc('pixlRewards')
@@ -173,6 +180,7 @@ export const getUserRewards = async (
     return {
       data: {
         referralPoints: 0,
+        numReferrals: 0,
         listingPoints: 0,
         airdropTier: 'NONE',
         buyPoints: 0,
@@ -184,9 +192,15 @@ export const getUserRewards = async (
       ref: userRewardsRef
     };
   }
-  return { ref: userRewardsRef, data: userRewards };
+  return {
+    ref: userRewardsRef,
+    data: {
+      ...userRewards,
+      airdropBoosted: userRewards.airdropBoosted || false,
+      numReferrals: userRewards.numReferrals || 0
+    }
+  };
 };
-
 
 export const getAirdropTier = (base: AirdropTier, isBoosted: boolean): AirdropTier => {
   if (!isBoosted) {
@@ -204,4 +218,4 @@ export const getAirdropTier = (base: AirdropTier, isBoosted: boolean): AirdropTi
     case 'PLATINUM':
       return 'PLATINUM';
   }
-}
+};

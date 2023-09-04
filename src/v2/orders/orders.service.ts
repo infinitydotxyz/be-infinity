@@ -196,7 +196,6 @@ export class OrdersService extends BaseOrdersService {
     query: OrderQueries,
     asset: { collection: string } | { collection: string; tokenId: string } | { user: string }
   ) {
-    // joe-todo: filter out infinity orders
     let ref:
       | FirebaseFirestore.CollectionReference<FirestoreDisplayOrderWithoutError>
       | FirebaseFirestore.CollectionGroup<FirestoreDisplayOrderWithoutError>;
@@ -236,7 +235,6 @@ export class OrdersService extends BaseOrdersService {
     } else {
       throw new Error('Invalid asset');
     }
-    // joe-todo: improve price filtering to work over the calculated prices
     return this._getOrders(chainId, query, ref);
   }
 
@@ -255,7 +253,6 @@ export class OrdersService extends BaseOrdersService {
       let startPriceWei = bn(item.order.startPrice);
       let endPriceWei = bn(item.order.endPrice);
 
-      // joe-todo: update gas estimates once we have a better idea of how much gas is used
       // const isNative = item.metadata.source === 'flow';
       // const gasCostWei = this.getGasCostWei(isNative, gasPrice, item.order.gasUsageString);
 
