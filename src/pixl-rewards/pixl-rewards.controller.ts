@@ -34,6 +34,20 @@ export class PixlRewardsController {
     };
   }
 
+  @Get('stats/buys')
+  @Auth(SiteRole.Guest, ApiRole.Guest, 'userId')
+  @ApiOperation({
+    description: "Get buy reward stats",
+    tags: [ApiTag.User]
+  })
+  @HttpCode(HttpStatus.OK)
+  @ApiParamUserId('userId')
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  async getBuyStats(@Query('user') user?: string, @Query('chain') chainId?: string) {
+    const rewards = await this.rewardsService.getBuyRewardStats({ user, chainId });
+    return rewards;
+  }
+
   @Put('user/:userId/referrals')
   @Auth(SiteRole.User, ApiRole.Guest, 'userId')
   @ApiOperation({
