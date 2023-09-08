@@ -18,17 +18,17 @@ import { CacheControlInterceptor } from 'common/interceptors/cache-control.inter
 export class OrdersController {
   constructor(protected _ordersService: OrdersService, protected _protocolOrdersService: ProtocolOrdersService) {}
 
-  @Get('minxflstakeforzerofees')
+  @Get('minxflbalanceforzerofee')
   @ApiOperation({
-    description: 'Get min xfl stake for zero fees',
+    description: 'Get min xfl balance for zero fees',
     tags: [ApiTag.Orders]
   })
   @ApiOkResponse({ description: ResponseDescription.Success })
   @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 2 * 60 }))
-  public async getMinXflStakeForZeroFees(@Query() query: { collection: string; chainId: string; user: string }) {
-    return await this._ordersService.getMinXflStakeForZeroFees(query.chainId, query.collection, query.user);
+  public async getMinXflBalanceForZeroFee(@Query() query: { collection: string; chainId: string; user: string }) {
+    return await this._ordersService.getMinXflBalanceForZeroFee(query.chainId, query.collection, query.user);
   }
 
   @Get('token/bestbidask')

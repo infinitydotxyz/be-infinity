@@ -125,7 +125,7 @@ export const INFINITY_EMAIL = 'hi@pixl.so';
 export const ORIGIN = /http:\/\/localhost:\d+/;
 export const INFINITY_URL = 'https://pixl.so/';
 
-export const DEFAULT_MIN_XFL_BALANCE_FOR_ZERO_FEE = 100_000;
+export const DEFAULT_MIN_XFL_BALANCE_FOR_ZERO_FEE = 1_000_000;
 
 export const ONE_MIN = 1000 * 60;
 export const TEN_MINS = ONE_MIN * 10;
