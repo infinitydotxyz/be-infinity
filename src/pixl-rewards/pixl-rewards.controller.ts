@@ -1,5 +1,5 @@
 import { ApiRole } from '@infinityxyz/lib/types/core';
-import { Body, Controller, Get, HttpCode, HttpStatus, Put, Query } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpCode, HttpStatus, Put, Query } from '@nestjs/common';
 import { ApiInternalServerErrorResponse, ApiNoContentResponse, ApiOperation } from '@nestjs/swagger';
 import { ApiParamUserId, Auth } from 'auth/api-auth.decorator';
 import { SiteRole } from 'auth/auth.constants';
@@ -41,11 +41,27 @@ export class PixlRewardsController {
     tags: [ApiTag.User]
   })
   @HttpCode(HttpStatus.OK)
-  @ApiParamUserId('userId')
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   async getBuyStats(@Query('user') user?: string, @Query('chain') chainId?: string) {
     const rewards = await this.rewardsService.getBuyRewardStats({ user, chainId });
     return rewards;
+  }
+
+  @Get('stats/buys/top')
+  @Auth(SiteRole.Guest, ApiRole.Guest, 'userId')
+  @ApiOperation({
+    description: 'Get top buyers',
+    tags: [ApiTag.User]
+  })
+  @HttpCode(HttpStatus.OK)
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  async getTopBuyers(@Query('orderBy') orderBy: 'volume' | 'nativeVolume' | 'numNativeBuys' | 'numBuys') {
+    const options = ['volume', 'nativeVolume', 'numNativeBuys', 'numBuys'];
+    if (!options.includes(orderBy)) {
+      throw new BadRequestException(`Invalid orderBy query param`);
+    }
+    const topBuyers = await this.rewardsService.getTopBuyers({ orderBy });
+    return topBuyers;
   }
 
   @Put('user/:userId/referrals')
