@@ -2,7 +2,21 @@ import { Injectable } from '@nestjs/common';
 import { FirebaseService } from 'firebase/firebase.service';
 import { CursorService } from 'pagination/cursor.service';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
-import { AirdropBoostEvent, ChainStats, ChainUserStats, DailyStats, formatDay, getAirdropTier, getUserRewards, parseDay, SalesStatsKind, saveRewardsEvent, toDaily, TotalStats, UserRewards, UserStats } from './referrals';
+import {
+  AirdropBoostEvent,
+  ChainStats,
+  ChainUserStats,
+  DailyStats,
+  formatDay,
+  getAirdropTier,
+  getUserRewards,
+  parseDay,
+  saveRewardsEvent,
+  toDaily,
+  TotalStats,
+  UserRewards,
+  UserStats
+} from './referrals';
 import { FieldPath } from 'firebase-admin/firestore';
 import { CollRef, DocRef } from 'types/firestore';
 import { ONE_DAY } from '@infinityxyz/lib/utils';
@@ -29,70 +43,85 @@ export class PixlRewardsService {
       user: rewards.data.user,
       airdropBoosted: rewards.data.airdropBoosted,
       numReferrals: rewards.data.numReferrals
-    }
+    };
   }
 
-  async getBuyRewardStats(filters: { user?: string, chainId?: string }) {
+  async getBuyRewardStats(filters: { user?: string; chainId?: string }) {
     const { ref: aggregatedBuyRewardsRef } = this.getAggregatedBuyRewardRef(filters);
     const limit = 30;
     const { query: historicalBuyRewardsQuery } = this.getHistoricalBuyRewardsQuery(filters, limit);
 
     const aggregatedPromise = aggregatedBuyRewardsRef.get();
     const historicalRewardsPromise = historicalBuyRewardsQuery.get();
-    const [aggregatedResult, historicalRewardsResult] = await Promise.all([aggregatedPromise, historicalRewardsPromise]);
+    const [aggregatedResult, historicalRewardsResult] = await Promise.all([
+      aggregatedPromise,
+      historicalRewardsPromise
+    ]);
 
     const aggregatedData = aggregatedResult.data() ?? {
       numBuys: 0,
       numNativeBuys: 0,
       nativeVolume: 0,
       volume: 0
-    }
+    };
 
     const historical = historicalRewardsResult.docs.map((doc) => {
       return doc.data();
     });
     const today = Date.now();
-    const lastThirtyDays = Array.from(Array(limit)).map((item, index) => {
-      return today - (ONE_DAY * index);
-    }).map((timestamp) => {
-      return formatDay(timestamp);
-    });
-    let results = lastThirtyDays.map((day) => {
-      const statsForDay = historical.find((item) => item.day === day) ?? toDaily(parseDay(day), {
-        kind: "TOTAL",
-        numBuys: 0,
-        numNativeBuys: 0,
-        volume: 0,
-        nativeVolume: 0,
+    const lastThirtyDays = Array.from(Array(limit))
+      .map((item, index) => {
+        return today - ONE_DAY * index;
+      })
+      .map((timestamp) => {
+        return formatDay(timestamp);
       });
-      return {
-        numBuys: statsForDay.numBuys,
-        numNativeBuys: statsForDay.numNativeBuys,
-        volume: statsForDay.volume,
-        nativeVolume: statsForDay.nativeVolume,
-        day: statsForDay.day,
-        timestamp: statsForDay.timestamp
-      }
-    }).slice(0, limit);
+    const results = lastThirtyDays
+      .map((day) => {
+        const statsForDay =
+          historical.find((item) => item.day === day) ??
+          toDaily(parseDay(day), {
+            kind: 'TOTAL',
+            numBuys: 0,
+            numNativeBuys: 0,
+            volume: 0,
+            nativeVolume: 0
+          });
+        return {
+          numBuys: statsForDay.numBuys,
+          numNativeBuys: statsForDay.numNativeBuys,
+          volume: statsForDay.volume,
+          nativeVolume: statsForDay.nativeVolume,
+          day: statsForDay.day,
+          timestamp: statsForDay.timestamp
+        };
+      })
+      .slice(0, limit);
 
     return {
       aggregated: {
         numBuys: aggregatedData.numBuys,
         numNativeBuys: aggregatedData.numNativeBuys,
         volume: aggregatedData.volume,
-        nativeVolume: aggregatedData.nativeVolume,
+        nativeVolume: aggregatedData.nativeVolume
       },
       historical: results
-    }
+    };
   }
 
-  protected getHistoricalBuyRewardsQuery(filters: { user?: string, chainId?: string }, limit: number) {
-    const salesByDay = this.firebaseService.firestore.collection('pixl').doc('salesCollections').collection('salesByDay') as CollRef<DailyStats>;
+  protected getHistoricalBuyRewardsQuery(filters: { user?: string; chainId?: string }, limit: number) {
+    const salesByDay = this.firebaseService.firestore
+      .collection('pixl')
+      .doc('salesCollections')
+      .collection('salesByDay') as CollRef<DailyStats>;
     let query: FirebaseFirestore.Query<DailyStats>;
     let kind;
     if (filters.user && filters.chainId) {
       kind = 'CHAIN_USER';
-      query = salesByDay.where('kind', '==', kind).where('user', '==', filters.user).where('chainId', '==', filters.chainId);
+      query = salesByDay
+        .where('kind', '==', kind)
+        .where('user', '==', filters.user)
+        .where('chainId', '==', filters.chainId);
     } else if (filters.user) {
       kind = 'USER';
       query = salesByDay.where('kind', '==', kind).where('user', '==', filters.user);
@@ -109,44 +138,55 @@ export class PixlRewardsService {
     return {
       query: query.limit(limit),
       kind
-    }
+    };
   }
 
-  protected getAggregatedBuyRewardRef(filters: { user?: string, chainId?: string }) {
+  protected getAggregatedBuyRewardRef(filters: { user?: string; chainId?: string }) {
     if (filters.user && filters.chainId) {
       return {
         ref: this.getChainUserBuyRewardStatsRef({ user: filters.user, chainId: filters.chainId }),
-        kind: "CHAIN_USER"
-      }
+        kind: 'CHAIN_USER'
+      };
     } else if (filters.user) {
       return {
         ref: this.getUserBuyRewardStatsRef(filters.user),
-        kind: "USER"
-      }
+        kind: 'USER'
+      };
     } else if (filters.chainId) {
       return {
         ref: this.getChainBuyRewardStatsRef(filters.chainId),
-        kind: "CHAIN"
-      }
+        kind: 'CHAIN'
+      };
     }
     return {
       ref: this.firebaseService.firestore.collection('pixl').doc('salesCollections') as DocRef<TotalStats>,
-      kind: "TOTAL"
-    }
+      kind: 'TOTAL'
+    };
   }
 
   protected getUserBuyRewardStatsRef(user: string) {
-    return this.firebaseService.firestore.collection('pixl').doc('salesCollections').collection('salesByUser').doc(user) as DocRef<UserStats>;
+    return this.firebaseService.firestore
+      .collection('pixl')
+      .doc('salesCollections')
+      .collection('salesByUser')
+      .doc(user) as DocRef<UserStats>;
   }
 
-  protected getChainUserBuyRewardStatsRef(options: { user: string, chainId: string }) {
-    return this.firebaseService.firestore.collection('pixl').doc('salesCollections').collection('salesByChainUser').doc(`${options.chainId}:${options.user}`) as DocRef<ChainUserStats>;
+  protected getChainUserBuyRewardStatsRef(options: { user: string; chainId: string }) {
+    return this.firebaseService.firestore
+      .collection('pixl')
+      .doc('salesCollections')
+      .collection('salesByChainUser')
+      .doc(`${options.chainId}:${options.user}`) as DocRef<ChainUserStats>;
   }
 
   protected getChainBuyRewardStatsRef(chainId: string) {
-    return this.firebaseService.firestore.collection('pixl').doc('salesCollections').collection('salesByChain').doc(`${chainId}`) as DocRef<ChainStats>;
+    return this.firebaseService.firestore
+      .collection('pixl')
+      .doc('salesCollections')
+      .collection('salesByChain')
+      .doc(`${chainId}`) as DocRef<ChainStats>;
   }
-
 
   async getLeaderboard(options: LeaderboardQuery) {
     const cursor = this.cursorService.decodeCursorToObject<{ value: number; user: string }>(options.cursor);
@@ -214,11 +254,11 @@ export class PixlRewardsService {
     }
 
     const airdropBoostEvent: AirdropBoostEvent = {
-      kind: "AIRDROP_BOOST",
+      kind: 'AIRDROP_BOOST',
       user: user.userAddress,
       timestamp: Date.now(),
-      processed: false,
-    }
+      processed: false
+    };
 
     await saveRewardsEvent(this.firebaseService.firestore, airdropBoostEvent);
   }
