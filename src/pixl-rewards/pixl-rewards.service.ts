@@ -30,7 +30,7 @@ export interface LeaderboardQuery {
 
 @Injectable()
 export class PixlRewardsService {
-  constructor(protected firebaseService: FirebaseService, protected cursorService: CursorService) {}
+  constructor(protected firebaseService: FirebaseService, protected cursorService: CursorService) { }
 
   async getRewards(userId: ParsedUserId) {
     const rewards = await getUserRewards(this.firebaseService.firestore, userId.userAddress);
@@ -61,26 +61,6 @@ export class PixlRewardsService {
     const totalsSnap = await totalsDoc.get();
     const totalsData = totalsSnap.data();
 
-    // const randomInt = (max: number) => {
-    //   return Math.round(Math.random() * max);
-    // }
-    // // TODO remove mock data
-    // const getUser = (item: unknown, index: number) => {
-    //   return {
-    //     user: ethers.Wallet.createRandom().address,
-    //     volume: randomInt(1000 * (index / 3)),
-    //     nativeVolume: randomInt(500 * (index / 3)),
-    //     numBuys: randomInt(40 * (index / 3)),
-    //     numNativeBuys: randomInt(20 * (index / 3)),
-    //   };
-    // }
-    // const mockData = Array.from(Array(limit)).map(getUser).sort((a, b) => a[options.orderBy] - b[options.orderBy]);
-    // return {
-    //   data: mockData,
-    //   total: mockData.reduce((acc, item) => {
-    //     return acc + item[options.orderBy];
-    //   }, randomInt(3000))
-    // };
     return {
       data: snap.docs.map((item) => item.data()),
       total: totalsData?.[options.orderBy] ?? 0
