@@ -57,7 +57,7 @@ export class PixlRewardsService {
     const query = salesByUserColl.orderBy(options.orderBy, 'desc');
     const snap = await query.limit(limit).get();
 
-    const totalsDoc = this.firebaseService.firestore.collection('pixl').doc('salesCollection') as DocRef<SalesStats>;
+    const totalsDoc = this.firebaseService.firestore.collection('pixl').doc('salesCollections') as DocRef<SalesStats>;
     const totalsSnap = await totalsDoc.get();
     const totalsData = totalsSnap.data();
 
