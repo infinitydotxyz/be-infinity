@@ -13,7 +13,7 @@ import { ReferralsService } from './referrals.service';
 
 @Controller('pixl/rewards')
 export class PixlRewardsController {
-  constructor(protected referralService: ReferralsService, protected rewardsService: PixlRewardsService) {}
+  constructor(protected referralService: ReferralsService, protected rewardsService: PixlRewardsService) { }
 
   @Get('user/:userId')
   @Auth(SiteRole.User, ApiRole.Guest, 'userId')
@@ -26,11 +26,23 @@ export class PixlRewardsController {
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   async getRewards(@ParamUserId('userId', ParseUserIdPipe) user: ParsedUserId) {
     const rewards = await this.rewardsService.getRewards(user);
+    const { ref: aggregatedBuyRewardsRef } = this.rewardsService.getAggregatedBuyRewardRef({ user: user.userAddress });
+    const aggregatedData = (await aggregatedBuyRewardsRef.get()).data() ?? {
+      numBuys: 0,
+      numNativeBuys: 0,
+      nativeVolume: 0,
+      volume: 0
+    };
+
     const referralCode = await this.referralService.getReferralCode(user);
 
     return {
       ...rewards,
-      referralCode: referralCode.code
+      referralCode: referralCode.code,
+      volume: aggregatedData.volume,
+      nativeVolume: aggregatedData.nativeVolume,
+      numBuys: aggregatedData.numBuys,
+      numNativeBuys: aggregatedData.numNativeBuys
     };
   }
 
