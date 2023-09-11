@@ -25,7 +25,7 @@ import { ONE_DAY } from '@infinityxyz/lib/utils';
 export interface LeaderboardQuery {
   cursor?: string;
   limit?: number;
-  kind?: 'total' | 'referrals';
+  orderBy?: 'total' | 'referrals' | 'buys';
 }
 
 @Injectable()
@@ -57,7 +57,7 @@ export class PixlRewardsService {
     const query = salesByUserColl.orderBy(options.orderBy, 'desc');
     const snap = await query.limit(limit).get();
 
-    const totalsDoc = this.firebaseService.firestore.collection('pixl').doc('salesCollection') as DocRef<SalesStats>;
+    const totalsDoc = this.firebaseService.firestore.collection('pixl').doc('salesCollections') as DocRef<SalesStats>;
     const totalsSnap = await totalsDoc.get();
     const totalsData = totalsSnap.data();
 
@@ -162,7 +162,7 @@ export class PixlRewardsService {
     };
   }
 
-  protected getAggregatedBuyRewardRef(filters: { user?: string; chainId?: string }) {
+  getAggregatedBuyRewardRef(filters: { user?: string; chainId?: string }) {
     if (filters.user && filters.chainId) {
       return {
         ref: this.getChainUserBuyRewardStatsRef({ user: filters.user, chainId: filters.chainId }),
@@ -217,7 +217,7 @@ export class PixlRewardsService {
       .collection('pixlUserRewards') as FirebaseFirestore.CollectionReference<UserRewards>;
 
     let orderBy: keyof UserRewards = 'totalPoints';
-    switch (options.kind) {
+    switch (options.orderBy) {
       case 'total':
         orderBy = 'totalPoints';
         break;
@@ -226,9 +226,9 @@ export class PixlRewardsService {
       //   orderBy = 'listingPoints';
       //   break;
 
-      // case 'buys':
-      //   orderBy = 'buyPoints';
-      //   break;
+      case 'buys':
+        orderBy = 'buyPoints';
+        break;
 
       case 'referrals':
         orderBy = 'referralPoints';
@@ -249,7 +249,8 @@ export class PixlRewardsService {
         return {
           user: item.user,
           referralPoints: item.referralPoints,
-          totalPoints: item.totalPoints
+          totalPoints: item.totalPoints,
+          buyPoints: item.buyPoints
         };
       });
 
