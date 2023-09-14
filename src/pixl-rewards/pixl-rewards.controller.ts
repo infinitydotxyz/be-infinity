@@ -9,6 +9,7 @@ import { ResponseDescription } from 'common/response-description';
 import { ParseUserIdPipe } from 'user/parser/parse-user-id.pipe';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 import { LeaderboardQuery, PixlRewardsService } from './pixl-rewards.service';
+import { OrderStats } from './referrals';
 import { ReferralsService } from './referrals.service';
 
 @Controller('pixl/rewards')
@@ -59,6 +60,19 @@ export class PixlRewardsController {
     return rewards;
   }
 
+  @Get('stats/listings')
+  @Auth(SiteRole.Guest, ApiRole.Guest, 'userId')
+  @ApiOperation({
+    description: 'Get order reward stats',
+    tags: [ApiTag.User]
+  })
+  @HttpCode(HttpStatus.OK)
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  async getListingStats(@Query('user') user?: string, @Query('chain') chainId?: string) {
+    const rewards = await this.rewardsService.getOrderStats({ user, chainId });
+    return rewards;
+  }
+
   @Get('stats/buys/top')
   @Auth(SiteRole.Guest, ApiRole.Guest, 'userId')
   @ApiOperation({
@@ -74,6 +88,19 @@ export class PixlRewardsController {
     }
     const topBuyers = await this.rewardsService.getTopBuyers({ orderBy });
     return topBuyers;
+  }
+
+  @Get('stats/listings/top')
+  @Auth(SiteRole.Guest, ApiRole.Guest, 'userId')
+  @ApiOperation({
+    description: 'Get top listers',
+    tags: [ApiTag.User]
+  })
+  @HttpCode(HttpStatus.OK)
+  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
+  async getTopListers(@Query('orderBy') orderBy: keyof OrderStats) {
+    const topListers = await this.rewardsService.getTopListers({ orderBy });
+    return topListers;
   }
 
   @Put('user/:userId/referrals')

@@ -4,17 +4,23 @@ import { CursorService } from 'pagination/cursor.service';
 import { ParsedUserId } from 'user/parser/parsed-user-id';
 import {
   AirdropBoostEvent,
+  ChainOrderStats,
   ChainStats,
+  ChainUserOrderStats,
   ChainUserStats,
   DailyStats,
   formatDay,
   getAirdropTier,
+  getDefaultTotalOrderStats,
   getUserRewards,
+  OrderStats,
   parseDay,
   SalesStats,
   saveRewardsEvent,
   toDaily,
+  TotalOrderStats,
   TotalStats,
+  UserOrderStats,
   UserRewards,
   UserStats
 } from './referrals';
@@ -25,7 +31,7 @@ import { ONE_DAY } from '@infinityxyz/lib/utils';
 export interface LeaderboardQuery {
   cursor?: string;
   limit?: number;
-  orderBy?: 'total' | 'referrals' | 'buys';
+  orderBy?: 'total' | 'referrals' | 'buys' | "listings";
 }
 
 @Injectable()
@@ -65,6 +71,65 @@ export class PixlRewardsService {
       data: snap.docs.map((item) => item.data()),
       total: totalsData?.[options.orderBy] ?? 0
     };
+  }
+
+  async getTopListers(options: { orderBy: keyof OrderStats }) {
+    const ordersByUserColl = this.firebaseService.firestore.collection('pixl').doc('orderCollections').collection('ordersByUser') as CollRef<OrderStats>;
+    const limit = 15;
+
+    const query = ordersByUserColl.orderBy(options.orderBy, 'desc');
+    const snap = await query.limit(limit).get();
+
+    const totalsDoc = this.firebaseService.firestore.collection('pixl').doc('orderCollections') as DocRef<OrderStats>;
+    const totalsSnap = await totalsDoc.get();
+    const totalsData = totalsSnap.data();
+
+    return {
+      data: snap.docs.map((item) => item.data()),
+      total: totalsData?.[options.orderBy] ?? 0
+    };
+  }
+
+  async getOrderStats(filters: { user?: string, chainId?: string }) {
+    const { ref: aggregatedOrderRewardsRef } = this.getAggregatedOrderRewardRef(filters);
+    const aggregatedSnap = await aggregatedOrderRewardsRef.get();
+
+    const data = aggregatedSnap.data() ?? {
+      ...getDefaultTotalOrderStats()
+    };
+
+    return {
+      aggregated: {
+        numListings: data.numListings ?? 0,
+        numListingsBelowFloor: data.numListingsBelowFloor ?? 0,
+        numListingsNearFloor: data.numListingsNearFloor ?? 0,
+        numCancelledListings: data.numCancelledListings ?? 0,
+
+        numActiveListings: data.numActiveListings ?? 0,
+        numActiveListingsBelowFloor: data.numActiveListingsBelowFloor ?? 0,
+        numActiveListingsNearFloor: data.numActiveListingsNearFloor ?? 0,
+
+        numBids: data.numBids ?? 0,
+        numBidsBelowFloor: data.numBidsBelowFloor ?? 0,
+        numBidsNearFloor: data.numBidsNearFloor ?? 0,
+        numCancelledBids: data.numCancelledBids ?? 0,
+
+        numActiveBids: data.numActiveBids ?? 0,
+        numActiveBidsBelowFloor: data.numActiveBidsBelowFloor ?? 0,
+        numActiveBidsNearFloor: data.numActiveBidsNearFloor ?? 0,
+
+        numCollectionBids: data.numCollectionBids ?? 0,
+        numCollectionBidsNearFloor: data.numCollectionBidsNearFloor ?? 0,
+        numCollectionBidsBelowFloor: data.numCollectionBidsBelowFloor ?? 0,
+        numCancelledCollectionBids: data.numCancelledCollectionBids ?? 0,
+
+        numActiveCollectionBids: data.numActiveCollectionBids ?? 0,
+        numActiveCollectionBidsBelowFloor: data.numActiveCollectionBidsBelowFloor ?? 0,
+        numActiveCollectionBidsNearFloor: data.numCollectionBidsNearFloor ?? 0,
+
+        numCancelledOrders: data.numCancelledOrders ?? 0
+      }
+    }
   }
 
   async getBuyRewardStats(filters: { user?: string; chainId?: string }) {
@@ -162,6 +227,30 @@ export class PixlRewardsService {
     };
   }
 
+  getAggregatedOrderRewardRef(filters: { user?: string; chainId?: string }) {
+    if (filters.user && filters.chainId) {
+      return {
+        ref: this.getChainUserOrderStatsRef({ user: filters.user, chainId: filters.chainId }),
+        kind: 'CHAIN_USER'
+      };
+    } else if (filters.user) {
+      return {
+        ref: this.getUserOrderStatsRef(filters.user),
+        kind: 'USER'
+      };
+    } else if (filters.chainId) {
+      return {
+        ref: this.getChainOrderStatsRef(filters.chainId),
+        kind: 'CHAIN'
+      };
+    }
+
+    return {
+      ref: this.firebaseService.firestore.collection('pixl').doc('orderCollections') as DocRef<TotalOrderStats>,
+      kind: 'TOTAL'
+    };
+  }
+
   getAggregatedBuyRewardRef(filters: { user?: string; chainId?: string }) {
     if (filters.user && filters.chainId) {
       return {
@@ -182,7 +271,7 @@ export class PixlRewardsService {
     return {
       ref: this.firebaseService.firestore.collection('pixl').doc('salesCollections') as DocRef<TotalStats>,
       kind: 'TOTAL'
-    };
+    }
   }
 
   protected getUserBuyRewardStatsRef(user: string) {
@@ -193,6 +282,15 @@ export class PixlRewardsService {
       .doc(user) as DocRef<UserStats>;
   }
 
+  protected getUserOrderStatsRef(user: string) {
+    return this.firebaseService.firestore
+      .collection('pixl')
+      .doc('orderCollections')
+      .collection('ordersByUser')
+      .doc(user) as DocRef<UserOrderStats>;
+  }
+
+
   protected getChainUserBuyRewardStatsRef(options: { user: string; chainId: string }) {
     return this.firebaseService.firestore
       .collection('pixl')
@@ -201,12 +299,28 @@ export class PixlRewardsService {
       .doc(`${options.chainId}:${options.user}`) as DocRef<ChainUserStats>;
   }
 
+  protected getChainUserOrderStatsRef(options: { user: string; chainId: string }) {
+    return this.firebaseService.firestore
+      .collection('pixl')
+      .doc('orderCollections')
+      .collection('ordersByChainUser')
+      .doc(`${options.chainId}:${options.user}`) as DocRef<ChainUserOrderStats>;
+  }
+
   protected getChainBuyRewardStatsRef(chainId: string) {
     return this.firebaseService.firestore
       .collection('pixl')
       .doc('salesCollections')
       .collection('salesByChain')
       .doc(`${chainId}`) as DocRef<ChainStats>;
+  }
+
+  protected getChainOrderStatsRef(chainId: string) {
+    return this.firebaseService.firestore
+      .collection('pixl')
+      .doc('orderCollections')
+      .collection('ordersByChain')
+      .doc(`${chainId}`) as DocRef<ChainOrderStats>;
   }
 
   async getLeaderboard(options: LeaderboardQuery) {
@@ -222,9 +336,9 @@ export class PixlRewardsService {
         orderBy = 'totalPoints';
         break;
 
-      // case 'listings':
-      //   orderBy = 'listingPoints';
-      //   break;
+      case 'listings':
+        orderBy = 'listingPoints';
+        break;
 
       case 'buys':
         orderBy = 'buyPoints';
@@ -250,7 +364,8 @@ export class PixlRewardsService {
           user: item.user,
           referralPoints: item.referralPoints,
           totalPoints: item.totalPoints,
-          buyPoints: item.buyPoints
+          buyPoints: item.buyPoints,
+          listingPoints: item.listingPoints,
         };
       });
 
