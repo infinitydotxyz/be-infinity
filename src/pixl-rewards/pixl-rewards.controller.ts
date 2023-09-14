@@ -1,4 +1,5 @@
 import { ApiRole } from '@infinityxyz/lib/types/core';
+import { trimLowerCase } from '@infinityxyz/lib/utils';
 import { BadRequestException, Body, Controller, Get, HttpCode, HttpStatus, Put, Query } from '@nestjs/common';
 import { ApiInternalServerErrorResponse, ApiNoContentResponse, ApiOperation } from '@nestjs/swagger';
 import { ApiParamUserId, Auth } from 'auth/api-auth.decorator';
@@ -14,7 +15,7 @@ import { ReferralsService } from './referrals.service';
 
 @Controller('pixl/rewards')
 export class PixlRewardsController {
-  constructor(protected referralService: ReferralsService, protected rewardsService: PixlRewardsService) { }
+  constructor(protected referralService: ReferralsService, protected rewardsService: PixlRewardsService) {}
 
   @Get('user/:userId')
   @Auth(SiteRole.User, ApiRole.Guest, 'userId')
@@ -35,6 +36,10 @@ export class PixlRewardsController {
       volume: 0
     };
 
+    const { ref: aggregatedOrderRewardsRef } = this.rewardsService.getAggregatedOrderRewardRef({
+      user: user.userAddress
+    });
+    const orderData = (await aggregatedOrderRewardsRef.get()).data();
     const referralCode = await this.referralService.getReferralCode(user);
 
     return {
@@ -43,7 +48,11 @@ export class PixlRewardsController {
       volume: aggregatedData.volume,
       nativeVolume: aggregatedData.nativeVolume,
       numBuys: aggregatedData.numBuys,
-      numNativeBuys: aggregatedData.numNativeBuys
+      numNativeBuys: aggregatedData.numNativeBuys,
+      numListings: orderData?.numListings ?? 0,
+      numActiveListings: orderData?.numActiveListings ?? 0,
+      numListingsBelowFloor: orderData?.numListingsBelowFloor ?? 0,
+      numActiveListingsBelowFloor: orderData?.numActiveListingsBelowFloor ?? 0
     };
   }
 
@@ -56,11 +65,12 @@ export class PixlRewardsController {
   @HttpCode(HttpStatus.OK)
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   async getBuyStats(@Query('user') user?: string, @Query('chain') chainId?: string) {
-    const rewards = await this.rewardsService.getBuyRewardStats({ user, chainId });
+    const address = user ? trimLowerCase(user) : undefined;
+    const rewards = await this.rewardsService.getBuyRewardStats({ user: address, chainId });
     return rewards;
   }
 
-  @Get('stats/listings')
+  @Get('stats/orders')
   @Auth(SiteRole.Guest, ApiRole.Guest, 'userId')
   @ApiOperation({
     description: 'Get order reward stats',
@@ -69,7 +79,8 @@ export class PixlRewardsController {
   @HttpCode(HttpStatus.OK)
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
   async getListingStats(@Query('user') user?: string, @Query('chain') chainId?: string) {
-    const rewards = await this.rewardsService.getOrderStats({ user, chainId });
+    const address = user ? trimLowerCase(user) : undefined;
+    const rewards = await this.rewardsService.getOrderStats({ user: address, chainId });
     return rewards;
   }
 
@@ -90,7 +101,7 @@ export class PixlRewardsController {
     return topBuyers;
   }
 
-  @Get('stats/listings/top')
+  @Get('stats/orders/top')
   @Auth(SiteRole.Guest, ApiRole.Guest, 'userId')
   @ApiOperation({
     description: 'Get top listers',

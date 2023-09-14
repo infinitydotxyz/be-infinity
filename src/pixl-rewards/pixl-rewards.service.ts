@@ -31,12 +31,12 @@ import { ONE_DAY } from '@infinityxyz/lib/utils';
 export interface LeaderboardQuery {
   cursor?: string;
   limit?: number;
-  orderBy?: 'total' | 'referrals' | 'buys' | "listings";
+  orderBy?: 'total' | 'referrals' | 'buys' | 'listings';
 }
 
 @Injectable()
 export class PixlRewardsService {
-  constructor(protected firebaseService: FirebaseService, protected cursorService: CursorService) { }
+  constructor(protected firebaseService: FirebaseService, protected cursorService: CursorService) {}
 
   async getRewards(userId: ParsedUserId) {
     const rewards = await getUserRewards(this.firebaseService.firestore, userId.userAddress);
@@ -74,7 +74,10 @@ export class PixlRewardsService {
   }
 
   async getTopListers(options: { orderBy: keyof OrderStats }) {
-    const ordersByUserColl = this.firebaseService.firestore.collection('pixl').doc('orderCollections').collection('ordersByUser') as CollRef<OrderStats>;
+    const ordersByUserColl = this.firebaseService.firestore
+      .collection('pixl')
+      .doc('orderCollections')
+      .collection('ordersByUser') as CollRef<OrderStats>;
     const limit = 15;
 
     const query = ordersByUserColl.orderBy(options.orderBy, 'desc');
@@ -90,7 +93,7 @@ export class PixlRewardsService {
     };
   }
 
-  async getOrderStats(filters: { user?: string, chainId?: string }) {
+  async getOrderStats(filters: { user?: string; chainId?: string }) {
     const { ref: aggregatedOrderRewardsRef } = this.getAggregatedOrderRewardRef(filters);
     const aggregatedSnap = await aggregatedOrderRewardsRef.get();
 
@@ -129,7 +132,7 @@ export class PixlRewardsService {
 
         numCancelledOrders: data.numCancelledOrders ?? 0
       }
-    }
+    };
   }
 
   async getBuyRewardStats(filters: { user?: string; chainId?: string }) {
@@ -271,7 +274,7 @@ export class PixlRewardsService {
     return {
       ref: this.firebaseService.firestore.collection('pixl').doc('salesCollections') as DocRef<TotalStats>,
       kind: 'TOTAL'
-    }
+    };
   }
 
   protected getUserBuyRewardStatsRef(user: string) {
@@ -289,7 +292,6 @@ export class PixlRewardsService {
       .collection('ordersByUser')
       .doc(user) as DocRef<UserOrderStats>;
   }
-
 
   protected getChainUserBuyRewardStatsRef(options: { user: string; chainId: string }) {
     return this.firebaseService.firestore
@@ -365,7 +367,7 @@ export class PixlRewardsService {
           referralPoints: item.referralPoints,
           totalPoints: item.totalPoints,
           buyPoints: item.buyPoints,
-          listingPoints: item.listingPoints,
+          listingPoints: item.listingPoints
         };
       });
 
