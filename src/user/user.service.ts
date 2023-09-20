@@ -256,7 +256,6 @@ export class UserService {
       pageKey: string,
       startAtToken?: string
     ): Promise<{ pageKey: string; nfts: NftDto[]; hasNextPage: boolean }> => {
-
       const response = await this.reservoirService.getUserNfts(chainId, user, pageKey, 50);
       let nfts = await this.reservoirService.transform(chainId, response?.tokens || []);
       const nextPageKey = response?.continuation ?? '';

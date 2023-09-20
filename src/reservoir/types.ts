@@ -422,49 +422,48 @@ export interface ReservoirCollectionTopBidV6 {
   };
 }
 
-
 export interface ReservoirUserTokensResponse {
-  "tokens": {
-    "token": {
-      "contract": string,
-      "tokenId": string,
-      "kind": "erc721" | "erc1155",
-      "name": string | null,
-      "image": string | null,
-      "imageSmall": string | null,
-      "imageLarge": string | null,
-      "rarityScore": null,
-      "rarityRank": null,
-      "supply": string | null,
-      "remainingSupply": string | null,
-      "media": string | null,
-      "collection": {
-        "id": string,
-        "name": string,
-        "imageUrl": string,
-        "openseaVerificationStatus": "verified" | string,
-        "floorAskPrice": {
-          "currency": {
-            "contract": string,
-            "name": string,
-            "symbol": string,
-            "decimals": number
-          },
-          "amount": {
-            "raw": string,
-            "decimal": number,
-            "usd": number,
-            "native": number
-          }
-        },
-        "royaltiesBps": number,
-        "royalties": unknown[]
-      },
-      "lastAppraisalValue": number
-    },
-    "ownership": {
-      "tokenCount": string,
-      "onSaleCount": string,
+  tokens: {
+    token: {
+      contract: string;
+      tokenId: string;
+      kind: 'erc721' | 'erc1155';
+      name: string | null;
+      image: string | null;
+      imageSmall: string | null;
+      imageLarge: string | null;
+      rarityScore: null;
+      rarityRank: null;
+      supply: string | null;
+      remainingSupply: string | null;
+      media: string | null;
+      collection: {
+        id: string;
+        name: string;
+        imageUrl: string;
+        openseaVerificationStatus: 'verified' | string;
+        floorAskPrice: {
+          currency: {
+            contract: string;
+            name: string;
+            symbol: string;
+            decimals: number;
+          };
+          amount: {
+            raw: string;
+            decimal: number;
+            usd: number;
+            native: number;
+          };
+        };
+        royaltiesBps: number;
+        royalties: unknown[];
+      };
+      lastAppraisalValue: number;
+    };
+    ownership: {
+      tokenCount: string;
+      onSaleCount: string;
       // "floorAsk": {
       //   "id": null ,
       //   "price": null,
@@ -474,8 +473,8 @@ export interface ReservoirUserTokensResponse {
       //   "validUntil": null,
       //   "source": {}
       // },
-      "acquiredAt": string
-    }
-  }[],
-  "continuation": string | null
+      acquiredAt: string;
+    };
+  }[];
+  continuation: string | null;
 }

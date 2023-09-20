@@ -24,7 +24,7 @@ export class CmDistributorContractService {
   async getCumulativeXFLClaimed(chainId: ChainId, address: string) {
     const contract = this.contractService.getCmDistributor(chainId);
     const tokenAddress = this.contractService.getTokenContract(chainId).address;
-    const amountClaimed = (await contract.cumulativeErc20Claimed(address, tokenAddress)) as BigNumberish;
+    const amountClaimed = (await contract.cumulativeErc20Claimed(tokenAddress, address)) as BigNumberish;
 
     return BigNumber.from(amountClaimed).toString();
   }

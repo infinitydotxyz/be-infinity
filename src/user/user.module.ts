@@ -33,4 +33,4 @@ import { ReservoirModule } from 'reservoir/reservoir.module';
   controllers: [UserController],
   exports: [UserService]
 })
-export class UserModule { }
+export class UserModule {}

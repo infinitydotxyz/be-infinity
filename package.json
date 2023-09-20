@@ -6,6 +6,7 @@
   "scripts": {
     "ci-pre-build": "mkdir ./src/creds && mkdir ./creds && cp ./ci/creds-blank/* ./creds && cp ./ci/creds-blank/* ./src/creds && cp ./ci/.env .env",
     "clean": "rimraf dist",
+    "b": "npm run clean && nest build",
     "build": "npm run clean && npm run update:lib && nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "node dist/main",

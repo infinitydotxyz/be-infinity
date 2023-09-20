@@ -31,7 +31,6 @@ import { StorageModule } from './storage/storage.module';
 import { TwitterModule } from './twitter/twitter.module';
 import { UserModule } from './user/user.module';
 import { BulkModule } from './v2/bulk/bulk.module';
-import { CollectionsModule as V2CollectionsModule } from './v2/collections/collections.module';
 import { GenerateModule } from './v2/generate/generate.module';
 import { MatchingEngineModule } from './v2/matching-engine/matching-engine.module';
 import { MatchingEngineService } from './v2/matching-engine/matching-engine.service';
@@ -40,6 +39,7 @@ import { UsersModule as V2UsersModule } from './v2/users/users.module';
 
 import { ThrottlerStorageRedisService } from 'nestjs-throttler-storage-redis';
 import { EnvironmentVariables } from 'types/environment-variables.interface';
+import { PixlRewardsModule } from './pixl-rewards/pixl-rewards.module';
 import { BetaModule } from './v2/beta/beta.module';
 
 @Module({
@@ -99,11 +99,11 @@ import { BetaModule } from './v2/beta/beta.module';
     SearchModule,
     V2OrdersModule,
     V2UsersModule,
-    V2CollectionsModule,
     GenerateModule,
     BulkModule,
     BetaModule,
-    MatchingEngineModule
+    MatchingEngineModule,
+    PixlRewardsModule
   ],
   providers: [
     {

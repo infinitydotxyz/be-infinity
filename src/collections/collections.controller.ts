@@ -6,15 +6,7 @@ import {
   CollectionStats,
   SupportedCollection
 } from '@infinityxyz/lib/types/core';
-import {
-  BadRequestException,
-  Controller,
-  Get,
-  InternalServerErrorException,
-  NotFoundException,
-  Query,
-  UseInterceptors
-} from '@nestjs/common';
+import { BadRequestException, Controller, Get, NotFoundException, Param, Query, UseInterceptors } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiInternalServerErrorResponse,
@@ -23,24 +15,12 @@ import {
   ApiOperation
 } from '@nestjs/swagger';
 
-type CollectStatsQuery = {
-  list: string;
-};
-
-import {
-  CollectionTrendingStatsQueryDto,
-  TopOwnersArrayResponseDto,
-  TopOwnersQueryDto
-} from '@infinityxyz/lib/types/dto/collections';
-import { NftActivityArrayDto, NftActivityFiltersDto } from '@infinityxyz/lib/types/dto/collections/nfts';
-import { TweetArrayDto } from '@infinityxyz/lib/types/dto/twitter';
+import { CollectionTrendingStatsQueryDto } from '@infinityxyz/lib/types/dto/collections';
 import { firestoreConstants } from '@infinityxyz/lib/utils';
 import { Throttle } from '@nestjs/throttler';
 import { ApiTag } from 'common/api-tags';
 import { ApiParamCollectionId, ParamCollectionId } from 'common/decorators/param-collection-id.decorator';
 import { ErrorResponseDto } from 'common/dto/error-response.dto';
-import { PaginatedQuery } from 'common/dto/paginated-query.dto';
-import { InvalidCollectionError } from 'common/errors/invalid-collection.error';
 import { CacheControlInterceptor } from 'common/interceptors/cache-control.interceptor';
 import { ResponseDescription } from 'common/response-description';
 import { CollectionPeriodStatsContent } from 'common/types';
@@ -48,11 +28,9 @@ import { FirebaseService } from 'firebase/firebase.service';
 import { mnemonicByParam } from 'mnemonic/mnemonic.service';
 import { ReservoirOrderDepth } from 'reservoir/types';
 import { StatsService } from 'stats/stats.service';
-import { TwitterService } from 'twitter/twitter.service';
-import { ParseCollectionIdPipe, ParsedCollectionId } from './collection-id.pipe';
-import CollectionsService from './collections.service';
-import { NftsService } from './nfts/nfts.service';
 import { CollectionHistoricalSale } from 'stats/types';
+import { ParsedCollection } from './collection-id.pipe';
+import CollectionsService from './collections.service';
 
 const EXCLUDED_COLLECTIONS = [
   '0x81ae0be3a8044772d04f32398bac1e1b4b215aa8', // Dreadfulz
@@ -68,36 +46,26 @@ export class CollectionsController {
   constructor(
     private collectionsService: CollectionsService,
     private statsService: StatsService,
-    private twitterService: TwitterService,
-    private nftsService: NftsService,
     private firebaseService: FirebaseService
-  ) { }
+  ) {}
 
-  @Get('update-social-stats')
-  @ApiOperation({
-    description: 'A background task to collect Stats for a list of collection',
-    tags: [ApiTag.Collection]
-  })
-  @ApiOkResponse({ description: ResponseDescription.Success, type: String })
-  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError })
-  collectStats(@Query() query: CollectStatsQuery) {
-    const idsArr = query.list.split(',');
-
-    const trigger = async (address: string) => {
-      const collectionRef = (await this.firebaseService.getCollectionRef({
-        chainId: ChainId.Mainnet,
-        address
-      })) as FirebaseFirestore.DocumentReference<Collection>;
-      this.statsService.refreshSocialsStats(collectionRef).catch((err) => console.error(err));
-    };
-
-    for (const address of idsArr) {
-      if (address) {
-        trigger(address).catch((err) => console.error(err));
-      }
+  getParsedCollection(id: string): ParsedCollection {
+    const [chainIdOrSlug, address, startTokenId, endTokenId] = id.split(':').map((x) => x.toLowerCase());
+    let chainId = chainIdOrSlug;
+    let slug = chainIdOrSlug;
+    if (!address) {
+      chainId = '';
+    } else {
+      slug = '';
     }
-    return query;
+    const parsedCollection = {
+      chainId,
+      address,
+      slug,
+      startTokenId,
+      endTokenId
+    };
+    return parsedCollection;
   }
 
   @Get('stats')
@@ -216,45 +184,15 @@ export class CollectionsController {
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 1 }))
-  async getOne(
-    @ParamCollectionId('id', ParseCollectionIdPipe) parsedCollection: ParsedCollectionId
-  ): Promise<Collection & Partial<CollectionStats>> {
-    const collection = await this.collectionsService.getCollectionByAddress(parsedCollection);
+  async getOne(@Param('id') id: string): Promise<Collection & Partial<CollectionStats>> {
+    const parsedCollection = this.getParsedCollection(id);
+    const collection = await this.collectionsService.getCollectionByAddressOrSlug(parsedCollection);
 
     if (!collection) {
       throw new NotFoundException();
     }
 
     return collection;
-  }
-
-  @Get('/:id/topOwners')
-  @ApiOperation({
-    tags: [ApiTag.Collection],
-    description: 'Get the top owners of nfts in the collection'
-  })
-  @ApiParamCollectionId()
-  @ApiOkResponse({ description: ResponseDescription.Success, type: TopOwnersArrayResponseDto })
-  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
-  @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 10 }))
-  async getTopOwners(
-    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
-    @Query() query: TopOwnersQueryDto
-  ): Promise<TopOwnersArrayResponseDto> {
-    try {
-      const topOwners = await this.collectionsService.getTopOwners(collection, query);
-      if (!topOwners) {
-        throw new InternalServerErrorException('Failed to get top owners');
-      }
-      return topOwners;
-    } catch (err) {
-      if (err instanceof InvalidCollectionError) {
-        throw new NotFoundException();
-      }
-      throw err;
-    }
   }
 
   @Get('/:id/sales')
@@ -268,10 +206,12 @@ export class CollectionsController {
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 30 }))
-  async getCollectionHistoricalSales(
-    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
-  ): Promise<Partial<CollectionHistoricalSale>[]> {
-    return await this.statsService.getCollectionHistoricalSales(collection);
+  async getCollectionHistoricalSales(@Param('id') id: string): Promise<Partial<CollectionHistoricalSale>[]> {
+    const parsedCollection = this.getParsedCollection(id);
+    if (parsedCollection.startTokenId && parsedCollection.endTokenId) {
+      parsedCollection.address = `${parsedCollection.address}:${parsedCollection.startTokenId}:${parsedCollection.endTokenId}`;
+    }
+    return await this.statsService.getCollectionHistoricalSales(parsedCollection);
   }
 
   @Get('/:id/orders')
@@ -287,14 +227,18 @@ export class CollectionsController {
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 10 }))
   async getCollectionOrders(
-    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
+    @ParamCollectionId('id') id: string,
     @Query() query: { orderSide: 'buy' | 'sell' }
   ): Promise<CollectionOrder[]> {
+    const parsedCollection = this.getParsedCollection(id);
     let isSellOrder = true;
     if (query.orderSide === 'buy') {
       isSellOrder = false;
     }
-    return await this.statsService.getCollectionOrders(collection, isSellOrder);
+    if (parsedCollection.startTokenId && parsedCollection.endTokenId) {
+      parsedCollection.address = `${parsedCollection.address}:${parsedCollection.startTokenId}:${parsedCollection.endTokenId}`;
+    }
+    return await this.statsService.getCollectionOrders(parsedCollection, isSellOrder);
   }
 
   @Get('/:id/salesorders')
@@ -308,10 +252,12 @@ export class CollectionsController {
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 10 }))
-  async getCollectionRecentSalesAnOrders(
-    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
-  ): Promise<CollectionSaleAndOrder[]> {
-    return await this.collectionsService.getRecentSalesAndOrders(collection);
+  async getCollectionRecentSalesAnOrders(@Param('id') id: string): Promise<CollectionSaleAndOrder[]> {
+    const parsedCollection = this.getParsedCollection(id);
+    if (parsedCollection.startTokenId && parsedCollection.endTokenId) {
+      parsedCollection.address = `${parsedCollection.address}:${parsedCollection.startTokenId}:${parsedCollection.endTokenId}`;
+    }
+    return await this.collectionsService.getRecentSalesAndOrders(parsedCollection);
   }
 
   @Get('/:id/orderdepth')
@@ -326,9 +272,13 @@ export class CollectionsController {
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 }))
   async getOrderDepth(
-    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
+    @Param('id') id: string
   ): Promise<{ buy: ReservoirOrderDepth | undefined; sell: ReservoirOrderDepth | undefined }> {
-    return await this.collectionsService.getOrderDepth(collection);
+    const parsedCollection = this.getParsedCollection(id);
+    if (parsedCollection.startTokenId && parsedCollection.endTokenId) {
+      parsedCollection.address = `${parsedCollection.address}:${parsedCollection.startTokenId}:${parsedCollection.endTokenId}`;
+    }
+    return await this.collectionsService.getOrderDepth(parsedCollection);
   }
 
   @Get('/:id/floorandtokencount')
@@ -342,52 +292,9 @@ export class CollectionsController {
   @ApiNotFoundResponse({ description: ResponseDescription.NotFound, type: ErrorResponseDto })
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 5 }))
-  async getCollectionFloorAndTokenCount(
-    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId
-  ): Promise<{ floorPrice: number; tokenCount: number }> {
-    const response = await this.statsService.getCollFloorAndTokenCount(collection);
+  async getCollectionFloorAndTokenCount(@Param('id') id: string): Promise<{ floorPrice: number; tokenCount: number }> {
+    const parsedCollection = this.getParsedCollection(id);
+    const response = await this.statsService.getCollFloorAndTokenCount(parsedCollection);
     return response;
-  }
-
-  @Get('/:id/mentions')
-  @ApiOperation({
-    tags: [ApiTag.Collection],
-    description: 'Get twitter mentions for a single collection ordered by author followers'
-  })
-  @ApiParamCollectionId()
-  @ApiOkResponse({ description: ResponseDescription.Success, type: TweetArrayDto })
-  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 10 }))
-  async getCollectionTwitterMentions(
-    @ParamCollectionId('id', ParseCollectionIdPipe) collection: ParsedCollectionId,
-    @Query() query: PaginatedQuery
-  ): Promise<TweetArrayDto> {
-    const response = await this.twitterService.getCollectionTopMentions(collection.ref, query);
-
-    return response;
-  }
-
-  @Get(':id/activity')
-  @ApiOperation({
-    description: 'Get activity for a collection or for a specific nft',
-    tags: [ApiTag.Nft]
-  })
-  @ApiParamCollectionId('id')
-  @ApiOkResponse({ description: ResponseDescription.Success, type: NftActivityArrayDto })
-  @ApiBadRequestResponse({ description: ResponseDescription.BadRequest, type: ErrorResponseDto })
-  @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
-  @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 10 }))
-  async getCollectionActivity(
-    @ParamCollectionId('id', ParseCollectionIdPipe) { address, chainId }: ParsedCollectionId,
-    @Query() filters: NftActivityFiltersDto
-  ) {
-    const { data, cursor, hasNextPage } = await this.nftsService.getNftActivity({ address, chainId }, filters);
-
-    return {
-      data,
-      cursor,
-      hasNextPage
-    };
   }
 }

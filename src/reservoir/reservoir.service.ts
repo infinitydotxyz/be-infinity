@@ -1,5 +1,5 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
-import { Erc721Token, OrdersSnippet, TokenStandard } from '@infinityxyz/lib/types/core/Token';
+import { TokenStandard } from '@infinityxyz/lib/types/core/Token';
 import { NftDto } from '@infinityxyz/lib/types/dto/collections/nfts/nft.dto';
 import {
   ReservoirCollsSortBy,
@@ -39,8 +39,8 @@ const BASE_URL = {
   Zora: 'https://api-zora.reservoir.tools',
   ZoraGoerli: 'https://api-zora-testnet.reservoir.tools',
   ScrollAlpha: 'https://api-scroll-alpha.reservoir.tools',
-  Linea: 'https://api-linea.reservoir.tools',
-}
+  Linea: 'https://api-linea.reservoir.tools'
+};
 
 export const chainIdToNetwork: Record<number, keyof typeof BASE_URL> = {
   1: 'Ethereum',
@@ -51,7 +51,7 @@ export const chainIdToNetwork: Record<number, keyof typeof BASE_URL> = {
   56: 'BNB',
   42161: 'Arbitrum',
   42170: 'ArbitrumNova',
-  8453: "Base",
+  8453: 'Base',
   84531: 'BaseGoerli',
   7777777: 'Zora',
   999: 'ZoraGoerli',
@@ -66,8 +66,7 @@ const getBaseUrl = (chainId: number | string) => {
     return null;
   }
   return BASE_URL[networkName] || null;
-}
-
+};
 
 @Injectable()
 export class ReservoirService {
@@ -103,7 +102,6 @@ export class ReservoirService {
     collectionAddress?: string
   ): Promise<ReservoirCollectionSearch | undefined> {
     try {
-
       const res: Response<ReservoirCollectionSearch> = await this.errorHandler(async () => {
         const searchParams: any = {
           limit: 10
@@ -163,11 +161,11 @@ export class ReservoirService {
           searchParams.continuation = continuation;
         }
 
-        const endpoint = 'sales/v5';
         const baseUrl = getBaseUrl(chainId);
         if (!baseUrl) {
           throw new Error(`Unsupported network ${chainId}`);
         }
+        const endpoint = 'sales/v6';
         return this.client.get(endpoint, {
           searchParams,
           prefixUrl: baseUrl,
@@ -195,6 +193,9 @@ export class ReservoirService {
     limit?: number
   ): Promise<ReservoirOrders | undefined> {
     try {
+      const collAddressRange = collectionAddress?.split(':');
+      const isTokenRange = collAddressRange?.length === 3;
+
       const res: Response<ReservoirOrders> = await this.errorHandler(() => {
         const searchParams: any = {
           status: 'active',
@@ -203,8 +204,12 @@ export class ReservoirService {
           sortBy: sortBy ? sortBy : 'price'
         };
 
-        if (collectionAddress && !collBidsOnly && !tokenId) {
+        if (collectionAddress && !isTokenRange && !collBidsOnly && !tokenId) {
           searchParams.contracts = collectionAddress;
+        }
+
+        if (collectionAddress && isTokenRange && !collBidsOnly && !tokenId) {
+          searchParams.tokenSetId = 'range:' + collectionAddress;
         }
 
         if (user) {
@@ -400,18 +405,37 @@ export class ReservoirService {
 
   public async getSingleCollectionInfo(
     chainId: string,
-    collectionAddress: string
+    collectionAddress: string,
+    slug?: string
   ): Promise<ReservoirCollectionsV6 | undefined> {
     try {
       const res: Response<ReservoirCollectionsV6> = await this.errorHandler(() => {
-        const searchParams: any = {
-          id: collectionAddress,
+        let searchParams: any = {
           includeSalesCount: true
         };
         const baseUrl = getBaseUrl(chainId);
         if (!baseUrl) {
           throw new Error(`Unsupported network ${chainId}`);
         }
+
+        if (slug) {
+          if (slug === 'ens') {
+            // special case
+            searchParams = {
+              includeSalesCount: false
+            };
+          }
+          searchParams = {
+            slug,
+            ...searchParams
+          };
+        } else {
+          searchParams = {
+            id: collectionAddress,
+            ...searchParams
+          };
+        }
+
         return this.client.get(`collections/v6`, {
           searchParams,
           prefixUrl: baseUrl,
@@ -529,7 +553,7 @@ export class ReservoirService {
           searchParams,
           prefixUrl: baseUrl,
           responseType: 'json'
-        })
+        });
       });
 
       return res.body;
@@ -539,12 +563,11 @@ export class ReservoirService {
   }
 
   async transform(chainId: string, nfts: ReservoirUserTokensResponse['tokens']): Promise<Array<NftDto | null>> {
-
     return nfts.map(({ token, ownership }) => {
       const metadata = {
-        name: token.name || "",
-        image: token.image || "",
-        attributes: [],
+        name: token.name || '',
+        image: token.image || '',
+        attributes: []
       };
       const nft: NftDto = {
         isFlagged: false,
@@ -568,20 +591,19 @@ export class ReservoirService {
         image: {
           url: token.image || token.media || '',
           originalUrl: token.media || token.image || '',
-          updatedAt: NaN,
+          updatedAt: NaN
         },
         state: undefined,
         tokenStandard: token.kind as TokenStandard
       };
       return nft;
-    }
-    );
+    });
   }
 
   private async errorHandler<T>(request: () => Promise<Response<T>>, maxAttempts = 3): Promise<Response<T>> {
     let attempt = 0;
 
-    for (; ;) {
+    for (;;) {
       attempt += 1;
 
       try {
@@ -606,7 +628,7 @@ export class ReservoirService {
 
           case 504:
             await sleep(5000);
-            throw new Error('OpenSea down');
+            throw new Error('Reservoir down');
 
           default:
             await sleep(2000);

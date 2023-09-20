@@ -154,7 +154,7 @@ export const calcTotalBuyRewards = async () => {
 
     totalRewards += finalReward;
   }
-  const totalMinusExcluded = totalRewards - totalRewardsForExclWallets;;
+  const totalMinusExcluded = totalRewards - totalRewardsForExclWallets;
   console.log('Total rewards', totalRewards / 1_000_000);
   console.log('Total rewards for excluded wallets', totalRewardsForExclWallets / 1_000_000);
   console.log('Total rewards minus excluded wallets', totalMinusExcluded / 1_000_000);
