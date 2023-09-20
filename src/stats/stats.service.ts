@@ -1,5 +1,4 @@
 import {
-  ChainId,
   Collection,
   CollectionOrder,
   CollectionStats,
@@ -9,7 +8,7 @@ import {
 } from '@infinityxyz/lib/types/core';
 import { ReservoirCollectionV5, ReservoirCollsSortBy } from '@infinityxyz/lib/types/services/reservoir';
 import { InfinityTweet, InfinityTwitterAccount } from '@infinityxyz/lib/types/services/twitter';
-import { firestoreConstants, getCollectionDocId, sleep } from '@infinityxyz/lib/utils';
+import { firestoreConstants, sleep } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { AlchemyService } from 'alchemy/alchemy.service';
 import { ParsedCollection } from 'collections/collection-id.pipe';

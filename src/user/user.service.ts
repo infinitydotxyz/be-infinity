@@ -250,14 +250,14 @@ export class UserService {
     const chainId = query.chainId || ChainId.Mainnet;
     type Cursor = { pageKey?: string; startAtToken?: string };
     const cursor = this.paginationService.decodeCursorToObject<Cursor>(query.cursor);
-    let totalOwned = NaN;
+    const totalOwned = NaN;
 
     const _fetchNfts = async (
       pageKey: string,
       startAtToken?: string
     ): Promise<{ pageKey: string; nfts: NftDto[]; hasNextPage: boolean }> => {
       const response = await this.reservoirService.getUserNfts(chainId, user, pageKey, 50);
-      let nfts = await this.reservoirService.transform(chainId, response?.tokens || []);
+      let nfts = this.reservoirService.transform(chainId, response?.tokens || []);
       const nextPageKey = response?.continuation ?? '';
       if (startAtToken) {
         const indexToStartAt = nfts.findIndex(

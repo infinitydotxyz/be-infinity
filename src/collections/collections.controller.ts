@@ -6,7 +6,7 @@ import {
   CollectionStats,
   SupportedCollection
 } from '@infinityxyz/lib/types/core';
-import { BadRequestException, Controller, Get, NotFoundException, Param, Query, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, NotFoundException, Param, Query, UseInterceptors } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiInternalServerErrorResponse,

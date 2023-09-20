@@ -562,8 +562,8 @@ export class ReservoirService {
     }
   }
 
-  async transform(chainId: string, nfts: ReservoirUserTokensResponse['tokens']): Promise<Array<NftDto | null>> {
-    return nfts.map(({ token, ownership }) => {
+  transform(chainId: string, nfts: ReservoirUserTokensResponse['tokens']): Array<NftDto | null> {
+    return nfts.map(({ token }) => {
       const metadata = {
         name: token.name || '',
         image: token.image || '',
