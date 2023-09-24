@@ -225,24 +225,12 @@ export class UserService {
 
   async getCollections(user: ParsedUserId, query: UserCollectionsQuery): Promise<UserCollectionsResponse> {
     const chainId = query.chainId || ChainId.Mainnet;
-    const data = await this.alchemyService.getUserCollections(user.userAddress, chainId, query);
-    const collections = (data?.contracts ?? []).map((item) => {
-      const collection: UserCollection = {
-        address: item.address,
-        numNFTs: item.numDistinctTokensOwned,
-        name: item.opensea.collectionName ?? item.name,
-        symbol: item.symbol,
-        imageUrl: item.opensea.imageUrl,
-        floorPrice: item.opensea.floorPrice
-      };
-      return collection;
-    });
+    const response = await this.reservoirService.getUserCollections(chainId, user, query.cursor ?? '');
 
-    const cursor = data?.pageKey ?? '';
     return {
-      data: collections,
-      cursor,
-      hasNextPage: !!cursor
+      data: response?.data ?? [],
+      cursor: response?.continuation ?? '',
+      hasNextPage: response?.hasNextPage ?? false
     };
   }
 

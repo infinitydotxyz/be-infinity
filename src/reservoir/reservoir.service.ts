@@ -1,5 +1,6 @@
 import { ChainId } from '@infinityxyz/lib/types/core';
 import { TokenStandard } from '@infinityxyz/lib/types/core/Token';
+import { UserCollection } from '@infinityxyz/lib/types/dto';
 import { NftDto } from '@infinityxyz/lib/types/dto/collections/nfts/nft.dto';
 import {
   ReservoirCollsSortBy,
@@ -16,6 +17,7 @@ import { gotErrorHandler } from '../utils/got';
 import {
   ReservoirCollectionSearch,
   ReservoirCollectionsV6,
+  ReservoirCollectionV6,
   ReservoirOrderDepth,
   ReservoirOrders,
   ReservoirSales,
@@ -25,47 +27,109 @@ import {
 } from './types';
 
 const BASE_URL = {
-  Ethereum: 'https://api.reservoir.tools/',
-  Goerli: 'https://api-goerli.reservoir.tools/',
-  Sepolia: 'https://api-sepolia.reservoir.tools',
-  Polygon: 'https://api-polygon.reservoir.tools/',
-  Mumbai: 'https://api-mumbai.reservoir.tools/',
-  BNB: 'https://api-bsc.reservoir.tools/',
-  Arbitrum: 'https://api-arbitrum.reservoir.tools/',
-  Optimism: 'https://api-optimism.reservoir.tools/',
-  ArbitrumNova: 'https://api-arbitrum-nova.reservoir.tools',
-  Base: 'https://api-base.reservoir.tools',
-  BaseGoerli: 'https://api-base-goerli.reservoir.tools',
-  Zora: 'https://api-zora.reservoir.tools',
-  ZoraGoerli: 'https://api-zora-testnet.reservoir.tools',
-  ScrollAlpha: 'https://api-scroll-alpha.reservoir.tools',
-  Linea: 'https://api-linea.reservoir.tools'
+  Ethereum: {
+    chainId: 1,
+    api: 'https://api.reservoir.tools',
+    ws: 'wss://ws.reservoir.tools'
+  },
+  Goerli: {
+    chainId: 5,
+    api: 'https://api-goerli.reservoir.tools',
+    ws: 'wss://ws-goerli.reservoir.tools'
+  },
+  Sepolia: {
+    chainId: 6,
+    api: 'https://api-sepolia.reservoir.tools',
+    ws: 'wss://ws-sepolia.reservoir.tools'
+  },
+  Polygon: {
+    chainId: 137,
+    api: 'https://api-polygon.reservoir.tools',
+    ws: 'wss://ws-polygon.reservoir.tools'
+  },
+  Mumbai: {
+    chainId: 80001,
+    api: 'https://api-mumbai.reservoir.tools',
+    ws: 'wss://ws-mumbai.reservoir.tools'
+  },
+  BNB: {
+    chainId: 56,
+    api: 'https://api-bsc.reservoir.tools',
+    ws: 'wss://ws-bsc.reservoir.tools'
+  },
+  Arbitrum: {
+    chainId: 42161,
+    api: 'https://api-arbitrum.reservoir.tools',
+    ws: 'wss://ws-arbitrum.reservoir.tools'
+  },
+  Optimism: {
+    chainId: 10,
+    api: 'https://api-optimism.reservoir.tools',
+    ws: 'wss://ws-optimism.reservoir.tools'
+  },
+  ArbitrumNova: {
+    chainId: 42170,
+    api: 'https://api-arbitrum-nova.reservoir.tools',
+    ws: 'wss://ws-arbitrum-nova.reservoir.tools'
+  },
+  Base: {
+    chainId: 8453,
+    api: 'https://api-base.reservoir.tools',
+    ws: 'wss://ws-base.reservoir.tools'
+  },
+  BaseGoerli: {
+    chainId: 84531,
+    api: 'https://api-base-goerli.reservoir.tools',
+    ws: 'wss://ws-base-goerli.reservoir.tools'
+  },
+  Zora: {
+    chainId: 7777777,
+    api: 'https://api-zora.reservoir.tools',
+    ws: 'wss://ws-zora.reservoir.tools'
+  },
+  ZoraGoerli: {
+    chainId: 999,
+    api: 'https://api-zora-testnet.reservoir.tools',
+    ws: 'wss://ws-zora-testnet.reservoir.tools'
+  },
+  ScrollAlpha: {
+    chainId: 534353,
+    api: 'https://api-scroll-alpha.reservoir.tools',
+    ws: 'wss://ws-scroll-alpha.reservoir.tools'
+  },
+  Linea: {
+    chainId: 59144,
+    api: 'https://api-linea.reservoir.tools',
+    ws: 'wss://ws-linea.reservoir.tools'
+  }
 };
 
-export const chainIdToNetwork: Record<number, keyof typeof BASE_URL> = {
-  1: 'Ethereum',
-  5: 'Goerli',
-  6: 'Sepolia',
-  137: 'Polygon',
-  80001: 'Mumbai',
-  56: 'BNB',
-  42161: 'Arbitrum',
-  42170: 'ArbitrumNova',
-  8453: 'Base',
-  84531: 'BaseGoerli',
-  7777777: 'Zora',
-  999: 'ZoraGoerli',
-  534353: 'ScrollAlpha',
-  59144: 'Linea'
+export const chainIdToNetwork: Record<number, keyof typeof BASE_URL> = Object.fromEntries(
+  (Object.entries(BASE_URL) as [keyof typeof BASE_URL, (typeof BASE_URL)[keyof typeof BASE_URL]][]).map(
+    ([name, value]) => [value.chainId, name]
+  )
+);
+
+export const getClientUrl = (chainId: string) => {
+  const network = chainIdToNetwork[parseInt(chainId, 10)];
+  const baseUrl = BASE_URL[network];
+  if (!baseUrl) {
+    throw new Error(`Unsupported chainId ${chainId}`);
+  }
+
+  return {
+    api: new URL(baseUrl.api),
+    ws: new URL(baseUrl.ws)
+  };
 };
 
 const getBaseUrl = (chainId: number | string) => {
-  chainId = typeof chainId === 'string' ? parseInt(chainId) : chainId;
-  const networkName = chainIdToNetwork[chainId];
-  if (!networkName) {
+
+  const network = getClientUrl(typeof chainId === 'string' ? chainId : `${chainId}`);
+  if (!network) {
     return null;
   }
-  return BASE_URL[networkName] || null;
+  return network.api.toString();
 };
 
 @Injectable()
@@ -556,6 +620,46 @@ export class ReservoirService {
       return res.body.collectionsSetId;
     } catch (err) {
       console.error('failed to create collection a reservoir collection set', chainId, collections, err);
+    }
+  }
+
+  public async getUserCollections(chainId: string, user: ParsedUserId, continuation: string, limit = 20) {
+    try {
+      const offset = continuation ? parseInt(continuation) : 0;
+      const res: Response<{ collections: { collection: ReservoirCollectionV6 & { floorAskPrice: any }, ownership: { tokenCount: string } }[] }> = await this.errorHandler(() => {
+        const baseUrl = getBaseUrl(chainId);
+        if (!baseUrl) {
+          throw new Error(`Unsupported network ${chainId}`);
+        }
+        return this.client.get(`users/${user.userAddress}/collections/v3`, {
+          prefixUrl: baseUrl,
+          responseType: 'json',
+          searchParams: {
+            offset,
+            limit
+          }
+        });
+      });
+
+      const collections = (res?.body?.collections ?? []).map((item) => {
+        const collection: UserCollection = {
+          address: item.collection.primaryContract,
+          numNFTs: parseInt(item.ownership.tokenCount, 10),
+          name: item.collection.name,
+          symbol: item.collection.name,
+          imageUrl: item.collection.image,
+          floorPrice: item.collection.floorAskPrice?.amount?.decimal ?? NaN,
+        };
+        return collection;
+      });
+
+      return {
+        data: collections,
+        continuation: `${offset + collections.length}`,
+        hasNextPage: collections.length === limit
+      };
+    } catch (err) {
+      console.error(`failed to get user collections from reservoir`, chainId, user.userAddress,)
     }
   }
 

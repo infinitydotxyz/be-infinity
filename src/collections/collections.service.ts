@@ -40,7 +40,7 @@ export default class CollectionsService {
     private reservoirService: ReservoirService,
     private paginationService: CursorService,
     protected matchingEngineService: MatchingEngineService
-  ) {}
+  ) { }
 
   private get defaultCollectionQueryOptions(): CollectionQueryOptions {
     return {
@@ -195,8 +195,8 @@ export default class CollectionsService {
       const image = isCollBid
         ? bid.criteria?.data?.collection?.image
         : isAttrBid
-        ? ''
-        : bid.criteria?.data?.token?.image;
+          ? ''
+          : bid.criteria?.data?.token?.image;
 
       if (!priceEth || !timestamp || !tokenTitle) {
         continue;
