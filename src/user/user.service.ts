@@ -252,11 +252,11 @@ export class UserService {
     const cursor = this.paginationService.decodeCursorToObject<Cursor>(query.cursor);
     const totalOwned = NaN;
 
-    const _fetchNfts = async (
+    const fetchNfts = async (
       pageKey: string,
       startAtToken?: string
     ): Promise<{ pageKey: string; nfts: NftDto[]; hasNextPage: boolean }> => {
-      const response = await this.reservoirService.getUserNfts(chainId, user, pageKey, 50);
+      const response = await this.reservoirService.getUserNfts(chainId, user, pageKey, 50, query.collections);
       let nfts = this.reservoirService.transform(chainId, response?.tokens || []);
       const nextPageKey = response?.continuation ?? '';
       if (startAtToken) {
@@ -280,7 +280,7 @@ export class UserService {
     while (nfts.length < limit && alchemyHasNextPage) {
       pageKey = nextPageKey;
       const startAtToken = pageNumber === 0 && cursor.startAtToken ? cursor.startAtToken : undefined;
-      const response = await _fetchNfts(pageKey, startAtToken);
+      const response = await fetchNfts(pageKey, startAtToken);
       nfts = [...nfts, ...response.nfts];
       alchemyHasNextPage = response.hasNextPage;
       nextPageKey = response.pageKey;

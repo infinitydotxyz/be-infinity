@@ -535,9 +535,33 @@ export class ReservoirService {
     }
   }
 
-  public async getUserNfts(chainId: string, user: ParsedUserId, continuation: string, limit: number) {
+  public async createCollectionSet(chainId: string, collections: string[]) {
     try {
-      const res: Response<ReservoirUserTokensResponse> = await this.errorHandler(() => {
+      const res: Response<{
+        collectionsSetId: string;
+      }> = await this.errorHandler(() => {
+        const baseUrl = getBaseUrl(chainId);
+        if (!baseUrl) {
+          throw new Error(`Unsupported network ${chainId}`);
+        }
+        return this.client.post(`collections-sets/v1`, {
+          prefixUrl: baseUrl,
+          responseType: 'json',
+          json: {
+            collections,
+          }
+        });
+      });
+
+      return res.body.collectionsSetId;
+    } catch (err) {
+      console.error('failed to create collection a reservoir collection set', chainId, collections, err);
+    }
+  }
+
+  public async getUserNfts(chainId: string, user: ParsedUserId, continuation: string, limit: number, collections: string[] = []) {
+    try {
+      const res: Response<ReservoirUserTokensResponse> = await this.errorHandler(async () => {
         const baseUrl = getBaseUrl(chainId);
         if (!baseUrl) {
           throw new Error(`Unsupported network ${chainId}`);
@@ -546,6 +570,15 @@ export class ReservoirService {
         const searchParams: any = {
           limit
         };
+        if (!!collections && collections.length === 1) {
+          searchParams.collection = collections[0];
+        } else if (!!collections && collections.length > 1) {
+          const collectionSetId = await this.createCollectionSet(chainId, collections);
+          if (!collectionSetId) {
+            throw new Error(`Failed to get collection set id`);
+          }
+          searchParams.collectionsSetId = collectionSetId;
+        }
         if (continuation) {
           searchParams.continuation = continuation;
         }
@@ -603,7 +636,7 @@ export class ReservoirService {
   private async errorHandler<T>(request: () => Promise<Response<T>>, maxAttempts = 3): Promise<Response<T>> {
     let attempt = 0;
 
-    for (;;) {
+    for (; ;) {
       attempt += 1;
 
       try {
