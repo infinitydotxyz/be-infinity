@@ -464,15 +464,6 @@ export interface ReservoirUserTokensResponse {
     ownership: {
       tokenCount: string;
       onSaleCount: string;
-      // "floorAsk": {
-      //   "id": null ,
-      //   "price": null,
-      //   "maker": null,
-      //   "kind": null,
-      //   "validFrom": null,
-      //   "validUntil": null,
-      //   "source": {}
-      // },
       acquiredAt: string;
     };
   }[];

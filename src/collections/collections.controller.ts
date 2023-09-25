@@ -47,7 +47,7 @@ export class CollectionsController {
     private collectionsService: CollectionsService,
     private statsService: StatsService,
     private firebaseService: FirebaseService
-  ) {}
+  ) { }
 
   getParsedCollection(id: string): ParsedCollection {
     const [chainIdOrSlug, address, startTokenId, endTokenId] = id.split(':').map((x) => x.toLowerCase());
@@ -85,10 +85,6 @@ export class CollectionsController {
     const queryBy = query.queryBy as mnemonicByParam;
 
     let collections: CollectionPeriodStatsContent[] = [];
-
-    // if (chainId === ChainId.Goerli) {
-    //   collections = await this.collectionsService.defaultGoerliColls();
-    // } else if (chainId === ChainId.Mainnet) {
     const trendingCollectionsRef = this.firebaseService.firestore.collection(
       firestoreConstants.TRENDING_COLLECTIONS_COLL
     );
@@ -106,10 +102,6 @@ export class CollectionsController {
 
     const result = await byPeriodCollectionRef.orderBy(orderBy, 'desc').get(); // default descending
     collections = result?.docs.map((doc) => doc.data() as CollectionPeriodStatsContent) ?? [];
-    // } else {
-    //   throw new BadRequestException('Invalid chainId', chainId);
-    // }
-
     const results: Partial<Collection>[] = [];
     for (const coll of collections) {
       const collection: Partial<Collection> = {
