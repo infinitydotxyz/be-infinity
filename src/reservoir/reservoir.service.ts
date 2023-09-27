@@ -709,11 +709,11 @@ export class ReservoirService {
       const nft: NftDto = {
         isFlagged: false,
         collectionAddress: token.contract,
-        collectionSlug: '',
+        collectionSlug: token.collection.name,
         collectionName: token.collection.name,
         hasBlueCheck: false,
         chainId: chainId as ChainId,
-        slug: '',
+        slug: token.name ?? '',
         tokenId: token.tokenId,
         minter: '',
         mintedAt: NaN,
