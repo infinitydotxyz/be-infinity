@@ -7,7 +7,7 @@ import {
   ReservoirDetailedTokensResponse,
   ReservoirTopCollectionOwnersResponse
 } from '@infinityxyz/lib/types/services/reservoir';
-import { getSearchFriendlyString, sleep } from '@infinityxyz/lib/utils';
+import { sleep } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import got, { Got, Response } from 'got/dist/source';
@@ -709,11 +709,11 @@ export class ReservoirService {
       const nft: NftDto = {
         isFlagged: false,
         collectionAddress: token.contract,
-        collectionSlug: getSearchFriendlyString(token.collection.name),
+        collectionSlug: '',
         collectionName: token.collection.name,
         hasBlueCheck: false,
         chainId: chainId as ChainId,
-        slug: getSearchFriendlyString(token.name || ''),
+        slug: '',
         tokenId: token.tokenId,
         minter: '',
         mintedAt: NaN,
