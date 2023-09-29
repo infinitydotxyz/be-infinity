@@ -3,8 +3,7 @@ import {
   CollectionOrder,
   CollectionStats,
   PreAggregatedSocialsStats,
-  StatsPeriod,
-  StatType
+  StatsPeriod
 } from '@infinityxyz/lib/types/core';
 import { ReservoirCollectionV5, ReservoirCollsSortBy } from '@infinityxyz/lib/types/services/reservoir';
 import { InfinityTweet, InfinityTwitterAccount } from '@infinityxyz/lib/types/services/twitter';
@@ -23,17 +22,6 @@ import { CollectionHistoricalSale } from './types';
 @Injectable()
 export class StatsService {
   private fsBatchHandler: FirestoreBatchHandler;
-  private readonly socialsGroup = firestoreConstants.COLLECTION_SOCIALS_STATS_COLL;
-  private readonly statsGroup = firestoreConstants.COLLECTION_STATS_COLL;
-
-  private socialsStats = [
-    StatType.DiscordFollowers,
-    StatType.DiscordFollowersPercentChange,
-    StatType.DiscordPresence,
-    StatType.DiscordPresencePercentChange,
-    StatType.TwitterFollowers,
-    StatType.TwitterFollowersPercentChange
-  ];
 
   constructor(
     private discordService: DiscordService,
