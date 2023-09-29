@@ -1,23 +1,19 @@
 import {
-  ChainId,
   Collection,
   CollectionOrder,
   CollectionStats,
   PreAggregatedSocialsStats,
-  StatsPeriod,
-  StatType
+  StatsPeriod
 } from '@infinityxyz/lib/types/core';
 import { ReservoirCollectionV5, ReservoirCollsSortBy } from '@infinityxyz/lib/types/services/reservoir';
 import { InfinityTweet, InfinityTwitterAccount } from '@infinityxyz/lib/types/services/twitter';
-import { firestoreConstants, getCollectionDocId, sleep } from '@infinityxyz/lib/utils';
+import { firestoreConstants, sleep } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
-import { AlchemyService } from 'alchemy/alchemy.service';
 import { ParsedCollection } from 'collections/collection-id.pipe';
 import { CollectionPeriodStatsContent } from 'common/types';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
 import { ReservoirService } from 'reservoir/reservoir.service';
 import { ReservoirCollectionV6 } from 'reservoir/types';
-import { ZoraService } from 'zora/zora.service';
 import { DiscordService } from '../discord/discord.service';
 import { FirebaseService } from '../firebase/firebase.service';
 import { TwitterService } from '../twitter/twitter.service';
@@ -26,45 +22,32 @@ import { CollectionHistoricalSale } from './types';
 @Injectable()
 export class StatsService {
   private fsBatchHandler: FirestoreBatchHandler;
-  private readonly socialsGroup = firestoreConstants.COLLECTION_SOCIALS_STATS_COLL;
-  private readonly statsGroup = firestoreConstants.COLLECTION_STATS_COLL;
-
-  private socialsStats = [
-    StatType.DiscordFollowers,
-    StatType.DiscordFollowersPercentChange,
-    StatType.DiscordPresence,
-    StatType.DiscordPresencePercentChange,
-    StatType.TwitterFollowers,
-    StatType.TwitterFollowersPercentChange
-  ];
 
   constructor(
     private discordService: DiscordService,
     private twitterService: TwitterService,
     private firebaseService: FirebaseService,
-    private zoraService: ZoraService,
     private reservoirService: ReservoirService,
-    private alchemyService: AlchemyService
   ) {
     this.fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
   }
 
-  async fetchAndStoreTopCollectionsFromReservoir(): Promise<void> {
-    const shouldFetchNew = await this.checkAndDeleteStaleTrendingCollections();
+  async fetchAndStoreTopCollectionsFromReservoir(chainIds: (number | string)[]): Promise<void> {
+    const staleChains = await this.checkAndDeleteStaleTrendingCollections(chainIds);
 
-    if (shouldFetchNew) {
-      console.log('Fetching new trending collections');
+    for (const staleChain of staleChains) {
+      console.log(`Fetching new trending collections for chain ${staleChain}`);
 
       const trendingCollectionsRef = this.firebaseService.firestore.collection(
         firestoreConstants.TRENDING_COLLECTIONS_COLL
       );
-      const byParamDoc = firestoreConstants.TRENDING_BY_VOLUME_DOC;
+      const byParamDoc = `${staleChain}:${firestoreConstants.TRENDING_BY_VOLUME_DOC}`;
       const byParamDocRef = trendingCollectionsRef.doc(byParamDoc);
 
-      const topColls1d = await this.fetchTop100Colls(ChainId.Mainnet, ReservoirCollsSortBy.ONE_DAY_VOLUME); // adi-todo: support other chains
-      const topColls7d = await this.fetchTop100Colls(ChainId.Mainnet, ReservoirCollsSortBy.SEVEN_DAY_VOLUME);
-      const topColls30d = await this.fetchTop100Colls(ChainId.Mainnet, ReservoirCollsSortBy.THIRTY_DAY_VOLUME);
-      const topCollsAllTime = await this.fetchTop100Colls(ChainId.Mainnet, ReservoirCollsSortBy.ALL_TIME_VOLUME);
+      const topColls1d = await this.fetchTop100Colls(staleChain, ReservoirCollsSortBy.ONE_DAY_VOLUME);
+      const topColls7d = await this.fetchTop100Colls(staleChain, ReservoirCollsSortBy.SEVEN_DAY_VOLUME);
+      const topColls30d = await this.fetchTop100Colls(staleChain, ReservoirCollsSortBy.THIRTY_DAY_VOLUME);
+      const topCollsAllTime = await this.fetchTop100Colls(staleChain, ReservoirCollsSortBy.ALL_TIME_VOLUME);
 
       const map = new Map<string, ReservoirCollectionV5[]>();
       map.set(StatsPeriod.Daily, topColls1d);
@@ -82,10 +65,7 @@ export class StatsService {
             continue;
           }
 
-          const collectionDocId = getCollectionDocId({
-            chainId: ChainId.Mainnet, // adi-todo: support other chains
-            collectionAddress: coll.primaryContract
-          });
+          const collectionDocId = `${staleChain}:${coll.primaryContract}`;
           const byPeriodCollectionRef = byParamDocRef.collection(key);
           const trendingCollectionDocRef = byPeriodCollectionRef.doc(collectionDocId);
 
@@ -113,7 +93,7 @@ export class StatsService {
               : coll.volumeChange?.['30day'];
 
           const dataToStore: CollectionPeriodStatsContent = {
-            chainId: ChainId.Mainnet, // adi-todo: support other chains
+            chainId: `${staleChain}`,
             contractAddress: coll.primaryContract,
             slug: coll.slug,
             period: key,
@@ -133,52 +113,55 @@ export class StatsService {
       }
 
       this.fsBatchHandler.flush().catch((err) => console.error('error saving trending colls', err));
-    } else {
-      console.log('No need to fetch new trending collections');
     }
   }
 
-  async checkAndDeleteStaleTrendingCollections(): Promise<boolean> {
+  async checkAndDeleteStaleTrendingCollections(chainIds: (number | string)[]): Promise<(number | string)[]> {
     const TRENDING_COLLS_TTS = 1000 * 60 * 30; // time to stale - 30 mins
     console.log('Checking and deleting stale trending collections');
     const db = this.firebaseService.firestore;
-    try {
-      const MAX_RETRY_ATTEMPTS = 5;
-      const bulkWriter = db.bulkWriter();
-      bulkWriter.onWriteError((error) => {
-        if (error.failedAttempts < MAX_RETRY_ATTEMPTS) {
-          return true;
-        } else {
-          console.log('Failed to delete document: ', error.documentRef.path);
-          return false;
-        }
-      });
+    const staleChains: (number | string)[] = [];
+    for (const chain of chainIds) {
+      try {
+        const MAX_RETRY_ATTEMPTS = 5;
+        const bulkWriter = db.bulkWriter();
+        bulkWriter.onWriteError((error) => {
+          if (error.failedAttempts < MAX_RETRY_ATTEMPTS) {
+            return true;
+          } else {
+            console.log('Failed to delete document: ', error.documentRef.path);
+            return false;
+          }
+        });
 
-      const trendingCollectionsRef = db.collection(firestoreConstants.TRENDING_COLLECTIONS_COLL);
-      const trendingCollectionsByVolumeDocRef = trendingCollectionsRef.doc(firestoreConstants.TRENDING_BY_VOLUME_DOC);
-      const lastUpdatedAt = (await trendingCollectionsByVolumeDocRef.get()).data()?.updatedAt;
-      if (typeof lastUpdatedAt !== 'number' || Date.now() - lastUpdatedAt > TRENDING_COLLS_TTS) {
-        await db.recursiveDelete(trendingCollectionsRef, bulkWriter);
-        await bulkWriter.flush();
-        console.log('Deleted old trending collections');
-        // add new updatedAt timestamp
-        await trendingCollectionsByVolumeDocRef.set({ updatedAt: Date.now() });
-        return true;
+        const trendingCollectionsRef = db.collection(firestoreConstants.TRENDING_COLLECTIONS_COLL);
+        const trendingCollectionsByVolumeDocRef = trendingCollectionsRef.doc(
+          `${chain}:${firestoreConstants.TRENDING_BY_VOLUME_DOC}`
+        );
+        const lastUpdatedAt = (await trendingCollectionsByVolumeDocRef.get()).data()?.updatedAt;
+        if (typeof lastUpdatedAt !== 'number' || Date.now() - lastUpdatedAt > TRENDING_COLLS_TTS) {
+          await db.recursiveDelete(trendingCollectionsByVolumeDocRef, bulkWriter);
+          await bulkWriter.flush();
+          console.log('Deleted old trending collections');
+          // add new updatedAt timestamp
+          await trendingCollectionsByVolumeDocRef.set({ updatedAt: Date.now() });
+          staleChains.push(chain);
+        }
+      } catch (err) {
+        console.error('Failed deleting old trending collection', err);
       }
-    } catch (err) {
-      console.error('Failed deleting old trending collection', err);
     }
-    return false;
+    return staleChains;
   }
 
-  async fetchTop100Colls(chainId: ChainId, period: ReservoirCollsSortBy): Promise<ReservoirCollectionV6[]> {
+  async fetchTop100Colls(chainId: number | string, period: ReservoirCollsSortBy): Promise<ReservoirCollectionV6[]> {
     const allResults: ReservoirCollectionV6[] = [];
     let continuation = '';
     for (let i = 0; i < 5; i++) {
       console.log('Sleeping for a few seconds to avoid 429s...');
       await sleep(1 * 1000); // to avoid 429s
       const data = await this.reservoirService.getTopCollsByVolume(
-        chainId,
+        `${chainId}`,
         period,
         20, // max reservoir limit is 20
         continuation

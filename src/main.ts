@@ -10,6 +10,7 @@ import { HttpExceptionFilter } from './http-exception.filter';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { API_KEY_HEADER, API_SECRET_HEADER } from 'auth/auth.constants';
 import { StatsService } from 'stats/stats.service';
+import { supportedchainIdsToNetwork } from 'reservoir/reservoir.service';
 
 function setup(app: INestApplication) {
   app.enableCors({
@@ -28,9 +29,10 @@ function setup(app: INestApplication) {
 
   // update trending collections on startup and every 30 minutes
   const statsService = app.get(StatsService);
-  statsService.fetchAndStoreTopCollectionsFromReservoir().catch(console.error);
+  const chains = Object.keys(supportedchainIdsToNetwork);
+  statsService.fetchAndStoreTopCollectionsFromReservoir(chains).catch(console.error);
   setInterval(async () => {
-    await statsService.fetchAndStoreTopCollectionsFromReservoir();
+    await statsService.fetchAndStoreTopCollectionsFromReservoir(chains);
   }, 30 * 60 * 1000);
 
   if (process.env.INFINITY_NODE_ENV === 'dev') {

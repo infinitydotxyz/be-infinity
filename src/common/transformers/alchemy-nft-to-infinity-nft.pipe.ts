@@ -12,7 +12,7 @@ import { getSearchFriendlyString } from '@infinityxyz/lib/utils';
 export class AlchemyNftToInfinityNft
   implements PipeTransform<{ alchemyNft: AlchemyNft; chainId: ChainId }[], Promise<Array<NftDto | null>>>
 {
-  constructor(private nftsService: NftsService) {}
+  constructor(private nftsService: NftsService) { }
 
   simpleTransform(alchemyNfts: { alchemyNft: AlchemyNft; chainId: ChainId }[]): Array<NftDto | null> {
     return alchemyNfts.map((nft, index) => {

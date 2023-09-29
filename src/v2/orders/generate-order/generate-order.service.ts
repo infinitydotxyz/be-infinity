@@ -48,7 +48,7 @@ export class GenerateOrderService {
     protected _ethereumService: EthereumService,
     protected _contractService: ContractService,
     protected _protocolOrdersService: ProtocolOrdersService
-  ) {}
+  ) { }
 
   async generateOrder(params: GenerateParams): Promise<SignerRequests> {
     switch (params.kind) {

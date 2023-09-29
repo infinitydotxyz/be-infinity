@@ -1,3 +1,7 @@
+import { ChainId } from '@infinityxyz/lib/types/core';
+import { TokenStandard } from '@infinityxyz/lib/types/core/Token';
+import { UserCollection } from '@infinityxyz/lib/types/dto';
+import { NftDto } from '@infinityxyz/lib/types/dto/collections/nfts/nft.dto';
 import {
   ReservoirCollsSortBy,
   ReservoirDetailedTokensResponse,
@@ -8,16 +12,167 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import got, { Got, Response } from 'got/dist/source';
 import { EnvironmentVariables } from 'types/environment-variables.interface';
+import { ParsedUserId } from 'user/parser/parsed-user-id';
 import { gotErrorHandler } from '../utils/got';
 import {
   ReservoirCollectionSearch,
   ReservoirCollectionsV6,
+  ReservoirCollectionV6,
   ReservoirOrderDepth,
   ReservoirOrders,
   ReservoirSales,
   ReservoirTokensResponseV6,
+  ReservoirUserTokensResponse,
   ReservoirUserTopOffers
 } from './types';
+
+const BASE_URL = {
+  Ethereum: {
+    chainId: 1,
+    api: 'https://api.reservoir.tools',
+    ws: 'wss://ws.reservoir.tools'
+  },
+  Goerli: {
+    chainId: 5,
+    api: 'https://api-goerli.reservoir.tools',
+    ws: 'wss://ws-goerli.reservoir.tools'
+  },
+  Sepolia: {
+    chainId: 6,
+    api: 'https://api-sepolia.reservoir.tools',
+    ws: 'wss://ws-sepolia.reservoir.tools'
+  },
+  Polygon: {
+    chainId: 137,
+    api: 'https://api-polygon.reservoir.tools',
+    ws: 'wss://ws-polygon.reservoir.tools'
+  },
+  Mumbai: {
+    chainId: 80001,
+    api: 'https://api-mumbai.reservoir.tools',
+    ws: 'wss://ws-mumbai.reservoir.tools'
+  },
+  BNB: {
+    chainId: 56,
+    api: 'https://api-bsc.reservoir.tools',
+    ws: 'wss://ws-bsc.reservoir.tools'
+  },
+  Arbitrum: {
+    chainId: 42161,
+    api: 'https://api-arbitrum.reservoir.tools',
+    ws: 'wss://ws-arbitrum.reservoir.tools'
+  },
+  Optimism: {
+    chainId: 10,
+    api: 'https://api-optimism.reservoir.tools',
+    ws: 'wss://ws-optimism.reservoir.tools'
+  },
+  ArbitrumNova: {
+    chainId: 42170,
+    api: 'https://api-arbitrum-nova.reservoir.tools',
+    ws: 'wss://ws-arbitrum-nova.reservoir.tools'
+  },
+  Base: {
+    chainId: 8453,
+    api: 'https://api-base.reservoir.tools',
+    ws: 'wss://ws-base.reservoir.tools'
+  },
+  BaseGoerli: {
+    chainId: 84531,
+    api: 'https://api-base-goerli.reservoir.tools',
+    ws: 'wss://ws-base-goerli.reservoir.tools'
+  },
+  Zora: {
+    chainId: 7777777,
+    api: 'https://api-zora.reservoir.tools',
+    ws: 'wss://ws-zora.reservoir.tools'
+  },
+  ZoraGoerli: {
+    chainId: 999,
+    api: 'https://api-zora-testnet.reservoir.tools',
+    ws: 'wss://ws-zora-testnet.reservoir.tools'
+  },
+  ScrollAlpha: {
+    chainId: 534353,
+    api: 'https://api-scroll-alpha.reservoir.tools',
+    ws: 'wss://ws-scroll-alpha.reservoir.tools'
+  },
+  Linea: {
+    chainId: 59144,
+    api: 'https://api-linea.reservoir.tools',
+    ws: 'wss://ws-linea.reservoir.tools'
+  }
+};
+
+const SUPPORTED_BASE_URL = {
+  Ethereum: {
+    chainId: 1,
+    api: 'https://api.reservoir.tools',
+    ws: 'wss://ws.reservoir.tools'
+  },
+  Polygon: {
+    chainId: 137,
+    api: 'https://api-polygon.reservoir.tools',
+    ws: 'wss://ws-polygon.reservoir.tools'
+  },
+  Arbitrum: {
+    chainId: 42161,
+    api: 'https://api-arbitrum.reservoir.tools',
+    ws: 'wss://ws-arbitrum.reservoir.tools'
+  },
+  Optimism: {
+    chainId: 10,
+    api: 'https://api-optimism.reservoir.tools',
+    ws: 'wss://ws-optimism.reservoir.tools'
+  },
+  Base: {
+    chainId: 8453,
+    api: 'https://api-base.reservoir.tools',
+    ws: 'wss://ws-base.reservoir.tools'
+  },
+  Zora: {
+    chainId: 7777777,
+    api: 'https://api-zora.reservoir.tools',
+    ws: 'wss://ws-zora.reservoir.tools'
+  }
+};
+
+export const chainIdToNetwork: Record<number, keyof typeof BASE_URL> = Object.fromEntries(
+  (Object.entries(BASE_URL) as [keyof typeof BASE_URL, (typeof BASE_URL)[keyof typeof BASE_URL]][]).map(
+    ([name, value]) => [value.chainId, name]
+  )
+);
+
+export const supportedchainIdsToNetwork: Record<number, keyof typeof SUPPORTED_BASE_URL> = Object.fromEntries(
+  (
+    Object.entries(SUPPORTED_BASE_URL) as [
+      keyof typeof SUPPORTED_BASE_URL,
+      typeof SUPPORTED_BASE_URL[keyof typeof SUPPORTED_BASE_URL]
+    ][]
+  ).map(([name, value]) => [value.chainId, name])
+);
+
+export const getClientUrl = (chainId: string) => {
+  const network = chainIdToNetwork[parseInt(chainId, 10)];
+  const baseUrl = BASE_URL[network];
+  if (!baseUrl) {
+    throw new Error(`Unsupported chainId ${chainId}`);
+  }
+
+  return {
+    api: new URL(baseUrl.api),
+    ws: new URL(baseUrl.ws)
+  };
+};
+
+const getBaseUrl = (chainId: number | string) => {
+
+  const network = getClientUrl(typeof chainId === 'string' ? chainId : `${chainId}`);
+  if (!network) {
+    return null;
+  }
+  return network.api.toString();
+};
 
 @Injectable()
 export class ReservoirService {
@@ -68,8 +223,14 @@ export class ReservoirService {
           }
         }
 
+        const baseUrl = getBaseUrl(chainId);
+        if (!baseUrl) {
+          throw new Error(`Unsupported network ${chainId}`);
+        }
+
         return this.client.get(`search/collections/v2`, {
           searchParams,
+          prefixUrl: baseUrl,
           responseType: 'json'
         });
       });
@@ -106,10 +267,14 @@ export class ReservoirService {
           searchParams.continuation = continuation;
         }
 
+        const baseUrl = getBaseUrl(chainId);
+        if (!baseUrl) {
+          throw new Error(`Unsupported network ${chainId}`);
+        }
         const endpoint = 'sales/v6';
-
         return this.client.get(endpoint, {
           searchParams,
+          prefixUrl: baseUrl,
           responseType: 'json'
         });
       });
@@ -136,6 +301,7 @@ export class ReservoirService {
     try {
       const collAddressRange = collectionAddress?.split(':');
       const isTokenRange = collAddressRange?.length === 3;
+      const isOpenseaSharedStorefront = collAddressRange?.length === 2 && collAddressRange[0] === '0x495f947276749ce646f68ac8c248420045cb7b5e';
 
       const res: Response<ReservoirOrders> = await this.errorHandler(() => {
         const searchParams: any = {
@@ -145,12 +311,16 @@ export class ReservoirService {
           sortBy: sortBy ? sortBy : 'price'
         };
 
-        if (collectionAddress && !isTokenRange && !collBidsOnly && !tokenId) {
+        if (collectionAddress && !isTokenRange && !collBidsOnly && !tokenId && !isOpenseaSharedStorefront) {
           searchParams.contracts = collectionAddress;
         }
 
         if (collectionAddress && isTokenRange && !collBidsOnly && !tokenId) {
           searchParams.tokenSetId = 'range:' + collectionAddress;
+        }
+
+        if (collectionAddress && isOpenseaSharedStorefront && !isTokenRange && !collBidsOnly && !tokenId) {
+          searchParams.tokenSetId = 'dynamic:collection-non-flagged:' + collectionAddress;
         }
 
         if (user) {
@@ -173,8 +343,13 @@ export class ReservoirService {
           }
         }
 
+        const baseUrl = getBaseUrl(chainId);
+        if (!baseUrl) {
+          throw new Error(`Unsupported network ${chainId}`);
+        }
         return this.client.get(endpoint, {
           searchParams,
+          prefixUrl: baseUrl,
           responseType: 'json'
         });
       });
@@ -225,8 +400,13 @@ export class ReservoirService {
 
         const endpoint = `orders/users/${user}/top-bids/v4`;
 
+        const baseUrl = getBaseUrl(chainId);
+        if (!baseUrl) {
+          throw new Error(`Unsupported network ${chainId}`);
+        }
         return this.client.get(endpoint, {
           searchParams,
+          prefixUrl: baseUrl,
           responseType: 'json'
         });
       });
@@ -267,8 +447,13 @@ export class ReservoirService {
           searchParams.collection = collectionAddress;
         }
 
+        const baseUrl = getBaseUrl(chainId);
+        if (!baseUrl) {
+          throw new Error(`Unsupported network ${chainId}`);
+        }
         return this.client.get(`orders/depth/v1`, {
           searchParams,
+          prefixUrl: baseUrl,
           responseType: 'json'
         });
       });
@@ -285,7 +470,11 @@ export class ReservoirService {
         const body = {
           collection: collectionAddress
         };
-        return this.client.post(`collections/refresh/v1`, { json: body, responseType: 'json' });
+        const baseUrl = getBaseUrl(chainId);
+        if (!baseUrl) {
+          throw new Error(`Unsupported network ${chainId}`);
+        }
+        return this.client.post(`collections/refresh/v1`, { json: body, responseType: 'json', prefixUrl: baseUrl });
       });
     } catch (e) {
       console.error('Failed to enqueue collection for reindexing on reservoir', chainId, collectionAddress, e);
@@ -308,8 +497,13 @@ export class ReservoirService {
         if (continuation) {
           searchParams.continuation = continuation;
         }
+        const baseUrl = getBaseUrl(chainId);
+        if (!baseUrl) {
+          throw new Error(`Unsupported network ${chainId}`);
+        }
         return this.client.get(`collections/v6`, {
           searchParams,
+          prefixUrl: baseUrl,
           responseType: 'json'
         });
       });
@@ -330,6 +524,10 @@ export class ReservoirService {
         let searchParams: any = {
           includeSalesCount: true
         };
+        const baseUrl = getBaseUrl(chainId);
+        if (!baseUrl) {
+          throw new Error(`Unsupported network ${chainId}`);
+        }
 
         if (slug) {
           if (slug === 'ens') {
@@ -351,6 +549,7 @@ export class ReservoirService {
 
         return this.client.get(`collections/v6`, {
           searchParams,
+          prefixUrl: baseUrl,
           responseType: 'json'
         });
       });
@@ -373,8 +572,13 @@ export class ReservoirService {
           includeTopBid: true,
           includeAttributes: true
         };
+        const baseUrl = getBaseUrl(chainId);
+        if (!baseUrl) {
+          throw new Error(`Unsupported network ${chainId}`);
+        }
         return this.client.get(`tokens/v6`, {
           searchParams,
+          prefixUrl: baseUrl,
           responseType: 'json'
         });
       });
@@ -400,8 +604,13 @@ export class ReservoirService {
         if (continuation) {
           searchParams.continuation = continuation;
         }
+        const baseUrl = getBaseUrl(chainId);
+        if (!baseUrl) {
+          throw new Error(`Unsupported network ${chainId}`);
+        }
         return this.client.get(`tokens/details/v4`, {
           searchParams,
+          prefixUrl: baseUrl,
           responseType: 'json'
         });
       });
@@ -420,8 +629,13 @@ export class ReservoirService {
           offset,
           limit
         };
+        const baseUrl = getBaseUrl(chainId);
+        if (!baseUrl) {
+          throw new Error(`Unsupported network ${chainId}`);
+        }
         return this.client.get(`owners/v1`, {
           searchParams,
+          prefixUrl: baseUrl,
           responseType: 'json'
         });
       });
@@ -432,10 +646,148 @@ export class ReservoirService {
     }
   }
 
+  public async createCollectionSet(chainId: string, collections: string[]) {
+    try {
+      const res: Response<{
+        collectionsSetId: string;
+      }> = await this.errorHandler(() => {
+        const baseUrl = getBaseUrl(chainId);
+        if (!baseUrl) {
+          throw new Error(`Unsupported network ${chainId}`);
+        }
+        return this.client.post(`collections-sets/v1`, {
+          prefixUrl: baseUrl,
+          responseType: 'json',
+          json: {
+            collections,
+          }
+        });
+      });
+
+      return res.body.collectionsSetId;
+    } catch (err) {
+      console.error('failed to create collection a reservoir collection set', chainId, collections, err);
+    }
+  }
+
+  public async getUserCollections(chainId: string, user: ParsedUserId, continuation: string, limit = 20) {
+    try {
+      const offset = continuation ? parseInt(continuation) : 0;
+      const res: Response<{ collections: { collection: ReservoirCollectionV6 & { floorAskPrice: any }, ownership: { tokenCount: string } }[] }> = await this.errorHandler(() => {
+        const baseUrl = getBaseUrl(chainId);
+        if (!baseUrl) {
+          throw new Error(`Unsupported network ${chainId}`);
+        }
+        return this.client.get(`users/${user.userAddress}/collections/v3`, {
+          prefixUrl: baseUrl,
+          responseType: 'json',
+          searchParams: {
+            offset,
+            limit
+          }
+        });
+      });
+
+      const collections = (res?.body?.collections ?? []).map((item) => {
+        const collection: UserCollection = {
+          address: item.collection.primaryContract,
+          numNFTs: parseInt(item.ownership.tokenCount, 10),
+          name: item.collection.name,
+          symbol: item.collection.name,
+          imageUrl: item.collection.image,
+          floorPrice: item.collection.floorAskPrice?.amount?.decimal ?? NaN,
+        };
+        return collection;
+      });
+
+      return {
+        data: collections,
+        continuation: `${offset + collections.length}`,
+        hasNextPage: collections.length === limit
+      };
+    } catch (err) {
+      console.error(`failed to get user collections from reservoir`, chainId, user.userAddress,)
+    }
+  }
+
+  public async getUserNfts(chainId: string, user: ParsedUserId, continuation: string, limit: number, collections: string[] = []) {
+    try {
+      const res: Response<ReservoirUserTokensResponse> = await this.errorHandler(async () => {
+        const baseUrl = getBaseUrl(chainId);
+        if (!baseUrl) {
+          throw new Error(`Unsupported network ${chainId}`);
+        }
+
+        const searchParams: any = {
+          limit
+        };
+        if (!!collections && collections.length === 1) {
+          searchParams.collection = collections[0];
+        } else if (!!collections && collections.length > 1) {
+          const collectionSetId = await this.createCollectionSet(chainId, collections);
+          if (!collectionSetId) {
+            throw new Error(`Failed to get collection set id`);
+          }
+          searchParams.collectionsSetId = collectionSetId;
+        }
+        if (continuation) {
+          searchParams.continuation = continuation;
+        }
+        return this.client.get(`users/${user.userAddress}/tokens/v7`, {
+          searchParams,
+          prefixUrl: baseUrl,
+          responseType: 'json'
+        });
+      });
+
+      return res.body;
+    } catch (err) {
+      console.error('failed to get user tokens from reservoir', chainId, user.userAddress, err);
+    }
+  }
+
+  transform(chainId: string, nfts: ReservoirUserTokensResponse['tokens']): Array<NftDto | null> {
+    return nfts.map(({ token }) => {
+      const metadata = {
+        name: token.name || '',
+        image: token.image || '',
+        attributes: []
+      };
+      const nft: NftDto = {
+        isFlagged: false,
+        collectionAddress: token.contract,
+        collectionSlug: token.collection.name,
+        collectionName: token.collection.name,
+        hasBlueCheck: false,
+        chainId: chainId as ChainId,
+        slug: token.name ?? '',
+        tokenId: token.tokenId,
+        minter: '',
+        mintedAt: NaN,
+        mintTxHash: '',
+        mintPrice: NaN,
+        metadata: metadata,
+        numTraitTypes: metadata.attributes.length ?? 0,
+        updatedAt: NaN,
+        tokenUri: token.media || '',
+        rarityRank: NaN,
+        rarityScore: NaN,
+        image: {
+          url: token.image || token.media || '',
+          originalUrl: token.media || token.image || '',
+          updatedAt: NaN
+        },
+        state: undefined,
+        tokenStandard: token.kind as TokenStandard
+      };
+      return nft;
+    });
+  }
+
   private async errorHandler<T>(request: () => Promise<Response<T>>, maxAttempts = 3): Promise<Response<T>> {
     let attempt = 0;
 
-    for (;;) {
+    for (; ;) {
       attempt += 1;
 
       try {

@@ -222,7 +222,7 @@ export class OpenseaService {
   private async errorHandler<T>(request: () => Promise<Response<T>>, maxAttempts = 3): Promise<Response<T>> {
     let attempt = 0;
 
-    for (;;) {
+    for (; ;) {
       attempt += 1;
 
       try {
