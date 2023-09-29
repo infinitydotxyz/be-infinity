@@ -301,6 +301,7 @@ export class ReservoirService {
     try {
       const collAddressRange = collectionAddress?.split(':');
       const isTokenRange = collAddressRange?.length === 3;
+      const isOpenseaSharedStorefront = collAddressRange?.length === 2 && collAddressRange[0] === '0x495f947276749ce646f68ac8c248420045cb7b5e';
 
       const res: Response<ReservoirOrders> = await this.errorHandler(() => {
         const searchParams: any = {
@@ -310,12 +311,16 @@ export class ReservoirService {
           sortBy: sortBy ? sortBy : 'price'
         };
 
-        if (collectionAddress && !isTokenRange && !collBidsOnly && !tokenId) {
+        if (collectionAddress && !isTokenRange && !collBidsOnly && !tokenId && !isOpenseaSharedStorefront) {
           searchParams.contracts = collectionAddress;
         }
 
         if (collectionAddress && isTokenRange && !collBidsOnly && !tokenId) {
           searchParams.tokenSetId = 'range:' + collectionAddress;
+        }
+
+        if (collectionAddress && isOpenseaSharedStorefront && !isTokenRange && !collBidsOnly && !tokenId) {
+          searchParams.tokenSetId = 'dynamic:collection-non-flagged:' + collectionAddress;
         }
 
         if (user) {

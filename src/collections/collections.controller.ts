@@ -177,7 +177,14 @@ export class CollectionsController {
   @ApiInternalServerErrorResponse({ description: ResponseDescription.InternalServerError, type: ErrorResponseDto })
   @UseInterceptors(new CacheControlInterceptor({ maxAge: 60 * 1 }))
   async getOne(@Param('id') id: string): Promise<Collection & Partial<CollectionStats>> {
-    const parsedCollection = this.getParsedCollection(id);
+    const [chainId, slug, startTokenId, endTokenId] = id.split(':').map((x) => x.toLowerCase());
+    const parsedCollection = {
+      chainId,
+      address: '',
+      slug,
+      startTokenId,
+      endTokenId
+    };
     const collection = await this.collectionsService.getCollectionByAddressOrSlug(parsedCollection);
 
     if (!collection) {
