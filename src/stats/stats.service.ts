@@ -10,13 +10,11 @@ import { ReservoirCollectionV5, ReservoirCollsSortBy } from '@infinityxyz/lib/ty
 import { InfinityTweet, InfinityTwitterAccount } from '@infinityxyz/lib/types/services/twitter';
 import { firestoreConstants, sleep } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
-import { AlchemyService } from 'alchemy/alchemy.service';
 import { ParsedCollection } from 'collections/collection-id.pipe';
 import { CollectionPeriodStatsContent } from 'common/types';
 import FirestoreBatchHandler from 'firebase/firestore-batch-handler';
 import { ReservoirService } from 'reservoir/reservoir.service';
 import { ReservoirCollectionV6 } from 'reservoir/types';
-import { ZoraService } from 'zora/zora.service';
 import { DiscordService } from '../discord/discord.service';
 import { FirebaseService } from '../firebase/firebase.service';
 import { TwitterService } from '../twitter/twitter.service';
@@ -41,9 +39,7 @@ export class StatsService {
     private discordService: DiscordService,
     private twitterService: TwitterService,
     private firebaseService: FirebaseService,
-    private zoraService: ZoraService,
     private reservoirService: ReservoirService,
-    private alchemyService: AlchemyService
   ) {
     this.fsBatchHandler = new FirestoreBatchHandler(this.firebaseService);
   }
