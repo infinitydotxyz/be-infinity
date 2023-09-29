@@ -12,6 +12,7 @@ import { PaginationModule } from 'pagination/pagination.module';
 import { RewardsModule } from 'rewards/rewards.module';
 import { ReferralsModule } from './referrals/referrals.module';
 import { ApiUserModule } from 'api-user/api-user.module';
+import { ReservoirModule } from 'reservoir/reservoir.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { ApiUserModule } from 'api-user/api-user.module';
     PaginationModule,
     AlchemyModule,
     RewardsModule,
+    ReservoirModule,
     ReferralsModule,
     ApiUserModule
   ],

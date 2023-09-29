@@ -3,7 +3,7 @@ import { CurationLedgerEvent, CurationVotesAdded } from '@infinityxyz/lib/types/
 import { UserCuratedCollectionDto } from '@infinityxyz/lib/types/dto';
 import { CurationQuotaDto } from '@infinityxyz/lib/types/dto/collections/curation/curation-quota.dto';
 import { UserStakeDto } from '@infinityxyz/lib/types/dto/user';
-import { firestoreConstants, formatEth, getTokenAddressByStakerAddress, getTotalStaked } from '@infinityxyz/lib/utils';
+import { firestoreConstants, getTokenAddressByStakerAddress, getTotalStaked } from '@infinityxyz/lib/utils';
 import { Injectable } from '@nestjs/common';
 import { ParsedCollectionId } from 'collections/collection-id.pipe';
 import { StakerContractService } from 'ethereum/contracts/staker.contract.service';
@@ -263,40 +263,6 @@ export class CurationService {
 
   async getTokenBalance(user: ParsedUserId) {
     return this.tokenContractService.getTokenBalance(user);
-  }
-
-  getUserRewards(user: ParsedUserId): { totalProtocolFeesAccruedEth: number; totalProtocolFeesAccruedWei: string } {
-    const totalProtocolFeesAccruedWei = '0';
-    return {
-      totalProtocolFeesAccruedWei,
-      totalProtocolFeesAccruedEth: formatEth(totalProtocolFeesAccruedWei)
-    };
-
-    // const stakerContractChainId = user.userChainId;
-    // const stakingContract = this.getStakerAddress(stakerContractChainId);
-    // const stakingContractPeriods = this.firebaseService.firestore
-    //   .collectionGroup('stakerContractCurationPeriodsUsers')
-    //   .where('metadata.userAddress', '==', user.userAddress)
-    //   .where(
-    //     'metadata.stakerContractAddress',
-    //     '==',
-    //     stakingContract
-    //   ) as FirebaseFirestore.Query<StakerContractPeriodUserDoc>;
-
-    // const stream = streamQuery(stakingContractPeriods, (item, ref) => [ref], { pageSize: 300 });
-
-    // const results: StakerContractPeriodUserDoc[] = [];
-    // for await (const item of stream) {
-    //   results.push(item);
-    // }
-
-    // const protocolFeeStats = calculateStatsBigInt(results, (item) => BigInt(item.stats.periodProtocolFeesAccruedWei));
-
-    // const totalProtocolFeesAccruedWei = protocolFeeStats.sum.toString();
-    // return {
-    //   totalProtocolFeesAccruedWei,
-    //   totalProtocolFeesAccruedEth: formatEth(totalProtocolFeesAccruedWei)
-    // };
   }
 
   /**
