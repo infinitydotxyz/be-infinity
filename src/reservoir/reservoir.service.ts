@@ -104,10 +104,52 @@ const BASE_URL = {
   }
 };
 
+const SUPPORTED_BASE_URL = {
+  Ethereum: {
+    chainId: 1,
+    api: 'https://api.reservoir.tools',
+    ws: 'wss://ws.reservoir.tools'
+  },
+  Polygon: {
+    chainId: 137,
+    api: 'https://api-polygon.reservoir.tools',
+    ws: 'wss://ws-polygon.reservoir.tools'
+  },
+  Arbitrum: {
+    chainId: 42161,
+    api: 'https://api-arbitrum.reservoir.tools',
+    ws: 'wss://ws-arbitrum.reservoir.tools'
+  },
+  Optimism: {
+    chainId: 10,
+    api: 'https://api-optimism.reservoir.tools',
+    ws: 'wss://ws-optimism.reservoir.tools'
+  },
+  Base: {
+    chainId: 8453,
+    api: 'https://api-base.reservoir.tools',
+    ws: 'wss://ws-base.reservoir.tools'
+  },
+  Zora: {
+    chainId: 7777777,
+    api: 'https://api-zora.reservoir.tools',
+    ws: 'wss://ws-zora.reservoir.tools'
+  }
+};
+
 export const chainIdToNetwork: Record<number, keyof typeof BASE_URL> = Object.fromEntries(
   (Object.entries(BASE_URL) as [keyof typeof BASE_URL, (typeof BASE_URL)[keyof typeof BASE_URL]][]).map(
     ([name, value]) => [value.chainId, name]
   )
+);
+
+export const supportedchainIdsToNetwork: Record<number, keyof typeof SUPPORTED_BASE_URL> = Object.fromEntries(
+  (
+    Object.entries(SUPPORTED_BASE_URL) as [
+      keyof typeof SUPPORTED_BASE_URL,
+      typeof SUPPORTED_BASE_URL[keyof typeof SUPPORTED_BASE_URL]
+    ][]
+  ).map(([name, value]) => [value.chainId, name])
 );
 
 export const getClientUrl = (chainId: string) => {
