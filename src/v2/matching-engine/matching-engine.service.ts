@@ -50,6 +50,34 @@ export class MatchingEngineService {
       [ChainId.Polygon]: {
         apiKey: _config.get('POLYGON_MATCHING_ENGINE_API_KEY') ?? '',
         baseUrl: _config.get('POLYGON_MATCHING_ENGINE_API_URL') ?? ''
+      },
+      [ChainId.Arbitrum]: {
+        apiKey: '',
+        baseUrl: ''
+      },
+      [ChainId.Optimism]: {
+        apiKey: '',
+        baseUrl: ''
+      },
+      [ChainId.Base]: {
+        apiKey: '',
+        baseUrl: ''
+      },
+      [ChainId.PolygonZKEVM]: {
+        apiKey: '',
+        baseUrl: ''
+      },
+      [ChainId.ArbitrumNova]: {
+        apiKey: '',
+        baseUrl: ''
+      },
+      [ChainId.Zora]: {
+        apiKey: '',
+        baseUrl: ''
+      },
+      [ChainId.Linea]: {
+        apiKey: '',
+        baseUrl: ''
       }
     };
 
@@ -65,6 +93,34 @@ export class MatchingEngineService {
       [ChainId.Polygon]: {
         apiKey: _config.get('POLYGON_EXECUTION_ENGINE_API_KEY') ?? '',
         baseUrl: _config.get('POLYGON_EXECUTION_ENGINE_API_URL') ?? ''
+      },
+      [ChainId.Arbitrum]: {
+        apiKey: '',
+        baseUrl: ''
+      },
+      [ChainId.Optimism]: {
+        apiKey: '',
+        baseUrl: ''
+      },
+      [ChainId.Base]: {
+        apiKey: '',
+        baseUrl: ''
+      },
+      [ChainId.PolygonZKEVM]: {
+        apiKey: '',
+        baseUrl: ''
+      },
+      [ChainId.ArbitrumNova]: {
+        apiKey: '',
+        baseUrl: ''
+      },
+      [ChainId.Zora]: {
+        apiKey: '',
+        baseUrl: ''
+      },
+      [ChainId.Linea]: {
+        apiKey: '',
+        baseUrl: ''
       }
     };
   }

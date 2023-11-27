@@ -16,6 +16,10 @@ export interface EnvironmentVariables {
   alchemyJsonRpcEthMainnet: string;
   alchemyJsonRpcPolygonMainnet: string;
   alchemyJsonRpcEthGoerli: string;
+  alchemyJsonRpcEthArbitrum: string;
+  alchemyJsonRpcEthOptimism: string;
+  alchemyJsonRpcEthBase: string;
+  alchemyJsonRpcEthPolygonZkevm: string;
   GEM_API_KEY: string;
   OPENSEA_API_KEYS: string[];
   RESERVOIR_API_KEY: string;
