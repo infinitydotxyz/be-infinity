@@ -101,6 +101,11 @@ const BASE_URL = {
     chainId: 59144,
     api: 'https://api-linea.reservoir.tools',
     ws: 'wss://ws-linea.reservoir.tools'
+  },
+  PolygonZKEVM: {
+    chainId: 1101,
+    api: 'https://api-polygon-zkevm.reservoir.tools',
+    ws: 'wss://ws-polygon-zkevm.reservoir.tools'
   }
 };
 
@@ -134,6 +139,11 @@ const SUPPORTED_BASE_URL = {
     chainId: 7777777,
     api: 'https://api-zora.reservoir.tools',
     ws: 'wss://ws-zora.reservoir.tools'
+  },
+  PolygonZKEVM: {
+    chainId: 1101,
+    api: 'https://api-polygon-zkevm.reservoir.tools',
+    ws: 'wss://ws-polygon-zkevm.reservoir.tools'
   }
 };
 

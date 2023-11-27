@@ -24,15 +24,30 @@ export class EthereumService {
     const mainnetUrl = this.configService.get('alchemyJsonRpcEthMainnet');
     const polygonUrl = this.configService.get('alchemyJsonRpcPolygonMainnet');
     const goerliUrl = this.configService.get('alchemyJsonRpcEthGoerli');
+    const arbitrumUrl = this.configService.get('alchemyJsonRpcEthArbitrum');
+    const optimismUrl = this.configService.get('alchemyJsonRpcEthOptimism');
+    const baseEthUrl = this.configService.get('alchemyJsonRpcEthBase');
+    const polygonZkevmUrl = this.configService.get('alchemyJsonRpcEthPolygonZkevm');
+
     const providerUrlByChainId = {
       [ChainId.Mainnet]: mainnetUrl,
       [ChainId.Polygon]: polygonUrl,
-      [ChainId.Goerli]: goerliUrl
+      [ChainId.Goerli]: goerliUrl,
+      [ChainId.Arbitrum]: arbitrumUrl,
+      [ChainId.Optimism]: optimismUrl,
+      [ChainId.Base]: baseEthUrl,
+      [ChainId.PolygonZKEVM]: polygonZkevmUrl,
+      [ChainId.ArbitrumNova]: null,
+      [ChainId.Zora]: null,
+      [ChainId.Linea]: null,
     };
 
     for (const chainId of Object.values(ChainId)) {
       const providerUrl = providerUrlByChainId[chainId];
       if (!providerUrl) {
+        if (chainId === ChainId.ArbitrumNova || chainId === ChainId.Zora || chainId === ChainId.Linea) {
+          continue;
+        }
         throw new Error(`Provider is not configured for chainId: ${chainId}`);
       }
       this._providers.set(chainId, new ethers.providers.StaticJsonRpcProvider(providerUrl));
